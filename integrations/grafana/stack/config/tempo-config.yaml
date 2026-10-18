@@ -32,7 +32,9 @@ live_store:
     ingestion_time_range_slack: 720h
 
 block_builder:
-  consume_cycle_duration: 1m
+  # Flush blocks to the backend every 30 seconds rather than every 5 minutes, so a search over a
+  # past time range, which only looks in the backend, finds new traces soon after seeding.
+  consume_cycle_duration: 30s
   wal:
     path: /data/tempo/block-builder/traces
     ingestion_time_range_slack: 720h
@@ -40,7 +42,8 @@ block_builder:
 storage:
   trace:
     backend: local
-    blocklist_poll: 1m
+    # Notice new backend blocks quickly for the same reason.
+    blocklist_poll: 10s
     wal:
       path: /data/tempo/wal
       ingestion_time_range_slack: 720h

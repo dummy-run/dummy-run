@@ -37,7 +37,7 @@ func (c Config) Findings() *dashboard.DashboardBuilder {
 		lokiFindings+personaOnly+` | dummyrun_finding_severity="blocker" | dummyrun_finding_verdict="confirmed"`, 18, 7))
 
 	b.WithRow(dashboard.NewRowBuilder("All findings").Id(ids.id()))
-	b.WithPanel(c.distinctFindings(ids.id(), lokiFindings+personaOnly, 24, 11))
+	b.WithPanel(c.distinctFindings(ids.id(), lokiFindings+personaOnly, 24, 14))
 	b.WithPanel(findingsOverTime(prom, ids.id(), "Confirmed findings by kind over time", "Confirmed findings in each interval, stacked by kind.",
 		"dummyrun_kind", nil, nil, 12, 8).ColorScheme(paletteColour()))
 	b.WithPanel(findingsOverTime(prom, ids.id(), "Confirmed findings by severity over time", "Confirmed findings in each interval, stacked by severity.",
@@ -96,8 +96,9 @@ func (c Config) distinctFindings(id uint32, expr string, w, h uint32) *table.Pan
 		WithTransformation(sortBy("Runs", true)).
 		CellHeight(common.TableCellHeightSm).
 		OverrideByName("Finding", []dashboard.DynamicConfigValue{
-			fieldLink("Show these findings in Explore", exploreLokiURL(c.LokiUID, lokiFindings+` | dummyrun_finding_id="VALUE"`)),
-			{Id: "custom.width", Value: 220},
+			fieldLink("Show these findings in Explore", exploreLokiURL(c.LokiUID, lokiFindings+` | dummyrun_finding_id="__DR_VALUE__"`)),
+			{Id: "custom.width", Value: 180},
+			wrap("auto"),
 		}).
 		OverrideByName("Severity", []dashboard.DynamicConfigValue{
 			{Id: "mappings", Value: valueMappings(severityColours, severityOrder)},
@@ -105,9 +106,10 @@ func (c Config) distinctFindings(id uint32, expr string, w, h uint32) *table.Pan
 			{Id: "custom.width", Value: 80},
 		}).
 		OverrideByName("Kind", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 100}}).
+		OverrideByName("Title", []dashboard.DynamicConfigValue{wrap("auto")}).
 		OverrideByName("Runs", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 60}}).
-		OverrideByName("Personas", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 150}}).
-		OverrideByName("Verdicts", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 150}}).
+		OverrideByName("Personas", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 130}, wrap("auto")}).
+		OverrideByName("Verdicts", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 130}, wrap("auto")}).
 		OverrideByName("First seen", []dashboard.DynamicConfigValue{{Id: "unit", Value: "dateTimeAsIso"}, {Id: "custom.width", Value: 150}}).
 		OverrideByName("Last seen", []dashboard.DynamicConfigValue{{Id: "unit", Value: "dateTimeAsIso"}, {Id: "custom.width", Value: 150}})
 }

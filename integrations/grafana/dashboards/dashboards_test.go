@@ -241,13 +241,18 @@ func TestBrandColours(t *testing.T) {
 }
 
 func TestLinksCarryTheCellValue(t *testing.T) {
-	for _, u := range []string{exploreTempoURL("tempo"), exploreLokiURL("loki", `{a="VALUE"}`), runDashboardURL()} {
+	for _, u := range []string{exploreTempoURL("tempo"), exploreLokiURL("loki", `{a="__DR_VALUE__"}`), runDashboardURL()} {
 		if !strings.Contains(u, "${__value.raw}") {
 			t.Errorf("link %q does not use the cell value", u)
 		}
-		if strings.Contains(u, "VALUE") || strings.Contains(u, "TRACEID") {
+		if strings.Contains(u, "__DR_") {
 			t.Errorf("link %q still has a placeholder", u)
 		}
+	}
+	// A data source UID or query must survive the placeholder substitution untouched.
+	u := exploreLokiURL("loki-TOKYO", `{a="__DR_VALUE__"} |= "FROM TO"`)
+	if !strings.Contains(u, "loki-TOKYO") || !strings.Contains(u, "FROM+TO") {
+		t.Errorf("link %q changed the UID or the query", u)
 	}
 }
 

@@ -287,6 +287,11 @@ func sortBy(field string, desc bool) dashboard.DataTransformerConfig {
 
 // Links.
 
+// wrap lets a text column break over several lines instead of being cut off.
+func wrap(cellType string) dashboard.DynamicConfigValue {
+	return dashboard.DynamicConfigValue{Id: "custom.cellOptions", Value: map[string]any{"type": cellType, "wrapText": true}}
+}
+
 // fieldLink is a data link on a table column. Grafana reads title and url from the field config.
 func fieldLink(title, u string) dashboard.DynamicConfigValue {
 	return dashboard.DynamicConfigValue{Id: "links", Value: []map[string]any{{"title": title, "url": u}}}
@@ -301,20 +306,21 @@ func exploreTempoURL(tempoUID string) string {
 				"refId":      "A",
 				"datasource": map[string]string{"type": "tempo", "uid": tempoUID},
 				"queryType":  "traceql",
-				"query":      "TRACEID",
+				"query":      "__DR_TRACEID__",
 			}},
-			"range": map[string]string{"from": "FROM", "to": "TO"},
+			"range": map[string]string{"from": "__DR_FROM__", "to": "__DR_TO__"},
 		},
 	}
 	raw, _ := json.Marshal(pane)
 	encoded := url.QueryEscape(string(raw))
-	encoded = strings.ReplaceAll(encoded, "TRACEID", "${__value.raw}")
-	encoded = strings.ReplaceAll(encoded, "FROM", "${__from}")
-	encoded = strings.ReplaceAll(encoded, "TO", "${__to}")
+	encoded = strings.ReplaceAll(encoded, "__DR_TRACEID__", "${__value.raw}")
+	encoded = strings.ReplaceAll(encoded, "__DR_FROM__", "${__from}")
+	encoded = strings.ReplaceAll(encoded, "__DR_TO__", "${__to}")
 	return "/explore?schemaVersion=1&panes=" + encoded
 }
 
-// exploreLokiURL opens a LogQL query in Explore, with the cell value inserted where VALUE appears.
+// exploreLokiURL opens a LogQL query in Explore, with the cell value inserted where __DR_VALUE__
+// appears. The sentinels cannot occur in a data source UID or a query.
 func exploreLokiURL(lokiUID, expr string) string {
 	pane := map[string]any{
 		"a": map[string]any{
@@ -324,14 +330,14 @@ func exploreLokiURL(lokiUID, expr string) string {
 				"datasource": map[string]string{"type": "loki", "uid": lokiUID},
 				"expr":       expr,
 			}},
-			"range": map[string]string{"from": "FROM", "to": "TO"},
+			"range": map[string]string{"from": "__DR_FROM__", "to": "__DR_TO__"},
 		},
 	}
 	raw, _ := json.Marshal(pane)
 	encoded := url.QueryEscape(string(raw))
-	encoded = strings.ReplaceAll(encoded, "VALUE", "${__value.raw}")
-	encoded = strings.ReplaceAll(encoded, "FROM", "${__from}")
-	encoded = strings.ReplaceAll(encoded, "TO", "${__to}")
+	encoded = strings.ReplaceAll(encoded, "__DR_VALUE__", "${__value.raw}")
+	encoded = strings.ReplaceAll(encoded, "__DR_FROM__", "${__from}")
+	encoded = strings.ReplaceAll(encoded, "__DR_TO__", "${__to}")
 	return "/explore?schemaVersion=1&panes=" + encoded
 }
 
@@ -405,7 +411,7 @@ func (c Config) runsTable(id uint32, title, description, expr string, w, h uint3
 		CellHeight(common.TableCellHeightSm).
 		OverrideByName("Run", []dashboard.DynamicConfigValue{
 			fieldLink("Open run", runDashboardURL()),
-			{Id: "custom.width", Value: 260},
+			{Id: "custom.width", Value: 250},
 		}).
 		OverrideByName("Trace", []dashboard.DynamicConfigValue{
 			fieldLink("Open trace", exploreTempoURL(c.TempoUID)),

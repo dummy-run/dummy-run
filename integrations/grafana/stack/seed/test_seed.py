@@ -176,9 +176,9 @@ def test_shift_to_now_keeps_spacing(runs):
     assert max(seed.parse_time(r["ended_at"]) for r in shifted) == now
     before = [seed.parse_time(r["started_at"]) for r in runs]
     after = [seed.parse_time(r["started_at"]) for r in shifted]
-    deltas = {a - b for a, b in zip(after, before)}
+    deltas = {a - b for a, b in zip(after, before, strict=True)}
     assert len(deltas) == 1
-    for old, new in zip(runs, shifted):
+    for old, new in zip(runs, shifted, strict=True):
         assert len(old["steps"]) == len(new["steps"])
         assert seed.parse_time(new["steps"][0]["at"]) - seed.parse_time(new["started_at"]) == timedelta(0)
     # The originals are untouched.

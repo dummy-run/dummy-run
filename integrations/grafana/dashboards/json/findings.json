@@ -144,21 +144,18 @@
             "includeByName": {
               "Value": true,
               "dummyrun_finding_id": true,
-              "dummyrun_finding_kind": true,
               "dummyrun_finding_severity": true,
               "dummyrun_finding_title": true
             },
             "indexByName": {
               "Value": 2,
               "dummyrun_finding_id": 0,
-              "dummyrun_finding_kind": 3,
               "dummyrun_finding_severity": 1,
-              "dummyrun_finding_title": 4
+              "dummyrun_finding_title": 3
             },
             "renameByName": {
               "Value": "Runs",
               "dummyrun_finding_id": "Finding",
-              "dummyrun_finding_kind": "Kind",
               "dummyrun_finding_severity": "Severity",
               "dummyrun_finding_title": "Title"
             }
@@ -212,7 +209,14 @@
               },
               {
                 "id": "custom.width",
-                "value": 210
+                "value": 170
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
               }
             ]
           },
@@ -256,19 +260,22 @@
               },
               {
                 "id": "custom.width",
-                "value": 80
+                "value": 75
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Kind"
+              "options": "Title"
             },
             "properties": [
               {
-                "id": "custom.width",
-                "value": 100
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
               }
             ]
           },
@@ -280,7 +287,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 60
+                "value": 55
               },
               {
                 "id": "decimals",
@@ -419,21 +426,18 @@
             "includeByName": {
               "Value": true,
               "dummyrun_finding_id": true,
-              "dummyrun_finding_kind": true,
               "dummyrun_finding_severity": true,
               "dummyrun_finding_title": true
             },
             "indexByName": {
               "Value": 2,
               "dummyrun_finding_id": 0,
-              "dummyrun_finding_kind": 3,
               "dummyrun_finding_severity": 1,
-              "dummyrun_finding_title": 4
+              "dummyrun_finding_title": 3
             },
             "renameByName": {
               "Value": "Runs",
               "dummyrun_finding_id": "Finding",
-              "dummyrun_finding_kind": "Kind",
               "dummyrun_finding_severity": "Severity",
               "dummyrun_finding_title": "Title"
             }
@@ -487,7 +491,14 @@
               },
               {
                 "id": "custom.width",
-                "value": 210
+                "value": 170
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
               }
             ]
           },
@@ -531,19 +542,22 @@
               },
               {
                 "id": "custom.width",
-                "value": 80
+                "value": 75
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "Kind"
+              "options": "Title"
             },
             "properties": [
               {
-                "id": "custom.width",
-                "value": 100
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
               }
             ]
           },
@@ -555,7 +569,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 60
+                "value": 55
               },
               {
                 "id": "decimals",
@@ -603,7 +617,7 @@
         "uid": "loki"
       },
       "gridPos": {
-        "h": 11,
+        "h": 14,
         "w": 24,
         "x": 0,
         "y": 17
@@ -758,7 +772,14 @@
               },
               {
                 "id": "custom.width",
-                "value": 220
+                "value": 180
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
               }
             ]
           },
@@ -821,6 +842,21 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "Title"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "Runs"
             },
             "properties": [
@@ -838,7 +874,14 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 150
+                "value": 130
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
               }
             ]
           },
@@ -850,7 +893,14 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 150
+                "value": 130
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
               }
             ]
           },
@@ -916,7 +966,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 31
       },
       "repeatDirection": "h",
       "maxDataPoints": 60,
@@ -980,7 +1030,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 31
       },
       "repeatDirection": "h",
       "maxDataPoints": 60,
@@ -1083,7 +1133,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 39
       },
       "id": 11,
       "panels": []
@@ -1115,7 +1165,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 40
       },
       "repeatDirection": "h",
       "options": {

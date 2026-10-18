@@ -11,7 +11,8 @@ docker compose up -d
 open http://localhost:3000
 ```
 
-The image is about 2.5 GB on disk, so the first start takes a while. The home dashboard links to the four Dummy Run dashboards.
+The image is about 2.5 GB on disk (measured: `docker image inspect`), so the first start takes a
+while. The home dashboard links to the four Dummy Run dashboards.
 Editing a dashboard in the UI needs the admin account, which keeps Grafana's default password
 (`admin` / `admin`) until you change it.
 
@@ -26,9 +27,11 @@ Editing a dashboard in the UI needs the admin account, which keeps Grafana's def
 
 ## Point an exporter at it
 
-Set `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` for OTLP over HTTP, or
-`http://localhost:4317` for gRPC. No headers or credentials are needed. From another container on
-the same Docker network the host is `dummyrun-lgtm`.
+OTLP is the OpenTelemetry protocol, and gRPC is its binary transport. Set
+`OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` for OTLP over HTTP, or `http://localhost:4317`
+for gRPC. No headers or credentials are needed. The ports are bound to 127.0.0.1, so only this
+machine can reach them. From another container on the same Docker network the host is
+`dummyrun-lgtm`.
 
 ## Seed it with synthetic runs
 
@@ -44,12 +47,15 @@ uv run seed.py /tmp/runs --end-now
 ```
 
 `--end-now` moves every timestamp so the latest run ends now and the gaps between runs stay the
-same. The generator writes fixed dates, and the stores only accept recent data. Loki rejects lines
-older than `reject_old_samples_max_age`. Prometheus rejects samples older than its out of order
-window. Tempo clamps block times to the ingestion time plus `ingestion_time_range_slack`. The
-files in `config/` raise those limits to 30 days, so a seeded fortnight lands at its real times.
-Tempo searches reach the new blocks after about two minutes. Reseeding an old history into a stack
-that already holds newer samples fails in Prometheus, so run `docker compose down -v` first.
+same. The generator writes fixed dates, and the stores only accept recent data (code: `config/*.yaml`,
+with the image defaults they replace). Loki rejects lines older than `reject_old_samples_max_age`.
+Prometheus rejects samples older than its out-of-order window. Tempo clamps block times to the
+ingestion time plus `ingestion_time_range_slack`. Loki only asks its ingester about the last three hours, so older lines stay hidden until a
+flush. The files in `config/` raise those limits to 30 days and make Loki ask the ingester for any
+range, so a seeded fortnight lands at its real times and shows at once. Tempo searches reach the new blocks within a
+minute (measured: 300 runs seeded into this stack). Reseeding an old history into a stack that
+already holds newer samples fails in Prometheus (inferred: samples must fall inside the out-of-order
+window), so run `docker compose down -v` first.
 
 `uv run pytest` runs the seeder's tests. `uv run check_panels.py` sends every panel query through
 Grafana's API and prints data or no data per panel. `uv run screenshot.py --out shots` takes a
@@ -63,7 +69,7 @@ screenshot of each dashboard with headless Chrome.
 | `grafana/provisioning/datasources/dummyrun.yaml` | Prometheus, Tempo and Loki with the UIDs `prometheus`, `tempo` and `loki` |
 | `grafana/provisioning/dashboards/dummyrun.yaml` | Loads `../dashboards/json` into a Dummy Run folder |
 | `config/prometheus.yaml` | The image default plus a 30 day out of order window |
-| `config/tempo-config.yaml` | The image default plus 30 days of slack, no search length limit and 90 days of retention |
-| `config/loki-config.yaml` | The image default plus 30 days for old samples |
+| `config/tempo-config.yaml` | The image default plus 30 days of slack, faster block flushes, no search length limit and 90 days of retention |
+| `config/loki-config.yaml` | The image default plus 30 days for old samples, and queries that always ask the ingester |
 
 Data lives in the `lgtm-data` volume. `docker compose down -v` removes it.

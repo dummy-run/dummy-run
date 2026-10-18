@@ -45,7 +45,12 @@ func (c Config) Run() *dashboard.DashboardBuilder {
 	).OverrideByName("Outcome", []dashboard.DynamicConfigValue{
 		{Id: "mappings", Value: valueMappings(outcomeColours, outcomeOrder)},
 		{Id: "custom.cellOptions", Value: map[string]any{"type": "color-text"}},
-	}))
+		{Id: "custom.width", Value: 130},
+	}).
+		OverrideByName("Role", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 100}}).
+		OverrideByName("Device", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}).
+		OverrideByName("Environment", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 110}}).
+		OverrideByName("Browser", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}))
 
 	// Grafana's traces panel needs a trace ID, and the contract keys runs by run ID. So this is a
 	// search result with a link to the trace view.
@@ -88,17 +93,18 @@ func (c Config) Run() *dashboard.DashboardBuilder {
 		)).
 		WithTransformation(sortBy("Step", false)).
 		CellHeight(common.TableCellHeightSm).
-		OverrideByName("Step", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 60}}).
-		OverrideByName("Action", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 80}}).
-		OverrideByName("Duration", []dashboard.DynamicConfigValue{{Id: "unit", Value: "ns"}, {Id: "custom.width", Value: 90}}).
+		OverrideByName("Step", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 55}}).
+		OverrideByName("Action", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 75}}).
+		OverrideByName("Target", []dashboard.DynamicConfigValue{wrap("auto")}).
+		OverrideByName("Duration", []dashboard.DynamicConfigValue{{Id: "unit", Value: "ns"}, {Id: "custom.width", Value: 85}}).
 		OverrideByName("Status", []dashboard.DynamicConfigValue{
 			{Id: "thresholds", Value: map[string]any{"mode": "absolute", "steps": []map[string]any{{"color": colourInk, "value": nil}, {"color": colourBlocker, "value": 500}}}},
 			{Id: "custom.cellOptions", Value: map[string]any{"type": "color-text"}},
 			{Id: "custom.width", Value: 70},
 		}).
-		OverrideByName("Errors", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 70}}).
-		OverrideByName("A11y", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 60}}).
-		OverrideByName("Started", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 150}}))
+		OverrideByName("Errors", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 65}}).
+		OverrideByName("A11y", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 55}}).
+		OverrideByName("Started", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 170}}))
 
 	b.WithPanel(table.NewPanelBuilder().
 		Id(ids.id()).
@@ -121,9 +127,10 @@ func (c Config) Run() *dashboard.DashboardBuilder {
 			{Id: "custom.cellOptions", Value: map[string]any{"type": "color-text"}},
 			{Id: "custom.width", Value: 90},
 		}).
-		OverrideByName("Kind", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 100}}).
-		OverrideByName("Verdict", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 95}}).
-		OverrideByName("Steps", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 60}}))
+		OverrideByName("Kind", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 95}}).
+		OverrideByName("Verdict", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}).
+		OverrideByName("Steps", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 55}}).
+		OverrideByName("Title", []dashboard.DynamicConfigValue{wrap("auto")}))
 
 	b.WithPanel(logs.NewPanelBuilder().
 		Id(ids.id()).

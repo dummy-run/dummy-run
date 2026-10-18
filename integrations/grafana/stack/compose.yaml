@@ -5,19 +5,20 @@
 #   docker compose up -d
 #   open http://localhost:3000
 #
-# Ports: 3000 Grafana, 4317 OTLP gRPC, 4318 OTLP HTTP, 9090 Prometheus, 3200 Tempo, 3100 Loki.
+# Ports, bound to 127.0.0.1: 3000 Grafana, 4317 OTLP gRPC, 4318 OTLP HTTP, 9090 Prometheus, 3200 Tempo,
+# 3100 Loki.
 services:
   lgtm:
     # grafana/otel-lgtm:0.35.0 (Grafana 13.2.2, Prometheus 3.15.0, Tempo 3.0.3, Loki 3.7.8, Collector 0.161.0)
     image: grafana/otel-lgtm@sha256:2de1094c593c671cbfca878a28ffcd7e46ff5e32f2ce966c0cf33003f6cf4266
     container_name: dummyrun-lgtm
     ports:
-      - "3000:3000"
-      - "4317:4317"
-      - "4318:4318"
-      - "9090:9090"
-      - "3200:3200"
-      - "3100:3100"
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:3200:3200"
+      - "127.0.0.1:3100:3100"
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer

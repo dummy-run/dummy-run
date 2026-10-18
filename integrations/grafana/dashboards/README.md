@@ -2,7 +2,8 @@
 
 Four dashboards for Dummy Run telemetry, plus a home page for the local stack. A Go program builds
 them with the Grafana Foundation SDK and writes the JSON into `json/`. The JSON is committed, and CI
-fails when it differs from what the program writes.
+fails when it differs from what the program writes (code: `go run . -check` in
+`.github/workflows/dashboards.yml`).
 
 The dashboards read the metrics, logs and traces described in [docs/TELEMETRY.md](../../../docs/TELEMETRY.md).
 Screenshots are in [docs/images/grafana/](../../../docs/images/grafana/).
@@ -47,8 +48,8 @@ for the log panels to link to traces.
 
 ## Metric and label names
 
-Prometheus renames OpenTelemetry metrics on the way in. The queries use the names below, checked
-against Prometheus 3.15 in the local stack.
+Prometheus renames OpenTelemetry metrics on the way in. The queries use the names below (measured:
+Prometheus 3.15.0 in the local stack, `grafana/otel-lgtm` 0.35.0, after seeding 300 synthetic runs).
 
 | Metric in docs/TELEMETRY.md | Name in Prometheus |
 |---|---|
@@ -67,4 +68,4 @@ stores every log attribute as structured metadata with the same renaming, and th
 ## Colours
 
 Pass and blocker use the dark theme colours from [brand/README.md](../../../brand/README.md), since
-Grafana's default theme is dark. Amber marks budget exhausted runs and major findings.
+Grafana's default theme is dark. Amber marks budget-exhausted runs and major findings.

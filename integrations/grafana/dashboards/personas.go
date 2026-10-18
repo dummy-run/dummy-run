@@ -40,9 +40,10 @@ func (c Config) Personas() *dashboard.DashboardBuilder {
 		"browser_name", "Browser",
 		"gen_ai_request_model", "Model",
 	).
-		OverrideByName("Role", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 110}}).
-		OverrideByName("Device", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}).
-		OverrideByName("Browser", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}))
+		OverrideByName("Role", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 95}}).
+		OverrideByName("Device", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 75}}).
+		OverrideByName("Browser", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 75}}).
+		OverrideByName("Model", []dashboard.DynamicConfigValue{wrap("auto")}))
 
 	b.WithPanel(outcomesOverTime(prom, ids.id(), "Outcomes", "This persona's runs in each interval, stacked by outcome.", runsSel, 9, 8))
 	b.WithPanel(c.findingsSurfaced(ids.id(), "Findings surfaced",
@@ -72,20 +73,20 @@ func (c Config) findingsSurfaced(id uint32, title, description, selector string,
 			"dummyrun_finding_id", "Finding",
 			"dummyrun_finding_severity", "Severity",
 			"Value", "Runs",
-			"dummyrun_finding_kind", "Kind",
 			"dummyrun_finding_title", "Title",
 		)).
 		WithTransformation(sortBy("Runs", true)).
 		CellHeight(common.TableCellHeightSm).
 		OverrideByName("Finding", []dashboard.DynamicConfigValue{
-			fieldLink("Show these findings in Explore", exploreLokiURL(c.LokiUID, lokiFindings+` | dummyrun_finding_id="VALUE"`)),
-			{Id: "custom.width", Value: 210},
+			fieldLink("Show these findings in Explore", exploreLokiURL(c.LokiUID, lokiFindings+` | dummyrun_finding_id="__DR_VALUE__"`)),
+			{Id: "custom.width", Value: 170},
+			wrap("auto"),
 		}).
 		OverrideByName("Severity", []dashboard.DynamicConfigValue{
 			{Id: "mappings", Value: valueMappings(severityColours, severityOrder)},
 			{Id: "custom.cellOptions", Value: map[string]any{"type": "color-text"}},
-			{Id: "custom.width", Value: 80},
+			{Id: "custom.width", Value: 75},
 		}).
-		OverrideByName("Kind", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 100}}).
-		OverrideByName("Runs", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 60}, {Id: "decimals", Value: 0}})
+		OverrideByName("Title", []dashboard.DynamicConfigValue{wrap("auto")}).
+		OverrideByName("Runs", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 55}, {Id: "decimals", Value: 0}})
 }

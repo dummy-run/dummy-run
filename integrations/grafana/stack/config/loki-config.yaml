@@ -1,5 +1,6 @@
-# Loki for the local stack. This is the otel-lgtm default plus one limit change: log lines up to
-# 30 days old are accepted, so a seeder can write a history of runs.
+# Loki for the local stack. This is the otel-lgtm default plus two changes for a seeded history:
+# log lines up to 30 days old are accepted, and every query also asks the ingester, so lines that
+# are not yet flushed to the store show up whatever their age.
 auth_enabled: false
 
 server:
@@ -30,6 +31,9 @@ schema_config:
 limits_config:
   reject_old_samples: true
   reject_old_samples_max_age: 720h
+
+querier:
+  query_ingesters_within: 0
 
 ruler:
   alertmanager_url: http://127.0.0.1:9093
