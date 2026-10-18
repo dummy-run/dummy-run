@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -111,18 +112,29 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--persona", default=".*", help="persona for the repeated rows. Default: match all")
     ap.add_argument("--uids", default=",".join(DASHBOARDS))
     ap.add_argument("--allow-empty", action="store_true", help="only fail on query errors")
+    ap.add_argument("--expect-empty", default="", help="comma separated panel titles that may return no data")
+    ap.add_argument("--retries", type=int, default=0, help="repeat the check this many times while problems remain")
+    ap.add_argument("--wait", type=int, default=10, help="seconds between retries")
     a = ap.parse_args(argv)
 
-    run = a.run or latest_run(a.grafana, a.time_from, a.time_to)
-    values = {"environment": ".*", "persona": a.persona, "scenario": ".*", "run": run, "__range": "14d"}
-    failures = 0
-    for uid in a.uids.split(","):
-        for dashboard, panel, status in check_dashboard(a.grafana, uid, values, a.time_from, a.time_to):
-            print(f"{dashboard:28} {panel:48} {status}")
-            if status.startswith("error") or (status == "no data" and not a.allow_empty):
-                failures += 1
-    print(f"{failures} problems")
-    return 1 if failures else 0
+    for attempt in range(a.retries + 1):
+        run = a.run or latest_run(a.grafana, a.time_from, a.time_to)
+        values = {"environment": ".*", "persona": a.persona, "scenario": ".*", "run": run, "__range": "14d"}
+        failures = 0
+        lines = []
+        for uid in a.uids.split(","):
+            for dashboard, panel, status in check_dashboard(a.grafana, uid, values, a.time_from, a.time_to):
+                lines.append(f"{dashboard:28} {panel:48} {status}")
+                allowed = a.allow_empty or panel in a.expect_empty.split(",")
+                if status.startswith("error") or (status == "no data" and not allowed):
+                    failures += 1
+        if not failures or attempt == a.retries:
+            print("\n".join(lines))
+            print(f"{failures} problems")
+            return 1 if failures else 0
+        print(f"{failures} problems, retrying in {a.wait}s")
+        time.sleep(a.wait)
+    return 1
 
 
 def latest_run(grafana: str, time_from: str, time_to: str) -> str:

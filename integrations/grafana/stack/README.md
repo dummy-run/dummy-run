@@ -38,13 +38,26 @@ machine can reach them. From another container on the same Docker network the ho
 `seed/` holds a test seeder. It is a second implementation of
 [docs/TELEMETRY.md](../../../docs/TELEMETRY.md), separate from the product exporter in
 `../exporter/`, and it exists to check the dashboards. It turns run records into traces, metrics and
-logs, then posts one Grafana annotation per run.
+logs, then posts one Grafana annotation per run when `GRAFANA_TOKEN` holds a service account token
+with the Editor role. Make one with the admin account:
+
+```sh
+auth=admin:admin
+sa=$(curl -s -u "$auth" -H 'Content-Type: application/json' -d '{"name":"dummyrun-seed","role":"Editor"}' localhost:3000/api/serviceaccounts | jq -r .id)
+export GRAFANA_TOKEN=$(curl -s -u "$auth" -H 'Content-Type: application/json' -d '{"name":"local"}' "localhost:3000/api/serviceaccounts/$sa/tokens" | jq -r .key)
+```
+
+Then seed:
 
 ```sh
 python3 ../../../examples/generate-runs.py --runs 300 --days 14 --out /tmp/runs
 cd seed
 uv run seed.py /tmp/runs --end-now
 ```
+
+To send the same records with the product exporter instead, write the shifted records and export
+them: `uv run seed.py /tmp/runs --end-now --write /tmp/shifted`, then
+`dummyrun-otel export --grafana-url http://localhost:3000 /tmp/shifted`.
 
 `--end-now` moves every timestamp so the latest run ends now and the gaps between runs stay the
 same. The generator writes fixed dates, and the stores only accept recent data (code: `config/*.yaml`,
@@ -58,7 +71,8 @@ already holds newer samples fails in Prometheus (inferred: samples must fall ins
 window), so run `docker compose down -v` first.
 
 `uv run pytest` runs the seeder's tests. `uv run check_panels.py` sends every panel query through
-Grafana's API and prints data or no data per panel. `uv run screenshot.py --out shots` takes a
+Grafana's API and prints data or no data per panel, with `--retries` for a stack that is still
+flushing. `uv run screenshot.py --out shots` takes a
 screenshot of each dashboard with headless Chrome.
 
 ## Files
@@ -68,6 +82,7 @@ screenshot of each dashboard with headless Chrome.
 | `compose.yaml` | The one service, pinned by image digest, with the mounts below |
 | `grafana/provisioning/datasources/dummyrun.yaml` | Prometheus, Tempo and Loki with the UIDs `prometheus`, `tempo` and `loki` |
 | `grafana/provisioning/dashboards/dummyrun.yaml` | Loads `../dashboards/json` into a Dummy Run folder |
+| `compose.yaml` mount of `../alerting/provisioning/alerting` | Loads the alert rules from [../alerting](../alerting) |
 | `config/prometheus.yaml` | The image default plus a 30 day out of order window |
 | `config/tempo-config.yaml` | The image default plus 30 days of slack, faster block flushes, no search length limit and 90 days of retention |
 | `config/loki-config.yaml` | The image default plus 30 days for old samples, and queries that always ask the ingester |

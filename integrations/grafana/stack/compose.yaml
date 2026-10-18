@@ -37,6 +37,7 @@ services:
       - ./grafana/provisioning/datasources/dummyrun.yaml:/otel-lgtm/grafana/conf/provisioning/datasources/grafana-datasources.yaml:ro
       - ./grafana/provisioning/dashboards/dummyrun.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/grafana-dashboards.yaml:ro
       - ../dashboards/json:/otel-lgtm/dummyrun/dashboards:ro
+      - ../alerting/provisioning/alerting:/otel-lgtm/grafana/conf/provisioning/alerting:ro
       - ./config/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
       - ./config/tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro
       - ./config/loki-config.yaml:/otel-lgtm/loki-config.yaml:ro

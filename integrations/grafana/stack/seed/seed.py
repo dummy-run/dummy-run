@@ -8,10 +8,14 @@ before the real exporter in integrations/grafana/exporter/ exists.
 
 Usage:
   uv run seed.py RUNS_DIR_OR_FILES... [--otlp http://localhost:4318] [--grafana http://localhost:3000]
-                 [--end-now] [--no-annotations] [--namespace NAME] [--dry-run]
+                 [--end-now] [--write DIR] [--namespace NAME] [--dry-run]
 
 --end-now shifts every timestamp so the latest run ends now and the spacing between runs stays the
-same. Use it with examples/generate-runs.py output, whose dates are fixed.
+same. Use it with examples/generate-runs.py output, whose dates are fixed. --write DIR writes the
+records, shifted or not, into DIR and stops, so another exporter can send them.
+
+Annotations are posted when GRAFANA_TOKEN holds a Grafana service account token with the Editor
+role, as the contract says. Without it the seeder skips them and says so.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -32,8 +37,11 @@ SERVICE_NAME = "dummyrun"
 ROOT_SPAN = "dummyrun.run"
 FINDING_EVENT = "dummyrun.finding"
 
-# OpenTelemetry SDK default explicit bucket boundaries, used for both histograms.
-BUCKETS = [0.0, 5.0, 10.0, 25.0, 50.0, 75.0, 100.0, 250.0, 500.0, 750.0, 1000.0, 2500.0, 5000.0, 7500.0, 10000.0]
+# Histogram bucket boundaries from docs/TELEMETRY.md, Metrics.
+BUCKETS = {
+    "dummyrun.run.duration": [15.0, 30.0, 60.0, 120.0, 180.0, 300.0, 600.0, 900.0, 1800.0, 3600.0],
+    "dummyrun.step.duration": [100.0, 250.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 30000.0, 60000.0],
+}
 
 METRICS = {
     "dummyrun.runs": ("counter", "{run}", "Runs by persona, scenario, environment and outcome"),
@@ -44,6 +52,11 @@ METRICS = {
     "dummyrun.tokens": ("counter", "{token}", "Model tokens by persona, system, model and direction"),
     "dummyrun.cost.usd": ("counter", "{USD}", "Model cost in US dollars by persona, system and model"),
 }
+
+# The run end log record also carries the cost and the step count (docs/TELEMETRY.md, Logs), so
+# dashboards can total them from log lines the way they total tokens.
+COST_ATTRIBUTE = "dummyrun.cost.usd"
+STEPS_ATTRIBUTE = "dummyrun.steps.count"
 
 
 def urlopen(request, timeout: float = 30):
@@ -183,7 +196,11 @@ def finding_time(run: dict, finding: dict) -> str:
 def run_log(run: dict) -> dict:
     severity = "ERROR" if run["outcome"] == "errored" else "INFO"
     body = f"run {run['id']} {run['outcome']}: {run['persona']['id']} / {run['scenario']['id']}"
-    return {"time": run["ended_at"], "severity": severity, "body": body, "attributes": root_attributes(run)}
+    attrs = root_attributes(run)
+    attrs[STEPS_ATTRIBUTE] = len(run["steps"])
+    if "cost_usd" in run["usage"]:
+        attrs[COST_ATTRIBUTE] = run["usage"]["cost_usd"]
+    return {"time": run["ended_at"], "severity": severity, "body": body, "attributes": attrs}
 
 
 def finding_log(run: dict, finding: dict) -> dict:
@@ -191,6 +208,7 @@ def finding_log(run: dict, finding: dict) -> dict:
     attrs = finding_attributes(finding)
     attrs["dummyrun.run.id"] = run["id"]
     attrs["dummyrun.persona.id"] = run["persona"]["id"]
+    attrs["dummyrun.scenario.id"] = run["scenario"]["id"]
     attrs["dummyrun.target.environment"] = run["target"]["environment"]
     return {"time": finding_time(run, finding), "severity": severity, "body": finding["title"], "attributes": attrs}
 
@@ -261,18 +279,19 @@ def annotation(run: dict) -> dict:
         "time": to_ms(run["started_at"]),
         "timeEnd": to_ms(run["ended_at"]),
         "tags": tags,
-        "text": f"{run['persona']['id']} / {run['scenario']['id']}: {run['outcome']}, {confirmed} confirmed findings",
+        "text": f"{run['persona']['id']} / {run['scenario']['id']}: {run['outcome']}, {confirmed} confirmed finding{'' if confirmed == 1 else 's'}",
     }
 
 
 def trace_id_for(run_id: str) -> int:
-    """A stable trace ID per run, so reseeding gives the same IDs."""
-    return int.from_bytes(hashlib.sha256(run_id.encode()).digest()[:16], "big") or 1
+    """The trace ID from docs/TELEMETRY.md: the first 16 bytes of SHA-256 of dummyrun.run:<id>."""
+    return int.from_bytes(hashlib.sha256(f"dummyrun.run:{run_id}".encode()).digest()[:16], "big") or 1
 
 
 def span_id_for(run_id: str, step: int | None) -> int:
-    key = f"{run_id}/root" if step is None else f"{run_id}/{step}"
-    return int.from_bytes(hashlib.sha256(key.encode()).digest()[:8], "big") or 1
+    """Span IDs from docs/TELEMETRY.md: dummyrun.span:<id>:root for the run, dummyrun.span:<id>:step:<n> for a step."""
+    part = "root" if step is None else f"step:{step}"
+    return int.from_bytes(hashlib.sha256(f"dummyrun.span:{run_id}:{part}".encode()).digest()[:8], "big") or 1
 
 
 class CumulativeState:
@@ -292,14 +311,15 @@ class CumulativeState:
         if kind == "counter":
             self.sums[metric][k] = self.sums[metric].get(k, 0) + value
             return
+        bounds = BUCKETS[metric]
         h = self.hists[metric].setdefault(
-            k, {"count": 0, "sum": 0.0, "buckets": [0] * (len(BUCKETS) + 1), "min": value, "max": value}
+            k, {"count": 0, "sum": 0.0, "buckets": [0] * (len(bounds) + 1), "min": value, "max": value}
         )
         h["count"] += 1
         h["sum"] += value
         h["min"] = min(h["min"], value)
         h["max"] = max(h["max"], value)
-        for i, bound in enumerate(BUCKETS):
+        for i, bound in enumerate(bounds):
             if value <= bound:
                 h["buckets"][i] += 1
                 break
@@ -401,7 +421,7 @@ def emit(runs: list[dict], otlp: str, namespace: str | None, version: str) -> No
             else:
                 points = [
                     HistogramDataPoint(
-                        dict(k), start_ns, time_ns, h["count"], h["sum"], list(h["buckets"]), BUCKETS, h["min"], h["max"]
+                        dict(k), start_ns, time_ns, h["count"], h["sum"], list(h["buckets"]), BUCKETS[name], h["min"], h["max"]
                     )
                     for k, h in state.hists[name].items()
                 ]
@@ -441,17 +461,15 @@ def emit(runs: list[dict], otlp: str, namespace: str | None, version: str) -> No
     metric_exporter.shutdown()
 
 
-def post_annotations(runs: list[dict], grafana: str, auth: str) -> int:
-    token = base64.b64encode(auth.encode()).decode()
+def post_annotations(runs: list[dict], grafana: str, token: str) -> int:
+    """Post one annotation per run with a service account token. Skips runs that already have one."""
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
     posted = 0
     for run in runs:
-        body = json.dumps(annotation(run)).encode()
-        req = urllib.request.Request(
-            f"{grafana}/api/annotations",
-            data=body,
-            headers={"Content-Type": "application/json", "Authorization": f"Basic {token}"},
-            method="POST",
-        )
+        a = annotation(run)
+        if annotation_exists(grafana, headers, a):
+            continue
+        req = urllib.request.Request(f"{grafana}/api/annotations", data=json.dumps(a).encode(), headers=headers, method="POST")
         try:
             with urlopen(req, 10) as resp:
                 resp.read()
@@ -461,18 +479,21 @@ def post_annotations(runs: list[dict], grafana: str, auth: str) -> int:
     return posted
 
 
+def annotation_exists(grafana: str, headers: dict, a: dict) -> bool:
+    params = [("from", a["time"]), ("to", a["timeEnd"]), ("limit", 100)] + [("tags", t) for t in a["tags"]]
+    req = urllib.request.Request(f"{grafana}/api/annotations?" + urllib.parse.urlencode(params), headers=headers)
+    with urlopen(req, 10) as resp:
+        found = json.load(resp)
+    return any(f.get("time") == a["time"] and f.get("timeEnd") == a["timeEnd"] and set(a["tags"]) <= set(f.get("tags", [])) for f in found)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("runs", nargs="+", help="run record files or directories")
     ap.add_argument("--otlp", default=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318"))
     ap.add_argument("--grafana", default="http://localhost:3000")
-    ap.add_argument(
-        "--grafana-auth",
-        default=os.environ.get("GRAFANA_AUTH", "admin:admin"),
-        help="user:password for posting annotations. Default is Grafana's out of the box admin account",
-    )
     ap.add_argument("--end-now", action="store_true", help="shift timestamps so the latest run ends now")
-    ap.add_argument("--no-annotations", action="store_true")
+    ap.add_argument("--write", metavar="DIR", help="write the records into DIR and stop")
     ap.add_argument("--namespace", help="service.namespace, for example the app under test")
     ap.add_argument("--service-version", default="0.0.0-seed")
     ap.add_argument("--dry-run", action="store_true", help="load and shift, then print a summary and stop")
@@ -488,11 +509,21 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{len(runs)} runs from {first} to {last}")
     if a.dry_run:
         return 0
+    if a.write:
+        out = Path(a.write)
+        out.mkdir(parents=True, exist_ok=True)
+        for run in runs:
+            (out / f"{run['id']}.json").write_text(json.dumps(run, indent=2) + "\n")
+        print(f"wrote {len(runs)} runs to {out}")
+        return 0
     emit(runs, a.otlp, a.namespace, a.service_version)
     print(f"sent traces, metrics and logs to {a.otlp}")
-    if not a.no_annotations:
-        n = post_annotations(runs, a.grafana, a.grafana_auth)
-        print(f"posted {n} annotations to {a.grafana}")
+    token = os.environ.get("GRAFANA_TOKEN", "")
+    if not token:
+        print("GRAFANA_TOKEN is not set, so no annotations were posted")
+        return 0
+    n = post_annotations(runs, a.grafana, token)
+    print(f"posted {n} annotations to {a.grafana}")
     return 0
 
 

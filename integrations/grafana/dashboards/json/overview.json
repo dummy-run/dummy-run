@@ -1,7 +1,7 @@
 {
   "uid": "dummyrun-overview",
   "title": "Dummy Run: overview",
-  "description": "Runs by outcome, confirmed findings, step timing and model cost. Pick an environment, persona or scenario at the top.",
+  "description": "Runs by outcome, pass rate, confirmed findings, step timing and model cost. Pick an environment, persona or scenario at the top.",
   "tags": [
     "dummyrun"
   ],
@@ -34,23 +34,22 @@
       "id": 2,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_scenario_id=~\"$scenario\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" [$__range])) or vector(0)",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Runs",
-      "description": "Runs that ended in the time range.",
+      "description": "Runs that ended in the time range, counted from run end log lines.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 4,
@@ -88,8 +87,7 @@
                 "color": "#f3f1ec"
               }
             ]
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       }
@@ -99,23 +97,22 @@
       "id": 3,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_scenario_id=~\"$scenario\", dummyrun_outcome=\"completed\"}[$__range])) / sum(increase(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_scenario_id=~\"$scenario\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_outcome=\"completed\" [$__range])) / sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" [$__range]))",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Pass rate",
       "description": "Share of runs where the persona finished its job.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 4,
@@ -171,23 +168,22 @@
       "id": 4,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_verdict=\"confirmed\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__range])) or vector(0)",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Findings",
-      "description": "Findings the reviewer confirmed, for the selected environments and personas.",
+      "description": "Findings the reviewer confirmed, counted from finding log lines.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 4,
@@ -229,8 +225,7 @@
                 "color": "#fbad18"
               }
             ]
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       }
@@ -240,23 +235,22 @@
       "id": 5,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_severity=\"blocker\", dummyrun_verdict=\"confirmed\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_severity=\"blocker\" | dummyrun_finding_verdict=\"confirmed\" [$__range])) or vector(0)",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Blockers",
       "description": "Confirmed findings with blocker severity.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 4,
@@ -298,8 +292,7 @@
                 "color": "#ff7b72"
               }
             ]
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       }
@@ -309,23 +302,22 @@
       "id": 6,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_tokens_total{dummyrun_persona_id=~\"$persona\"}[$__range]))",
+          "expr": "(sum(sum_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | unwrap gen_ai_usage_input_tokens [$__range])) + sum(sum_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | unwrap gen_ai_usage_output_tokens [$__range]))) or vector(0)",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Tokens",
-      "description": "Model tokens in and out.",
+      "description": "Model tokens in and out, summed from run end log lines.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 4,
@@ -363,8 +355,7 @@
                 "color": "#f3f1ec"
               }
             ]
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       }
@@ -374,23 +365,22 @@
       "id": 7,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_cost_usd_total{dummyrun_persona_id=~\"$persona\"}[$__range]))",
+          "expr": "sum(sum_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | unwrap dummyrun_cost_usd [$__range])) or vector(0)",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Cost",
-      "description": "Model cost in US dollars.",
+      "description": "Model cost in US dollars, summed from run end log lines.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 4,
@@ -428,8 +418,7 @@
                 "color": "#f3f1ec"
               }
             ]
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       }
@@ -439,23 +428,23 @@
       "id": 8,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (dummyrun_outcome) (increase(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_scenario_id=~\"$scenario\"}[$__interval]))",
-          "instant": false,
+          "expr": "sum by (dummyrun_outcome) (count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" [$__interval]))",
           "legendFormat": "{{dummyrun_outcome}}",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Runs by outcome",
-      "description": "Runs in each interval, stacked by outcome.",
+      "description": "Runs that ended in each interval, stacked by outcome.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 9,
@@ -561,23 +550,23 @@
       "id": 9,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_scenario_id=~\"$scenario\", dummyrun_outcome=\"completed\"}[$__interval])) / sum(increase(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_scenario_id=~\"$scenario\"}[$__interval]))",
-          "instant": false,
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_outcome=\"completed\" [$__interval])) / sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" [$__interval]))",
           "legendFormat": "pass rate",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Pass rate",
-      "description": "Completed runs divided by all runs in each interval.",
+      "description": "Completed runs divided by all runs that ended in each interval.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 9,
@@ -596,8 +585,8 @@
           "calcs": []
         },
         "tooltip": {
-          "mode": "",
-          "sort": ""
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "fieldConfig": {
@@ -624,11 +613,15 @@
             "fixedColor": "#57d273"
           },
           "custom": {
+            "drawStyle": "line",
             "thresholdsStyle": {
               "mode": "dashed"
             },
             "lineWidth": 2,
             "fillOpacity": 15,
+            "stacking": {
+              "mode": "normal"
+            },
             "spanNulls": true
           }
         },
@@ -653,23 +646,22 @@
       "id": 11,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sort_desc(sum by (dummyrun_kind) (increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_verdict=\"confirmed\"}[$__range])))",
+          "expr": "sort_desc(sum by (dummyrun_finding_kind) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__range])))",
           "instant": true,
-          "legendFormat": "{{dummyrun_kind}}",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Confirmed findings by kind",
       "description": "Confirmed findings in the time range, by kind.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -693,7 +685,7 @@
           "calcs": []
         },
         "reduceOptions": {
-          "values": false,
+          "values": true,
           "calcs": [
             "lastNotNull"
           ],
@@ -720,23 +712,22 @@
       "id": 12,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sort_desc(sum by (dummyrun_severity) (increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_verdict=\"confirmed\"}[$__range])))",
+          "expr": "sort_desc(sum by (dummyrun_finding_severity) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__range])))",
           "instant": true,
-          "legendFormat": "{{dummyrun_severity}}",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Confirmed findings by severity",
       "description": "Confirmed findings in the time range, by severity.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -760,7 +751,7 @@
           "calcs": []
         },
         "reduceOptions": {
-          "values": false,
+          "values": true,
           "calcs": [
             "lastNotNull"
           ],
@@ -848,23 +839,23 @@
       "id": 13,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (dummyrun_severity) (increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_verdict=\"confirmed\"}[$__interval]))",
-          "instant": false,
-          "legendFormat": "{{dummyrun_severity}}",
+          "expr": "sum by (dummyrun_finding_severity) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__interval]))",
+          "legendFormat": "{{dummyrun_finding_severity}}",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Confirmed findings by severity over time",
       "description": "Confirmed findings in each interval, stacked by severity.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -979,7 +970,7 @@
       "panels": []
     },
     {
-      "type": "timeseries",
+      "type": "bargauge",
       "id": 15,
       "targets": [
         {
@@ -987,10 +978,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le) (increase(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__interval])))",
-          "instant": false,
+          "expr": "histogram_quantile(0.5, sum by (le) (max_over_time(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__range])))",
+          "instant": true,
           "legendFormat": "p50",
-          "range": true,
+          "range": false,
           "refId": "A"
         },
         {
@@ -998,10 +989,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.9, sum by (le) (increase(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__interval])))",
-          "instant": false,
+          "expr": "histogram_quantile(0.9, sum by (le) (max_over_time(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__range])))",
+          "instant": true,
           "legendFormat": "p90",
-          "range": true,
+          "range": false,
           "refId": "B"
         },
         {
@@ -1009,15 +1000,15 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.99, sum by (le) (increase(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__interval])))",
-          "instant": false,
+          "expr": "histogram_quantile(0.99, sum by (le) (max_over_time(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__range])))",
+          "instant": true,
           "legendFormat": "p99",
-          "range": true,
+          "range": false,
           "refId": "C"
         }
       ],
       "title": "Step duration percentiles",
-      "description": "How long a browser step took, from the step duration histogram. p99 is the slowest 1 in 100 steps.",
+      "description": "How long a browser step took, from the step duration histogram of the runs exported in the time range. p99 is the slowest 1 in 100 steps.",
       "transparent": false,
       "datasource": {
         "type": "prometheus",
@@ -1030,19 +1021,29 @@
         "y": 24
       },
       "repeatDirection": "h",
-      "maxDataPoints": 60,
-      "interval": "1h",
       "options": {
+        "displayMode": "basic",
+        "valueMode": "color",
+        "namePlacement": "left",
+        "showUnfilled": true,
+        "sizing": "auto",
+        "minVizWidth": 8,
+        "minVizHeight": 16,
         "legend": {
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true,
+          "showLegend": false,
           "calcs": []
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "maxVizHeight": 300,
+        "orientation": "horizontal"
       },
       "fieldConfig": {
         "defaults": {
@@ -1050,11 +1051,8 @@
           "decimals": 0,
           "min": 0,
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2,
-            "spanNulls": true
+            "mode": "fixed",
+            "fixedColor": "#fbad18"
           }
         },
         "overrides": []
@@ -1069,7 +1067,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sort_desc(histogram_quantile(0.9, sum by (le, dummyrun_action) (increase(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__range]))))",
+          "expr": "sort_desc(histogram_quantile(0.9, sum by (le, dummyrun_action) (max_over_time(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__range]))))",
           "instant": true,
           "legendFormat": "{{dummyrun_action}}",
           "range": false,
@@ -1077,7 +1075,7 @@
         }
       ],
       "title": "Slowest actions, p90",
-      "description": "Step actions ranked by the duration 9 in 10 steps stay under.",
+      "description": "Step actions ranked by the duration 9 in 10 steps stay under, from the step duration histogram.",
       "transparent": false,
       "datasource": {
         "type": "prometheus",
@@ -1145,23 +1143,34 @@
       "id": 18,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (gen_ai_request_model, dummyrun_direction) (increase(dummyrun_tokens_total{dummyrun_persona_id=~\"$persona\"}[$__interval]))",
-          "instant": false,
-          "legendFormat": "{{gen_ai_request_model}} {{dummyrun_direction}}",
+          "expr": "sum by (gen_ai_request_model) (sum_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | unwrap gen_ai_usage_input_tokens [$__interval]))",
+          "legendFormat": "{{gen_ai_request_model}} input",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        },
+        {
+          "expr": "sum by (gen_ai_request_model) (sum_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | unwrap gen_ai_usage_output_tokens [$__interval]))",
+          "legendFormat": "{{gen_ai_request_model}} output",
+          "range": true,
+          "refId": "B",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Tokens by model",
-      "description": "Input and output tokens in each interval, by model.",
+      "description": "Input and output tokens of the runs that ended in each interval, by model.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -1206,23 +1215,23 @@
       "id": 19,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (gen_ai_request_model) (increase(dummyrun_cost_usd_total{dummyrun_persona_id=~\"$persona\"}[$__interval]))",
-          "instant": false,
+          "expr": "sum by (gen_ai_request_model) (sum_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | unwrap dummyrun_cost_usd [$__interval]))",
           "legendFormat": "{{gen_ai_request_model}}",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Cost by model",
-      "description": "Model cost in US dollars in each interval, by model.",
+      "description": "Model cost in US dollars of the runs that ended in each interval, by model.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,

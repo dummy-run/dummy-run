@@ -802,7 +802,7 @@
         }
       ],
       "title": "Findings",
-      "description": "Findings raised in this run, confirmed or not.",
+      "description": "Findings raised in this run, confirmed or not. Steps is the JSON list of step numbers the finding points at.",
       "transparent": false,
       "datasource": {
         "type": "loki",
@@ -947,7 +947,13 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 55
+                "value": 70
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
               }
             ]
           },

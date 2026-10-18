@@ -70,6 +70,10 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version: "0.8.22"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.1"
+          cache: false
       - name: Start the stack
         run: docker compose up -d --quiet-pull
       - name: Wait for Grafana, Tempo and Loki
@@ -101,14 +105,36 @@ jobs:
           for uid in dummyrun-home dummyrun-overview dummyrun-personas dummyrun-findings dummyrun-run; do
             curl -sf "localhost:3000/api/dashboards/uid/$uid" >/dev/null || { echo "::error::$uid is missing"; exit 1; }
           done
-      - name: Seed eight synthetic runs ending now
+      - name: Make a service account token for annotations
+        id: token
+        run: |
+          set -euo pipefail
+          auth='admin:admin'
+          sa=$(curl -sf -u "$auth" -H 'Content-Type: application/json' -d '{"name":"dummyrun-seed","role":"Editor"}' localhost:3000/api/serviceaccounts | jq -r .id)
+          token=$(curl -sf -u "$auth" -H 'Content-Type: application/json' -d '{"name":"smoke"}' "localhost:3000/api/serviceaccounts/$sa/tokens" | jq -r .key)
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+      - name: Shift the example runs so the latest ends now
         working-directory: integrations/grafana/stack/seed
         run: |
           uv sync --locked
-          uv run seed.py ../../../../examples/runs --end-now
-      - name: Every panel query runs without an error
+          uv run seed.py ../../../../examples/runs --end-now --write "$RUNNER_TEMP/runs"
+      - name: Send the runs with the exporter, or with the seeder when the exporter is not here yet
         working-directory: integrations/grafana/stack/seed
-        run: uv run check_panels.py --allow-empty
+        env:
+          GRAFANA_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          set -euo pipefail
+          if [ -d ../../exporter/cmd/dummyrun-otel ]; then
+            (cd ../../exporter && go run ./cmd/dummyrun-otel export --grafana-url http://localhost:3000 "$RUNNER_TEMP/runs")
+          else
+            echo "::notice::integrations/grafana/exporter is not on this branch yet, sending with the test seeder"
+            uv run seed.py "$RUNNER_TEMP/runs"
+          fi
+      - name: Every panel returns data
+        working-directory: integrations/grafana/stack/seed
+        # Cost by model may be empty until the exporter sends dummyrun.cost.usd on the run end log line.
+        run: uv run check_panels.py --retries 18 --wait 10 --expect-empty "Cost by model"
       - name: Stop the stack
         if: always()
         run: docker compose down -v

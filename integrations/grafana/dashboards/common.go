@@ -79,15 +79,13 @@ func grafanaDS() common.DataSourceRef {
 	return common.DataSourceRef{Type: ptr("grafana"), Uid: ptr("-- Grafana --")}
 }
 
-// Label selectors shared by the Prometheus queries. The runs metric carries all three labels, the
-// findings metric carries environment and persona, and the other metrics only carry the persona,
-// as docs/TELEMETRY.md defines them.
+// Label selectors for the Prometheus queries. The runs metric carries all three labels and the
+// histograms only carry the persona, as docs/TELEMETRY.md defines them.
 const (
 	selEnv      = `dummyrun_target_environment=~"$environment"`
 	selPersona  = `dummyrun_persona_id=~"$persona"`
 	selScenario = `dummyrun_scenario_id=~"$scenario"`
 	selRuns     = selEnv + ", " + selPersona + ", " + selScenario
-	selFindings = selEnv + ", " + selPersona
 )
 
 // Loki stream and structured metadata filters. The OTLP endpoint turns attribute dots into
@@ -97,7 +95,7 @@ const (
 	lokiRunEnd   = lokiStream + ` | dummyrun_outcome != ""`
 	lokiFindings = lokiStream + ` | dummyrun_finding_id != ""`
 	lokiRunSel   = ` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_scenario_id=~"$scenario"`
-	lokiFindSel  = ` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona"`
+	lokiFindSel  = ` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_scenario_id=~"$scenario"`
 )
 
 // rawQuery is a query the SDK has no typed builder for, such as the built-in annotation target.
@@ -195,6 +193,10 @@ func lokiLogs(ds common.DataSourceRef, expr string, maxLines int64) *loki.Dataqu
 
 func lokiInstant(ds common.DataSourceRef, expr string) *loki.DataqueryBuilder {
 	return loki.NewDataqueryBuilder().Datasource(ds).Expr(expr).QueryType("instant").Instant(true).RefId("A")
+}
+
+func lokiRange(ds common.DataSourceRef, expr, legend string) *loki.DataqueryBuilder {
+	return loki.NewDataqueryBuilder().Datasource(ds).Expr(expr).LegendFormat(legend).QueryType("range").Range(true).RefId("A")
 }
 
 func tempoSearch(ds common.DataSourceRef, query string, tableType tempo.SearchTableType, limit, spss int64) *tempo.DataqueryBuilder {
@@ -348,15 +350,15 @@ func runDashboardURL() string {
 
 // Shared panels.
 
-// statNumber is a single number with no graph.
-func statNumber(ds common.DataSourceRef, id uint32, title, description, expr, unit string, decimals float64, steps *dashboard.ThresholdsConfigBuilder, w, h uint32) *stat.PanelBuilder {
-	p := stat.NewPanelBuilder().
+// lokiStat is a single number from a LogQL instant query, with no graph.
+func (c Config) lokiStat(id uint32, title, description, expr, unit string, decimals float64, steps *dashboard.ThresholdsConfigBuilder, w, h uint32) *stat.PanelBuilder {
+	return stat.NewPanelBuilder().
 		Id(id).
 		Title(title).
 		Description(description).
-		Datasource(ds).
+		Datasource(c.loki()).
 		Span(w).Height(h).
-		WithTarget(promInstant(ds, expr, "")).
+		WithTarget(lokiInstant(c.loki(), expr)).
 		Unit(unit).
 		Decimals(decimals).
 		Thresholds(steps).
@@ -364,9 +366,41 @@ func statNumber(ds common.DataSourceRef, id uint32, title, description, expr, un
 		GraphMode(common.BigValueGraphModeNone).
 		TextMode(common.BigValueTextModeValue).
 		ReduceOptions(common.NewReduceDataOptionsBuilder().Calcs([]string{"lastNotNull"}).Fields("").Values(false))
-	if unit != "percentunit" {
-		// A count with no matching series is zero.
-		p.NoValue("0")
+}
+
+// series is one LogQL range query and its legend.
+type series struct{ expr, legend string }
+
+// lokiSeries is a stacked bar chart of LogQL range queries, one bar per interval.
+func (c Config) lokiSeries(id uint32, title, description string, w, h uint32, queries ...series) *timeseries.PanelBuilder {
+	p := timeseries.NewPanelBuilder().
+		Id(id).
+		Title(title).
+		Description(description).
+		Datasource(c.loki()).
+		Span(w).Height(h).
+		Interval("1h").
+		MaxDataPoints(60).
+		Min(0).
+		DrawStyle(common.GraphDrawStyleBars).
+		FillOpacity(80).
+		LineWidth(1).
+		Stacking(common.NewStackingConfigBuilder().Mode(common.StackingModeNormal)).
+		Legend(common.NewVizLegendOptionsBuilder().DisplayMode(common.LegendDisplayModeList).Placement(common.LegendPlacementBottom).ShowLegend(true)).
+		Tooltip(common.NewVizTooltipOptionsBuilder().Mode(common.TooltipDisplayModeMulti).Sort(common.SortOrderDescending))
+	for i, q := range queries {
+		p.WithTarget(lokiRange(c.loki(), q.expr, q.legend).RefId(string(rune('A' + i))))
+	}
+	return p
+}
+
+// outcomesOverTime is a stacked bar chart of runs by outcome, from run end log lines.
+func (c Config) outcomesOverTime(id uint32, title, description, selector string, w, h uint32) *timeseries.PanelBuilder {
+	p := c.lokiSeries(id, title, description, w, h, series{countBy(selector, "dummyrun_outcome", "$__interval"), "{{dummyrun_outcome}}"}).
+		Unit("short").
+		Decimals(0)
+	for _, k := range outcomeOrder {
+		p.WithOverride(colourOverride(k, outcomeColours[k]))
 	}
 	return p
 }

@@ -109,7 +109,7 @@ func (c Config) Run() *dashboard.DashboardBuilder {
 	b.WithPanel(table.NewPanelBuilder().
 		Id(ids.id()).
 		Title("Findings").
-		Description("Findings raised in this run, confirmed or not.").
+		Description("Findings raised in this run, confirmed or not. Steps is the JSON list of step numbers the finding points at.").
 		Datasource(c.loki()).
 		Span(10).Height(12).
 		WithTarget(lokiLogs(c.loki(), lokiFindings+` | dummyrun_run_id="$run"`, 100)).
@@ -129,7 +129,7 @@ func (c Config) Run() *dashboard.DashboardBuilder {
 		}).
 		OverrideByName("Kind", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 95}}).
 		OverrideByName("Verdict", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}).
-		OverrideByName("Steps", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 55}}).
+		OverrideByName("Steps", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 70}, {Id: "custom.cellOptions", Value: map[string]any{"type": "json-view"}}}).
 		OverrideByName("Title", []dashboard.DynamicConfigValue{wrap("auto")}))
 
 	b.WithPanel(logs.NewPanelBuilder().

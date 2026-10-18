@@ -53,9 +53,11 @@ def test_root_attributes_drop_optional_fields():
     run = seed.load_runs([str(EXAMPLES)])[0]
     del run["batch"]
     del run["target"]["commit"]
+    del run["usage"]["cost_usd"]
     attrs = seed.root_attributes(run)
     assert "dummyrun.batch.id" not in attrs
     assert "dummyrun.target.commit" not in attrs
+    assert "dummyrun.cost.usd" not in seed.run_log(run)["attributes"]
 
 
 def test_root_status_is_error_for_errored_and_blocked():
@@ -94,7 +96,8 @@ def test_run_log_record(runs):
     assert rec["body"] == f"run {run['id']} {run['outcome']}: {run['persona']['id']} / {run['scenario']['id']}"
     assert rec["severity"] == ("ERROR" if run["outcome"] == "errored" else "INFO")
     assert rec["time"] == run["ended_at"]
-    assert rec["attributes"] == seed.root_attributes(run)
+    expected = seed.root_attributes(run) | {"dummyrun.steps.count": len(run["steps"]), "dummyrun.cost.usd": run["usage"]["cost_usd"]}
+    assert rec["attributes"] == expected
 
 
 def test_finding_log_severity(runs):
@@ -105,6 +108,7 @@ def test_finding_log_severity(runs):
         assert rec["body"] == finding["title"]
         assert rec["attributes"]["dummyrun.run.id"] == run["id"]
         assert rec["attributes"]["dummyrun.persona.id"] == run["persona"]["id"]
+        assert rec["attributes"]["dummyrun.scenario.id"] == run["scenario"]["id"]
         assert rec["attributes"]["dummyrun.target.environment"] == run["target"]["environment"]
 
 
@@ -136,16 +140,22 @@ def test_metric_units():
     assert seed.METRICS["dummyrun.step.duration"][0] == "histogram"
 
 
+def test_histogram_buckets_follow_the_contract():
+    assert seed.BUCKETS["dummyrun.run.duration"] == [15, 30, 60, 120, 180, 300, 600, 900, 1800, 3600]
+    assert seed.BUCKETS["dummyrun.step.duration"] == [100, 250, 500, 1000, 2000, 5000, 10000, 30000, 60000]
+
+
 def test_cumulative_state_histogram_buckets():
     state = seed.CumulativeState()
-    for value in (0, 3, 5, 6, 20000):
+    for value in (50, 100, 101, 250, 70000):
         state.add("dummyrun.step.duration", {"dummyrun.persona.id": "a", "dummyrun.action": "click"}, value)
     (h,) = state.hists["dummyrun.step.duration"].values()
     assert h["count"] == 5
-    assert h["sum"] == 20014
-    assert h["min"] == 0 and h["max"] == 20000
-    # 0 and 3 and 5 fall in the first two buckets (<=0, <=5), 6 in <=10, 20000 overflows.
-    assert h["buckets"][0] == 1 and h["buckets"][1] == 2 and h["buckets"][2] == 1 and h["buckets"][-1] == 1
+    assert h["sum"] == 70501
+    assert h["min"] == 50 and h["max"] == 70000
+    # 50 and 100 fall in the first bucket (<=100), 101 and 250 in <=250, 70000 overflows.
+    assert h["buckets"][0] == 2 and h["buckets"][1] == 2 and h["buckets"][-1] == 1
+    assert len(h["buckets"]) == len(seed.BUCKETS["dummyrun.step.duration"]) + 1
     assert sum(h["buckets"]) == h["count"]
 
 
@@ -164,10 +174,18 @@ def test_annotation(runs):
     assert a["tags"][:5] == ["dummyrun", f"persona:{run['persona']['id']}", f"scenario:{run['scenario']['id']}",
                              f"env:{run['target']['environment']}", f"outcome:{run['outcome']}"]
     assert a["tags"][5] == "findings"
-    assert a["text"] == f"{run['persona']['id']} / {run['scenario']['id']}: {run['outcome']}, {confirmed} confirmed findings"
+    noun = "confirmed finding" if confirmed == 1 else "confirmed findings"
+    assert a["text"] == f"{run['persona']['id']} / {run['scenario']['id']}: {run['outcome']}, {confirmed} {noun}"
     assert a["timeEnd"] - a["time"] == seed.to_ms(run["ended_at"]) - seed.to_ms(run["started_at"])
     plain = next(r for r in runs if not any(f["verdict"] == "confirmed" for f in r["findings"]))
     assert "findings" not in seed.annotation(plain)["tags"]
+    assert seed.annotation(plain)["text"].endswith(", 0 confirmed findings")
+
+
+def test_annotation_text_singular():
+    run = seed.load_runs([str(EXAMPLES)])[0]
+    run["findings"] = [{"id": "x", "kind": "bug", "severity": "major", "title": "t", "steps": [1], "evidence": "measured", "verdict": "confirmed"}]
+    assert seed.annotation(run)["text"].endswith(", 1 confirmed finding")
 
 
 def test_shift_to_now_keeps_spacing(runs):
@@ -185,6 +203,15 @@ def test_shift_to_now_keeps_spacing(runs):
     assert runs[0]["started_at"].startswith("2026-10-15")
 
 
+def test_ids_follow_the_contract():
+    import hashlib
+
+    run_id = "2026-10-17-sam-author-006"
+    assert seed.trace_id_for(run_id) == int.from_bytes(hashlib.sha256(b"dummyrun.run:" + run_id.encode()).digest()[:16], "big")
+    assert seed.span_id_for(run_id, None) == int.from_bytes(hashlib.sha256(b"dummyrun.span:" + run_id.encode() + b":root").digest()[:8], "big")
+    assert seed.span_id_for(run_id, 3) == int.from_bytes(hashlib.sha256(b"dummyrun.span:" + run_id.encode() + b":step:3").digest()[:8], "big")
+
+
 def test_ids_are_stable_and_distinct():
     assert seed.trace_id_for("2026-10-17-sam-author-006") == seed.trace_id_for("2026-10-17-sam-author-006")
     assert seed.trace_id_for("a") != seed.trace_id_for("b")
@@ -192,6 +219,15 @@ def test_ids_are_stable_and_distinct():
     assert seed.span_id_for("a", None) != seed.span_id_for("a", 1)
     assert seed.span_id_for("a", None) != seed.trace_id_for("a") >> 64
     assert 0 < seed.span_id_for("a", 1) < 2**64
+
+
+def test_write_shifted_records(tmp_path):
+    out = tmp_path / "out"
+    assert seed.main([str(EXAMPLES), "--end-now", "--write", str(out)]) == 0
+    written = sorted(out.glob("*.json"))
+    assert len(written) == 8
+    newest = max(seed.parse_time(__import__("json").loads(f.read_text())["ended_at"]) for f in written)
+    assert (datetime.now(timezone.utc) - newest).total_seconds() < 120
 
 
 def test_rejects_other_schema_versions(tmp_path):

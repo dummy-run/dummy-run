@@ -46,6 +46,14 @@ import each file from Dashboards, New, Import. The Loki data source needs a deri
 [../stack/grafana/provisioning/datasources/dummyrun.yaml](../stack/grafana/provisioning/datasources/dummyrun.yaml),
 for the log panels to link to traces.
 
+## Where each number comes from
+
+Metric data points carry the time the exporter sent them, and each exporter process starts its
+counters at zero (docs/TELEMETRY.md, Metrics). So every total and every chart over time reads the
+log records in Loki: run end lines for runs, tokens and cost, and finding lines for findings. The
+two histogram panels, step duration percentiles and slowest actions, read Prometheus. Cost comes
+from the `dummyrun.cost.usd` attribute on the run end log line.
+
 ## Metric and label names
 
 Prometheus renames OpenTelemetry metrics on the way in. The queries use the names below (measured:

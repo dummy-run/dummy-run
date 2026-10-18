@@ -17,24 +17,21 @@ func (c Config) Personas() *dashboard.DashboardBuilder {
 
 	// Inside a repeated row, $persona holds one value.
 	one := `dummyrun_persona_id=~"$persona"`
-	runsSel := selEnv + ", " + one + ", " + selScenario
-	runsAll := fmt.Sprintf(`sum(increase(%s{%s}[$__range]))`, metricRuns, runsSel)
-	runsCompleted := fmt.Sprintf(`sum(increase(%s{%s, dummyrun_outcome="completed"}[$__range]))`, metricRuns, runsSel)
+	runs := lokiRunEnd + ` | dummyrun_target_environment=~"$environment" | ` + one + ` | dummyrun_scenario_id=~"$scenario"`
+	findings := lokiFindings + ` | dummyrun_target_environment=~"$environment" | ` + one + ` | dummyrun_scenario_id=~"$scenario"`
 
 	b.WithRow(dashboard.NewRowBuilder("$persona").Id(ids.id()).Repeat("persona"))
-	b.WithPanel(statNumber(prom, ids.id(), "Runs", "Runs by this persona that ended in the time range.",
-		runsAll, "short", 0, thresholds(colourInk), 4, 4))
-	b.WithPanel(statNumber(prom, ids.id(), "Pass rate", "Share of this persona's runs where it finished its job.",
-		fmt.Sprintf(`%s / %s`, runsCompleted, runsAll), "percentunit", 0,
-		thresholds(colourBlocker, 0.8, colourAmber, 0.9, colourPass), 4, 4))
-	b.WithPanel(statNumber(prom, ids.id(), "Findings", "Findings this persona surfaced that the reviewer confirmed.",
-		fmt.Sprintf(`sum(increase(%s{%s, %s, dummyrun_verdict="confirmed"}[$__range]))`, metricFindings, selEnv, one),
-		"short", 0, thresholds(colourInk, 1.0, colourAmber), 4, 4))
-	b.WithPanel(statNumber(prom, ids.id(), "Blockers", "Confirmed blocker findings from this persona.",
-		fmt.Sprintf(`sum(increase(%s{%s, %s, dummyrun_severity="blocker", dummyrun_verdict="confirmed"}[$__range]))`, metricFindings, selEnv, one),
+	b.WithPanel(c.lokiStat(ids.id(), "Runs", "Runs by this persona that ended in the time range.",
+		countOver(runs, "$__range"), "short", 0, thresholds(colourInk), 4, 4))
+	b.WithPanel(c.lokiStat(ids.id(), "Pass rate", "Share of this persona's runs where it finished its job.",
+		passRate(runs, "$__range"), "percentunit", 0, thresholds(colourBlocker, 0.8, colourAmber, 0.9, colourPass), 4, 4))
+	b.WithPanel(c.lokiStat(ids.id(), "Findings", "Findings this persona surfaced that the reviewer confirmed.",
+		countOver(findings+` | dummyrun_finding_verdict="confirmed"`, "$__range"), "short", 0, thresholds(colourInk, 1.0, colourAmber), 4, 4))
+	b.WithPanel(c.lokiStat(ids.id(), "Blockers", "Confirmed blocker findings from this persona.",
+		countOver(findings+` | dummyrun_finding_severity="blocker" | dummyrun_finding_verdict="confirmed"`, "$__range"),
 		"short", 0, thresholds(colourPass, 1.0, colourBlocker), 4, 4))
 	b.WithPanel(c.attributesTable(ids.id(), "Role, device, browser and model", "From the persona's latest run end log line.",
-		lokiRunEnd+` | dummyrun_persona_id=~"$persona"`, 8, 4,
+		lokiRunEnd+` | `+one, 8, 4,
 		"dummyrun_persona_role", "Role",
 		"dummyrun_persona_device", "Device",
 		"browser_name", "Browser",
@@ -45,15 +42,15 @@ func (c Config) Personas() *dashboard.DashboardBuilder {
 		OverrideByName("Browser", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 75}}).
 		OverrideByName("Model", []dashboard.DynamicConfigValue{wrap("auto")}))
 
-	b.WithPanel(outcomesOverTime(prom, ids.id(), "Outcomes", "This persona's runs in each interval, stacked by outcome.", runsSel, 9, 8))
+	b.WithPanel(c.outcomesOverTime(ids.id(), "Outcomes", "This persona's runs that ended in each interval, stacked by outcome.", runs, 9, 8))
 	b.WithPanel(c.findingsSurfaced(ids.id(), "Findings surfaced",
 		"Confirmed findings from this persona in the time range, with the number of runs that hit each one.",
-		lokiFindings+` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_finding_verdict="confirmed"`, 9, 8))
+		findings+` | dummyrun_finding_verdict="confirmed"`, 9, 8))
 	b.WithPanel(slowestActions(prom, ids.id(), one, 6, 8))
 
 	b.WithPanel(c.runsTable(ids.id(), "Recent runs",
 		"This persona's recent runs. Click a run ID to open the run dashboard, or the trace ID to open the trace.",
-		lokiRunEnd+` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_scenario_id=~"$scenario"`, 24, 8))
+		runs, 24, 8))
 	return b
 }
 

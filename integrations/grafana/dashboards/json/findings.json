@@ -1,7 +1,7 @@
 {
   "uid": "dummyrun-findings",
   "title": "Dummy Run: findings",
-  "description": "Confirmed permission findings first, then blockers, then every distinct finding with when it was seen and who hit it. Findings carry no scenario, so that filter only applies to the runs panels.",
+  "description": "Confirmed permission findings first, then blockers, then every distinct finding with when it was seen and who hit it. Everything here comes from the finding log lines.",
   "tags": [
     "dummyrun"
   ],
@@ -34,23 +34,22 @@
       "id": 2,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_kind=\"permission\", dummyrun_verdict=\"confirmed\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_kind=\"permission\" | dummyrun_finding_verdict=\"confirmed\" [$__range])) or vector(0)",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Permission findings",
       "description": "A role saw or did something beyond its rights, and the reviewer confirmed it.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 7,
@@ -92,8 +91,7 @@
                 "color": "#ff7b72"
               }
             ]
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       }
@@ -103,7 +101,7 @@
       "id": 3,
       "targets": [
         {
-          "expr": "sort_desc(sum by (dummyrun_finding_id, dummyrun_finding_kind, dummyrun_finding_severity, dummyrun_finding_title) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_finding_kind=\"permission\" | dummyrun_finding_verdict=\"confirmed\" [$__range])))",
+          "expr": "sort_desc(sum by (dummyrun_finding_id, dummyrun_finding_kind, dummyrun_finding_severity, dummyrun_finding_title) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_kind=\"permission\" | dummyrun_finding_verdict=\"confirmed\" [$__range])))",
           "instant": true,
           "refId": "A",
           "queryType": "instant",
@@ -316,23 +314,22 @@
       "id": 5,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum(increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_severity=\"blocker\", dummyrun_verdict=\"confirmed\"}[$__range]))",
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_severity=\"blocker\" | dummyrun_finding_verdict=\"confirmed\" [$__range])) or vector(0)",
           "instant": true,
-          "legendFormat": "",
-          "range": false,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Confirmed blockers",
       "description": "Confirmed findings with blocker severity, of any kind.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 7,
@@ -374,8 +371,7 @@
                 "color": "#ff7b72"
               }
             ]
-          },
-          "noValue": "0"
+          }
         },
         "overrides": []
       }
@@ -385,7 +381,7 @@
       "id": 6,
       "targets": [
         {
-          "expr": "sort_desc(sum by (dummyrun_finding_id, dummyrun_finding_kind, dummyrun_finding_severity, dummyrun_finding_title) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_finding_severity=\"blocker\" | dummyrun_finding_verdict=\"confirmed\" [$__range])))",
+          "expr": "sort_desc(sum by (dummyrun_finding_id, dummyrun_finding_kind, dummyrun_finding_severity, dummyrun_finding_title) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_severity=\"blocker\" | dummyrun_finding_verdict=\"confirmed\" [$__range])))",
           "instant": true,
           "refId": "A",
           "queryType": "instant",
@@ -598,7 +594,7 @@
       "id": 8,
       "targets": [
         {
-          "expr": "{service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\"",
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\"",
           "maxLines": 5000,
           "range": true,
           "refId": "A",
@@ -944,23 +940,23 @@
       "id": 9,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (dummyrun_kind) (increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_verdict=\"confirmed\"}[$__interval]))",
-          "instant": false,
-          "legendFormat": "{{dummyrun_kind}}",
+          "expr": "sum by (dummyrun_finding_kind) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__interval]))",
+          "legendFormat": "{{dummyrun_finding_kind}}",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Confirmed findings by kind over time",
       "description": "Confirmed findings in each interval, stacked by kind.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -1008,23 +1004,23 @@
       "id": 10,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (dummyrun_severity) (increase(dummyrun_findings_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\", dummyrun_verdict=\"confirmed\"}[$__interval]))",
-          "instant": false,
-          "legendFormat": "{{dummyrun_severity}}",
+          "expr": "sum by (dummyrun_finding_severity) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__interval]))",
+          "legendFormat": "{{dummyrun_finding_severity}}",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
         }
       ],
       "title": "Confirmed findings by severity over time",
       "description": "Confirmed findings in each interval, stacked by severity.",
       "transparent": false,
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "type": "loki",
+        "uid": "loki"
       },
       "gridPos": {
         "h": 8,
@@ -1143,7 +1139,7 @@
       "id": 12,
       "targets": [
         {
-          "expr": "{service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\"",
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\"",
           "maxLines": 500,
           "range": true,
           "refId": "A",
