@@ -13,7 +13,7 @@ jobs:
     name: No private-deployment identifiers or secrets in the tree
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Fail on private-deployment identifiers
         env:
           # One extended-regex pattern per line. Kept as a repository secret so the list itself
@@ -44,7 +44,7 @@ jobs:
     name: Docs are well formed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Every Markdown link to a local file resolves
         run: |
           set -euo pipefail
