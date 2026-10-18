@@ -2,13 +2,16 @@
 """Prove the join with Tempo's search API.
 
 Polls a TraceQL query for the run ID until the trace arrives, checks that the trace ID is the
-one the persona sent, then lists every span in the trace with its two dummyrun attributes.
+one the persona sent, then lists every span in the trace with its two dummyrun attributes. Each
+server span must hang under a step span, whose ID the contract derives from the run ID and step
+number (docs/TELEMETRY.md, Traces).
 
 Usage: check_tempo.py TRACE_ID [--tempo http://localhost:3200] [--run-id ID] [--persona-id ID]
 Needs only the standard library.
 """
 import argparse
 import base64
+import hashlib
 import http.client
 import json
 import sys
@@ -44,6 +47,11 @@ def search(tempo, query, attempts=30, pause=2.0):
     return []
 
 
+def step_span_id(run_id, n):
+    """The first 8 bytes of SHA-256 of dummyrun.span:<id>:step:<n>, as hex."""
+    return hashlib.sha256(f"dummyrun.span:{run_id}:step:{n}".encode()).hexdigest()[:16]
+
+
 def hex_id(b64):
     """Tempo's /api/traces returns OTLP JSON, where IDs are base64. Show them as hex like Grafana does."""
     return base64.b64decode(b64).hex() if b64 else ""
@@ -65,6 +73,7 @@ def main():
     ap.add_argument("--tempo", default="http://localhost:3200")
     ap.add_argument("--run-id", default="2026-10-17-ravi-reviewer-005")
     ap.add_argument("--persona-id", default="ravi-reviewer")
+    ap.add_argument("--steps", type=int, default=3, help="persona steps the request script sent")
     ap.add_argument("--spans", type=int, default=6, help="spans the trace must hold: 3 server + 3 render")
     args = ap.parse_args()
 
@@ -98,6 +107,18 @@ def main():
     if bad:
         sys.exit(f"spans without both attributes: {bad}")
     print(f"all {len(rows)} spans carry dummyrun.run.id={args.run_id} and dummyrun.persona.id={args.persona_id}")
+
+    # Server spans (the ones not named inkwell.render) must be children of the derived step spans.
+    steps = {step_span_id(args.run_id, n): n for n in range(1, args.steps + 1)}
+    servers = [(name, parent) for _, name, parent, _ in rows if name != "inkwell.render"]
+    orphans = [name for name, parent in servers if parent not in steps]
+    if orphans:
+        sys.exit(f"server spans whose parent is not a step span: {orphans}; expected one of {sorted(steps)}")
+    covered = sorted({steps[parent] for _, parent in servers})
+    if covered != list(range(1, args.steps + 1)):
+        sys.exit(f"server spans cover steps {covered}, expected 1..{args.steps}")
+    for name, parent in servers:
+        print(f"{name} is a child of step {steps[parent]} (span {parent})")
 
 
 if __name__ == "__main__":

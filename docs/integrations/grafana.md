@@ -50,15 +50,16 @@ app's own telemetry"):
 
 | Header | Example | Meaning |
 |---|---|---|
-| `traceparent` | `00-7d7e4c2d8c9a4b1f0a3e5d6c7b8a9f01-3c4d5e6f7a8b9c0d-01` | W3C Trace Context. The trace is the run and the parent is the step span [[4]](#sources) |
+| `traceparent` | `00-32d794d3234508fe094bb2afc7eb5dca-2a7010411282690a-01` | W3C Trace Context. The trace is the run and the parent is the current step's span [[4]](#sources) |
 | `baggage` | `dummyrun.run.id=2026-10-17-ravi-reviewer-005,dummyrun.persona.id=ravi-reviewer` | W3C Baggage with the run and persona IDs [[5]](#sources) |
 | `User-Agent` | `Mozilla/5.0 (...) Chrome/148.0.0.0 Safari/537.36 DummyRun/0.1.0` | The normal browser string with `DummyRun/<version>` at the end |
 
 The IDs are derived from the run ID, so the exporter and the runner agree without talking to each
-other. The trace ID is the first 16 bytes of SHA-256 of `dummyrun.run:<id>`. The root span ID is the
-first 8 bytes of SHA-256 of `dummyrun.span:<id>:root` (docs/TELEMETRY.md, Traces). The exporter writes
-the `dummyrun.run` root span and the step spans with those IDs. The runner sends the same trace ID in
-every `traceparent`. Your app's spans therefore land in the exporter's trace, whether the exporter ran
+other (docs/TELEMETRY.md, Traces). The trace ID is the first 16 bytes of SHA-256 of `dummyrun.run:<id>`.
+The root span ID is the first 8 bytes of SHA-256 of `dummyrun.span:<id>:root`, and step `n` has the
+span ID from `dummyrun.span:<id>:step:<n>`. During step `n` the runner sends that step's span ID as the
+parent in every `traceparent`. The exporter writes the `dummyrun.run` root span and the step spans with
+the same IDs. Your app's spans therefore nest under the step that caused them, whether the exporter ran
 before or after your app recorded them.
 
 An app instrumented with OpenTelemetry joins the trace by default. The baggage does not reach your

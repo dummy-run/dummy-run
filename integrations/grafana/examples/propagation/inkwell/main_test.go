@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,11 +13,22 @@ import (
 )
 
 const (
-	traceID  = "4bf92f3577b34da6a3ce929d0e0e4736"
-	parentID = "00f067aa0ab902b7"
-	runID    = "2026-10-17-ravi-reviewer-005"
-	persona  = "ravi-reviewer"
+	runID   = "2026-10-17-ravi-reviewer-005"
+	persona = "ravi-reviewer"
 )
+
+// The contract derives the IDs from the run ID (docs/TELEMETRY.md, Traces): the trace ID is the first
+// 16 bytes of SHA-256 of dummyrun.run:<id>, and step n's span ID is the first 8 bytes of SHA-256 of
+// dummyrun.span:<id>:step:<n>.
+var (
+	traceID  = derive("dummyrun.run:"+runID, 16)
+	parentID = derive("dummyrun.span:"+runID+":step:1", 8)
+)
+
+func derive(s string, n int) string {
+	sum := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(sum[:n])
+}
 
 // TestBaggageReachesEverySpan sends one request shaped like the persona browser's
 // and checks the server span and its child both join the trace and carry the
