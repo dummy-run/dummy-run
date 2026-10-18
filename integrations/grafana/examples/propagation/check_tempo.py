@@ -73,7 +73,8 @@ def main():
     ap.add_argument("--tempo", default="http://localhost:3200")
     ap.add_argument("--run-id", default="2026-10-17-ravi-reviewer-005")
     ap.add_argument("--persona-id", default="ravi-reviewer")
-    ap.add_argument("--steps", type=int, default=3, help="persona steps the request script sent")
+    ap.add_argument("--routes", default="/drafts,/payments,/reviews",
+                    help="the page each step requested, in step order, as persona-request.sh sends them")
     ap.add_argument("--spans", type=int, default=6, help="spans the trace must hold: 3 server + 3 render")
     args = ap.parse_args()
 
@@ -108,17 +109,17 @@ def main():
         sys.exit(f"spans without both attributes: {bad}")
     print(f"all {len(rows)} spans carry dummyrun.run.id={args.run_id} and dummyrun.persona.id={args.persona_id}")
 
-    # Server spans (the ones not named inkwell.render) must be children of the derived step spans.
-    steps = {step_span_id(args.run_id, n): n for n in range(1, args.steps + 1)}
-    servers = [(name, parent) for _, name, parent, _ in rows if name != "inkwell.render"]
-    orphans = [name for name, parent in servers if parent not in steps]
-    if orphans:
-        sys.exit(f"server spans whose parent is not a step span: {orphans}; expected one of {sorted(steps)}")
-    covered = sorted({steps[parent] for _, parent in servers})
-    if covered != list(range(1, args.steps + 1)):
-        sys.exit(f"server spans cover steps {covered}, expected 1..{args.steps}")
-    for name, parent in servers:
-        print(f"{name} is a child of step {steps[parent]} (span {parent})")
+    # Step n requested one page, so the trace must hold a server span named "GET <page>" whose parent
+    # is the derived span ID of step n. Checking the name too catches a request that fell through to "/".
+    routes = args.routes.split(",")
+    servers = {(name, parent) for _, name, parent, _ in rows if name != "inkwell.render"}
+    if len(servers) != len(routes):
+        sys.exit(f"{len(servers)} server spans for {len(routes)} steps: {sorted(servers)}")
+    for n, route in enumerate(routes, start=1):
+        want = ("GET " + route, step_span_id(args.run_id, n))
+        if want not in servers:
+            sys.exit(f"step {n}: no server span {want[0]!r} with parent {want[1]}; got {sorted(servers)}")
+        print(f"{want[0]} is a child of step {n} (span {want[1]})")
 
 
 if __name__ == "__main__":
