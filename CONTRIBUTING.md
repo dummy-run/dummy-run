@@ -43,8 +43,17 @@ lefthook install
 - Sign off every commit with `git commit -s`. This certifies the
   [Developer Certificate of Origin](https://developercertificate.org/), and CI checks it. Your
   contribution is licensed under [Apache-2.0](LICENSE). There is no other agreement to sign.
+- New behaviour comes with automated tests in the same pull request. A bug fix comes with a test that
+  failed before the fix. Reviewers do not merge code changes without tests.
 - One change per pull request. A persona and a harness change are two pull requests.
 - Say what you changed and how you checked it.
+
+## Reporting bugs and asking for features
+
+Report bugs and request features through [GitHub issues](https://github.com/dummy-run/dummy-run/issues).
+Ask questions in [Discussions](https://github.com/dummy-run/dummy-run/discussions). Report security
+problems privately, as described in [SECURITY.md](SECURITY.md). The maintainer replies to issues within
+14 days.
 
 ## Proposing a persona
 
