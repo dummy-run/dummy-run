@@ -183,7 +183,8 @@ func TestRunEndToEnd(t *testing.T) {
 			mu.Lock()
 			defer mu.Unlock()
 			tr := telemetry.NewTrace(rec.ID)
-			for _, path := range []string{"/", "/docs"} {
+			// "/" was loaded by step 1 (the opening visit) and "/docs" by step 2 (the click).
+			for path, step := range map[string]int{"/": 1, "/docs": 2} {
 				h := seen[path]
 				if h == nil {
 					t.Fatalf("site never saw %s", path)
@@ -191,8 +192,9 @@ func TestRunEndToEnd(t *testing.T) {
 				if h.Get("baggage") != "dummyrun.run.id="+rec.ID+",dummyrun.persona.id=reader" {
 					t.Errorf("%s baggage %q", path, h.Get("baggage"))
 				}
-				if h.Get("traceparent") != tr.Traceparent() {
-					t.Errorf("%s traceparent %q, want %q", path, h.Get("traceparent"), tr.Traceparent())
+				want := "00-" + tr.TraceID + "-" + tr.StepSpanID(step) + "-01"
+				if h.Get("traceparent") != want {
+					t.Errorf("%s traceparent %q, want %q (step %d)", path, h.Get("traceparent"), want, step)
 				}
 				if !strings.HasSuffix(h.Get("User-Agent"), "DummyRun/"+telemetry.Version) {
 					t.Errorf("%s user agent %q", path, h.Get("User-Agent"))

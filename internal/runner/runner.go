@@ -72,7 +72,7 @@ type run struct {
 	cfg      Config
 	id       string
 	dir      string
-	trace    telemetry.Trace
+	trace    *telemetry.Trace
 	page     *page.Page
 	steps    []Step
 	entries  []entry
@@ -218,6 +218,7 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 		return strings.TrimSpace(v)
 	}
 	controlsBefore := r.controls
+	r.trace.SetStep(len(r.steps) + 1)
 	var obs page.Observation
 	switch call.Name {
 	case "look":
@@ -318,6 +319,7 @@ func (r *run) resolveURL(raw string) (string, error) {
 }
 
 func (r *run) finishStep(ctx context.Context, f Finish) {
+	r.trace.SetStep(len(r.steps) + 1)
 	obs := r.page.Look(ctx)
 	obs.Action, obs.Target = "finish", f.Verdict
 	r.steps = append(r.steps, Step{N: len(r.steps) + 1, Obs: obs, PageChanged: false})

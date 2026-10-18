@@ -35,20 +35,36 @@ func TestSlug(t *testing.T) {
 }
 
 func TestTraceIsDerivedFromTheRunID(t *testing.T) {
-	tr := NewTrace("2026-10-18-qa-lead-first-look-ab12")
-	// sha256("dummyrun.run:<id>")[:16] and sha256("dummyrun.span:<id>:root")[:8], as docs/TELEMETRY.md defines them.
-	wantTrace := sha256.Sum256([]byte("dummyrun.run:2026-10-18-qa-lead-first-look-ab12"))
-	wantSpan := sha256.Sum256([]byte("dummyrun.span:2026-10-18-qa-lead-first-look-ab12:root"))
-	if tr.TraceID != hex.EncodeToString(wantTrace[:16]) || tr.RootSpanID != hex.EncodeToString(wantSpan[:8]) {
+	id := "2026-10-18-qa-lead-first-look-ab12"
+	tr := NewTrace(id)
+	// The derivations docs/TELEMETRY.md defines: sha256("dummyrun.run:<id>")[:16],
+	// sha256("dummyrun.span:<id>:root")[:8] and sha256("dummyrun.span:<id>:step:<n>")[:8].
+	wantTrace := sha256.Sum256([]byte("dummyrun.run:" + id))
+	wantRoot := sha256.Sum256([]byte("dummyrun.span:" + id + ":root"))
+	wantStep3 := sha256.Sum256([]byte("dummyrun.span:" + id + ":step:3"))
+	if tr.TraceID != hex.EncodeToString(wantTrace[:16]) || tr.RootSpanID != hex.EncodeToString(wantRoot[:8]) {
 		t.Errorf("ids %q %q", tr.TraceID, tr.RootSpanID)
+	}
+	if tr.StepSpanID(3) != hex.EncodeToString(wantStep3[:8]) {
+		t.Errorf("step span %q", tr.StepSpanID(3))
+	}
+	if tr.Step() != 1 || tr.Traceparent() != "00-"+tr.TraceID+"-"+tr.StepSpanID(1)+"-01" {
+		t.Errorf("initial traceparent %q", tr.Traceparent())
+	}
+	tr.SetStep(3)
+	if tr.Traceparent() != "00-"+tr.TraceID+"-"+hex.EncodeToString(wantStep3[:8])+"-01" {
+		t.Errorf("step 3 traceparent %q", tr.Traceparent())
 	}
 	if !regexp.MustCompile(`^00-[0-9a-f]{32}-[0-9a-f]{16}-01$`).MatchString(tr.Traceparent()) {
 		t.Errorf("traceparent %q", tr.Traceparent())
 	}
+	if tr.StepSpanID(1) == tr.StepSpanID(2) || tr.StepSpanID(1) == tr.RootSpanID {
+		t.Error("span IDs collide")
+	}
 	if NewTrace("2026-10-18-other-run-0000").TraceID == tr.TraceID {
 		t.Error("two runs share a trace ID")
 	}
-	if NewTrace("2026-10-18-qa-lead-first-look-ab12") != tr {
+	if NewTrace(id).TraceID != tr.TraceID {
 		t.Error("the derivation is not stable")
 	}
 }

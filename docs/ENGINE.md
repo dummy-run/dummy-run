@@ -67,7 +67,8 @@ persona's own report and `steps.jsonl` holds the full observation for each step,
 reviewer can check quotes against.
 
 Every request to the target carries a `baggage` header with the run and persona IDs and a `traceparent`
-header derived from the run ID, as `docs/TELEMETRY.md` describes. The browser's user agent ends with
+header whose trace ID and step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md`
+describes. The browser's user agent ends with
 `DummyRun/<version>`.
 
 ## Read-only policy

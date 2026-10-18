@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -60,25 +61,50 @@ func randomHex(n int) string {
 // Trace holds the IDs that tie the run's requests to the exporter's trace.
 //
 // The exporter builds the run's trace from the run record alone, so both sides
-// derive the same IDs from the run ID: the trace ID is the first 16 bytes of
-// SHA-256 of "dummyrun.run:<run id>" and the root span ID is the first 8 bytes
-// of SHA-256 of "dummyrun.span:<run id>:root". The app's spans then join the
-// trace as children of the root span.
+// derive the same IDs from the run ID. The trace ID is the first 16 bytes of
+// SHA-256 of "dummyrun.run:<run id>". The root span ID is the first 8 bytes of
+// SHA-256 of "dummyrun.span:<run id>:root". Step n's span ID is the first 8
+// bytes of SHA-256 of "dummyrun.span:<run id>:step:<n>". A request sent during
+// step n names that step's span as its parent, so the app's spans nest under
+// the step.
 type Trace struct {
+	runID      string
 	TraceID    string
 	RootSpanID string
+	mu         sync.Mutex
+	step       int
 }
 
-// NewTrace derives the trace for a run ID.
-func NewTrace(runID string) Trace {
+// NewTrace derives the trace for a run ID. The current step starts at 1.
+func NewTrace(runID string) *Trace {
 	trace := sha256.Sum256([]byte("dummyrun.run:" + runID))
-	span := sha256.Sum256([]byte("dummyrun.span:" + runID + ":root"))
-	return Trace{TraceID: hex.EncodeToString(trace[:16]), RootSpanID: hex.EncodeToString(span[:8])}
+	root := sha256.Sum256([]byte("dummyrun.span:" + runID + ":root"))
+	return &Trace{runID: runID, TraceID: hex.EncodeToString(trace[:16]), RootSpanID: hex.EncodeToString(root[:8]), step: 1}
 }
 
-// Traceparent is the W3C header naming the run's root span as the parent.
-func (t Trace) Traceparent() string {
-	return "00-" + t.TraceID + "-" + t.RootSpanID + "-01"
+// StepSpanID is the span ID of step n.
+func (t *Trace) StepSpanID(n int) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("dummyrun.span:%s:step:%d", t.runID, n)))
+	return hex.EncodeToString(sum[:8])
+}
+
+// SetStep says which step is running, so Traceparent names its span.
+func (t *Trace) SetStep(n int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.step = n
+}
+
+// Step returns the step whose span requests currently join.
+func (t *Trace) Step() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.step
+}
+
+// Traceparent is the W3C header for a request sent during the current step.
+func (t *Trace) Traceparent() string {
+	return "00-" + t.TraceID + "-" + t.StepSpanID(t.Step()) + "-01"
 }
 
 // Baggage is the W3C baggage header carrying the run and persona IDs.
