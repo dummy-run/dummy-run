@@ -1,11 +1,13 @@
 package otelsetup
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"strings"
 	"testing"
 
+	"go.opentelemetry.io/otel"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -108,7 +110,9 @@ func (failingSpans) ExportSpans(context.Context, []sdktrace.ReadOnlySpan) error 
 }
 
 func TestShutdownReportsExportErrors(t *testing.T) {
-	sink := &errorSink{}
+	var stderr bytes.Buffer
+	sink := &errorSink{w: &stderr}
+	otel.SetErrorHandler(sink)
 	res, err := Resource(context.Background(), "test")
 	if err != nil {
 		t.Fatal(err)
@@ -122,6 +126,9 @@ func TestShutdownReportsExportErrors(t *testing.T) {
 	}
 	if res.Set().HasValue(semconv.ServiceNameKey) == false {
 		t.Error("resource lost service.name")
+	}
+	if !strings.Contains(stderr.String(), "tempo said no") {
+		t.Errorf("SDK error was not written to the configured stderr: %q", stderr.String())
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -78,6 +79,8 @@ type Config struct {
 	Temporality Temporality
 	// Version becomes service.version.
 	Version string
+	// Stderr receives the SDK's error reports. nil means os.Stderr.
+	Stderr io.Writer
 }
 
 // Providers holds the three SDK providers and the error sink.
@@ -95,7 +98,10 @@ func New(ctx context.Context, cfg Config) (*Providers, error) {
 	if err != nil {
 		return nil, err
 	}
-	sink := &errorSink{}
+	sink := &errorSink{w: cfg.Stderr}
+	if sink.w == nil {
+		sink.w = os.Stderr
+	}
 	otel.SetErrorHandler(sink)
 
 	var (
@@ -132,7 +138,7 @@ func New(ctx context.Context, cfg Config) (*Providers, error) {
 // Assemble wires exporters into providers. Tests call it with in-memory exporters.
 func Assemble(res *resource.Resource, traceExp sdktrace.SpanExporter, metricExp sdkmetric.Exporter, logExp sdklog.Exporter, sink *errorSink) *Providers {
 	if sink == nil {
-		sink = &errorSink{}
+		sink = &errorSink{w: os.Stderr}
 	}
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithResource(res),
@@ -240,6 +246,7 @@ func (p *Providers) Shutdown(ctx context.Context) error {
 // errorSink remembers export errors. The SDK reports batch export failures to the global error
 // handler rather than returning them, so the exporter wrappers below record them.
 type errorSink struct {
+	w    io.Writer
 	mu   sync.Mutex
 	errs []error
 }
@@ -247,7 +254,7 @@ type errorSink struct {
 // Handle implements otel.ErrorHandler. It prints; the wrappers store.
 func (s *errorSink) Handle(err error) {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "dummyrun-otel: %v\n", err)
+		fmt.Fprintf(s.w, "dummyrun-otel: %v\n", err)
 	}
 }
 

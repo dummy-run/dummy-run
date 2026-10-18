@@ -74,7 +74,8 @@ file failed. Run it next to the runner that writes records.
 | `--protocol` | `OTEL_EXPORTER_OTLP_PROTOCOL` or `http/protobuf` | OTLP transport, `http/protobuf` or `grpc` |
 | `--metrics-temporality` | `cumulative` | `cumulative` for Prometheus and Mimir, `delta` for a backend that converts deltas |
 | `--grafana-url` | unset | Grafana base URL for annotations. The token comes from `GRAFANA_TOKEN` |
-| `--logs-max-age` | `168h` | Skip log records older than this, because Loki rejects them. `0` sends every record |
+| `--verify-loki` | unset | Loki base URL. After the export, count the log lines back per run and exit 1 naming any run that is short |
+| `--logs-max-age` | `168h` | Skip log records older than this, because Loki rejects them. The local stack in `integrations/grafana/stack` accepts `720h`. `0` sends every record |
 | `--timeout` | `30s` | How long the final flush may take |
 | `--interval` (watch) | `5s` | How often to look for new files |
 | `--existing` (watch) | off | Also send the records already in the directory |
@@ -93,6 +94,7 @@ The exporter uses the OpenTelemetry Go SDK, so the standard variables apply.
 | `OTEL_METRIC_EXPORT_INTERVAL` | How often `watch` pushes metrics, in milliseconds |
 | `OTEL_RESOURCE_ATTRIBUTES` | Extra resource attributes |
 | `GRAFANA_TOKEN` | Grafana service account token for annotations |
+| `LOKI_BASIC_AUTH` | `user:password` for `--verify-loki` against Grafana Cloud Loki |
 
 Set `service.namespace` in the resource attributes to group runs by the app under test:
 
@@ -100,7 +102,8 @@ Set `service.namespace` in the resource attributes to group runs by the app unde
 export OTEL_RESOURCE_ATTRIBUTES=service.namespace=inkwell
 ```
 
-There is no flag for `GRAFANA_TOKEN`, so the token never appears in a shell history or a process list.
+There is no flag for `GRAFANA_TOKEN` or `LOKI_BASIC_AUTH`, so neither secret appears in a shell history or
+a process list.
 
 ## What gets sent
 
@@ -123,6 +126,11 @@ Seven metrics, named in the contract. Prometheus renames them when it stores the
 
 The two histograms use explicit buckets: 15 s to 3600 s for runs and 100 ms to 60 s for steps.
 
+Each exporter process starts its counters at zero, and every data point carries the time it was sent.
+So `export` describes runs as they are exported, and two exports of the same records add nothing to
+the totals. For live charts run `dummyrun-otel watch` next to the runner. For history and totals query
+the log records, which keep the run's own times.
+
 One log record when a run ends and one per finding, each with the root span's trace and span IDs so
 Grafana can jump from the line to the trace.
 
@@ -133,37 +141,46 @@ when one already has the same `time` and `timeEnd`, so re-running an export is s
 ## Historical timestamps
 
 Run records describe the past. The exporter keeps the record's own timestamps wherever the backend
-stores them, and stamps the rest at export time.
+stores them, and stamps the rest at export time. Each claim below is tagged the way docs/STYLE.md asks:
+sourced from the backend's documentation, measured by the end-to-end test, or code in this module.
 
 | Signal | Timestamp sent | What the backend does with it |
 |---|---|---|
-| Spans | The run's `started_at`, each step's `at` and `duration_ms` | Tempo stores the span times as given, so the trace view and a lookup by trace ID show the run as it happened |
-| Log records | `ended_at` for the run line, the first step's `at` for a finding | Loki stores the record timestamp, so `count_over_time` and the log panel show history. Two limits apply, described below |
-| Metric points | Export time | Prometheus and Mimir reject a sample older than the head block, about an hour, unless `out_of_order_time_window` allows more. `grafana/otel-lgtm` allows 10 minutes. Counters therefore count runs at the time they were exported. `watch` is the mode that gives a live time series |
-| Annotations | `started_at` and `ended_at` | Grafana stores whatever `time` and `timeEnd` it is given |
+| Spans | The run's `started_at`, each step's `at` and `duration_ms` (code: `internal/telemetry/plan.go`) | Tempo stores the span times as given, so the trace view and a lookup by trace ID show the run as it happened (measured: `e2e/e2e_test.go`) |
+| Log records | `ended_at` for the run line, the first step's `at` for a finding (code) | Loki stores the record timestamp, so `count_over_time` and the log panel show history (measured). Two limits apply, described below |
+| Metric points | Export time (code: the OpenTelemetry SDK stamps each point when it collects) | Prometheus and Mimir reject a sample older than the head block, the in-memory block that holds the newest two hours, unless `out_of_order_time_window` allows more (sourced). `grafana/otel-lgtm` allows 10 minutes (sourced: its `prometheus.yaml`). Each process starts its counters at zero (code), so `watch` is the mode that gives a live series |
+| Annotations | `started_at` and `ended_at` (code) | Grafana stores whatever `time` and `timeEnd` it is given (measured) |
 
 Tempo has one catch. A span more than `ingestion_time_range_slack` (default 2 minutes) from now does not
-move the time range of the block it lands in. The query frontend searches the live-store for the last
-`query_backend_after` (15 minutes) and the backend for anything older, and a block whose range is pinned
-to its ingestion time is never where a search over the run's own time range looks. A lookup by trace ID
-always works. To search history in a local stack, raise the slack under `live_store.wal` and under
-`block_builder.wal` and `storage.trace.wal`. `e2e/tempo-config.yaml` shows how. Grafana Cloud sets the
-slack for you, so there you open historical traces by ID from the log line or the annotation.
+move the time range of the block it lands in (sourced). The query frontend searches the live-store, the
+component that holds the newest traces in memory, for the last `query_backend_after` (15 minutes) and
+the backend for anything older (sourced). A block whose range is pinned to its ingestion time is
+therefore never where a search over the run's own time range looks (measured: the test found 0 traces
+with the stock configuration). A lookup by trace ID always works (measured). To search history in a
+local stack, raise the slack under `live_store.wal` and under `block_builder.wal` and `storage.trace.wal`.
+`e2e/tempo-config.yaml` shows how, and `integrations/grafana/stack` ships the same settings. Grafana
+Cloud sets the slack for you (inferred from the absence of a tenant setting), so there you open
+historical traces by ID from the log line or the annotation.
 
 Loki has two limits. It rejects a line older than `reject_old_samples_max_age` (default 7 days) with
-HTTP 400, so `--logs-max-age` skips those lines and says how many. It also keeps one stream for the
-exporter and rejects a line more than `max_chunk_age / 2` (default 1 hour) older than the newest line in
-that stream. `export` therefore sends every log record oldest first. Load history in one export, or in
-several exports ordered oldest first. When the collector in `grafana/otel-lgtm` sits between the exporter
-and Loki it swallows these rejections. Point `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` at Loki itself, such as
-`http://localhost:3100/otlp/v1/logs`, to see them as exporter errors.
+HTTP 400 (sourced), so `--logs-max-age` skips those lines and says how many (code). The local stack in
+`integrations/grafana/stack` raises the limit to 30 days, so pass `--logs-max-age 720h` there. Loki
+also keeps one stream for the exporter and drops a line more than `max_chunk_age / 2` (default 1 hour)
+older than the newest line in that stream (sourced, and measured: 14 of 41 lines survived an export in
+file name order). `export` therefore sends every log record oldest first (code). Two exports whose time
+ranges overlap by more than an hour still lose lines from the earlier one. Export runs in `ended_at`
+order, and never export a batch that ends more than an hour before one already sent. The collector in
+`grafana/otel-lgtm` answers 200 while Loki rejects (measured), so the exporter cannot see the loss on
+its own. Pass `--verify-loki http://localhost:3100` to count the lines back after each export and exit 1
+naming the runs that are short. Or point `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` at Loki itself, such as
+`http://localhost:3100/otlp/v1/logs`, and its rejections become exporter errors.
 
-For charts over history, query Loki within its 7 day window or use the annotations. For charts of live
+For charts over history, query Loki within its window or use the annotations. For charts of live
 activity, run `dummyrun-otel watch` next to the runner and query Prometheus.
 
 Sources:
 
-- Tempo configuration reference, `ingestion_time_range_slack` and `block_retention`:
+- Tempo configuration reference, `ingestion_time_range_slack`, `query_backend_after` and `block_retention`:
   https://grafana.com/docs/tempo/latest/configuration/
 - Loki `limits_config`, `reject_old_samples` and `reject_old_samples_max_age`:
   https://grafana.com/docs/loki/latest/configure/
@@ -183,7 +200,13 @@ go test -tags e2e -timeout 15m -v ./e2e/   # needs Docker and python3
 
 The end-to-end test starts `grafana/otel-lgtm` on random ports and exports `examples/runs` plus a
 freshly generated set. It then searches Tempo by `dummyrun.run.id`, counts the lines in Loki and sums
-the counters in Prometheus. A second export must add no annotations.
+the counters in Prometheus. A second process then exports the same records again: the annotation count
+and the Prometheus total must not change, and `--verify-loki` must pass. A third process exports a set
+that ended days earlier, and `--verify-loki` must exit 1 naming every run Loki dropped.
+
+`e2e/tempo-config.yaml` is the `grafana/otel-lgtm` Tempo configuration with the slack raised to 30 days
+and faster block flushing. `integrations/grafana/stack/config/tempo-config.yaml` carries the same
+settings plus a 90 day retention for the local stack.
 
 `internal/record/run-record.schema.json` is a copy of `schema/run-record.schema.json`. The command
 `go generate ./internal/record` refreshes it, and a test fails when the two differ.

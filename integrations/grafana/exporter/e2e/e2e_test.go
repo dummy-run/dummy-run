@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -55,7 +56,7 @@ func TestEndToEnd(t *testing.T) {
 	// Two sets of records: the shipped examples, and a fresh set generated to end yesterday so
 	// its logs are inside Loki's seven day window whenever the test runs.
 	examples := filepath.Join(repoRoot, "examples", "runs")
-	generated := generateRuns(ctx, t, 12)
+	generated := generateRuns(ctx, t, 12, 1, "-e2e")
 	validator, err := record.NewValidator()
 	if err != nil {
 		t.Fatal(err)
@@ -176,15 +177,9 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	t.Run("loki", func(t *testing.T) {
-		oldest := time.Now()
-		for _, f := range files {
-			if f.Run.StartedAt.Before(oldest) {
-				oldest = f.Run.StartedAt
-			}
-		}
 		q := url.Values{}
 		q.Set("query", `{service_name="dummyrun"}`)
-		q.Set("start", strconv.FormatInt(oldest.Add(-time.Hour).UnixNano(), 10))
+		q.Set("start", strconv.FormatInt(logCutoff.Add(-time.Hour).UnixNano(), 10))
 		q.Set("end", strconv.FormatInt(time.Now().Add(time.Hour).UnixNano(), 10))
 		q.Set("limit", "5000")
 		var res struct {
@@ -278,6 +273,81 @@ func TestEndToEnd(t *testing.T) {
 			t.Errorf("%d annotations after a second export, want %d", got, wantRuns)
 		}
 		t.Logf("grafana: %d region annotations, unchanged by a second export", wantRuns)
+	})
+
+	// The rest runs the built binary, so each export is a fresh process with fresh counters.
+	bin := filepath.Join(t.TempDir(), "dummyrun-otel")
+	if out, err := exec.CommandContext(ctx, "go", "build", "-o", bin, "../cmd/dummyrun-otel").CombinedOutput(); err != nil {
+		t.Fatalf("go build: %v: %s", err, out)
+	}
+	runBinary := func(args ...string) (int, string) {
+		cmd := exec.CommandContext(ctx, bin, args...)
+		cmd.Env = append(os.Environ(), "OTEL_EXPORTER_OTLP_ENDPOINT="+st.otlp, "GRAFANA_TOKEN="+token)
+		out, err := cmd.CombinedOutput()
+		code := 0
+		if err != nil {
+			var exit *exec.ExitError
+			if !errors.As(err, &exit) {
+				t.Fatalf("%s: %v", bin, err)
+			}
+			code = exit.ExitCode()
+		}
+		return code, string(out)
+	}
+
+	t.Run("second process repeats the export", func(t *testing.T) {
+		code, out := runBinary("export", "--grafana-url", st.grafana, "--verify-loki", st.loki, examples, generated)
+		if code != 0 {
+			t.Fatalf("exit %d: %s", code, out)
+		}
+		if !strings.Contains(out, fmt.Sprintf("annotations: 0 created, %d already present", wantRuns)) {
+			t.Errorf("annotations were not idempotent: %s", out)
+		}
+		if !strings.Contains(out, fmt.Sprintf("every one of the %d log records is in Loki", wantLogs)) {
+			t.Errorf("the Loki check did not pass: %s", out)
+		}
+		// Counters start at zero in every process, so the same records add nothing to the totals.
+		time.Sleep(3 * time.Second)
+		got, err := st.promScalar(ctx, "sum(dummyrun_runs_total)")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != float64(wantRuns) {
+			t.Errorf("sum(dummyrun_runs_total) = %v after a second export, want %d because each process restarts its counters", got, wantRuns)
+		}
+		t.Logf("second process: Loki check passed, annotations unchanged, dummyrun_runs_total still %d", wantRuns)
+	})
+
+	t.Run("third process exports an older batch", func(t *testing.T) {
+		// A set that ended five days ago is more than an hour behind the newest line in Loki's
+		// stream, so Loki drops every line while the collector still answers 200.
+		older := generateRuns(ctx, t, 6, 5, "-old")
+		olderFiles, err := validator.Load(older)
+		if err != nil {
+			t.Fatal(err)
+		}
+		code, out := runBinary("export", "--verify-loki", st.loki, older)
+		if code != 1 {
+			t.Fatalf("exit %d, want 1 because Loki dropped the lines: %s", code, out)
+		}
+		for _, f := range olderFiles {
+			want := fmt.Sprintf("run %s: 0 of %d log lines in Loki", f.Run.ID, 1+len(f.Run.Findings))
+			if !strings.Contains(out, want) {
+				t.Errorf("output does not report %q:\n%s", want, out)
+			}
+		}
+		if !strings.Contains(out, fmt.Sprintf("%d of %d runs are missing log lines", len(olderFiles), len(olderFiles))) {
+			t.Errorf("output lacks the summary line:\n%s", out)
+		}
+		// Traces and annotations for the older batch still arrived.
+		var anns []map[string]any
+		if err := st.getJSON(ctx, st.grafana+"/api/annotations?tags=dummyrun&limit=5000", &anns); err != nil {
+			t.Fatal(err)
+		}
+		if len(anns) != wantRuns {
+			t.Errorf("%d annotations, want %d: the older batch was exported without --grafana-url", len(anns), wantRuns)
+		}
+		t.Logf("third process: exit 1 naming all %d runs whose lines Loki dropped", len(olderFiles))
 	})
 }
 
@@ -443,13 +513,13 @@ func (st *stack) promScalar(ctx context.Context, query string) (float64, error) 
 	return strconv.ParseFloat(s, 64)
 }
 
-// generateRuns writes n synthetic runs ending yesterday with examples/generate-runs.py. Each run ID
-// gets an -e2e suffix, because the generator names runs by date and persona and a generated ID can
+// generateRuns writes n synthetic runs ending daysAgo days ago with examples/generate-runs.py. Each
+// run ID gets the suffix, because the generator names runs by date and persona and a generated ID can
 // otherwise collide with an example, which the exporter would then merge into one trace on purpose.
-func generateRuns(ctx context.Context, t *testing.T, n int) string {
+func generateRuns(ctx context.Context, t *testing.T, n, daysAgo int, suffix string) string {
 	t.Helper()
 	dir := t.TempDir()
-	end := time.Now().UTC().AddDate(0, 0, -1).Format("2006-01-02")
+	end := time.Now().UTC().AddDate(0, 0, -daysAgo).Format("2006-01-02")
 	cmd := exec.CommandContext(ctx, "python3", "-I", filepath.Join(repoRoot, "examples", "generate-runs.py"),
 		"--runs", strconv.Itoa(n), "--days", "2", "--end", end, "--seed", "7", "--out", dir)
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -468,7 +538,7 @@ func generateRuns(ctx context.Context, t *testing.T, n int) string {
 		if err := json.Unmarshal(data, &rec); err != nil {
 			t.Fatal(err)
 		}
-		id := rec["id"].(string) + "-e2e"
+		id := rec["id"].(string) + suffix
 		rec["id"] = id
 		out, err := json.Marshal(rec)
 		if err != nil {

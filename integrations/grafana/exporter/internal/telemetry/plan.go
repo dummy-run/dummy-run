@@ -252,7 +252,7 @@ func measurements(run *record.Run) []Measurement {
 		)
 	}
 	for _, f := range run.Findings {
-		ms = append(ms, counter(MetricFindings, UnitFindings, 1, persona, environment,
+		ms = append(ms, counter(MetricFindings, UnitFindings, 1, persona, scenario, environment,
 			attribute.String("dummyrun.kind", f.Kind),
 			attribute.String("dummyrun.severity", f.Severity),
 			attribute.String("dummyrun.verdict", f.Verdict)))
@@ -299,6 +299,7 @@ func logRecords(run *record.Run, rootAttrs []attribute.KeyValue) []LogRecord {
 		attrs := append(findingAttributes(f),
 			attribute.String("dummyrun.run.id", run.ID),
 			attribute.String("dummyrun.persona.id", run.Persona.ID),
+			attribute.String("dummyrun.scenario.id", run.Scenario.ID),
 			attribute.String("dummyrun.target.environment", run.Target.Environment))
 		recs = append(recs, LogRecord{Time: at, Severity: fsev, Body: f.Title, Attributes: attrs})
 	}

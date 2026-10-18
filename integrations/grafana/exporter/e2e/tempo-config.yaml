@@ -1,7 +1,9 @@
 # Tempo configuration for the end-to-end test. It is the configuration shipped in
-# grafana/otel-lgtm 0.35.0 (docker/tempo-config.yaml in grafana/docker-otel-lgtm) with one change:
-# ingestion_time_range_slack is raised from 2m to a year in the live-store, the block-builder and the
-# WAL, so blocks keep the run's own time range and TraceQL search over that range finds the traces.
+# grafana/otel-lgtm 0.35.0 (docker/tempo-config.yaml in grafana/docker-otel-lgtm) with
+# ingestion_time_range_slack raised from 2m to 30 days in the live-store, the block-builder and the WAL,
+# so blocks keep the run's own time range and TraceQL search over that range finds the traces, plus
+# faster block flushing. integrations/grafana/stack/config/tempo-config.yaml has the same settings and
+# adds a 90 day retention for the local stack.
 server:
   http_listen_port: 3200
   grpc_listen_port: 9096
@@ -25,14 +27,14 @@ querier:
 
 live_store:
   wal:
-    ingestion_time_range_slack: 8760h
+    ingestion_time_range_slack: 720h
 
 block_builder:
   # Flush blocks to the backend every 30 seconds rather than every 5 minutes, so a search over a
   # historical time range, which only looks in the backend, succeeds soon after an export.
   consume_cycle_duration: 30s
   wal:
-    ingestion_time_range_slack: 8760h
+    ingestion_time_range_slack: 720h
 
 storage:
   trace:
@@ -41,7 +43,7 @@ storage:
     blocklist_poll: 10s
     wal:
       path: /data/tempo/wal
-      ingestion_time_range_slack: 8760h
+      ingestion_time_range_slack: 720h
     local:
       path: /data/tempo/blocks
 

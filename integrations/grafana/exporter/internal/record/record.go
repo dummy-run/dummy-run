@@ -115,6 +115,10 @@ type Usage struct {
 	CostUSD      *float64 `json:"cost_usd,omitempty"`
 }
 
+// MaxDurationMS is the longest step duration a span can represent: time.Duration counts nanoseconds
+// in an int64, so a year of milliseconds is a safe bound well below the overflow.
+const MaxDurationMS = 365 * 24 * 60 * 60 * 1000
+
 // Step returns the step numbered n, or nil when the run has no such step.
 func (r *Run) Step(n int) *Step {
 	for i := range r.Steps {
@@ -198,6 +202,9 @@ func (v *Validator) Parse(data []byte) (*Run, error) {
 			return nil, fmt.Errorf("step %d appears twice", s.N)
 		}
 		seen[s.N] = true
+		if s.DurationMS > MaxDurationMS {
+			return nil, fmt.Errorf("step %d lasts %d ms, longer than the %d ms a span can hold", s.N, s.DurationMS, MaxDurationMS)
+		}
 	}
 	for _, f := range run.Findings {
 		for _, n := range f.Steps {

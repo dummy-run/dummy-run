@@ -115,6 +115,12 @@ func TestParseRejects(t *testing.T) {
 			},
 			want: "is before started_at",
 		},
+		"step longer than a year": {
+			mutate: func(s string) string {
+				return strings.Replace(s, `"duration_ms": 1134,`, `"duration_ms": 99999999999999,`, 1)
+			},
+			want: "longer than",
+		},
 		"finding refers to a missing step": {
 			mutate: func(s string) string {
 				return strings.Replace(s, "\"steps\": [\n        7\n      ]", "\"steps\": [\n        70\n      ]", 1)

@@ -99,9 +99,10 @@ func (e *Emitter) EmitMetrics(ctx context.Context, p Plan) error {
 	return nil
 }
 
-// EmitLogs sends log records with the trace context of the run's root span. Callers may pass the
-// records of many runs sorted by time, because Loki accepts a line only when it is less than an hour
-// older than the newest line already in the stream.
+// EmitLogs sends log records with the trace context of one run's root span. Pass records of one run
+// per call and call it once per run. To send many runs, sort their records by time first and call it
+// per record, because Loki accepts a line only when it is less than an hour older than the newest
+// line already in the stream.
 func (e *Emitter) EmitLogs(ctx context.Context, runID string, logs []LogRecord) {
 	ctx = trace.ContextWithSpanContext(ctx, RootSpanContext(runID))
 	now := time.Now()

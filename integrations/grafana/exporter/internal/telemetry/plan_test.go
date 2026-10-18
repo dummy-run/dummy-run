@@ -1,6 +1,8 @@
 package telemetry
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"path/filepath"
 	"testing"
@@ -184,6 +186,7 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 	} else {
 		attrsEqual(t, "dummyrun.findings", m[0].Attributes, []attribute.KeyValue{
 			persona,
+			attribute.String("dummyrun.scenario.id", "reassign-draft"),
 			attribute.String("dummyrun.target.environment", "pr-41"),
 			attribute.String("dummyrun.kind", "bug"),
 			attribute.String("dummyrun.severity", "major"),
@@ -239,6 +242,7 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 	attrsEqual(t, "finding log", fl.Attributes, append(findingAttrs,
 		attribute.String("dummyrun.run.id", "2026-10-16-ada-editor-003"),
 		attribute.String("dummyrun.persona.id", "ada-editor"),
+		attribute.String("dummyrun.scenario.id", "reassign-draft"),
 		attribute.String("dummyrun.target.environment", "pr-41")))
 
 	// Annotation.
@@ -318,6 +322,23 @@ func TestOptionalFieldsAreOmitted(t *testing.T) {
 		if m.Instrument == MetricCost {
 			t.Error("no cost counter without cost_usd")
 		}
+	}
+}
+
+// The contract fixes the derivation: trace ID is the first 16 bytes of SHA-256 of
+// "dummyrun.run:<id>", root span ID the first 8 bytes of SHA-256 of "dummyrun.span:<id>:root".
+func TestIDsFollowTheContract(t *testing.T) {
+	id := "2026-10-16-ada-editor-003"
+	traceSum := sha256.Sum256([]byte("dummyrun.run:" + id))
+	if got := TraceIDFor(id).String(); got != hex.EncodeToString(traceSum[:16]) {
+		t.Errorf("trace id %s, want %s", got, hex.EncodeToString(traceSum[:16]))
+	}
+	rootSum := sha256.Sum256([]byte("dummyrun.span:" + id + ":root"))
+	if got := SpanIDFor(id, "root").String(); got != hex.EncodeToString(rootSum[:8]) {
+		t.Errorf("root span id %s, want %s", got, hex.EncodeToString(rootSum[:8]))
+	}
+	if got := RootSpanContext(id); got.TraceID() != TraceIDFor(id) || got.SpanID() != SpanIDFor(id, "root") || !got.IsSampled() {
+		t.Errorf("root span context %+v", got)
 	}
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/otelsetup"
 	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/record"
 	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/telemetry"
+	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/verify"
 	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/watch"
 )
 
@@ -91,6 +92,7 @@ type options struct {
 	protocol    string
 	temporality string
 	grafanaURL  string
+	verifyLoki  string
 	logsMaxAge  time.Duration
 	timeout     time.Duration
 }
@@ -100,6 +102,7 @@ func (o *options) bind(fs *flag.FlagSet, env Env) {
 	fs.StringVar(&o.protocol, "protocol", env.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL"), "OTLP transport: http/protobuf (default) or grpc")
 	fs.StringVar(&o.temporality, "metrics-temporality", "cumulative", "metric temporality: cumulative or delta")
 	fs.StringVar(&o.grafanaURL, "grafana-url", "", "Grafana base URL for annotations; the token comes from GRAFANA_TOKEN")
+	fs.StringVar(&o.verifyLoki, "verify-loki", "", "Loki base URL; after the export, count the log lines back per run and fail when any are missing. Basic auth comes from LOKI_BASIC_AUTH as user:password")
 	fs.DurationVar(&o.logsMaxAge, "logs-max-age", 168*time.Hour, "skip log records older than this, because Loki rejects them by default; 0 sends every record")
 	fs.DurationVar(&o.timeout, "timeout", otelsetup.Timeout, "how long to wait for the final flush")
 }
@@ -110,6 +113,10 @@ type session struct {
 	providers *otelsetup.Providers
 	emitter   *telemetry.Emitter
 	grafana   *annotations.Client
+	loki      *verify.Loki
+	// wants is what the Loki check expects per run, with the time span of the records sent.
+	wants          []verify.Want
+	oldest, newest time.Time
 	// counts for the summary line
 	runs, spans, logs, skippedLogs, metrics int
 	created, existing                       int
@@ -131,7 +138,13 @@ func newSession(ctx context.Context, opts options, env Env) (*session, error) {
 			return nil, err
 		}
 	}
-	s.providers, err = otelsetup.New(ctx, otelsetup.Config{Protocol: proto, Temporality: temporality, Version: Version})
+	if opts.verifyLoki != "" {
+		s.loki, err = verify.NewLoki(opts.verifyLoki, env.Getenv("LOKI_BASIC_AUTH"), nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	s.providers, err = otelsetup.New(ctx, otelsetup.Config{Protocol: proto, Temporality: temporality, Version: Version, Stderr: env.Stderr})
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +190,17 @@ func (s *session) send(ctx context.Context, f record.File, deferLogs *[]runLogs)
 	s.spans += 1 + len(p.Steps)
 	s.logs += len(p.Logs)
 	s.metrics += len(p.Metrics)
+	if len(p.Logs) > 0 {
+		s.wants = append(s.wants, verify.Want{RunID: p.RunID, Lines: len(p.Logs)})
+		for _, l := range p.Logs {
+			if s.oldest.IsZero() || l.Time.Before(s.oldest) {
+				s.oldest = l.Time
+			}
+			if l.Time.After(s.newest) {
+				s.newest = l.Time
+			}
+		}
+	}
 	if s.grafana != nil {
 		res, err := s.grafana.Post(ctx, p.Annotation)
 		if err != nil {
@@ -265,7 +289,35 @@ func runExport(ctx context.Context, args []string, env Env) int {
 		code = ExitFailure
 	}
 	fmt.Fprintln(env.Stderr, s.summary())
+	if code == ExitOK && s.loki != nil {
+		if !s.verifyLogs(shutdownCtx) {
+			code = ExitFailure
+		}
+	}
 	return code
+}
+
+// verifyLogs counts the exported runs' log lines back from Loki and reports every run that is short.
+// It returns false when lines are missing or Loki could not be queried.
+func (s *session) verifyLogs(ctx context.Context) bool {
+	if len(s.wants) == 0 {
+		fmt.Fprintln(s.env.Stderr, "loki check: no log records were sent, nothing to verify")
+		return true
+	}
+	short, err := s.loki.Check(ctx, "dummyrun", s.wants, s.oldest, s.newest, 15*time.Second)
+	if err != nil {
+		fmt.Fprintf(s.env.Stderr, "dummyrun-otel: loki check: %v\n", err)
+		return false
+	}
+	if len(short) == 0 {
+		fmt.Fprintf(s.env.Stderr, "loki check: every one of the %d log records is in Loki\n", s.logs)
+		return true
+	}
+	for _, sf := range short {
+		fmt.Fprintf(s.env.Stderr, "dummyrun-otel: %s\n", sf)
+	}
+	fmt.Fprintf(s.env.Stderr, "dummyrun-otel: loki check: %d of %d runs are missing log lines. Loki drops a line more than an hour older than the newest line in its stream. Export runs in ended_at order, and never a batch that ends more than an hour before one already sent\n", len(short), len(s.wants))
+	return false
 }
 
 // emitSortedLogs sends every run's log records oldest first. Loki keeps one stream for the exporter

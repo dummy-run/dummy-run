@@ -84,6 +84,54 @@ func (f *fakeGrafana) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// fakeLoki answers the verification query with a fixed count per run ID.
+type fakeLoki struct {
+	mu     sync.Mutex
+	counts map[string]int
+}
+
+func (f *fakeLoki) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var results []map[string]any
+	for id, n := range f.counts {
+		results = append(results, map[string]any{"metric": map[string]string{"dummyrun_run_id": id}, "value": []any{1.0, strconv.Itoa(n)}})
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{"status": "success", "data": map[string]any{"resultType": "vector", "result": results}})
+}
+
+func TestExportVerifiesLogsInLoki(t *testing.T) {
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	// Every run has its lines except one, which Loki dropped as too far behind.
+	loki := &fakeLoki{counts: map[string]int{
+		"2026-10-15-sam-author-001": 2, "2026-10-16-ada-editor-003": 2, "2026-10-16-lin-contributor-002": 2,
+		"2026-10-16-lin-contributor-004": 2, "2026-10-17-lin-contributor-008": 3, "2026-10-17-ravi-reviewer-005": 1,
+		"2026-10-17-sam-author-006": 2, "2026-10-17-sam-author-007": 0,
+	}}
+	lsrv := httptest.NewServer(loki)
+	defer lsrv.Close()
+	code, _, stderr := run(t, nil, "export", "--logs-max-age", "0", "--verify-loki", lsrv.URL, examples)
+	if code != ExitFailure {
+		t.Fatalf("exit %d, want %d; stderr %s", code, ExitFailure, stderr)
+	}
+	if !strings.Contains(stderr, "run 2026-10-17-sam-author-007: 0 of 2 log lines in Loki") || !strings.Contains(stderr, "1 of 8 runs are missing log lines") {
+		t.Errorf("stderr %q", stderr)
+	}
+	loki.mu.Lock()
+	loki.counts["2026-10-17-sam-author-007"] = 2
+	loki.mu.Unlock()
+	code, _, stderr = run(t, nil, "export", "--logs-max-age", "0", "--verify-loki", lsrv.URL, examples)
+	if code != ExitOK || !strings.Contains(stderr, "every one of the 16 log records is in Loki") {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+	if code, _, stderr := run(t, map[string]string{"LOKI_BASIC_AUTH": "nocolon"}, "export", "--verify-loki", lsrv.URL, examples); code != ExitFailure || !strings.Contains(stderr, "LOKI_BASIC_AUTH") {
+		t.Errorf("bad LOKI_BASIC_AUTH: exit %d, stderr %q", code, stderr)
+	}
+}
+
 func run(t *testing.T, env map[string]string, args ...string) (int, string, string) {
 	t.Helper()
 	var out, errb bytes.Buffer
