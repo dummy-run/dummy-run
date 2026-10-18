@@ -25,6 +25,10 @@ services:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /otel-lgtm/dummyrun/dashboards/home.json
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      # Grafana 13 otherwise re-downloads the Prometheus, Loki and Tempo plugins from the catalog
+      # just after startup, and queries fail while each one is swapped.
+      GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"
       GF_NEWS_NEWS_FEED_ENABLED: "false"
       # Keep 90 days of metrics so a seeded history survives.
       PROMETHEUS_EXTRA_ARGS: --storage.tsdb.retention.time=90d
