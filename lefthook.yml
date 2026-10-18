@@ -1,0 +1,42 @@
+# Local checks that mirror CI. Install with `lefthook install`.
+# Tools: brew install lefthook gitleaks typos-cli actionlint zizmor uv
+# A missing tool is skipped with a message, and CI still runs every check.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: secrets
+      run: >-
+        command -v gitleaks >/dev/null || { echo "gitleaks not installed, skipping"; exit 0; }; gitleaks git --pre-commit --staged --no-banner --redact
+    - name: prose
+      glob: "*.md"
+      run: bin/check-prose {staged_files}
+    - name: em-dashes
+      glob: "*.md"
+      run: |
+        LC_ALL=C grep -nF "$(printf '\342\200\224')" {staged_files}
+        test $? -eq 1
+    - name: spelling
+      glob: "*.{md,yml,yaml,json,toml,py,go,sh}"
+      run: >-
+        command -v typos >/dev/null || { echo "typos not installed, skipping"; exit 0; }; typos {staged_files}
+    - name: workflows
+      glob: ".github/workflows/*.yml"
+      run: |
+        set -e
+        if command -v actionlint >/dev/null; then actionlint {staged_files}; else echo "actionlint not installed, skipping"; fi
+        if command -v zizmor >/dev/null; then zizmor --offline {staged_files}; else echo "zizmor not installed, skipping"; fi
+    - name: run-records
+      glob: "{examples/runs/*.json,schema/*.json}"
+      run: uvx --quiet check-jsonschema==0.38.1 --schemafile schema/run-record.schema.json examples/runs/*.json
+
+commit-msg:
+  jobs:
+    - name: sign-off
+      run: |
+        grep -qE '^Signed-off-by: .+ <.+>$' {1} || { echo "Sign off the commit with git commit -s (see CONTRIBUTING.md)"; exit 1; }
+
+pre-push:
+  jobs:
+    - name: licence-metadata
+      run: uvx --quiet reuse@6.2.0 lint --quiet

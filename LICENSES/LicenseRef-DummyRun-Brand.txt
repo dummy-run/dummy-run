@@ -1,0 +1,10 @@
+Dummy Run brand assets
+
+Copyright 2026 Joel Merrick
+
+The Dummy Run name, the Viewfinder logo and the Dummy mascot identify the Dummy Run project. You may
+copy and display these files unchanged to refer to Dummy Run. Any other use, including modified
+versions, needs written permission. TRADEMARKS.md in the project repository sets out what you may do
+with the name and logo.
+
+The wordmark is drawn from Space Grotesk, which is licensed under the SIL Open Font License 1.1.

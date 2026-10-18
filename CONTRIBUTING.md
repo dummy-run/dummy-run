@@ -15,6 +15,28 @@ problem with the [plan](docs/PLAN.md).
 5. **Plain English, British spelling.** See [docs/STYLE.md](docs/STYLE.md). `bin/check-prose` checks the
    main pages.
 
+## Checks
+
+The same checks run on your machine before each commit and in CI on each pull request. To install the
+local hooks, run:
+
+```sh
+brew install lefthook gitleaks typos-cli actionlint zizmor uv
+lefthook install
+```
+
+| Check | What it catches |
+|---|---|
+| gitleaks | Secrets in staged changes and in history |
+| `bin/check-prose` and the em-dash check | Breaks of the plain-wording rules in docs/STYLE.md |
+| typos | Spelling mistakes |
+| actionlint and zizmor | Broken or unsafe GitHub Actions workflows |
+| check-jsonschema | Example runs that do not match the run-record schema |
+| REUSE | Files without copyright and licence information |
+| Semgrep and CodeQL | Security problems in code (CI only) |
+| Dependency review | New dependencies with known vulnerabilities or barred licences (CI only) |
+| OpenSSF Scorecard | Weak project security practices, weekly on `main` |
+
 ## Pull requests
 
 - Branch from `main`. Pull requests are squash-merged, so the title becomes the commit message.

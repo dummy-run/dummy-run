@@ -1,0 +1,13 @@
+version = 1
+
+[[annotations]]
+path = "**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Joel Merrick and the Dummy Run contributors"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["brand/logo/**", "brand/mascot/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Joel Merrick"
+SPDX-License-Identifier = "LicenseRef-DummyRun-Brand"
