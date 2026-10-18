@@ -1,25 +1,31 @@
 ---
 title: For product and UX
 choice: in product or UX
+icon: cursor
+lead_short: Friction, with the screenshot
 weight: 40
 lead: Friction and confusion, each tied to the step and screenshot where it happened.
 description: What product and UX people get from Dummy Run. Friction, confusion and accessibility findings tied to a step and a screenshot, from personas with habits and devices.
 ---
 
-## Findings about people, with evidence
+## Friction, with the screenshot
 
-Findings have five kinds. Three of them are about the experience rather than the code. A friction finding says a persona could do its job but struggled. A question finding says a persona did not understand something. An accessibility finding comes from an automated check on a page the persona visited. The other two kinds are bug and permission.
+{{< graphic name="finding-card" >}}
 
-In the example cast, `sam-author` on a phone found that the Submit button sits under the keyboard. That is a friction finding of major severity, tied to step 6 of run [`2026-10-17-sam-author-006`](https://github.com/dummy-run/dummy-run/blob/main/examples/runs/2026-10-17-sam-author-006.json) and to the screenshot taken there. `lin-contributor` asked what the payment status "settled" means in run [`2026-10-16-lin-contributor-002`](https://github.com/dummy-run/dummy-run/blob/main/examples/runs/2026-10-16-lin-contributor-002.json), which is a question finding. The reviewer confirmed the first and left the second pending, because it rests on the persona's reasoning rather than a measurement.
+Findings have five kinds. Friction, question and accessibility are about the experience. Bug and permission are about the code. This one is measured at step 6 of run [`2026-10-17-sam-author-006`](../../../examples/runs/2026-10-17-sam-author-006.json) and confirmed by the reviewer.
 
-## Personas have habits and devices
+## Personas have devices and habits
 
-A persona has a role with permissions, plus goals, habits and a device. `sam-author` writes on a phone. `lin-contributor` uses a tablet. The device sets the viewport and the user agent for the run, so the same scenario on a phone and a desktop can produce different findings. Persona traits need a source, and the [writing guide](../../../docs/STYLE.md) says every trait without a citation is removed.
+{{< graphic name="persona-card" who="sam-author" >}}
 
-## What it is not
+The device sets the viewport and the user agent, so the same scenario on a phone and a desktop can produce different findings. Every persona trait needs a source, and the [writing guide](../../../docs/STYLE.md) removes traits without one.
 
-It is not analytics and it does not watch real users. Personas are fictional. The run record keeps the persona's notes on each step (the `note` field), and those notes stay with you. A finding is a claim with a screenshot, and a person decides whether it becomes a ticket.
+## Questions are findings too
 
-## What to read next
+{{< graphic name="board" >}}
 
-[How it works](../docs/how-it-works.md) covers the flow from cast to board. The [run record](../docs/run-record.md) page lists the fields behind each finding. The project is pre-release, and [the plan](../../../docs/PLAN.md) puts a demo app and an example cast first.
+In run [`2026-10-16-lin-contributor-002`](../../../examples/runs/2026-10-16-lin-contributor-002.json) the contributor asked what the payment status "settled" means. That is a question finding, tagged inferred because it rests on the persona's reasoning. Personas are fictional and nothing watches real users.
+
+## Sources
+
+The finding kinds and evidence tags are in the [run record schema](../docs/run-record.md), code. The two runs above are synthetic examples in `examples/runs/`, measured.

@@ -1,38 +1,61 @@
 {{ define "main" }}
 <section class="hero">
-  <div class="frame">
+  <div class="hero-copy">
     <h1 class="u-display">AI plays your users and tries your app before your customers do.</h1>
+    <p class="u-lead">A fictional user with a real role signs in to your preview and reports what broke, with the screenshot to prove it.</p>
   </div>
-  <div class="hero-text">
-    {{ .Content }}
+  <div class="hero-scene">
+    <div class="frame">
+      <span class="frame-inner"></span>
+      <div class="scene">
+        {{ partial "graphics/phone.html" . }}
+        <div class="scene-finding">{{ partial "graphics/finding-card.html" (dict "kind" "friction") }}</div>
+      </div>
+    </div>
   </div>
-</section>
-
-<section class="chooser" aria-labelledby="chooser-heading">
-  <p class="chooser-line">
-    <span id="chooser-heading" class="chooser-lead">I am</span>
-    {{ range (where .Site.RegularPages "Section" "for").ByWeight }}
-    <a class="chooser-choice" href="{{ .RelPermalink }}">{{ .Params.choice }}</a>
-    {{- end }}
-  </p>
 </section>
 
 <section class="home-section" aria-labelledby="how-heading">
-  <h2 id="how-heading" class="u-title-sm">How a run works</h2>
-  {{ partial "diagrams/how-it-works.html" . }}
-  <p>A finding needs a run ID, a step number and a screenshot or log line. Nothing is posted for you. A person decides what becomes a ticket. The full description is in <a href="/docs/how-it-works/">How it works</a>.</p>
+  <div class="panel">
+    <h2 id="how-heading" class="u-title-sm">How a run works</h2>
+    <p class="section-caption">Amber marks the two stages where a model acts. Green marks what people read.</p>
+    {{ partial "pipeline.html" . }}
+  </div>
 </section>
 
-<section class="home-section" aria-labelledby="ref-heading">
-  <h2 id="ref-heading" class="u-title-sm">Reference</h2>
-  <dl class="ref-list">
-    {{ range (where .Site.RegularPages "Section" "docs").ByWeight }}
-    {{ if .Params.home_hidden }}{{ continue }}{{ end }}
-    <div class="ref-item">
-      <dt><a href="{{ .RelPermalink }}">{{ .Title }}</a></dt>
-      <dd>{{ .Summary | plainify }}</dd>
-    </div>
+<section class="home-section" aria-labelledby="get-heading">
+  <h2 id="get-heading" class="u-title-sm">What you get back</h2>
+  <p class="section-caption">Everything below is drawn from the example cast for Inkwell, a fictional publishing app.</p>
+  <div class="trio">
+    <figure>{{ partial "graphics/persona-card.html" (dict "who" "sam-author") }}<figcaption>A persona is a fictional user with a role, a device and permissions.</figcaption></figure>
+    <figure>{{ partial "graphics/run-timeline.html" . }}<figcaption>A run is one persona working through one scenario, step by step.</figcaption></figure>
+    <figure>{{ partial "graphics/finding-card.html" (dict "kind" "permission") }}<figcaption>A finding carries its evidence tag, its step and the reviewer's verdict.</figcaption></figure>
+  </div>
+</section>
+
+<section class="home-section" aria-labelledby="board-heading">
+  <h2 id="board-heading" class="u-title-sm">The results board</h2>
+  <figure class="wide-figure">{{ partial "graphics/board.html" . }}<figcaption>Confirmed findings only, as static HTML and JSON you host yourself. A person decides what becomes a ticket.</figcaption></figure>
+</section>
+
+<section class="home-section" aria-labelledby="grafana-heading">
+  <div class="stage">
+    <h2 id="grafana-heading" class="u-title-sm">Every run in Grafana</h2>
+    <p class="section-caption">Each run is one OpenTelemetry trace. Four dashboards read the traces, metrics and logs, and the <a href="/docs/grafana/">Grafana page</a> shows them in full.</p>
+    {{ partial "graphics/grafana-stack.html" . }}
+  </div>
+</section>
+
+<section class="home-section" aria-labelledby="who-heading">
+  <h2 id="who-heading" class="u-title-sm">I am</h2>
+  <ul class="tiles">
+    {{ range (where .Site.RegularPages "Section" "for").ByWeight }}
+    <li><a class="tile" href="{{ .RelPermalink }}">{{ partial "icons/icon.html" (dict "name" .Params.icon) }}<span>{{ .Params.choice }}<small>{{ .Params.lead_short }}</small></span></a></li>
     {{ end }}
-  </dl>
+  </ul>
+</section>
+
+<section class="home-close">
+  <p class="status">Dummy Run is pre-release and nothing installs yet. The <a href="/docs/">reference</a> has the plan, the architecture and the run record format.</p>
 </section>
 {{ end }}
