@@ -67,5 +67,7 @@ stores every log attribute as structured metadata with the same renaming, and th
 
 ## Colours
 
-Pass and blocker use the dark theme colours from [brand/README.md](../../../brand/README.md), since
-Grafana's default theme is dark. Amber marks budget-exhausted runs and major findings.
+Pass and blocker use the dark theme colours from [brand/README.md](../../../brand/README.md), Colour
+(code: `colourPass` and `colourBlocker` in `common.go`, checked by `TestBrandColours`). Grafana's
+default theme is dark (sourced: Grafana's `defaults.ini`, `default_theme = dark`). Amber marks
+budget-exhausted runs and major findings.
