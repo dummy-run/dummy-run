@@ -14,6 +14,9 @@ VERSION="${DUMMYRUN_VERSION:-0.1.0}"
 
 hex() { od -An -N"$1" -tx1 /dev/urandom | tr -d ' \n'; }
 
+# Wait until Inkwell answers, in case it was started without the compose health check.
+curl -sSf --retry 15 --retry-connrefused --retry-delay 1 -o /dev/null "$BASE_URL/healthz"
+
 # The contract derives the trace ID from the run ID, so the exporter's trace and the app's spans meet
 # (docs/TELEMETRY.md, Traces): the first 16 bytes of SHA-256 of "dummyrun.run:<id>".
 TRACE_ID="$(python3 -I -c 'import hashlib,sys; print(hashlib.sha256(("dummyrun.run:"+sys.argv[1]).encode()).hexdigest()[:32])' "$RUN_ID")"

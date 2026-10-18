@@ -9,11 +9,12 @@ services:
   lgtm:
     # grafana/otel-lgtm:0.35.0, published 2026-10-02
     image: grafana/otel-lgtm@sha256:2de1094c593c671cbfca878a28ffcd7e46ff5e32f2ce966c0cf33003f6cf4266
+    # Bound to the loopback address: Grafana runs with its default admin password here.
     # Host ports avoid the defaults so this can run beside the full stack in ../../stack/.
     ports:
-      - "${PROPAGATION_GRAFANA_PORT:-3030}:3000"   # Grafana (admin / admin)
-      - "${PROPAGATION_OTLP_PORT:-4330}:4318"      # OTLP/HTTP, to point the Dummy Run exporter here too
-      - "${PROPAGATION_TEMPO_PORT:-3230}:3200"     # Tempo HTTP API, used by check-tempo.sh
+      - "127.0.0.1:${PROPAGATION_GRAFANA_PORT:-3030}:3000"   # Grafana (admin / admin)
+      - "127.0.0.1:${PROPAGATION_OTLP_PORT:-4330}:4318"      # OTLP/HTTP, to point the Dummy Run exporter here too
+      - "127.0.0.1:${PROPAGATION_TEMPO_PORT:-3230}:3200"     # Tempo HTTP API, used by check-tempo.sh
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:3200/ready"]
       interval: 5s
@@ -32,7 +33,13 @@ services:
       OTEL_PROPAGATORS: tracecontext,baggage
       OTEL_TRACES_SAMPLER: parentbased_always_on
     ports:
-      - "${PROPAGATION_INKWELL_PORT:-8090}:8080"
+      - "127.0.0.1:${PROPAGATION_INKWELL_PORT:-8090}:8080"
+    # The image is scratch, so the binary checks itself (see healthy in main.go).
+    healthcheck:
+      test: ["CMD", "/inkwell", "healthz"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
     depends_on:
       lgtm:
         condition: service_healthy

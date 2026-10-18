@@ -30,13 +30,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// baggagePrefix limits which baggage members become span attributes. Copying
-// every member would let any caller write arbitrary attributes into your traces.
-const baggagePrefix = "dummyrun."
+// allowedBaggage lists the two members docs/TELEMETRY.md says the runner sends.
+// Copying anything else would let any caller write attributes into your traces.
+var allowedBaggage = map[string]bool{"dummyrun.run.id": true, "dummyrun.persona.id": true}
 
 // dummyRunMembers is the filter handed to the baggagecopy processor.
 func dummyRunMembers(m baggage.Member) bool {
-	return strings.HasPrefix(m.Key(), baggagePrefix)
+	return allowedBaggage[m.Key()]
 }
 
 // newTracerProvider wires the SDK. The caller supplies the exporting span
@@ -107,16 +107,45 @@ func handlePage(w http.ResponseWriter, r *http.Request) {
 func newHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
-	mux.HandleFunc("/", handlePage)
+	for _, route := range []string{"/", "/drafts", "/payments", "/reviews"} {
+		mux.HandleFunc(route, handlePage)
+	}
 	// otelhttp extracts traceparent and baggage with the global propagator and
-	// starts the server span. Route-based span names keep cardinality down.
-	return allowTraceHeaders(otelhttp.NewHandler(mux, "inkwell",
-		otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
-			return r.Method + " " + r.URL.Path
-		})))
+	// starts the server span. Once the mux has matched, otelhttp names the span
+	// "{method} {pattern}" from r.Pattern, so the set of span names is bounded by
+	// the routes above and an unlisted path is named "GET /".
+	return allowTraceHeaders(otelhttp.NewHandler(mux, "inkwell"))
+}
+
+// healthy is the compose health check. The runtime image is scratch, so the
+// binary checks itself: `inkwell healthz` exits 0 when the server answers.
+func healthy(addr string) error {
+	client := &http.Client{Timeout: 2 * time.Second}
+	res, err := client.Get("http://127.0.0.1" + addr + "/healthz")
+	if err != nil {
+		return err
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return errors.New("healthz returned " + res.Status)
+	}
+	return nil
+}
+
+func listenAddr() string {
+	if addr := os.Getenv("INKWELL_ADDR"); addr != "" {
+		return addr
+	}
+	return ":8080"
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "healthz" {
+		if err := healthy(listenAddr()); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	ctx := context.Background()
 	// Endpoint, headers and protocol come from OTEL_EXPORTER_OTLP_* variables.
 	exporter, err := otlptracehttp.New(ctx)
@@ -132,10 +161,7 @@ func main() {
 		}
 	}()
 
-	addr := os.Getenv("INKWELL_ADDR")
-	if addr == "" {
-		addr = ":8080"
-	}
+	addr := listenAddr()
 	srv := &http.Server{Addr: addr, Handler: newHandler(), ReadHeaderTimeout: 5 * time.Second}
 
 	stop, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)

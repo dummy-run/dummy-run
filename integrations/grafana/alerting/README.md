@@ -70,8 +70,8 @@ sources mounted and waits for `/api/health`. That is the Grafana version inside 
 error. `GET /api/v1/provisioning/alert-rules` returns every UID in the file with `provenance=file` and a
 condition that names one of its own queries. The ruler at `/api/prometheus/grafana/api/v1/rules` holds
 the same number of rules. The second check earns its place because Grafana accepts a rule whose
-condition names a missing query and logs nothing. The run takes under 10 seconds once the image is
-cached.
+condition names a missing query and logs nothing. A run on 2026-10-18 with the image already pulled
+took 8 seconds (measured); the first run also pulls the image.
 
 The Terraform is checked with `terraform fmt -check`, `terraform init -backend=false` and
 `terraform validate` against provider 4.47.0, with the hashes in `.terraform.lock.hcl`.

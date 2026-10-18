@@ -166,7 +166,7 @@ resource "grafana_rule_group" "dummyrun" {
     no_data_state  = "OK"
     exec_err_state = "Error"
     annotations = {
-      summary     = "{{ printf \"%.0f\" (mul $values.A.Value 100) }}% of runs against {{ $labels.dummyrun_target_environment }} were blocked in the last 6 hours"
+      summary     = "{{ humanizePercentage $values.A.Value }} of runs against {{ $labels.dummyrun_target_environment }} were blocked in the last 6 hours"
       description = "Threshold is ${var.blocked_rate_threshold * 100}%. Compare the blocked runs on the dashboard to see whether one scenario or one persona accounts for them."
     }
     labels = { dummyrun_kind = "blocked-rate", severity = "medium" }

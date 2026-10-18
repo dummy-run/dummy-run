@@ -65,6 +65,7 @@ def main():
     ap.add_argument("--tempo", default="http://localhost:3200")
     ap.add_argument("--run-id", default="2026-10-17-ravi-reviewer-005")
     ap.add_argument("--persona-id", default="ravi-reviewer")
+    ap.add_argument("--spans", type=int, default=6, help="spans the trace must hold: 3 server + 3 render")
     args = ap.parse_args()
 
     query = '{ resource.service.name = "inkwell" && span.dummyrun.run.id = "%s" }' % args.run_id
@@ -80,9 +81,15 @@ def main():
         sys.exit(f"found {sorted(ids)} but not the persona trace {args.trace_id}; the app did not join the incoming traceparent")
     print(f"trace {args.trace_id} is the one the persona's traceparent named")
 
-    rows = list(spans_of(get_json(f"{args.tempo}/api/traces/{args.trace_id}")))
-    if not rows:
-        sys.exit("trace has no spans")
+    # Spans arrive in separate batches, so poll until the trace holds every expected span.
+    rows = []
+    for _ in range(30):
+        rows = list(spans_of(get_json(args.tempo + "/api/traces/" + args.trace_id)))
+        if len(rows) >= args.spans:
+            break
+        time.sleep(2)
+    if len(rows) < args.spans:
+        sys.exit(f"trace holds {len(rows)} spans, expected {args.spans}: {[r[1] for r in rows]}")
     print(f"{'service':8} {'span':16} {'parent span':18} {'dummyrun.run.id':30} dummyrun.persona.id")
     for service, name, parent, attrs in rows:
         print(f"{service:8} {name:16} {parent:18} {attrs.get('dummyrun.run.id') or '-':30} {attrs.get('dummyrun.persona.id') or '-'}")

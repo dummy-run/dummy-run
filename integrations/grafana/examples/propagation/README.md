@@ -2,8 +2,9 @@
 
 A runnable proof that the headers the persona's browser sends reach an app's spans. The app is a stub
 of Inkwell, the fictional publishing app the example personas use. It is Go `net/http` with the
-OpenTelemetry SDK and 60 lines that matter: a composite propagator for `tracecontext` and `baggage`,
-and the `baggagecopy` span processor filtered to keys that start with `dummyrun.`.
+OpenTelemetry SDK. The lines that matter are in `inkwell/main.go`: a composite propagator for
+`tracecontext` and `baggage`, and the `baggagecopy` span processor filtered to the two members the
+contract names.
 
 ```sh
 ./run.sh          # start, prove, stop. Takes about a minute with the images cached
@@ -44,12 +45,12 @@ TraceQL: { resource.service.name = "inkwell" && span.dummyrun.run.id = "2026-10-
 matched trace 32d794d3234508fe094bb2afc7eb5dca: 6 spans, root <root span not yet received> None
 trace 32d794d3234508fe094bb2afc7eb5dca is the one the persona's traceparent named
 service  span             parent span        dummyrun.run.id                dummyrun.persona.id
-inkwell  inkwell.render   946f3a26d709fea9   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  inkwell.render   492bd0a709202e85   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  inkwell.render   32ac415b7e39cc13   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  GET /drafts      99edeccdab1732bc   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  GET /payments    9be6c4f7bb7ae27c   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  GET /reviews     22b2cf7709369a37   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  GET /drafts      4ee14670e0f8248b   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  GET /payments    f215873db14b46c4   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  GET /reviews     e1c96c4e64d246ad   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  inkwell.render   722c947434105ee7   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  inkwell.render   a09a31e56893b9e1   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  inkwell.render   faa92756159fa55e   2026-10-17-ravi-reviewer-005   ravi-reviewer
 all 6 spans carry dummyrun.run.id=2026-10-17-ravi-reviewer-005 and dummyrun.persona.id=ravi-reviewer
 ```
 
@@ -58,8 +59,9 @@ the same trace ID from the run ID, so in a full setup it supplies the `dummyrun.
 step spans and the trace is complete.
 
 `inkwell/main_test.go` checks the same thing without Docker, with an in-memory exporter. Both spans
-join the trace and the server span's parent is the step span. The two attributes are present. A third
-baggage member outside `dummyrun.` is dropped. A second test checks the CORS preflight lists
+join the trace and the server span's parent is the step span. The two attributes are present. Two
+other baggage members are dropped. A third test checks a request to an unlisted path is named after
+the catch-all route. A second test checks the CORS preflight lists
 `traceparent`, `tracestate` and `baggage`.
 
 ## Pins

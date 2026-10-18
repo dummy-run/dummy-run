@@ -30,6 +30,8 @@ def get(url, auth):
 def main():
     rules_file, grafana, auth = sys.argv[1:4]
     expected = re.findall(r"^\s+- uid:\s*(\S+)", open(rules_file).read(), re.M)
+    if len(expected) < 4:
+        sys.exit(f"rules file names {len(expected)} rule UIDs, expected at least 4; an empty file must not pass")
     print(f"expecting {len(expected)} rules: {' '.join(expected)}")
 
     # 1. Every rule in the file is in the provisioning API, with provenance=file.

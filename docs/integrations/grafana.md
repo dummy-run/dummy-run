@@ -67,8 +67,8 @@ yourself [[6]](#sources). Each SDK has a processor that does the copy at span st
 
 ### Step 1: copy the baggage onto spans
 
-Add the processor for your SDK and filter it to keys that start with `dummyrun.`. Copying every
-baggage key lets any caller write attributes into your traces.
+Add the processor for your SDK and filter it to the two keys `dummyrun.run.id` and
+`dummyrun.persona.id`. Copying every baggage key lets any caller write attributes into your traces.
 
 | SDK | Package | Source |
 |---|---|---|
