@@ -1,0 +1,16 @@
+# Data sources for the provisioning dry run only. They point at hosts that do not exist; the test
+# checks that Grafana accepts the rules, not that the queries return data. The UIDs match
+# integrations/grafana/stack/ and grafana/otel-lgtm.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100

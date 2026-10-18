@@ -1,0 +1,38 @@
+# The smallest stack that proves propagation end to end: the Inkwell stub app
+# sends traces to grafana/otel-lgtm, which bundles an OpenTelemetry Collector,
+# Tempo, Loki, Prometheus and Grafana in one container.
+#
+# Start:   docker compose up --build --wait
+# Prove:   ./persona-request.sh && ./check-tempo.sh
+# Stop:    docker compose down -v
+services:
+  lgtm:
+    # grafana/otel-lgtm:0.35.0, published 2026-10-02
+    image: grafana/otel-lgtm@sha256:2de1094c593c671cbfca878a28ffcd7e46ff5e32f2ce966c0cf33003f6cf4266
+    # Host ports avoid the defaults so this can run beside the full stack in ../../stack/.
+    ports:
+      - "${PROPAGATION_GRAFANA_PORT:-3030}:3000"   # Grafana (admin / admin)
+      - "${PROPAGATION_OTLP_PORT:-4330}:4318"      # OTLP/HTTP, to point the Dummy Run exporter here too
+      - "${PROPAGATION_TEMPO_PORT:-3230}:3200"     # Tempo HTTP API, used by check-tempo.sh
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3200/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+  inkwell:
+    build: ./inkwell
+    environment:
+      OTEL_SERVICE_NAME: inkwell
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=pr-44
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      # Both propagators are the SDK default. Set explicitly so the example is self-describing.
+      OTEL_PROPAGATORS: tracecontext,baggage
+      OTEL_TRACES_SAMPLER: parentbased_always_on
+    ports:
+      - "${PROPAGATION_INKWELL_PORT:-8090}:8080"
+    depends_on:
+      lgtm:
+        condition: service_healthy

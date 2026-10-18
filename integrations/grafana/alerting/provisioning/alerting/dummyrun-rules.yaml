@@ -1,0 +1,157 @@
+# Grafana-managed alert rules for Dummy Run, as a file provisioning document.
+# Format: https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/
+#
+# Mount this directory as <GF_PATHS_PROVISIONING>/alerting. The data sources must exist with the UIDs
+# below (prometheus, loki). integrations/grafana/stack/ and grafana/otel-lgtm both use those UIDs.
+#
+# METRIC NAMES ARE ASSUMED. The rules are written against the names in docs/TELEMETRY.md after the
+# OTLP to Prometheus translation (dots to underscores, _total on counters, unit suffixes on
+# histograms), and against Loki's OTLP mapping (dots to underscores, attributes as structured
+# metadata). Confirm each name in a running stack before relying on an alert. Each place that
+# needs checking is marked "CHECK NAME". See ../README.md for the full table.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: dummyrun
+    folder: Dummy Run
+    interval: 1m
+    rules:
+      # 1. A confirmed permission finding: a persona saw or did something its role should not.
+      # Reads the finding log records, so the alert carries the run ID and the finding title.
+      - uid: dummyrun-permission-confirmed
+        title: Dummy Run confirmed a permission finding
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: loki
+            model:
+              refId: A
+              queryType: instant
+              # CHECK NAME: service_name label, and the structured metadata keys dummyrun_finding_kind,
+              # dummyrun_finding_verdict, dummyrun_run_id, dummyrun_finding_id, dummyrun_finding_title.
+              expr: |
+                sum by (dummyrun_run_id, dummyrun_persona_id, dummyrun_finding_id, dummyrun_finding_title) (
+                  count_over_time({service_name="dummyrun"}
+                    | dummyrun_finding_kind="permission"
+                    | dummyrun_finding_verdict="confirmed" [15m])
+                )
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: 'Run {{ $labels.dummyrun_run_id }} ({{ $labels.dummyrun_persona_id }}) confirmed a permission finding: {{ $labels.dummyrun_finding_title }}'
+          description: 'Finding {{ $labels.dummyrun_finding_id }}. Open the run on the results board and check the screenshot before raising a ticket.'
+        labels:
+          dummyrun_kind: permission
+          severity: high
+
+      # 2. A blocker finding that the reviewer did not reject.
+      - uid: dummyrun-blocker-finding
+        title: Dummy Run found a blocker
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              # CHECK NAME: dummyrun_findings_total and the labels dummyrun_persona_id, dummyrun_severity, dummyrun_verdict.
+              expr: |
+                sum by (dummyrun_persona_id) (
+                  increase(dummyrun_findings_total{dummyrun_severity="blocker", dummyrun_verdict!="rejected"}[15m])
+                ) > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: '{{ $labels.dummyrun_persona_id }} hit a blocker in the last 15 minutes'
+          description: 'Blocker findings are listed on the results board. Query the finding logs for dummyrun_finding_severity="blocker" to see titles and run IDs.'
+        labels:
+          dummyrun_kind: blocker
+          severity: high
+
+      # 3. Too many runs ended blocked in one environment. A blocked run means the app stopped the persona.
+      - uid: dummyrun-blocked-run-rate
+        title: Dummy Run blocked-run rate is high
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 21600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              # CHECK NAME: dummyrun_runs_total and the labels dummyrun_target_environment, dummyrun_outcome.
+              # Division by zero gives NaN, so an environment with no runs in the window does not alert.
+              expr: |
+                sum by (dummyrun_target_environment) (increase(dummyrun_runs_total{dummyrun_outcome="blocked"}[6h]))
+                /
+                sum by (dummyrun_target_environment) (increase(dummyrun_runs_total[6h]))
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0.25] }
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: '{{ printf "%.0f" (mul $values.A.Value 100) }}% of runs against {{ $labels.dummyrun_target_environment }} were blocked in the last 6 hours'
+          description: 'Threshold is 25%. Compare the blocked runs on the dashboard to see whether one scenario or one persona accounts for them.'
+        labels:
+          dummyrun_kind: blocked-rate
+          severity: medium
+
+      # 4. Runs have stopped. Alerts when no run ended in 24 hours, or when the metric is missing.
+      # To watch one environment, add {dummyrun_target_environment="main"} to the selector.
+      - uid: dummyrun-runs-stopped
+        title: Dummy Run has not run for a day
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 86400, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              # CHECK NAME: dummyrun_runs_total.
+              expr: sum(increase(dummyrun_runs_total[24h])) or vector(0)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+        for: 0s
+        noDataState: Alerting
+        execErrState: Error
+        annotations:
+          summary: 'No Dummy Run run has ended in the last 24 hours'
+          description: 'Check the runner host and the exporter. If runs are not expected (for example a freeze), pause this rule.'
+        labels:
+          dummyrun_kind: runs-stopped
+          severity: medium
