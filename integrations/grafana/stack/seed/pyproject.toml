@@ -1,0 +1,16 @@
+[project]
+name = "dummyrun-seed"
+version = "0.1.0"
+description = "Test seeder: turns Dummy Run run records into OTLP for the local Grafana stack"
+requires-python = ">=3.12"
+dependencies = [
+  "opentelemetry-sdk==1.45.0",
+  "opentelemetry-exporter-otlp-proto-http==1.45.0",
+]
+
+[dependency-groups]
+dev = ["pytest==9.0.3"]
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+addopts = "-p no:cacheprovider"

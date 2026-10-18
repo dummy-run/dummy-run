@@ -1,0 +1,47 @@
+# A local Grafana stack for Dummy Run telemetry: Grafana, Tempo, Loki, Prometheus and an
+# OpenTelemetry Collector in one container. For local use only. Anonymous visitors are viewers,
+# and the admin account keeps Grafana's default password until you change it.
+#
+#   docker compose up -d
+#   open http://localhost:3000
+#
+# Ports: 3000 Grafana, 4317 OTLP gRPC, 4318 OTLP HTTP, 9090 Prometheus, 3200 Tempo, 3100 Loki.
+services:
+  lgtm:
+    # grafana/otel-lgtm:0.35.0 (Grafana 13.2.2, Prometheus 3.15.0, Tempo 3.0.3, Loki 3.7.8, Collector 0.161.0)
+    image: grafana/otel-lgtm@sha256:2de1094c593c671cbfca878a28ffcd7e46ff5e32f2ce966c0cf33003f6cf4266
+    container_name: dummyrun-lgtm
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+      - "9090:9090"
+      - "3200:3200"
+      - "3100:3100"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_ANONYMOUS_ORG_NAME: Main Org.
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /otel-lgtm/dummyrun/dashboards/home.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      # Keep 90 days of metrics so a seeded history survives.
+      PROMETHEUS_EXTRA_ARGS: --storage.tsdb.retention.time=90d
+    volumes:
+      - ./grafana/provisioning/datasources/dummyrun.yaml:/otel-lgtm/grafana/conf/provisioning/datasources/grafana-datasources.yaml:ro
+      - ./grafana/provisioning/dashboards/dummyrun.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/grafana-dashboards.yaml:ro
+      - ../dashboards/json:/otel-lgtm/dummyrun/dashboards:ro
+      - ./config/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
+      - ./config/tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro
+      - ./config/loki-config.yaml:/otel-lgtm/loki-config.yaml:ro
+      - lgtm-data:/data
+    healthcheck:
+      test: ["CMD", "/otel-lgtm/docker/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  lgtm-data:

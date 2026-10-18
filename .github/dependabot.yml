@@ -11,6 +11,14 @@ updates:
         patterns: ["*"]
   - package-ecosystem: npm
     directory: /site
+  - package-ecosystem: gomod
+    directory: /integrations/grafana/dashboards
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+  - package-ecosystem: docker-compose
+    directory: /integrations/grafana/stack
     schedule:
       interval: weekly
     cooldown:

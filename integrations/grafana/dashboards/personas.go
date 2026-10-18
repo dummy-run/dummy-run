@@ -1,0 +1,91 @@
+package main
+
+import (
+	"fmt"
+
+	"github.com/grafana/grafana-foundation-sdk/go/common"
+	"github.com/grafana/grafana-foundation-sdk/go/dashboard"
+	"github.com/grafana/grafana-foundation-sdk/go/table"
+)
+
+// Personas shows one row per persona: its runs, outcomes, findings, slowest steps and traces.
+func (c Config) Personas() *dashboard.DashboardBuilder {
+	ids := &ids{}
+	prom := c.prom()
+	b := c.base(uidPersonas, "Dummy Run: personas",
+		"One row per persona. Each row shows the persona's runs, what it found, where it was slow and its traces.")
+
+	// Inside a repeated row, $persona holds one value.
+	one := `dummyrun_persona_id=~"$persona"`
+	runsSel := selEnv + ", " + one + ", " + selScenario
+	runsAll := fmt.Sprintf(`sum(increase(%s{%s}[$__range]))`, metricRuns, runsSel)
+	runsCompleted := fmt.Sprintf(`sum(increase(%s{%s, dummyrun_outcome="completed"}[$__range]))`, metricRuns, runsSel)
+
+	b.WithRow(dashboard.NewRowBuilder("$persona").Id(ids.id()).Repeat("persona"))
+	b.WithPanel(statNumber(prom, ids.id(), "Runs", "Runs by this persona that ended in the time range.",
+		runsAll, "short", 0, thresholds(colourInk), 4, 4))
+	b.WithPanel(statNumber(prom, ids.id(), "Pass rate", "Share of this persona's runs where it finished its job.",
+		fmt.Sprintf(`%s / %s`, runsCompleted, runsAll), "percentunit", 0,
+		thresholds(colourBlocker, 0.8, colourAmber, 0.9, colourPass), 4, 4))
+	b.WithPanel(statNumber(prom, ids.id(), "Findings", "Findings this persona surfaced that the reviewer confirmed.",
+		fmt.Sprintf(`sum(increase(%s{%s, %s, dummyrun_verdict="confirmed"}[$__range]))`, metricFindings, selEnv, one),
+		"short", 0, thresholds(colourInk, 1.0, colourAmber), 4, 4))
+	b.WithPanel(statNumber(prom, ids.id(), "Blockers", "Confirmed blocker findings from this persona.",
+		fmt.Sprintf(`sum(increase(%s{%s, %s, dummyrun_severity="blocker", dummyrun_verdict="confirmed"}[$__range]))`, metricFindings, selEnv, one),
+		"short", 0, thresholds(colourPass, 1.0, colourBlocker), 4, 4))
+	b.WithPanel(c.attributesTable(ids.id(), "Role, device, browser and model", "From the persona's latest run end log line.",
+		lokiRunEnd+` | dummyrun_persona_id=~"$persona"`, 8, 4,
+		"dummyrun_persona_role", "Role",
+		"dummyrun_persona_device", "Device",
+		"browser_name", "Browser",
+		"gen_ai_request_model", "Model",
+	).
+		OverrideByName("Role", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 110}}).
+		OverrideByName("Device", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}).
+		OverrideByName("Browser", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 90}}))
+
+	b.WithPanel(outcomesOverTime(prom, ids.id(), "Outcomes", "This persona's runs in each interval, stacked by outcome.", runsSel, 9, 8))
+	b.WithPanel(c.findingsSurfaced(ids.id(), "Findings surfaced",
+		"Confirmed findings from this persona in the time range, with the number of runs that hit each one.",
+		lokiFindings+` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_finding_verdict="confirmed"`, 9, 8))
+	b.WithPanel(slowestActions(prom, ids.id(), one, 6, 8))
+
+	b.WithPanel(c.runsTable(ids.id(), "Recent runs",
+		"This persona's recent runs. Click a run ID to open the run dashboard, or the trace ID to open the trace.",
+		lokiRunEnd+` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_scenario_id=~"$scenario"`, 24, 8))
+	return b
+}
+
+// findingsSurfaced lists distinct findings from finding log lines, counted per run.
+func (c Config) findingsSurfaced(id uint32, title, description, selector string, w, h uint32) *table.PanelBuilder {
+	expr := fmt.Sprintf(`sort_desc(sum by (dummyrun_finding_id, dummyrun_finding_kind, dummyrun_finding_severity, dummyrun_finding_title) (count_over_time(%s [$__range])))`, selector)
+	return table.NewPanelBuilder().
+		Id(id).
+		Title(title).
+		Description(description).
+		Datasource(c.loki()).
+		Span(w).Height(h).
+		WithTarget(lokiInstant(c.loki(), expr)).
+		WithTransformation(transform("labelsToFields", map[string]any{"mode": "columns"})).
+		WithTransformation(transform("merge", map[string]any{})).
+		WithTransformation(organize(
+			"dummyrun_finding_id", "Finding",
+			"dummyrun_finding_severity", "Severity",
+			"Value", "Runs",
+			"dummyrun_finding_kind", "Kind",
+			"dummyrun_finding_title", "Title",
+		)).
+		WithTransformation(sortBy("Runs", true)).
+		CellHeight(common.TableCellHeightSm).
+		OverrideByName("Finding", []dashboard.DynamicConfigValue{
+			fieldLink("Show these findings in Explore", exploreLokiURL(c.LokiUID, lokiFindings+` | dummyrun_finding_id="VALUE"`)),
+			{Id: "custom.width", Value: 210},
+		}).
+		OverrideByName("Severity", []dashboard.DynamicConfigValue{
+			{Id: "mappings", Value: valueMappings(severityColours, severityOrder)},
+			{Id: "custom.cellOptions", Value: map[string]any{"type": "color-text"}},
+			{Id: "custom.width", Value: 80},
+		}).
+		OverrideByName("Kind", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 100}}).
+		OverrideByName("Runs", []dashboard.DynamicConfigValue{{Id: "custom.width", Value: 60}, {Id: "decimals", Value: 0}})
+}
