@@ -167,9 +167,12 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		case r.usage.InputTokens+r.usage.OutputTokens >= r.tokens:
 			force, r.forced = "finish", "the token budget"
 		}
+		callStart := time.Now()
 		resp, err := cfg.Provider.Chat(ctx, provider.Request{System: system, Turns: r.turns(), Tools: Tools,
 			ForceTool: force, MaxOutputTokens: maxOutputTokens})
 		r.usage.ModelCalls++
+		fmt.Fprintf(r.log, "  model call %d: %.1fs, %d in / %d out tokens%s\n", r.usage.ModelCalls, time.Since(callStart).Seconds(),
+			resp.Usage.InputTokens, resp.Usage.OutputTokens, errNote(err))
 		r.usage.InputTokens += resp.Usage.InputTokens
 		r.usage.OutputTokens += resp.Usage.OutputTokens
 		if err != nil {
@@ -194,7 +197,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 				if perr != nil {
 					r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID,
 						text: "finish was not understood: " + perr.Error() + ". Call finish again with verdict, report and findings."})
-					break
+					continue
 				}
 				r.finishStep(ctx, f)
 				return &f, r.patience.GaveUp(), nil
@@ -219,6 +222,7 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 	}
 	controlsBefore := r.controls
 	r.trace.SetStep(len(r.steps) + 1)
+	startedAt := time.Now().UTC()
 	var obs page.Observation
 	switch call.Name {
 	case "look":
@@ -264,7 +268,7 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 		obs.Action, obs.Error = "look", fmt.Sprintf("unknown tool %q", call.Name)
 	}
 	sig := Signature(obs)
-	step := &Step{N: len(r.steps) + 1, Obs: obs, PageChanged: sig != r.lastSig}
+	step := &Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: sig != r.lastSig}
 	r.lastSig = sig
 	r.patience.Note(step.N, obs.URL, obs.Action, obs.Target, controlsBefore, obs.Error != "" || !step.PageChanged)
 	if obs.Snapshot != nil {
@@ -274,6 +278,13 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 	r.saveStep(step)
 	fmt.Fprintf(r.log, "  step %d: %s %s -> %s%s\n", step.N, obs.Action, obs.Target, shorten(obs.URL, 80), errSuffix(obs))
 	return step
+}
+
+func errNote(err error) string {
+	if err == nil {
+		return ""
+	}
+	return " (error: " + err.Error() + ")"
 }
 
 func errSuffix(o page.Observation) string {
@@ -320,9 +331,10 @@ func (r *run) resolveURL(raw string) (string, error) {
 
 func (r *run) finishStep(ctx context.Context, f Finish) {
 	r.trace.SetStep(len(r.steps) + 1)
+	startedAt := time.Now().UTC()
 	obs := r.page.Look(ctx)
 	obs.Action, obs.Target = "finish", f.Verdict
-	r.steps = append(r.steps, Step{N: len(r.steps) + 1, Obs: obs, PageChanged: false})
+	r.steps = append(r.steps, Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: false})
 	r.saveStep(&r.steps[len(r.steps)-1])
 	fmt.Fprintf(r.log, "  step %d: finish %s, %d findings\n", len(r.steps), f.Verdict, len(f.Findings))
 }
@@ -334,7 +346,7 @@ func (r *run) saveStep(s *Step) {
 		_ = os.WriteFile(filepath.Join(r.dir, "screens", name), s.Obs.Screenshot, 0o600)
 	}
 	line := map[string]any{
-		"step": s.N, "at": time.Now().UTC().Format(time.RFC3339Nano), "action": s.Obs.Action, "target": s.Obs.Target,
+		"step": s.N, "at": s.At.Format(time.RFC3339Nano), "action": s.Obs.Action, "target": s.Obs.Target,
 		"ms": s.Obs.Duration.Milliseconds(), "error": s.Obs.Error, "url": s.Obs.URL, "status": s.Obs.Status,
 		"page_changed": s.PageChanged, "page": s.Obs.Snapshot,
 		"problems": map[string]any{"console_errors": s.Obs.ConsoleErrors, "failed_requests": s.Obs.FailedRequests,
@@ -465,9 +477,8 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 	if r.page != nil && r.page.Browser().Version != "" {
 		rec.Browser.Version = r.page.Browser().Version
 	}
-	at := r.started
 	for _, s := range r.steps {
-		st := record.Step{N: s.N, At: at, Action: s.Obs.Action, Target: s.Obs.Target, URL: s.Obs.URL,
+		st := record.Step{N: s.N, At: s.At, Action: s.Obs.Action, Target: s.Obs.Target, URL: s.Obs.URL,
 			DurationMs: int(s.Obs.Duration.Milliseconds()), ConsoleErrors: record.Int(len(s.Obs.ConsoleErrors))}
 		if len(s.Obs.Screenshot) > 0 {
 			st.Screenshot = fmt.Sprintf("%s/screens/%03d.png", r.id, s.N)
@@ -491,7 +502,6 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 		}
 		st.Note = strings.Join(notes, "; ")
 		rec.Steps = append(rec.Steps, st)
-		at = at.Add(s.Obs.Duration + 50*time.Millisecond)
 	}
 	rec.Outcome = outcome(finish, runErr, r.forced, r.patience.GaveUp())
 	if finish != nil {

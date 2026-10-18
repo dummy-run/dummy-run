@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"strings"
+	"time"
 
 	"github.com/dummy-run/dummy-run/internal/page"
 )
@@ -11,6 +12,7 @@ import (
 // Step is one executed tool call with its observation.
 type Step struct {
 	N   int
+	At  time.Time
 	Obs page.Observation
 	// PageChanged is false when the page looked the same before and after.
 	PageChanged bool

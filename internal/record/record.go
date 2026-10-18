@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -132,12 +133,8 @@ var Evidence = []string{"measured", "code", "sourced", "inferred"}
 // Int returns a pointer to v, for the optional integer fields.
 func Int(v int) *int { return &v }
 
-var compiled *jsonschema.Schema
-
-func schema() (*jsonschema.Schema, error) {
-	if compiled != nil {
-		return compiled, nil
-	}
+// schema compiles the embedded schema once; concurrent callers share the result.
+var schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(schemaJSON))
 	if err != nil {
 		return nil, fmt.Errorf("record: embedded schema is not JSON: %w", err)
@@ -151,9 +148,8 @@ func schema() (*jsonschema.Schema, error) {
 	if err != nil {
 		return nil, fmt.Errorf("record: compile schema: %w", err)
 	}
-	compiled = s
 	return s, nil
-}
+})
 
 // ErrInvalid marks a record that fails the schema.
 var ErrInvalid = errors.New("record: does not match the schema")

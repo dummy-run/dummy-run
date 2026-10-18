@@ -2,8 +2,7 @@
 
 `dummyrun` is a Go program that plays one persona through one scenario in a real browser and writes a run
 record. It drives Chrome and Firefox over WebDriver BiDi with its own client in `internal/bidi`, so the same
-code runs both browsers. This page covers installing it, running it, the read-only policy and the model
-providers.
+code runs both browsers.
 
 ## Install
 
@@ -45,9 +44,10 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--headful` | Show the browser window |
 
 A run visits the target's base URL, then lets the model call one tool per turn until it calls `finish` or
-the budget runs out. The thirteen tools are listed in the table below. After every action the model sees the page as text with numbered
-controls and, for the two newest steps, a screenshot. Older steps shrink to one line to keep the context
-small. The run ends early when the persona gives up: three failed tries at the same thing on the same page.
+the budget runs out (code: `internal/runner/runner.go`). After every action the model sees the page as text
+with numbered controls and, for the two newest steps, a screenshot. Older steps shrink to one line to keep
+the context small. The run ends early when the persona gives up: three failed tries at the same thing on the
+same page (code: `internal/runner/patience.go`).
 
 | Tool | What it does |
 |---|---|
@@ -66,27 +66,28 @@ start with the verdict `pending`; the reviewer is a later stage. Next to the rec
 persona's own report and `steps.jsonl` holds the full observation for each step, including page text the
 reviewer can check quotes against.
 
-Every request to the target carries a `baggage` header with the run and persona IDs and a `traceparent`
-header whose trace ID and step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md`
-describes. The browser's user agent ends with
-`DummyRun/<version>`.
+Every request to the target carries a `baggage` header with the run and persona IDs. A request also gets a
+`traceparent` header unless the page set one itself, in which case the page's header is kept. The trace ID
+and the step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md` describes
+(code: `internal/telemetry/telemetry.go`). The browser's user agent ends with `DummyRun/<version>`.
 
 ## Read-only policy
 
 A target with `"read_only": true` cannot be changed by a run. The engine intercepts every request the
-browser makes. A request to an allowed host with a method other than GET, HEAD or OPTIONS fails as a
+browser makes (code: `internal/policy/policy.go` and `internal/page/page.go`). A request to an allowed host with a method other than GET, HEAD or OPTIONS fails as a
 network error before it leaves the browser, and the step that caused it gets a note such as
 `blocked: POST https://example.test/subscribe (read-only target)`. A request to any host outside
 `allowed_hosts` fails the same way. The persona is told about the policy in its prompt as well, but the
 interception is what enforces it. `internal/page/tools_test.go` proves it with a form whose POST never
-reaches the test server, on both browsers.
+reaches the test server, on both browsers (measured on Firefox 158.0 and Chrome 155.0.8059.80).
 
 ## Providers
 
 `internal/provider` defines one interface. A request carries a system prompt and the turns so far. Each turn
 holds text and may hold images and tool calls. The request also lists the tools and may name one forced tool. The Azure OpenAI implementation uses `openai-go`'s `azure` package with
-`azidentity.DefaultAzureCredential`, so your `az login` session is the credential and no API key exists in
-the engine or on the resource. The API version defaults to `2025-04-01-preview` and `--api-version` overrides
+`azidentity.DefaultAzureCredential`, which tries the environment, workload identity and managed identity
+before the Azure CLI sign-in (code: `internal/provider/azure.go`). The engine has no code path that reads an
+API key. Each call has a 120 second timeout and up to three retries. The API version defaults to `2025-04-01-preview` and `--api-version` overrides
 it. Token usage from every call is summed into the record's `usage` block, and
 `--region` is recorded as `provider.region` because a deployment does not report where it runs.
 

@@ -17,4 +17,4 @@ Traits and where they come from:
 
 - He reads the first screen and the table of who it is for, then looks for a picture of the results (inferred).
 - He notices text that is too small on a phone and menus that do not open (inferred from the device).
-- He forwards things with one line of his own, so he needs one sentence he can repeat (inferred).
+- Forwarding something means writing one line of his own, so he needs one sentence he can repeat (inferred).

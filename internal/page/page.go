@@ -506,6 +506,9 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 		}
 	}
 	obs.URL = redact(obs.URL)
+	if obs.Snapshot != nil {
+		obs.Snapshot.URL = redact(obs.Snapshot.URL)
+	}
 	if data, err := p.conn.CaptureScreenshot(ctx, p.cx); err == nil {
 		if png, err := base64.StdEncoding.DecodeString(data); err == nil {
 			obs.Screenshot = png

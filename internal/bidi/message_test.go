@@ -82,3 +82,21 @@ func TestCommandError(t *testing.T) {
 		t.Errorf("message %q", err.Error())
 	}
 }
+
+// An error frame without an id, which the remote end sends when it cannot parse
+// a command, must be dropped rather than dereferenced.
+func TestDispatchDropsErrorWithoutID(t *testing.T) {
+	c := &Conn{pending: map[int64]chan Message{}, handlers: map[string][]EventHandler{}}
+	m, err := Decode([]byte(`{"type":"error","error":"invalid argument","message":"unparsable"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.dispatch(m) // must not panic
+	id := int64(4)
+	ch := make(chan Message, 1)
+	c.pending[id] = ch
+	c.dispatch(Message{ID: &id, Type: "success"})
+	if len(ch) != 1 || len(c.pending) != 0 {
+		t.Error("a matched result was not delivered")
+	}
+}

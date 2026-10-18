@@ -53,8 +53,9 @@ func usage() {
       --browser chrome|firefox --provider azure --model DEPLOYMENT --region REGION [--endpoint URL]
   dummyrun version
 
-The Azure endpoint comes from --endpoint or DUMMYRUN_AZURE_ENDPOINT. Sign in with "az login" first;
-the engine uses your Azure CLI credential and never reads an API key.`)
+The Azure endpoint comes from --endpoint or DUMMYRUN_AZURE_ENDPOINT. The engine authenticates with
+azidentity's DefaultAzureCredential (environment, workload identity, managed identity, then "az login")
+and never reads an API key.`)
 }
 
 func runCmd(args []string) int {

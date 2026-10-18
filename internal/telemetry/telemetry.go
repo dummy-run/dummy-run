@@ -45,9 +45,9 @@ func Slug(s string) string {
 }
 
 // NewRunID builds a run ID of the form the schema requires: the date, then a
-// slug made from the persona, the scenario and four random hex characters.
+// slug made from the persona, the scenario and sixteen random hex characters.
 func NewRunID(now time.Time, persona, scenario string) string {
-	return fmt.Sprintf("%s-%s-%s-%s", now.UTC().Format("2006-01-02"), Slug(persona), Slug(scenario), randomHex(2))
+	return fmt.Sprintf("%s-%s-%s-%s", now.UTC().Format("2006-01-02"), Slug(persona), Slug(scenario), randomHex(8))
 }
 
 func randomHex(n int) string {

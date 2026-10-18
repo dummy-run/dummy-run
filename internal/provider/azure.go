@@ -6,16 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/azure"
+	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/shared"
 )
 
 // Azure is Azure OpenAI through openai-go's azure package. Authentication is
-// the developer's Azure CLI sign-in or any other DefaultAzureCredential source;
-// the engine never handles an API key.
+// azidentity's DefaultAzureCredential chain (environment, workload identity,
+// managed identity, then the Azure CLI sign-in); the engine never handles an API key.
 type Azure struct {
 	client openai.Client
 	model  string
@@ -24,6 +26,10 @@ type Azure struct {
 
 // DefaultAPIVersion is the Azure OpenAI API version used when none is configured.
 const DefaultAPIVersion = "2025-04-01-preview"
+
+// RequestTimeout bounds one attempt at a model call. A stalled connection then
+// fails fast and the client retries instead of hanging the run.
+const RequestTimeout = 120 * time.Second
 
 // NewAzure builds the Azure provider. Endpoint is https://<resource>.openai.azure.com.
 func NewAzure(cfg Config) (*Azure, error) {
@@ -44,7 +50,8 @@ func NewAzure(cfg Config) (*Azure, error) {
 	if version == "" {
 		version = DefaultAPIVersion
 	}
-	client := openai.NewClient(azure.WithEndpoint(strings.TrimSuffix(cfg.Endpoint, "/"), version), azure.WithTokenCredential(cred))
+	client := openai.NewClient(azure.WithEndpoint(strings.TrimSuffix(cfg.Endpoint, "/"), version), azure.WithTokenCredential(cred),
+		option.WithRequestTimeout(RequestTimeout), option.WithMaxRetries(3))
 	return &Azure{client: client, model: cfg.Model, region: cfg.Region}, nil
 }
 

@@ -99,8 +99,13 @@ func firstExisting(candidates ...string) string {
 		if c == "" {
 			continue
 		}
-		if _, err := os.Stat(c); err == nil { //nolint:gosec // candidate paths are configuration, not user input
-			return c
+		// Only a path is checked on disk. A bare name goes through exec.LookPath, which
+		// refuses to resolve it against the current directory.
+		if filepath.IsAbs(c) || strings.ContainsRune(c, os.PathSeparator) {
+			if fi, err := os.Stat(c); err == nil && !fi.IsDir() { //nolint:gosec // candidate paths are configuration, not user input
+				return c
+			}
+			continue
 		}
 		if p, err := exec.LookPath(c); err == nil {
 			return p
@@ -172,7 +177,11 @@ func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 	cmd.Env = append(os.Environ(), opts.Env...)
 	if runtime.GOOS == "linux" {
 		// A clean config home keeps the system Firefox's settings out of the run.
-		cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+profile, "MOZ_DISABLE_CONTENT_SANDBOX=1")
+		cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+profile)
+		if os.Getenv("CI") != "" {
+			// The GitHub runner's user namespaces stop the content sandbox from starting.
+			cmd.Env = append(cmd.Env, "MOZ_DISABLE_CONTENT_SANDBOX=1")
+		}
 	}
 	if err := cmd.Start(); err != nil {
 		b.Close()

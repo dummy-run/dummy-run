@@ -81,6 +81,11 @@ func (c *Conn) dispatch(m Message) {
 		}
 		return
 	}
+	if m.ID == nil {
+		// An error the remote end could not tie to a command. Nothing waits for it.
+		c.mu.Unlock()
+		return
+	}
 	ch := c.pending[*m.ID]
 	delete(c.pending, *m.ID)
 	c.mu.Unlock()

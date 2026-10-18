@@ -17,6 +17,6 @@ Run one scenario with:
 
 ```sh
 dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-the-quickstart \
-  --target targets/dummyrun-dev.json --out ~/.local/share/dummyrun/runs/dummyrun-dev \
+  --target examples/targets/dummyrun-dev.json --out ~/.local/share/dummyrun/runs/dummyrun-dev \
   --browser firefox --provider azure --model <deployment> --region uksouth
 ```
