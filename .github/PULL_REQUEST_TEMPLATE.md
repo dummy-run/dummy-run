@@ -8,11 +8,11 @@
 
 ## How I checked it
 
-<!-- Commands run, screenshots, run IDs. "Evidence or nothing" applies to PRs too. -->
+<!-- Commands run, screenshots, run IDs. -->
 
 ## Checklist
 
 - [ ] No real customer, company or person data, and nothing copied from a target environment
-- [ ] No client identifiers (the `clean-tree` CI job passes)
+- [ ] No identifiers from any customer deployment (the "Tree is clean" check passes)
 - [ ] Documentation updated where behaviour changed
 - [ ] CHANGELOG entry under Unreleased, if a user would notice the change

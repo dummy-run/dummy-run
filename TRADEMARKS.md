@@ -1,28 +1,24 @@
 # Trademark policy
 
-The code is open source under the [Apache License 2.0](LICENSE). That licence does not cover the name
-"Dummy Run" or the Dummy Run logo and mascot. They tell people which version is the original and which
-services come from its maintainer.
+The [Apache License 2.0](LICENSE) covers the code. It does not cover the name "Dummy Run" or the Dummy
+Run logo and mascot. No trademark is registered yet, and this policy applies before and after one is.
 
-No trademark has been registered yet. This policy applies now and will still apply after registration.
+## You may, without asking
 
-## You may do these without asking
+- Say your software works with Dummy Run, runs on it or is built from it.
+- Use the name in articles, talks, tutorials and reviews.
+- Run an unmodified copy in your organisation and call it Dummy Run.
+- Use the logo to link to this project.
 
-- Say that your software works with Dummy Run, runs on it or was built from it.
-- Use the name in articles and talks. Tutorials, reviews and comparisons are fine too.
-- Run an unmodified copy inside your organisation and call it Dummy Run.
-- Use the logo in a link to this project.
+## Ask first before you
 
-## Please ask first
+- Offer a hosted or managed service with "Dummy Run" in its name or marketing.
+- Put the name or logo on merchandise.
 
-- Before you offer a hosted or managed service with "Dummy Run" in its name or marketing.
-- Before you put the name or logo on merchandise.
+## You may not
 
-## You may not do these
+- Distribute a modified version as "Dummy Run", or under a confusingly similar name or logo. Name your
+  fork something else and say it is based on Dummy Run.
+- Imply that the project endorses your product or service when it does not.
 
-- Distribute a modified version under the name "Dummy Run" or under a confusingly similar name or logo.
-  Forks are welcome. Give yours its own name and say that it is based on Dummy Run.
-- Suggest that the project or its maintainer endorses your product or service when that is untrue.
-
-For questions, open a discussion or use the contact on the
-[organisation profile](https://github.com/dummy-run).
+Questions go to [Discussions](https://github.com/dummy-run/dummy-run/discussions).

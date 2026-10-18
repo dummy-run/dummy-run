@@ -10,11 +10,11 @@ permissions:
 
 jobs:
   clean-tree:
-    name: No private-deployment identifiers or secrets in the tree
+    name: Tree is clean
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Fail on private-deployment identifiers
+      - name: Fail on blocked identifiers
         env:
           # One extended-regex pattern per line. Kept as a repository secret so the list itself
           # does not publish the identifiers it protects. Maintainers: `gh secret set CLEAN_TREE_DENY < patterns.txt`.
@@ -27,11 +27,11 @@ jobs:
           fi
           printf '%s\n' "$CLEAN_TREE_DENY" > /tmp/deny
           if grep -rInE --exclude-dir=.git -f /tmp/deny . | sed -E 's/:.*$//' | sort -u ; then
-            echo "::error::Private-deployment identifiers found in the files listed above. See CONTRIBUTING.md, ground rule 3."
+            echo "::error::Blocked identifiers found in the files listed above. See CONTRIBUTING.md, rule 3."
             exit 1
           fi
           echo "Tree is clean."
-      - name: Fail on obvious secrets
+      - name: Fail on credential patterns
         run: |
           set -euo pipefail
           if grep -rInE --exclude-dir=.git -e 'AKIA[0-9A-Z]{16}' -e 'ghp_[A-Za-z0-9]{36}' -e 'sk-ant-[A-Za-z0-9-]{20,}' -e 'AIza[0-9A-Za-z_-]{35}' -e '-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----' . ; then
@@ -60,7 +60,7 @@ jobs:
           exit $fail
       - name: Plain wording on user-facing pages
         run: bin/check-prose
-      - name: House style, no em dashes in prose
+      - name: No em dashes in Markdown
         run: |
           if grep -rIn --include='*.md' --exclude-dir=.git -P '\x{2014}' . ; then
             echo "::error::Em dash found. House style uses commas, colons or full stops (docs/STYLE.md)."
