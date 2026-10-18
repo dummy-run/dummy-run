@@ -49,10 +49,18 @@ Step span attributes are `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun
 present they add `url.full`, `http.response.status_code`, `dummyrun.step.console_errors` and
 `dummyrun.step.a11y_violations`. A step with a status of 500 or more has status `ERROR`.
 
-Each finding is a span event named `dummyrun.finding` on the root span. Its attributes are
-`dummyrun.finding.id`, `.kind`, `.severity`, `.title`, `.evidence` and `.verdict`. It also carries
-`dummyrun.finding.steps` as an integer array. The event time is the `at` time of the finding's first
-step.
+Each finding is a span event named `dummyrun.finding` on the root span. The event time is the `at`
+time of the finding's first step.
+
+| Event attribute | From the finding |
+|---|---|
+| `dummyrun.finding.id` | `id` |
+| `dummyrun.finding.kind` | `kind` |
+| `dummyrun.finding.severity` | `severity` |
+| `dummyrun.finding.title` | `title` |
+| `dummyrun.finding.evidence` | `evidence` |
+| `dummyrun.finding.verdict` | `verdict` |
+| `dummyrun.finding.steps` | `steps`, as an integer array |
 
 ## Metrics
 
