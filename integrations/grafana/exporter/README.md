@@ -22,7 +22,7 @@ dummyrun-otel export examples/runs
 ```
 
 With no `OTEL_EXPORTER_OTLP_ENDPOINT` set, the exporter sends to `http://localhost:4318`. Open
-Grafana at http://localhost:3000 (admin / admin), pick Explore and query Loki for
+Grafana at `http://localhost:3000` (admin / admin), pick Explore and query Loki for
 `{service_name="dummyrun"}` over the last 7 days. Each line links to its trace. A TraceQL search such as
 `{ span.dummyrun.run.id = "2026-10-16-ada-editor-003" }` needs the Tempo setting described under
 historical timestamps.
