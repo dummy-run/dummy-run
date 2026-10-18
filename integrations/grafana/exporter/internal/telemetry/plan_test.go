@@ -186,7 +186,6 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 	} else {
 		attrsEqual(t, "dummyrun.findings", m[0].Attributes, []attribute.KeyValue{
 			persona,
-			attribute.String("dummyrun.scenario.id", "reassign-draft"),
 			attribute.String("dummyrun.target.environment", "pr-41"),
 			attribute.String("dummyrun.kind", "bug"),
 			attribute.String("dummyrun.severity", "major"),
@@ -326,7 +325,8 @@ func TestOptionalFieldsAreOmitted(t *testing.T) {
 }
 
 // The contract fixes the derivation: trace ID is the first 16 bytes of SHA-256 of
-// "dummyrun.run:<id>", root span ID the first 8 bytes of SHA-256 of "dummyrun.span:<id>:root".
+// "dummyrun.run:<id>", root span ID the first 8 bytes of SHA-256 of "dummyrun.span:<id>:root", and
+// step span IDs the first 8 bytes of SHA-256 of "dummyrun.span:<id>:step:<n>".
 func TestIDsFollowTheContract(t *testing.T) {
 	id := "2026-10-16-ada-editor-003"
 	traceSum := sha256.Sum256([]byte("dummyrun.run:" + id))
@@ -336,6 +336,13 @@ func TestIDsFollowTheContract(t *testing.T) {
 	rootSum := sha256.Sum256([]byte("dummyrun.span:" + id + ":root"))
 	if got := SpanIDFor(id, "root").String(); got != hex.EncodeToString(rootSum[:8]) {
 		t.Errorf("root span id %s, want %s", got, hex.EncodeToString(rootSum[:8]))
+	}
+	// Step n's span ID is the first 8 bytes of SHA-256 of "dummyrun.span:<id>:step:<n>", so the
+	// runner's traceparent for a step names the span the exporter writes.
+	stepSum := sha256.Sum256([]byte("dummyrun.span:" + id + ":step:7"))
+	p := Build(load(t, id+".json"))
+	if p.Steps[6].SpanID != hex.EncodeToString(stepSum[:8]) {
+		t.Errorf("step 7 span id %s, want %s", p.Steps[6].SpanID, hex.EncodeToString(stepSum[:8]))
 	}
 	if got := RootSpanContext(id); got.TraceID() != TraceIDFor(id) || got.SpanID() != SpanIDFor(id, "root") || !got.IsSampled() {
 		t.Errorf("root span context %+v", got)

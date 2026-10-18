@@ -252,7 +252,7 @@ func measurements(run *record.Run) []Measurement {
 		)
 	}
 	for _, f := range run.Findings {
-		ms = append(ms, counter(MetricFindings, UnitFindings, 1, persona, scenario, environment,
+		ms = append(ms, counter(MetricFindings, UnitFindings, 1, persona, environment,
 			attribute.String("dummyrun.kind", f.Kind),
 			attribute.String("dummyrun.severity", f.Severity),
 			attribute.String("dummyrun.verdict", f.Verdict)))
