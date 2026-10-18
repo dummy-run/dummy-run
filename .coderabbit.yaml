@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+language: en-GB
+tone_instructions: >-
+  Be a sceptical senior reviewer. Look for bugs, security holes, unpinned dependencies and claims the code
+  does not support. Write plain British English: short sentences, no em dashes, no superlatives, no praise.
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!examples/runs/**"
+    - "!**/json/*.json"
+    - "!LICENSES/**"
+    - "!**/*.png"
+  path_instructions:
+    - path: "**/*.md"
+      instructions: >-
+        Apply docs/STYLE.md, "Plain wording". Flag sentences with more than two commas, bold in running
+        text, a label and colon in place of a sentence, staged contrasts ("not X, but Y"), signposts,
+        bullets that argue, lists of three kept for rhythm, sentences with no fact in them, and bylines.
+        Flag any claim that the repository does not support, and any detail that could identify a customer
+        or private deployment.
+    - path: ".github/workflows/**"
+      instructions: >-
+        Every action must be pinned to a full commit SHA with a version comment, and the version must be at
+        least two weeks old. Jobs need least-privilege permissions. Every actions/checkout needs
+        persist-credentials false. Flag any use of untrusted input in run steps.
+    - path: "**/*.go"
+      instructions: >-
+        Check error handling, context cancellation, resource cleanup and data races. Check that telemetry
+        names and attributes match docs/TELEMETRY.md exactly. New behaviour needs tests.
+    - path: "schema/**"
+      instructions: >-
+        Any change to the run-record schema must update docs/TELEMETRY.md, examples/generate-runs.py and the
+        examples in the same pull request, and must say whether it breaks existing records.
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: "An imperative sentence in plain English that says what the change does, under 72 characters."
+    description:
+      mode: warning
+    custom_checks:
+      - name: "Tests for new behaviour"
+        mode: warning
+        instructions: >-
+          Pass if the pull request changes no code, or if every new or changed behaviour in code has an
+          automated test in the same pull request. Fail otherwise and name the untested behaviour.
+      - name: "No customer data"
+        mode: error
+        instructions: >-
+          Fail if any added line contains a real person's, company's or customer's name, contact details,
+          hostnames or data copied from a target environment. The fictional app Inkwell and its personas
+          (ada-editor, sam-author, ravi-reviewer, lin-contributor) are synthetic and allowed.
+  tools:
+    actionlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    golangci-lint:
+      enabled: true
+    markdownlint:
+      enabled: false
+    semgrep:
+      enabled: true
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    zizmor:
+      enabled: true
+    osvScanner:
+      enabled: true
+    hadolint:
+      enabled: true
+    languagetool:
+      enabled: true
+      language: en-GB
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false

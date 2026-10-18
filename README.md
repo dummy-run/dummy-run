@@ -9,6 +9,7 @@
   <a href="https://github.com/dummy-run/dummy-run/actions/workflows/ci.yml"><img src="https://github.com/dummy-run/dummy-run/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://github.com/dummy-run/dummy-run/actions/workflows/quality.yml"><img src="https://github.com/dummy-run/dummy-run/actions/workflows/quality.yml/badge.svg?branch=main" alt="Quality"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-1d1d1b" alt="Licence: Apache-2.0"></a>
+  <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
 > Pre-release. Nothing here installs yet.
