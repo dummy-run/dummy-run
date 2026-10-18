@@ -13,7 +13,9 @@ pre-commit:
       run: bin/check-prose {staged_files}
     - name: em-dashes
       glob: "*.md"
-      run: "! grep -nP '\\x{2014}' {staged_files}"
+      run: |
+        LC_ALL=C grep -nF "$(printf '\342\200\224')" {staged_files}
+        test $? -eq 1
     - name: spelling
       glob: "*.{md,yml,yaml,json,toml,py,go,sh}"
       run: >-
