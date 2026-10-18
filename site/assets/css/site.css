@@ -155,6 +155,7 @@ h1, h2, h3, h4, .u-display, .u-display-sm, .u-title, .u-title-sm, .u-subtitle { 
 .masthead-nav a:hover { color: var(--ink); border-bottom-color: var(--amber); }
 .masthead-nav a[aria-current] { border-bottom-color: var(--amber); }
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 1.5px solid var(--rule); border-radius: 50%; background: transparent; color: var(--ink); cursor: pointer; }
+.theme-toggle[hidden] { display: none; }
 .theme-toggle:hover { border-color: var(--ink); }
 .theme-toggle-sun { display: var(--show-sun); }
 .theme-toggle-moon { display: var(--show-moon); }

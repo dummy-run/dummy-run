@@ -28,6 +28,11 @@ on:
 permissions:
   contents: read
 
+# A newer push cancels the run before it, so an older build can never deploy after a newer one.
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Site builds and passes its checks

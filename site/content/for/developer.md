@@ -8,9 +8,9 @@ description: What a developer gets from Dummy Run. A real browser against your p
 
 ## What runs where
 
-The `dummyrun` command offers `run`, `review` and `board`. A run drives Chrome or Firefox through WebDriver BiDi, so one session layer covers both browsers. Mobile is a viewport and user agent profile per persona. The first target adapter takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages follow. Each one finds the preview for a pull request and creates a test user with a named role. It also loads fixtures.
+[The plan](../../../docs/PLAN.md) gives the `dummyrun` command three subcommands: `run`, `review` and `board`. None of them ships yet. A run will drive Chrome or Firefox through WebDriver BiDi, so one session layer covers both browsers. Mobile is a viewport and user agent profile per persona. The first target adapter takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages follow. Each one finds the preview for a pull request and creates a test user with a named role. It also loads fixtures.
 
-The runner can sit on your laptop or in GitHub Actions. It can run as a Kubernetes job from the Helm chart in `deploy/helm/dummyrun`, or as a Cloud Run or Azure Container Apps job. `deploy/compose` runs the whole thing on one machine.
+The [architecture](../../../docs/ARCHITECTURE.md) plans four runner hosts. The runner can sit on your laptop or in GitHub Actions. It can run as a Kubernetes job from the Helm chart in `deploy/helm/dummyrun`, or as a Cloud Run or Azure Container Apps job. `deploy/compose` will run the whole thing on one machine.
 
 ## What you get back
 

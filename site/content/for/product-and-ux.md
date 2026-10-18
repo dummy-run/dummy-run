@@ -10,7 +10,7 @@ description: What product and UX people get from Dummy Run. Friction, confusion 
 
 Findings have five kinds. Three of them are about the experience rather than the code. A friction finding says a persona could do its job but struggled. A question finding says a persona did not understand something. An accessibility finding comes from an automated check on a page the persona visited. The other two kinds are bug and permission.
 
-In the example cast, `sam-author` on a phone found that the Submit button sits under the keyboard. That is a friction finding of major severity, tied to step 6 of run `2026-10-17-sam-author-006` and to the screenshot taken there. `lin-contributor` asked what the payment status "settled" means, which is a question finding. The reviewer confirmed the first and left the second pending, because it rests on the persona's reasoning rather than a measurement.
+In the example cast, `sam-author` on a phone found that the Submit button sits under the keyboard. That is a friction finding of major severity, tied to step 6 of run [`2026-10-17-sam-author-006`](https://github.com/dummy-run/dummy-run/blob/main/examples/runs/2026-10-17-sam-author-006.json) and to the screenshot taken there. `lin-contributor` asked what the payment status "settled" means in run [`2026-10-16-lin-contributor-002`](https://github.com/dummy-run/dummy-run/blob/main/examples/runs/2026-10-16-lin-contributor-002.json), which is a question finding. The reviewer confirmed the first and left the second pending, because it rests on the persona's reasoning rather than a measurement.
 
 ## Personas have habits and devices
 

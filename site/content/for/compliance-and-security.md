@@ -8,7 +8,7 @@ description: What compliance and security people get from Dummy Run. Permission 
 
 ## Permission findings
 
-A persona signs in with one role. The reviewer checks what that role could reach. In run `2026-10-17-lin-contributor-008` the contributor opened the rates table for all writers at step 7. The reviewer confirmed the finding against the code and tagged it `code`. It is a permission finding of major severity, and every finding of blocker or major severity waits for a person to confirm it before it counts on the board.
+A persona signs in with one role. The reviewer checks what that role could reach. In run [`2026-10-17-lin-contributor-008`](https://github.com/dummy-run/dummy-run/blob/main/examples/runs/2026-10-17-lin-contributor-008.json) the contributor opened the rates table for all writers at step 7. The reviewer confirmed the finding against the code and tagged it `code`. It is a permission finding of major severity, and every finding of blocker or major severity waits for a person to confirm it before it counts on the board.
 
 ## What leaves your environment
 
@@ -24,7 +24,7 @@ The run record and its screenshots stay wherever you run Dummy Run, and the resu
 
 ## Data residency
 
-A market profile such as `uk` lists the regions that satisfy it. Every adapter declares its regions. A run refuses to start if any adapter in the chain cannot satisfy the market. The model provider is chosen per market from Vertex AI, Azure AI Foundry, Anthropic and local models. Each run record stores the region the model ran in.
+The [architecture](../../../docs/ARCHITECTURE.md) sets the residency rule. A market profile such as `uk` lists the regions that satisfy it. Every adapter declares its regions. A run refuses to start if any adapter in the chain cannot satisfy the market. The model provider is chosen per market from Vertex AI, Azure AI Foundry, Anthropic and local models. Each run record stores the region the model ran in.
 
 ## No real people
 

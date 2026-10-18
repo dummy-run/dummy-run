@@ -12,7 +12,7 @@ A cast is a set of personas with roles, goals, habits and devices. The example c
 
 ## Each client's data stays in its market
 
-A market profile such as `uk` lists the regions that satisfy it, for example `europe-west2`, `uksouth` and `ukwest`. Every adapter declares the regions it can run in. A run refuses to start if the target, the model provider or the runner host cannot satisfy the market. Model providers are chosen per market. The choices are Vertex AI, Azure AI Foundry, Anthropic and an OpenAI-compatible local model. The run record stores the region the model ran in as `provider.region`, so you can show a client where their run happened.
+The [architecture](../../../docs/ARCHITECTURE.md) sets the rule. A market profile such as `uk` lists the regions that satisfy it, for example `europe-west2`, `uksouth` and `ukwest`. Every adapter declares the regions it can run in. A run refuses to start if the target, the model provider or the runner host cannot satisfy the market. Model providers are chosen per market. The choices are Vertex AI, Azure AI Foundry, Anthropic and an OpenAI-compatible local model. The run record stores the region the model ran in as `provider.region`, so you can show a client where their run happened.
 
 ## What the client sees
 

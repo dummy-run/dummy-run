@@ -12,7 +12,7 @@ Each finding on the results board names the problem, its severity, the persona a
 
 ## What a run costs
 
-Each run record stores the model calls it made, the tokens it used and the cost in US dollars. In the synthetic examples, run `2026-10-16-ada-editor-003` cost $0.04 on Gemini in `europe-west2` and run `2026-10-17-ravi-reviewer-005` cost $0.47 on Anthropic. The [Grafana](../docs/grafana.md) dashboards show spend by model over time.
+Each run record stores the model calls it made, the tokens it used and the cost in US dollars. In the synthetic examples, run [`2026-10-16-ada-editor-003`](https://github.com/dummy-run/dummy-run/blob/main/examples/runs/2026-10-16-ada-editor-003.json) cost $0.04 on Gemini in `europe-west2` and run [`2026-10-17-ravi-reviewer-005`](https://github.com/dummy-run/dummy-run/blob/main/examples/runs/2026-10-17-ravi-reviewer-005.json) cost $0.47 on Anthropic. Both figures are the `usage.cost_usd` field of the record. The [Grafana](../docs/grafana.md) dashboards show spend by model over time.
 
 ## Where it stands
 
