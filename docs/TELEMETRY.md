@@ -18,9 +18,11 @@ are in `examples/runs/`.
 ## Traces
 
 Each run is one trace. The root span is named `dummyrun.run` and lasts from `started_at` to `ended_at`.
-The trace ID is the first 16 bytes of SHA-256 of `dummyrun.run:<id>`, and the root span ID is the first 8
-bytes of SHA-256 of `dummyrun.span:<id>:root`. The runner uses the same IDs in the `traceparent` it
-sends, so the app's spans join the exporter's trace. Exporting a run twice writes the same trace.
+The trace ID is the first 16 bytes of SHA-256 of `dummyrun.run:<id>`. The root span ID is the first 8
+bytes of SHA-256 of `dummyrun.span:<id>:root`. The span ID of step `n` is the first 8 bytes of SHA-256
+of `dummyrun.span:<id>:step:<n>`. Each request during a step carries a `traceparent` with the run's trace
+ID and that step's span ID, so the app's spans become children of the step. Exporting a run twice writes
+the same trace.
 Each step is a child span named `dummyrun.step <action>`, such as `dummyrun.step click`. A step span
 starts at its `at` time and lasts `duration_ms`.
 
@@ -73,7 +75,7 @@ time of the finding's first step.
 | `dummyrun.run.duration` | histogram | `s` | `persona.id`, `scenario.id`, `outcome` |
 | `dummyrun.steps` | counter | `{step}` | `persona.id`, `action` |
 | `dummyrun.step.duration` | histogram | `ms` | `persona.id`, `action` |
-| `dummyrun.findings` | counter | `{finding}` | `persona.id`, `scenario.id`, `target.environment`, `kind`, `severity`, `verdict` |
+| `dummyrun.findings` | counter | `{finding}` | `persona.id`, `target.environment`, `kind`, `severity`, `verdict` |
 | `dummyrun.tokens` | counter | `{token}` | `persona.id`, `gen_ai.system`, `gen_ai.request.model`, `direction` (`input` or `output`) |
 | `dummyrun.cost.usd` | counter | `{USD}` | `persona.id`, `gen_ai.system`, `gen_ai.request.model` |
 
@@ -81,7 +83,8 @@ Every metric attribute without a namespace above is prefixed with `dummyrun.`, a
 `dummyrun.persona.id`. In Prometheus these become names such as `dummyrun_runs_total` and labels such as
 `dummyrun_persona_id`. The cost unit is written in braces so the translation drops it, giving
 `dummyrun_cost_usd_total`. Run IDs and finding IDs are never metric labels, because each value would create
-a new series.
+a new series. Scenario IDs come from the cast's files, so `scenario.id` is a bounded label on
+`dummyrun.runs` and `dummyrun.run.duration`. Findings carry it only in their log record.
 
 Metric data points carry the time the exporter sent them. Each exporter
 process starts its counters at zero. Metrics therefore describe runs as they are exported. Use
