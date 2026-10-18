@@ -58,9 +58,13 @@ reviews:
       - name: "No customer data"
         mode: error
         instructions: >-
-          Fail if any added line contains a real person's, company's or customer's name, contact details,
-          hostnames or data copied from a target environment. The fictional app Inkwell and its personas
-          (ada-editor, sam-author, ravi-reviewer, lin-contributor) are synthetic and allowed.
+          Fail only if an added line contains data about a customer or private deployment of Dummy Run: a
+          customer's or client's name, a real person's name or contact details, a private hostname or
+          preview URL, a ticket or pull request number from another organisation, or data copied from a
+          target environment. Public tools, services, standards bodies, open-source projects and their
+          public URLs are allowed, for example GitHub, Grafana, OpenSSF, Codecov and CodeRabbit. The
+          fictional app Inkwell, its hosts under inkwell.example and its personas (ada-editor, sam-author,
+          ravi-reviewer, lin-contributor) are synthetic and allowed.
   tools:
     actionlint:
       enabled: true

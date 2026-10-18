@@ -9,6 +9,7 @@
   <a href="https://github.com/dummy-run/dummy-run/actions/workflows/ci.yml"><img src="https://github.com/dummy-run/dummy-run/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://github.com/dummy-run/dummy-run/actions/workflows/quality.yml"><img src="https://github.com/dummy-run/dummy-run/actions/workflows/quality.yml/badge.svg?branch=main" alt="Quality"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-1d1d1b" alt="Licence: Apache-2.0"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/dummy-run/dummy-run"><img src="https://api.scorecard.dev/projects/github.com/dummy-run/dummy-run/badge" alt="OpenSSF Scorecard"></a>
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
@@ -58,7 +59,9 @@ flowchart LR
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, and the rules on evidence and privacy |
+| [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
+| [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the automated checks, and the rules on evidence and privacy |
 | [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and findings about apps you do not own |
 | [docs/LICENSING.md](docs/LICENSING.md) | What the licence lets you do |
 | [docs/STYLE.md](docs/STYLE.md), [docs/TYPOGRAPHY.md](docs/TYPOGRAPHY.md) | How we write and set type |
