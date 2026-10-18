@@ -288,6 +288,8 @@ tbody th { font-family: var(--font-body); font-weight: 600; }
 td code, th code { white-space: nowrap; }
 .align-center { text-align: center; }
 .align-right { text-align: right; }
+.schema-table th:first-child { width: 11rem; }
+.schema-table td:nth-child(2) { width: 14rem; }
 .schema-table .req { display: block; font-size: var(--type-caption); color: var(--ink-muted); font-weight: 400; }
 
 /* Figures */

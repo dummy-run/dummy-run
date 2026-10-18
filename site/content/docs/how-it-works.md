@@ -47,4 +47,4 @@ High-severity findings wait for a person to confirm them. Nothing is posted for 
 | Finding | A claim with evidence, confirmed or rejected by the reviewer |
 | Results board | Static HTML and JSON listing the confirmed findings |
 
-The crash-test theme calls the cast "dummies" and gives the project its [mascot](/docs/brand/). The cautions about the name are in [How the name was chosen](/docs/naming/).
+The crash-test theme calls the cast "dummies" and gives the project its [mascot](../../../brand/README.md). The cautions about the name are in [How the name was chosen](../../../docs/NAMING.md).

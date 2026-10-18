@@ -14,7 +14,7 @@ In the example cast, `sam-author` on a phone found that the Submit button sits u
 
 ## Personas have habits and devices
 
-A persona has a role with permissions, plus goals, habits and a device. `sam-author` writes on a phone. `lin-contributor` uses a tablet. The device sets the viewport and the user agent for the run, so the same scenario on a phone and a desktop can produce different findings. Persona traits need a source, and the [writing guide](/docs/style/) says every trait without a citation is removed.
+A persona has a role with permissions, plus goals, habits and a device. `sam-author` writes on a phone. `lin-contributor` uses a tablet. The device sets the viewport and the user agent for the run, so the same scenario on a phone and a desktop can produce different findings. Persona traits need a source, and the [writing guide](../../../docs/STYLE.md) says every trait without a citation is removed.
 
 ## What it is not
 
@@ -22,4 +22,4 @@ It is not analytics and it does not watch real users. Personas are fictional. Th
 
 ## What to read next
 
-[How it works](/docs/how-it-works/) covers the flow from cast to board. The [run record](/docs/run-record/) page lists the fields behind each finding. The project is pre-release, and [the plan](/docs/plan/) puts a demo app and an example cast first.
+[How it works](../docs/how-it-works.md) covers the flow from cast to board. The [run record](../docs/run-record.md) page lists the fields behind each finding. The project is pre-release, and [the plan](../../../docs/PLAN.md) puts a demo app and an example cast first.

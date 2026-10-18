@@ -20,8 +20,8 @@ The results board is static HTML and JSON. Each finding shows a title and a seve
 
 ## The licence allows client work
 
-Dummy Run is under Apache-2.0. The [licensing](/docs/licensing/) table says you may run it for clients with no conditions. You may also change it for your own use. Offering it as a hosted service is allowed under a name other than Dummy Run, and the [trademark policy](/docs/trademarks/) explains the name and logo.
+Dummy Run is under Apache-2.0. The [licensing](../../../docs/LICENSING.md) table says you may run it for clients with no conditions. You may also change it for your own use. Offering it as a hosted service is allowed under a name other than Dummy Run, and the [trademark policy](../../../TRADEMARKS.md) explains the name and logo.
 
 ## What to read next
 
-[Architecture](/docs/architecture/) covers the adapters and the data residency rule. [Security](/docs/security/) says what to do with a finding in an app you do not own. The project is pre-release, and [the plan](/docs/plan/) lists the milestones.
+[Architecture](../../../docs/ARCHITECTURE.md) covers the adapters and the data residency rule. [Security](../../../SECURITY.md) says what to do with a finding in an app you do not own. The project is pre-release, and [the plan](../../../docs/PLAN.md) lists the milestones.

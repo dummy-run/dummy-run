@@ -1,1 +1,1 @@
-<p class="status">{{ .Inner | markdownify }}</p>
+<p class="status">{{ .Inner | .Page.RenderString }}</p>

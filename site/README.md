@@ -1,6 +1,6 @@
 # The website
 
-[dummyrun.dev](https://dummyrun.dev) is built with Hugo 0.165.0 from this directory and deployed to
+The site at dummyrun.dev is built with Hugo 0.165.0 from this directory and deployed to
 Cloudflare Pages by `.github/workflows/site.yml`. The reference pages render from the repository's own
 Markdown through mounts in `hugo.toml` and the content adapter in `content/docs/_content.gotmpl`, so
 `docs/ARCHITECTURE.md` and the site's architecture page are one file. The audience pages and the home

@@ -67,7 +67,7 @@ flowchart LR
 | [docs/STYLE.md](docs/STYLE.md), [docs/TYPOGRAPHY.md](docs/TYPOGRAPHY.md) | How we write and set type |
 | [docs/NAMING.md](docs/NAMING.md) | How the name was chosen |
 | [brand/README.md](brand/README.md) | The logo, mascot and colours |
-| [site/](site/README.md) | The website at [dummyrun.dev](https://dummyrun.dev), built from these documents |
+| [site/](site/README.md) | The website at dummyrun.dev, built from these documents |
 
 ## Licence
 

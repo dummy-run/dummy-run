@@ -6,7 +6,7 @@ lead: Every run is one trace, one annotation and a handful of metrics and log li
 description: The Grafana integration for Dummy Run. Four dashboards read the traces, metrics and logs that runs emit. A local stack and an exporter feed them.
 ---
 
-The [telemetry](/docs/telemetry/) contract gives each run one OpenTelemetry trace with a span per step and an event per finding. It adds a log record per run and per finding. Counters and histograms cover runs and steps. Others cover findings and token spend. Any OpenTelemetry backend can store that. The Grafana integration in `integrations/grafana/` uses Tempo for traces, Loki for logs and Prometheus or Mimir for metrics.
+The [telemetry](../../../docs/TELEMETRY.md) contract gives each run one OpenTelemetry trace with a span per step and an event per finding. It adds a log record per run and per finding. Counters and histograms cover runs and steps. Others cover findings and token spend. Any OpenTelemetry backend can store that. The Grafana integration in `integrations/grafana/` uses Tempo for traces, Loki for logs and Prometheus or Mimir for metrics.
 
 ## The integration is in review
 

@@ -12,7 +12,7 @@ A persona signs in with one role. The reviewer checks what that role could reach
 
 ## What leaves your environment
 
-The run record and its screenshots stay wherever you run Dummy Run, and the results board built from them is a set of static files you host yourself. Nothing phones home. The [telemetry](/docs/telemetry/) exporter sends a subset of the record to the OpenTelemetry backend you choose. If a preview puts personal data in a URL, that URL reaches the backend, so keep previews on synthetic data.
+The run record and its screenshots stay wherever you run Dummy Run, and the results board built from them is a set of static files you host yourself. Nothing phones home. The [telemetry](../../../docs/TELEMETRY.md) exporter sends a subset of the record to the OpenTelemetry backend you choose. If a preview puts personal data in a URL, that URL reaches the backend, so keep previews on synthetic data.
 
 | Exported | Never exported |
 |---|---|
@@ -28,8 +28,8 @@ A market profile such as `uk` lists the regions that satisfy it. Every adapter d
 
 ## No real people
 
-Personas are fictional, every one of them. The [contributing](/docs/contributing/) rules bar real names, contact details and data from a target environment. CI blocks credential patterns and known identifiers on every pull request. The repository holds no run results, screenshots or personas drawn from real customers.
+Personas are fictional, every one of them. The [contributing](../../../CONTRIBUTING.md) rules bar real names, contact details and data from a target environment. CI blocks credential patterns and known identifiers on every pull request. The repository holds no run results, screenshots or personas drawn from real customers.
 
 ## Reporting
 
-[Security](/docs/security/) explains coordinated disclosure for Dummy Run itself. We reply within five working days and publish a fix with an advisory. A finding in someone else's app belongs to its owner and goes through their disclosure route.
+[Security](../../../SECURITY.md) explains coordinated disclosure for Dummy Run itself. We reply within five working days and publish a fix with an advisory. A finding in someone else's app belongs to its owner and goes through their disclosure route.

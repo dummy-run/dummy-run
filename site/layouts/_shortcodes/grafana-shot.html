@@ -12,5 +12,5 @@
       <img src="{{ $full.RelPermalink }}" width="{{ $webp.Width }}" height="{{ $webp.Height }}" alt="{{ .Get "alt" }}" decoding="async">
     </picture>
   </a>
-  <figcaption>{{ .Inner | markdownify }}</figcaption>
+  <figcaption>{{ .Inner | .Page.RenderString }}</figcaption>
 </figure>

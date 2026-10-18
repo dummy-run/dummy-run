@@ -10,7 +10,7 @@ description: What a QA lead gets from Dummy Run. Exploratory testing by role on 
 
 A run signs one persona in to the preview built for a pull request. It works through one scenario. The persona `sam-author` in the example cast is an author who writes on a phone. Its scenario "Reply to review comments" took 11 steps in run `2026-10-17-sam-author-006` and ended with one confirmed finding, which is that the Submit button on a phone sits under the keyboard. The finding points at step 6. The screenshot is there too.
 
-Each run writes a run record. It is JSON. It lists every step with its URL and HTTP status and duration, and it counts the console errors and accessibility violations on each step. The eight synthetic records in [examples/runs/](https://github.com/dummy-run/dummy-run/tree/main/examples/runs) show the shape, and the [run record](/docs/run-record/) page explains each field.
+Each run writes a run record. It is JSON. It lists every step with its URL and HTTP status and duration, and it counts the console errors and accessibility violations on each step. The eight synthetic records in [examples/runs/](https://github.com/dummy-run/dummy-run/tree/main/examples/runs) show the shape, and the [run record](../docs/run-record.md) page explains each field.
 
 ## What the reviewer rejects
 
@@ -20,8 +20,8 @@ A persona can be wrong, and sometimes it is. A second model reads each claim and
 
 Your unit tests and end-to-end scripts check the paths you already know. A persona has a role and a goal rather than a script, so it takes the paths a user of that role would take. A finding is a starting point for a bug report, with the run ID and the step number and the screenshot already attached. Nothing is filed for you, because a person decides which findings become tickets and which do not.
 
-Every finding has a stable ID, so the same problem found in three runs is one row on the board rather than three. The two `sam-author` runs on 17 October both carry `submit-button-below-keyboard`. The [Grafana dashboards](/docs/grafana/) use the same IDs to show first seen, last seen and the personas affected.
+Every finding has a stable ID, so the same problem found in three runs is one row on the board rather than three. The two `sam-author` runs on 17 October both carry `submit-button-below-keyboard`. The [Grafana dashboards](../docs/grafana.md) use the same IDs to show first seen, last seen and the personas affected.
 
 ## What to read next
 
-[How it works](/docs/how-it-works/) has the full flow from cast to board. [Architecture](/docs/architecture/) lists the target adapters that find a preview and create a test user. The project is pre-release, and [the plan](/docs/plan/) puts a demo app and an example cast first.
+[How it works](../docs/how-it-works.md) has the full flow from cast to board. [Architecture](../../../docs/ARCHITECTURE.md) lists the target adapters that find a preview and create a test user. The project is pre-release, and [the plan](../../../docs/PLAN.md) puts a demo app and an example cast first.
