@@ -1,0 +1,36 @@
+{{/* Build the reference pages from the repository's own Markdown, so there is one source of truth. */}}
+{{ $pages := slice
+  (dict "src" "repo/docs/ARCHITECTURE.md" "path" "architecture" "weight" 20 "summary" "Adapters, the evidence pipeline and data residency")
+  (dict "src" "repo/docs/TELEMETRY.md" "path" "telemetry" "weight" 30 "summary" "How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations")
+  (dict "src" "repo/docs/integrations/grafana.md" "path" "grafana-guide" "weight" 41 "summary" "Wiring runs into Grafana, Tempo, Loki and your own app's traces")
+  (dict "src" "repo/docs/PLAN.md" "path" "plan" "weight" 60 "summary" "What ships, in what order")
+  (dict "src" "repo/docs/LICENSING.md" "path" "licensing" "weight" 70 "summary" "What the Apache-2.0 licence lets you do")
+  (dict "src" "repo/TRADEMARKS.md" "path" "trademarks" "weight" 71 "summary" "What you may do with the name and logo")
+  (dict "src" "repo/SECURITY.md" "path" "security" "weight" 72 "summary" "Reporting a vulnerability, and findings about apps you do not own")
+  (dict "src" "repo/CONTRIBUTING.md" "path" "contributing" "weight" 73 "summary" "How to contribute, the automated checks, and the rules on evidence and privacy")
+  (dict "src" "repo/docs/STYLE.md" "path" "style" "weight" 80 "summary" "How we write and cite")
+  (dict "src" "repo/docs/TYPOGRAPHY.md" "path" "typography" "weight" 81 "summary" "Body text at 17px, nothing read below 15px and headings that scale with the viewport")
+  (dict "src" "repo/brand/README.md" "path" "brand" "weight" 82 "summary" "The logo, mascot and colours")
+  (dict "src" "repo/docs/NAMING.md" "path" "naming" "weight" 83 "summary" "Why the project is called Dummy Run, and the cautions on the mascot")
+}}
+{{ range $pages }}
+  {{ $p := . }}
+  {{ with resources.Get .src }}
+    {{ $text := .Content }}
+    {{ $m := findRESubmatch `(?m)\A# (.+)\n` $text 1 }}
+    {{ $title := "" }}
+    {{ with $m }}{{ $title = index (index . 0) 1 }}{{ end }}
+    {{ if not $title }}{{ errorf "No H1 in %s" $p.src }}{{ end }}
+    {{ $body := replaceRE `(?m)\A# .+\n` "" $text 1 }}
+    {{ $srcdir := path.Dir (strings.TrimPrefix "repo/" $p.src) }}
+    {{ $.AddPage (dict
+      "path" $p.path
+      "title" $title
+      "kind" "page"
+      "weight" $p.weight
+      "summary" $p.summary
+      "params" (dict "source" (strings.TrimPrefix "repo/" $p.src) "sourcedir" $srcdir "from_repo" true)
+      "content" (dict "mediaType" "text/markdown" "value" $body)
+    ) }}
+  {{ end }}
+{{ end }}

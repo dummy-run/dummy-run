@@ -1,0 +1,17 @@
+<div class="stages" role="group" aria-label="The stages of a run and what feeds them">
+  <ul class="stages-inputs" aria-label="Inputs to a run">
+    <li class="flow-step"><span class="flow-name">Cast</span><span class="flow-text"><code>personas/*/profile.md</code>, prompt, scenarios</span></li>
+    <li class="flow-step flow-adapter"><span class="flow-name">Target adapter</span><span class="flow-text">Preview URL, test user, fixtures</span></li>
+    <li class="flow-step flow-adapter"><span class="flow-name">LLM provider adapter</span><span class="flow-text">Chosen per market</span></li>
+  </ul>
+  <ol class="stages-chain" aria-label="The run in order">
+    <li class="flow-step flow-agent"><span class="flow-name">Run</span><span class="flow-text">Real browser over WebDriver BiDi. Steps, screenshots, console, network</span></li>
+    <li class="flow-step"><span class="flow-name">Run record</span><span class="flow-text">JSON and PNG</span></li>
+    <li class="flow-step"><span class="flow-name">Deterministic checks</span><span class="flow-text">axe, CSP, status codes, allowed hosts</span></li>
+    <li class="flow-step flow-agent"><span class="flow-name">Reviewer</span><span class="flow-text">Claim by claim, code references, 3 votes</span></li>
+    <li class="flow-step"><span class="flow-name">Record batch</span><span class="flow-text">Corroborations, candidates</span></li>
+    <li class="flow-step"><span class="flow-name">Person checks high-severity candidates</span></li>
+    <li class="flow-step flow-out"><span class="flow-name">Results board</span><span class="flow-text">Static HTML and JSON</span></li>
+  </ol>
+</div>
+<p class="flow-legend">Amber marks the stages where a model acts. Blue marks adapters. Green marks what people read.</p>

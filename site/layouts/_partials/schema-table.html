@@ -1,0 +1,22 @@
+{{- $req := .schema.required | default slice -}}
+<h3 id="field-{{ .id }}">{{ .name }}</h3>
+<div class="table-wrap" tabindex="0">
+<table class="schema-table">
+  <thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+  {{- range $k, $v := .schema.properties }}
+    <tr>
+      <th scope="row"><code>{{ $k }}</code>{{ if in $req $k }}<span class="req">required</span>{{ end }}</th>
+      <td>
+        {{- with $v.const }}constant <code>{{ . }}</code>
+        {{- else }}{{ with $v.enum }}one of {{ range $i, $e := . }}{{ if $i }}, {{ end }}<code>{{ $e }}</code>{{ end }}
+        {{- else }}{{ with $v.type }}{{ . }}{{ end }}{{ with $v.format }} ({{ . }}){{ end }}
+        {{- if eq $v.type "array" }} of {{ with $v.items.type }}{{ . }}{{ else }}object{{ end }}{{ end }}
+        {{- end }}{{ end -}}
+      </td>
+      <td>{{ with $v.description }}{{ . }}{{ end }}{{ with $v.pattern }}{{ if $v.description }} {{ end }}Pattern <code>{{ . }}</code>{{ end }}</td>
+    </tr>
+  {{- end }}
+  </tbody>
+</table>
+</div>

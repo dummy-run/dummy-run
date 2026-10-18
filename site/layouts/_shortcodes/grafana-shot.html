@@ -1,0 +1,16 @@
+{{- /* A dashboard screenshot. Prefer the copy in docs/images/grafana/ once it is on main, and fall back to the copy in site/assets/images/grafana/. */ -}}
+{{- $name := .Get "name" -}}
+{{- $img := or (resources.Get (printf "repo/docs/images/grafana/%s.png" $name)) (resources.Get (printf "images/grafana/%s.png" $name)) -}}
+{{- if not $img }}{{ errorf "No screenshot named %s" $name }}{{ end -}}
+{{- $full := $img.Resize "1600x png" -}}
+{{- $webp := $img.Resize "1200x webp q82" -}}
+{{- $small := $img.Resize "720x webp q82" -}}
+<figure class="shot">
+  <a href="{{ $full.RelPermalink }}">
+    <picture>
+      <source type="image/webp" srcset="{{ $small.RelPermalink }} 720w, {{ $webp.RelPermalink }} 1200w" sizes="(min-width: 1100px) 760px, calc(100vw - 2rem)">
+      <img src="{{ $full.RelPermalink }}" width="{{ $webp.Width }}" height="{{ $webp.Height }}" alt="{{ .Get "alt" }}" decoding="async">
+    </picture>
+  </a>
+  <figcaption>{{ .Inner | .Page.RenderString }}</figcaption>
+</figure>
