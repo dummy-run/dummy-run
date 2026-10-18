@@ -1,0 +1,39 @@
+name: Persona proposal
+description: Propose a fictional user for the example cast
+labels: [persona]
+body:
+  - type: input
+    id: role
+    attributes:
+      label: Role
+      placeholder: e.g. payroll clerk at a 40-person contractor
+    validations:
+      required: true
+  - type: textarea
+    id: jobs
+    attributes:
+      label: The jobs they come to do
+      description: Three to six, in their words. These become scenarios.
+    validations:
+      required: true
+  - type: textarea
+    id: conditions
+    attributes:
+      label: Device, conditions and habits
+      description: Phone or desktop, connection, time pressure, how they read, what they skip.
+    validations:
+      required: true
+  - type: textarea
+    id: permissions
+    attributes:
+      label: What they should and should not be able to see
+      description: The permission edges a run should probe.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Where each trait comes from
+      description: Public source, reasonable inference, or your own experience. Personas built from a specific real customer's data are not accepted.
+    validations:
+      required: true

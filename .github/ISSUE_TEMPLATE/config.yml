@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability in Dummy Run
+    url: https://github.com/dummy-run/dummy-run/security/advisories/new
+    about: Report privately. Do not open a public issue for security problems.
+  - name: Something Dummy Run found in an app you do not own
+    url: https://github.com/dummy-run/dummy-run/blob/main/SECURITY.md
+    about: That finding belongs to the app's owner. SECURITY.md explains what to do.
+  - name: Questions and ideas
+    url: https://github.com/dummy-run/dummy-run/discussions
+    about: Discussions are the place for anything that is not a bug or a concrete proposal.
