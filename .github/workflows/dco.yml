@@ -1,0 +1,31 @@
+name: DCO
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sign-off:
+    name: Every commit is signed off
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Check for a Signed-off-by line matching the author
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          fail=0
+          for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            email=$(git log -1 --format=%ae "$c")
+            if ! git log -1 --format=%B "$c" | grep -i '^Signed-off-by:' | grep -qF "<$email>"; then
+              echo "::error::Commit $c by $email has no matching Signed-off-by line. Use 'git commit -s' (see CONTRIBUTING.md)."
+              fail=1
+            fi
+          done
+          exit $fail

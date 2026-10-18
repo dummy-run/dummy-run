@@ -1,0 +1,6 @@
+# Default owner for everything until there are more maintainers.
+* @joelio
+
+# Security-sensitive paths get a mandatory review from the owner.
+/.github/ @joelio
+/SECURITY.md @joelio

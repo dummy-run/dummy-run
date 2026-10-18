@@ -1,0 +1,29 @@
+name: Feature or adapter
+description: Propose a capability, a target adapter or an LLM provider
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: Who has it and what it costs them. One paragraph.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: The proposal
+      description: What Dummy Run would do. For an adapter, how the platform exposes previews, test users and fixtures.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options: [Harness, Reviewer, Results board, Target adapter, LLM provider, Deployment (Helm, compose, cloud), Documentation]
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

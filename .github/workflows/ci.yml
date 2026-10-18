@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-tree:
+    name: No private-deployment identifiers or secrets in the tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Fail on private-deployment identifiers
+        env:
+          # One extended-regex pattern per line. Kept as a repository secret so the list itself
+          # does not publish the identifiers it protects. Maintainers: `gh secret set CLEAN_TREE_DENY < patterns.txt`.
+          CLEAN_TREE_DENY: ${{ secrets.CLEAN_TREE_DENY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLEAN_TREE_DENY:-}" ]; then
+            echo "::warning::CLEAN_TREE_DENY secret is not set on this repository; forks and PRs from forks skip this check."
+            exit 0
+          fi
+          printf '%s\n' "$CLEAN_TREE_DENY" > /tmp/deny
+          if grep -rInE --exclude-dir=.git -f /tmp/deny . | sed -E 's/:.*$//' | sort -u ; then
+            echo "::error::Private-deployment identifiers found in the files listed above. See CONTRIBUTING.md, ground rule 3."
+            exit 1
+          fi
+          echo "Tree is clean."
+      - name: Fail on obvious secrets
+        run: |
+          set -euo pipefail
+          if grep -rInE --exclude-dir=.git -e 'AKIA[0-9A-Z]{16}' -e 'ghp_[A-Za-z0-9]{36}' -e 'sk-ant-[A-Za-z0-9-]{20,}' -e 'AIza[0-9A-Za-z_-]{35}' -e '-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----' . ; then
+            echo "::error::Something that looks like a credential is committed."
+            exit 1
+          fi
+          echo "No credential patterns found."
+
+  docs:
+    name: Docs are well formed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Every Markdown link to a local file resolves
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS=: read -r file target; do
+            target="${target%%#*}"
+            [ -z "$target" ] && continue
+            case "$target" in http*|mailto:*) continue;; esac
+            if [ ! -e "$(dirname "$file")/$target" ] && [ ! -e "$target" ]; then
+              echo "::error file=$file::broken link to $target"; fail=1
+            fi
+          done < <(grep -rIoE --include='*.md' --exclude-dir=.git '\]\([^)]+\)' . | sed -E 's/\]\(([^)]*)\)/\1/')
+          exit $fail
+      - name: House style, no em dashes in prose
+        run: |
+          if grep -rIn --include='*.md' --exclude-dir=.git -P '\x{2014}' . ; then
+            echo "::error::Em dash found. House style uses commas, colons or full stops (docs/STYLE.md)."
+            exit 1
+          fi
+          echo "No em dashes."

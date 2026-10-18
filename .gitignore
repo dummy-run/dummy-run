@@ -1,0 +1,17 @@
+# Run output never belongs in the repository
+results/
+runs/
+*.png
+*.webm
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+# Tooling
+node_modules/
+vendor/bundle/
+.bundle/
+__pycache__/
+.venv/
+.DS_Store
