@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-16-ada-editor-003",
+  "batch": "2026-10-16-pr-41",
+  "started_at": "2026-10-16T19:33:44.000Z",
+  "ended_at": "2026-10-16T19:34:26.535Z",
+  "persona": {
+    "id": "ada-editor",
+    "role": "editor",
+    "device": "desktop"
+  },
+  "scenario": {
+    "id": "reassign-draft",
+    "title": "Reassign a stalled draft"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-41",
+    "base_url": "https://pr-41.inkwell.example",
+    "commit": "e8147dc"
+  },
+  "provider": {
+    "kind": "vertex-gemini",
+    "model": "gemini-3.5-flash",
+    "region": "europe-west2"
+  },
+  "browser": {
+    "name": "chrome",
+    "version": "148.0"
+  },
+  "outcome": "blocked",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-16T19:33:44.000Z",
+      "action": "click",
+      "duration_ms": 1085,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 2,
+      "at": "2026-10-16T19:33:48.482Z",
+      "action": "type",
+      "duration_ms": 557,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Title"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-16T19:33:54.181Z",
+      "action": "visit",
+      "duration_ms": 2354,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 4,
+      "at": "2026-10-16T19:33:59.904Z",
+      "action": "scroll",
+      "duration_ms": 3247,
+      "url": "https://pr-41.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 5,
+      "at": "2026-10-16T19:34:08.116Z",
+      "action": "click",
+      "duration_ms": 339,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 6,
+      "at": "2026-10-16T19:34:13.106Z",
+      "action": "select",
+      "duration_ms": 1612,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Approve"
+    },
+    {
+      "n": 7,
+      "at": "2026-10-16T19:34:16.937Z",
+      "action": "fill",
+      "duration_ms": 1134,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 500,
+      "console_errors": 2,
+      "target": "Submit"
+    },
+    {
+      "n": 8,
+      "at": "2026-10-16T19:34:21.059Z",
+      "action": "finish",
+      "duration_ms": 2196,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "schedule-500-on-past-date",
+      "kind": "bug",
+      "severity": "major",
+      "title": "Scheduling an issue for a past date returns a server error",
+      "steps": [
+        7
+      ],
+      "evidence": "measured",
+      "verdict": "confirmed"
+    }
+  ],
+  "usage": {
+    "model_calls": 11,
+    "input_tokens": 64570,
+    "output_tokens": 6600,
+    "cost_usd": 0.0359
+  }
+}

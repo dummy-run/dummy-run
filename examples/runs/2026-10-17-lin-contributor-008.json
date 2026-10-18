@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-lin-contributor-008",
+  "batch": "2026-10-17-pr-41",
+  "started_at": "2026-10-17T13:52:56.000Z",
+  "ended_at": "2026-10-17T13:54:03.183Z",
+  "persona": {
+    "id": "lin-contributor",
+    "role": "contributor",
+    "device": "tablet"
+  },
+  "scenario": {
+    "id": "check-payment",
+    "title": "Check a payment status"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-41",
+    "base_url": "https://pr-41.inkwell.example",
+    "commit": "6e05e3e"
+  },
+  "provider": {
+    "kind": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "region": "global"
+  },
+  "browser": {
+    "name": "firefox",
+    "version": "146.0"
+  },
+  "outcome": "completed",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-17T13:52:56.000Z",
+      "action": "select",
+      "duration_ms": 4264,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Assign to"
+    },
+    {
+      "n": 2,
+      "at": "2026-10-17T13:53:04.663Z",
+      "action": "click",
+      "duration_ms": 4204,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Title"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-17T13:53:12.946Z",
+      "action": "select",
+      "duration_ms": 1340,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 4,
+      "at": "2026-10-17T13:53:18.659Z",
+      "action": "click",
+      "duration_ms": 3242,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 5,
+      "at": "2026-10-17T13:53:26.976Z",
+      "action": "look",
+      "duration_ms": 2924,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/008-05.png"
+    },
+    {
+      "n": 6,
+      "at": "2026-10-17T13:53:34.594Z",
+      "action": "type",
+      "duration_ms": 2631,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 7,
+      "at": "2026-10-17T13:53:39.958Z",
+      "action": "look",
+      "duration_ms": 2891,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/008-07.png"
+    },
+    {
+      "n": 8,
+      "at": "2026-10-17T13:53:48.432Z",
+      "action": "visit",
+      "duration_ms": 1464,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 9,
+      "at": "2026-10-17T13:53:54.110Z",
+      "action": "click",
+      "duration_ms": 1458,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Assign to"
+    },
+    {
+      "n": 10,
+      "at": "2026-10-17T13:53:59.117Z",
+      "action": "finish",
+      "duration_ms": 1030,
+      "url": "https://pr-41.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "payment-status-wording",
+      "kind": "question",
+      "severity": "info",
+      "title": "The payment status 'settled' is unclear to a contributor",
+      "steps": [
+        5
+      ],
+      "evidence": "inferred",
+      "verdict": "pending"
+    },
+    {
+      "id": "contributor-sees-rates-table",
+      "kind": "permission",
+      "severity": "major",
+      "title": "A contributor can open the rates table for all writers",
+      "steps": [
+        7
+      ],
+      "evidence": "code",
+      "verdict": "confirmed"
+    }
+  ],
+  "usage": {
+    "model_calls": 11,
+    "input_tokens": 62986,
+    "output_tokens": 3102,
+    "cost_usd": 0.2355
+  }
+}

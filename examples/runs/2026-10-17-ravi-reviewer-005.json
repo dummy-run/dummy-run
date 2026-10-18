@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-ravi-reviewer-005",
+  "batch": "2026-10-17-pr-44",
+  "started_at": "2026-10-17T05:41:16.000Z",
+  "ended_at": "2026-10-17T05:42:36.963Z",
+  "persona": {
+    "id": "ravi-reviewer",
+    "role": "reviewer",
+    "device": "desktop"
+  },
+  "scenario": {
+    "id": "approve-piece",
+    "title": "Approve a piece for publishing"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-44",
+    "base_url": "https://pr-44.inkwell.example",
+    "commit": "14d7832"
+  },
+  "provider": {
+    "kind": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "region": "global"
+  },
+  "browser": {
+    "name": "chrome",
+    "version": "148.0"
+  },
+  "outcome": "completed",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-17T05:41:16.000Z",
+      "action": "a11y",
+      "duration_ms": 1407,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "a11y_violations": 1
+    },
+    {
+      "n": 2,
+      "at": "2026-10-17T05:41:20.188Z",
+      "action": "click",
+      "duration_ms": 2425,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-17T05:41:24.803Z",
+      "action": "scroll",
+      "duration_ms": 1086,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 4,
+      "at": "2026-10-17T05:41:30.305Z",
+      "action": "click",
+      "duration_ms": 1500,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 5,
+      "at": "2026-10-17T05:41:34.010Z",
+      "action": "a11y",
+      "duration_ms": 876,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "a11y_violations": 2
+    },
+    {
+      "n": 6,
+      "at": "2026-10-17T05:41:39.585Z",
+      "action": "fill",
+      "duration_ms": 2998,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Title"
+    },
+    {
+      "n": 7,
+      "at": "2026-10-17T05:41:48.375Z",
+      "action": "click",
+      "duration_ms": 1218,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Approve"
+    },
+    {
+      "n": 8,
+      "at": "2026-10-17T05:41:54.564Z",
+      "action": "visit",
+      "duration_ms": 2993,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 9,
+      "at": "2026-10-17T05:42:03.269Z",
+      "action": "click",
+      "duration_ms": 1689,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Schedule"
+    },
+    {
+      "n": 10,
+      "at": "2026-10-17T05:42:08.378Z",
+      "action": "select",
+      "duration_ms": 3237,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Schedule"
+    },
+    {
+      "n": 11,
+      "at": "2026-10-17T05:42:16.729Z",
+      "action": "look",
+      "duration_ms": 540,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/005-11.png"
+    },
+    {
+      "n": 12,
+      "at": "2026-10-17T05:42:20.247Z",
+      "action": "select",
+      "duration_ms": 4479,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Schedule"
+    },
+    {
+      "n": 13,
+      "at": "2026-10-17T05:42:28.470Z",
+      "action": "finish",
+      "duration_ms": 3617,
+      "url": "https://pr-44.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0
+    }
+  ],
+  "findings": [],
+  "usage": {
+    "model_calls": 17,
+    "input_tokens": 108018,
+    "output_tokens": 9979,
+    "cost_usd": 0.4737
+  }
+}

@@ -1,8 +1,10 @@
-# Run output never belongs in the repository
-results/
-runs/
+# Run output never belongs in the repository, except the synthetic examples
+/results/
+/runs/
 *.png
 *.webm
+!/examples/runs/
+!/brand/**/*.png
 # Secrets and local config
 .env
 .env.*

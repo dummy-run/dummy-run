@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-sam-author-007",
+  "batch": "2026-10-17-pr-44",
+  "started_at": "2026-10-17T11:49:12.000Z",
+  "ended_at": "2026-10-17T11:50:32.661Z",
+  "persona": {
+    "id": "sam-author",
+    "role": "author",
+    "device": "phone"
+  },
+  "scenario": {
+    "id": "reply-to-review",
+    "title": "Reply to review comments"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-44",
+    "base_url": "https://pr-44.inkwell.example",
+    "commit": "47dedcf"
+  },
+  "provider": {
+    "kind": "vertex-gemini",
+    "model": "gemini-3.5-flash",
+    "region": "europe-west2"
+  },
+  "browser": {
+    "name": "firefox",
+    "version": "146.0"
+  },
+  "outcome": "completed",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-17T11:49:12.000Z",
+      "action": "look",
+      "duration_ms": 2779,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/007-01.png"
+    },
+    {
+      "n": 2,
+      "at": "2026-10-17T11:49:18.392Z",
+      "action": "look",
+      "duration_ms": 2791,
+      "url": "https://pr-44.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/007-02.png"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-17T11:49:25.240Z",
+      "action": "a11y",
+      "duration_ms": 1604,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "a11y_violations": 1
+    },
+    {
+      "n": 4,
+      "at": "2026-10-17T11:49:31.548Z",
+      "action": "scroll",
+      "duration_ms": 1525,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 5,
+      "at": "2026-10-17T11:49:37.096Z",
+      "action": "look",
+      "duration_ms": 2208,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/007-05.png"
+    },
+    {
+      "n": 6,
+      "at": "2026-10-17T11:49:42.705Z",
+      "action": "type",
+      "duration_ms": 2573,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 7,
+      "at": "2026-10-17T11:49:47.695Z",
+      "action": "a11y",
+      "duration_ms": 1576,
+      "url": "https://pr-44.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "a11y_violations": 1
+    },
+    {
+      "n": 8,
+      "at": "2026-10-17T11:49:53.379Z",
+      "action": "look",
+      "duration_ms": 933,
+      "url": "https://pr-44.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/007-08.png"
+    },
+    {
+      "n": 9,
+      "at": "2026-10-17T11:49:59.558Z",
+      "action": "look",
+      "duration_ms": 1663,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/007-09.png"
+    },
+    {
+      "n": 10,
+      "at": "2026-10-17T11:50:06.341Z",
+      "action": "click",
+      "duration_ms": 4077,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 11,
+      "at": "2026-10-17T11:50:15.538Z",
+      "action": "a11y",
+      "duration_ms": 1242,
+      "url": "https://pr-44.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "a11y_violations": 2
+    },
+    {
+      "n": 12,
+      "at": "2026-10-17T11:50:19.582Z",
+      "action": "visit",
+      "duration_ms": 2248,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 13,
+      "at": "2026-10-17T11:50:24.882Z",
+      "action": "finish",
+      "duration_ms": 3362,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "submit-button-below-keyboard",
+      "kind": "friction",
+      "severity": "major",
+      "title": "On a phone the Submit button sits under the keyboard",
+      "steps": [
+        4
+      ],
+      "evidence": "measured",
+      "verdict": "confirmed"
+    }
+  ],
+  "usage": {
+    "model_calls": 16,
+    "input_tokens": 132976,
+    "output_tokens": 6800,
+    "cost_usd": 0.0569
+  }
+}

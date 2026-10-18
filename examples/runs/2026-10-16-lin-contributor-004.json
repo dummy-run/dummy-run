@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-16-lin-contributor-004",
+  "batch": "2026-10-16-pr-41",
+  "started_at": "2026-10-16T23:40:49.000Z",
+  "ended_at": "2026-10-16T23:42:01.238Z",
+  "persona": {
+    "id": "lin-contributor",
+    "role": "contributor",
+    "device": "tablet"
+  },
+  "scenario": {
+    "id": "check-payment",
+    "title": "Check a payment status"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-41",
+    "base_url": "https://pr-41.inkwell.example",
+    "commit": "243725d"
+  },
+  "provider": {
+    "kind": "vertex-gemini",
+    "model": "gemini-3.5-flash",
+    "region": "europe-west2"
+  },
+  "browser": {
+    "name": "firefox",
+    "version": "146.0"
+  },
+  "outcome": "completed",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-16T23:40:49.000Z",
+      "action": "type",
+      "duration_ms": 1784,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 2,
+      "at": "2026-10-16T23:40:56.214Z",
+      "action": "look",
+      "duration_ms": 459,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/004-02.png"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-16T23:41:01.175Z",
+      "action": "click",
+      "duration_ms": 3349,
+      "url": "https://pr-41.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 4,
+      "at": "2026-10-16T23:41:09.401Z",
+      "action": "visit",
+      "duration_ms": 1160,
+      "url": "https://pr-41.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 5,
+      "at": "2026-10-16T23:41:13.686Z",
+      "action": "a11y",
+      "duration_ms": 832,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "a11y_violations": 0
+    },
+    {
+      "n": 6,
+      "at": "2026-10-16T23:41:19.382Z",
+      "action": "a11y",
+      "duration_ms": 1795,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "a11y_violations": 1
+    },
+    {
+      "n": 7,
+      "at": "2026-10-16T23:41:23.281Z",
+      "action": "look",
+      "duration_ms": 2629,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "screenshot": "screens/004-07.png"
+    },
+    {
+      "n": 8,
+      "at": "2026-10-16T23:41:30.464Z",
+      "action": "click",
+      "duration_ms": 927,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Schedule"
+    },
+    {
+      "n": 9,
+      "at": "2026-10-16T23:41:34.466Z",
+      "action": "visit",
+      "duration_ms": 3358,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 10,
+      "at": "2026-10-16T23:41:43.118Z",
+      "action": "click",
+      "duration_ms": 3125,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 11,
+      "at": "2026-10-16T23:41:49.825Z",
+      "action": "visit",
+      "duration_ms": 1307,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 12,
+      "at": "2026-10-16T23:41:55.372Z",
+      "action": "finish",
+      "duration_ms": 3503,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "payment-status-wording",
+      "kind": "question",
+      "severity": "info",
+      "title": "The payment status 'settled' is unclear to a contributor",
+      "steps": [
+        9
+      ],
+      "evidence": "inferred",
+      "verdict": "pending"
+    }
+  ],
+  "usage": {
+    "model_calls": 14,
+    "input_tokens": 125020,
+    "output_tokens": 6776,
+    "cost_usd": 0.0544
+  }
+}

@@ -58,6 +58,8 @@ jobs:
             fi
           done < <(grep -rIoE --include='*.md' --exclude-dir=.git '\]\([^)]+\)' . | sed -E 's/\]\(([^)]*)\)/\1/')
           exit $fail
+      - name: Example run records match the schema
+        run: pipx run check-jsonschema==0.38.1 --schemafile schema/run-record.schema.json examples/runs/*.json
       - name: Plain wording on user-facing pages
         run: bin/check-prose
       - name: No em dashes in Markdown

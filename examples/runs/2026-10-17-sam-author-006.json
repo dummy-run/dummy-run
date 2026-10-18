@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-sam-author-006",
+  "batch": "2026-10-17-pr-44",
+  "started_at": "2026-10-17T11:19:52.000Z",
+  "ended_at": "2026-10-17T11:20:59.859Z",
+  "persona": {
+    "id": "sam-author",
+    "role": "author",
+    "device": "phone"
+  },
+  "scenario": {
+    "id": "reply-to-review",
+    "title": "Reply to review comments"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-44",
+    "base_url": "https://pr-44.inkwell.example",
+    "commit": "9076600"
+  },
+  "provider": {
+    "kind": "vertex-gemini",
+    "model": "gemini-3.5-flash",
+    "region": "europe-west2"
+  },
+  "browser": {
+    "name": "firefox",
+    "version": "146.0"
+  },
+  "outcome": "completed",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-17T11:19:52.000Z",
+      "action": "click",
+      "duration_ms": 4119,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 2,
+      "at": "2026-10-17T11:19:57.759Z",
+      "action": "select",
+      "duration_ms": 2073,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Title"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-17T11:20:02.154Z",
+      "action": "select",
+      "duration_ms": 1934,
+      "url": "https://pr-44.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 4,
+      "at": "2026-10-17T11:20:07.156Z",
+      "action": "click",
+      "duration_ms": 1429,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Approve"
+    },
+    {
+      "n": 5,
+      "at": "2026-10-17T11:20:13.643Z",
+      "action": "click",
+      "duration_ms": 2378,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Schedule"
+    },
+    {
+      "n": 6,
+      "at": "2026-10-17T11:20:19.200Z",
+      "action": "visit",
+      "duration_ms": 3169,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 7,
+      "at": "2026-10-17T11:20:27.845Z",
+      "action": "type",
+      "duration_ms": 836,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment"
+    },
+    {
+      "n": 8,
+      "at": "2026-10-17T11:20:32.924Z",
+      "action": "click",
+      "duration_ms": 2486,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit"
+    },
+    {
+      "n": 9,
+      "at": "2026-10-17T11:20:37.563Z",
+      "action": "scroll",
+      "duration_ms": 3147,
+      "url": "https://pr-44.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0
+    },
+    {
+      "n": 10,
+      "at": "2026-10-17T11:20:45.523Z",
+      "action": "click",
+      "duration_ms": 1404,
+      "url": "https://pr-44.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Title"
+    },
+    {
+      "n": 11,
+      "at": "2026-10-17T11:20:52.518Z",
+      "action": "finish",
+      "duration_ms": 3426,
+      "url": "https://pr-44.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "submit-button-below-keyboard",
+      "kind": "friction",
+      "severity": "major",
+      "title": "On a phone the Submit button sits under the keyboard",
+      "steps": [
+        6
+      ],
+      "evidence": "measured",
+      "verdict": "confirmed"
+    }
+  ],
+  "usage": {
+    "model_calls": 15,
+    "input_tokens": 127215,
+    "output_tokens": 6675,
+    "cost_usd": 0.0549
+  }
+}
