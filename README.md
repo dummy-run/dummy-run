@@ -61,7 +61,7 @@ flowchart LR
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the checks every change passes, and the rules on evidence and privacy |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the automated checks, and the rules on evidence and privacy |
 | [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and findings about apps you do not own |
 | [docs/LICENSING.md](docs/LICENSING.md) | What the licence lets you do |
 | [docs/STYLE.md](docs/STYLE.md), [docs/TYPOGRAPHY.md](docs/TYPOGRAPHY.md) | How we write and set type |
