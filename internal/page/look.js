@@ -4,10 +4,12 @@
 //
 // Called as a function expression with (maxControls, textLimit, logLimit).
 (maxControls, textLimit, logLimit) => {
+  // Off-canvas elements (a closed drawer parked beyond the left or right edge) count as hidden.
   const visible = (el) => {
     const r = el.getBoundingClientRect();
     const s = getComputedStyle(el);
-    return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+    const onCanvas = r.right > 0 && r.left < innerWidth;
+    return r.width > 0 && r.height > 0 && onCanvas && s.visibility !== "hidden" && s.display !== "none";
   };
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
   const byId = (id) => (id ? document.getElementById(id) : null);

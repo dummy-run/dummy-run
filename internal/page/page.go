@@ -564,7 +564,8 @@ func (p *Page) resolve(ctx context.Context, target, kind string) (element, error
 
 const resolveJS = `(target, kind) => {
   const visible = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el);
-    return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none"; };
+    return r.width > 0 && r.height > 0 && r.right > 0 && r.left < innerWidth && s.visibility !== "hidden" && s.display !== "none"; };
+  const inView = (el) => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
   const name = (el) => squash(el.getAttribute("aria-label") || el.labels?.[0]?.innerText || el.placeholder || el.innerText || el.value || el.title || "");
   document.querySelectorAll("[data-dummyrun-target]").forEach((el) => el.removeAttribute("data-dummyrun-target"));
@@ -581,7 +582,8 @@ const resolveJS = `(target, kind) => {
     const sel = kind === "fillable"
       ? "input:not([type=hidden]), textarea, select, [contenteditable=true], [role=combobox], [role=textbox]"
       : "a[href], button, input[type=submit], input[type=button], [role=button], [role=link], [role=tab], [role=menuitem], [role=option], summary, label";
-    const all = [...document.querySelectorAll(sel)].filter(visible);
+    // Candidates already on screen come first, so a visible link beats one far down the page.
+    const all = [...document.querySelectorAll(sel)].filter(visible).sort((a, b) => Number(inView(b)) - Number(inView(a)));
     el = all.find((e) => name(e) === want) || all.find((e) => name(e).includes(want));
     if (!el && kind !== "fillable") {
       const texts = [...document.querySelectorAll("body *")].filter((e) => visible(e) && e.children.length === 0 && squash(e.innerText) === want);
@@ -593,7 +595,12 @@ const resolveJS = `(target, kind) => {
   el.setAttribute("data-dummyrun-target", "1");
   el.scrollIntoView({ block: "center", inline: "nearest" });
   const r = el.getBoundingClientRect();
-  return { x: r.left + r.width / 2, y: r.top + r.height / 2, tag: el.tagName.toLowerCase(), label: name(el) };
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+  if (x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) {
+    return { error: "the control " + JSON.stringify(name(el) || target) + " is off screen, probably inside a closed menu or drawer; open that first" };
+  }
+  return { x, y, tag: el.tagName.toLowerCase(), label: name(el) };
 }`
 
 // fillJS sets the value through the native setter so framework-bound inputs

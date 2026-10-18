@@ -27,6 +27,7 @@ const toolsPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><t
 <label for="colour">Colour</label><select id="colour"><option>Red</option><option>Green</option></select>
 <button id="go" onclick="document.getElementById('h').textContent='Clicked'">Go now</button>
 <form method="post" action="/subscribe"><label for="email">Email</label><input id="email" name="email"><button type="submit">Subscribe</button></form>
+<nav id="drawer" style="position:fixed;left:-300px;top:0;width:250px;height:100%"><a href="/hidden">Hidden drawer link</a> <a href="/about">About us</a></nav>
 <div id="tall"></div>
 <p id="bottom">The end.</p>
 </main>
@@ -254,6 +255,21 @@ func TestTools(t *testing.T) {
 				if strings.HasSuffix(o.URL, "/about") {
 					t.Errorf("after back at %s", o.URL)
 				}
+			})
+			t.Run("off-canvas controls are hidden", func(t *testing.T) {
+				o := check(t, p.Look(ctx))
+				for _, c := range o.Snapshot.Controls {
+					if c.Label == "Hidden drawer link" {
+						t.Errorf("a control in a closed drawer was listed: %+v", c)
+					}
+				}
+				if o = p.Click(ctx, "css:#drawer a"); !strings.Contains(o.Error, "off screen") {
+					t.Errorf("clicking into the drawer gave %q", o.Error)
+				}
+				if o = check(t, p.Click(ctx, "About us")); !strings.HasSuffix(o.URL, "/about") {
+					t.Errorf("the visible About us link was not preferred: %s %s", o.URL, o.Error)
+				}
+				check(t, p.Back(ctx))
 			})
 			t.Run("errors are reported, not fatal", func(t *testing.T) {
 				o := p.Click(ctx, "@999")
