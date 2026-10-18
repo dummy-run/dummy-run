@@ -70,13 +70,14 @@ time of the finding's first step.
 | `dummyrun.run.duration` | histogram | `s` | `persona.id`, `scenario.id`, `outcome` |
 | `dummyrun.steps` | counter | `{step}` | `persona.id`, `action` |
 | `dummyrun.step.duration` | histogram | `ms` | `persona.id`, `action` |
-| `dummyrun.findings` | counter | `{finding}` | `persona.id`, `kind`, `severity`, `verdict` |
+| `dummyrun.findings` | counter | `{finding}` | `persona.id`, `target.environment`, `kind`, `severity`, `verdict` |
 | `dummyrun.tokens` | counter | `{token}` | `persona.id`, `gen_ai.system`, `gen_ai.request.model`, `direction` (`input` or `output`) |
-| `dummyrun.cost` | counter | `USD` | `persona.id`, `gen_ai.system`, `gen_ai.request.model` |
+| `dummyrun.cost.usd` | counter | `{USD}` | `persona.id`, `gen_ai.system`, `gen_ai.request.model` |
 
 Every metric attribute without a namespace above is prefixed with `dummyrun.`, as in
 `dummyrun.persona.id`. In Prometheus these become names such as `dummyrun_runs_total` and labels such as
-`dummyrun_persona_id`. Run IDs and finding IDs are never metric labels, because each value would create
+`dummyrun_persona_id`. The cost unit is written in braces so the translation drops it, giving
+`dummyrun_cost_usd_total`. Run IDs and finding IDs are never metric labels, because each value would create
 a new series.
 
 ## Logs
@@ -87,7 +88,7 @@ trace ID and span ID, so Grafana can jump from a log line to the trace.
 | Record | Severity | Body | Attributes |
 |---|---|---|---|
 | Run end | `INFO`, or `ERROR` when errored | `run <id> <outcome>: <persona.id> / <scenario.id>` | The root span attributes |
-| Finding | `WARN` for blocker and major, `INFO` otherwise | The finding title | The finding event attributes plus `dummyrun.run.id` and `dummyrun.persona.id` |
+| Finding | `WARN` for blocker and major, `INFO` otherwise | The finding title | The finding event attributes plus `dummyrun.run.id`, `dummyrun.persona.id` and `dummyrun.target.environment` |
 
 ## Grafana annotations
 
@@ -110,3 +111,7 @@ header carrying `dummyrun.run.id` and `dummyrun.persona.id`. The second is a `tr
 the step span. An app instrumented with OpenTelemetry then joins the persona's trace, and its spans
 carry the baggage. The browser's user agent also ends with `DummyRun/<version>`, so frontend tools such
 as Grafana Faro can filter persona sessions.
+
+The page's own instrumentation may already set a `traceparent`, for example Faro or OpenTelemetry JS
+on a `fetch` call. The runner then keeps that header and adds only the baggage. Faro's client span stays
+the parent of the server span, and the app's spans still carry the run and persona IDs through baggage.
