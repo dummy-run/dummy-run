@@ -6,7 +6,7 @@ body:
     id: role
     attributes:
       label: Role
-      placeholder: e.g. payroll clerk at a 40-person contractor
+      placeholder: e.g. pharmacist at a 12-branch chain
     validations:
       required: true
   - type: textarea

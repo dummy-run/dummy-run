@@ -1,10 +1,7 @@
 # Type scale and minimum sizes
 
-**Design note** · 18 October 2026 · maintainers
-
-> - Body text 17px with a 1.65 line height; nothing a person is expected to read is below 15px.
-> - Headings scale with the viewport through clamp(), not breakpoints.
-> - The typeface is open; the sizes are not. Small type is the most common tell of an unreviewed interface.
+Body text is 17px with a 1.65 line height. Nothing a person reads is below 15px. Headings scale with the
+viewport through `clamp()`.
 
 
 ## Tokens (`:root`, 1rem = 16px)
@@ -28,24 +25,27 @@
 
 | Class | Font | Size | Line height | Tracking | Weight |
 |---|---|---|---|---|---|
-| .marketing (page wrapper) | Lexend, system fallback | --type-body | 1.65 | | antialiased, optimizeLegibility |
-| .u-display | Poppins | --type-display | 1.02 | -0.035em | 700 |
-| .u-display-sm | Poppins | --type-display-sm | 1.06 | -0.03em | 700 |
-| .u-title | Poppins | --type-title | 1.14 | -0.022em | 700 |
-| .u-title-sm | Poppins | --type-title-sm | 1.22 | -0.016em | 600 |
-| .u-subtitle | Poppins | --type-subtitle | 1.32 | -0.012em | 600 |
+| body (page wrapper) | body face | --type-body | 1.65 | | antialiased, optimizeLegibility |
+| .u-display | heading face | --type-display | 1.02 | -0.035em | 700 |
+| .u-display-sm | heading face | --type-display-sm | 1.06 | -0.03em | 700 |
+| .u-title | heading face | --type-title | 1.14 | -0.022em | 700 |
+| .u-title-sm | heading face | --type-title-sm | 1.22 | -0.016em | 600 |
+| .u-subtitle | heading face | --type-subtitle | 1.32 | -0.012em | 600 |
 | .u-lead | body font, muted ink | --type-lead | 1.55 | | text-wrap: pretty |
-| .u-eyebrow | Poppins | --type-eyebrow | 1.4 | +0.12em | 600, uppercase |
+| .u-eyebrow | heading face | --type-eyebrow | 1.4 | +0.12em | 600, uppercase |
 | .text-body | | --type-body | 1.65 | | |
 | .text-small | | --type-small | | | |
 | .text-caption | | --type-caption | 1.5 | | |
 
-Fonts in the reference scale: Lexend for running text, Poppins for headings and labels, with fallback metrics. Small UI chrome (buttons, navigation) may use 14px; reading copy never does.
+Buttons and navigation may use 14px. Text people read never does.
 
-## Rules to carry over
-0. The typeface is free to change (author's instruction, 2026-10-18). What must carry over is the sizing, line heights and the minimums below, not Lexend or Poppins.
-1. Body copy 17px / 1.65, never 14px or 16px by default.
-2. Smallest reading size 15px; 13px only for captions and metadata; 12px only for uppercase eyebrows.
-3. Headings scale with the viewport via clamp(), not breakpoints, with tight negative tracking and line-height between 1.02 and 1.32.
-4. Lead paragraphs are a step up from body (18 to 20px) and muted, not bold.
-5. Do not set a root font-size below 16px and do not use `text-size-adjust: none`.
+## Rules
+
+1. Body text is 17px with a 1.65 line height.
+2. The smallest reading size is 15px. Use 13px only for captions and metadata, and 12px only for
+   uppercase labels.
+3. Headings scale with the viewport through `clamp()`, with tight negative tracking. Their line height
+   is between 1.02 and 1.32.
+4. Lead paragraphs are 18 to 20px and set in a muted colour.
+5. Never set the root font size below 16px, and never use `text-size-adjust: none`.
+6. The typeface may change. These sizes and line heights may not.

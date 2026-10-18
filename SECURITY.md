@@ -2,28 +2,22 @@
 
 ## Reporting a vulnerability in Dummy Run
 
-Report it privately through GitHub. Open the Security tab of this repository and choose "Report a
-vulnerability". We acknowledge reports within three working days. You get a fix or a plan within thirty.
-Please keep security problems out of public issues.
+Use "Report a vulnerability" on this repository's Security tab. Do not open a public issue. We reply
+within five working days and say what happens next.
 
-The harness, the reviewer and the results board are in scope. So are the Helm chart and the adapters in
-this organisation. The apps that Dummy Run tests are out of scope, and so are third-party model
-providers.
+Everything in this organisation is in scope. The apps Dummy Run tests and third-party model providers are
+not.
 
-## Findings about other people's apps
+## Findings about apps you do not own
 
-Dummy Run finds permission leaks and broken flows in the apps it tests. Suppose you run it against
-software you do not own, and it finds something. That finding belongs to the software's owner. Report it
-to them through their own disclosure route. Keep it out of this project's issues, discussions and
-example data.
+A finding in someone else's app belongs to its owner. Report it through their disclosure route, and keep
+it out of this project's issues, discussions and example data.
 
-## What this project never stores
+## What this repository holds
 
-Run data stays in the operator's environment unless the operator publishes it. This repository holds no
-run results or screenshots. It holds no credentials either, and no persona data drawn from a real
-customer. CI checks the tree for known client identifiers. If you find one that it missed, report it
-privately as described above.
+This repository holds no run results, screenshots, credentials or personas drawn from real customers.
+Run data stays with whoever runs Dummy Run.
 
 ## Supported versions
 
-Dummy Run is in pre-release. Until the first tagged release, only `main` is supported.
+Only `main`, until the first release.
