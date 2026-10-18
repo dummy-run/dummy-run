@@ -1,0 +1,64 @@
+# Tempo configuration for the end-to-end test. It is the configuration shipped in
+# grafana/otel-lgtm 0.35.0 (docker/tempo-config.yaml in grafana/docker-otel-lgtm) with one change:
+# ingestion_time_range_slack is raised from 2m to a year in the live-store, the block-builder and the
+# WAL, so blocks keep the run's own time range and TraceQL search over that range finds the traces.
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9096
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "127.0.0.1:4417"
+        http:
+          endpoint: "127.0.0.1:4418"
+
+memberlist:
+  bind_addr: [127.0.0.1]
+  bind_port: 7947
+
+querier:
+  frontend_worker:
+    frontend_address: 127.0.0.1:9096
+
+live_store:
+  wal:
+    ingestion_time_range_slack: 8760h
+
+block_builder:
+  # Flush blocks to the backend every 30 seconds rather than every 5 minutes, so a search over a
+  # historical time range, which only looks in the backend, succeeds soon after an export.
+  consume_cycle_duration: 30s
+  wal:
+    ingestion_time_range_slack: 8760h
+
+storage:
+  trace:
+    backend: local
+    # Notice new backend blocks quickly for the same reason.
+    blocklist_poll: 10s
+    wal:
+      path: /data/tempo/wal
+      ingestion_time_range_slack: 8760h
+    local:
+      path: /data/tempo/blocks
+
+metrics_generator:
+  processor:
+    span_metrics:
+      dimensions:
+        - service_name
+        - operation
+        - status_code
+  storage:
+    path: /data/tempo/generator/wal
+    remote_write:
+      - url: http://127.0.0.1:9090/api/v1/write
+        send_exemplars: true
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
