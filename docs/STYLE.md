@@ -21,6 +21,28 @@ they need in under a minute.
 - Concise. No em dashes (CI checks). No superlatives.
 - British English.
 
+## Plain wording
+
+These rules come from novibes research into what readers object to in a text. It found three things:
+sameness with every other document of the same kind, sentences that carry nothing, and a known set of
+wording habits. Each row names the habit and then what to write instead.
+
+| Habit | Write |
+|---|---|
+| Long sentences strung together with commas | One idea per sentence, with at most two commas. A list of four or more items becomes a bulleted list or two sentences |
+| Bold on the key phrase of a paragraph | No bold in running text. Bold is for a run-in head at the start of a list item, a table cell that names a row, or a warning that must not be missed |
+| A label and a colon in place of a sentence ("The result: nine seconds") | The sentence ("The build finishes in nine seconds") |
+| A staged contrast ("not X, but Y" or "X, not Y") | Y, unless the reader arrived believing X |
+| Signposts and recaps ("it is worth noting", "in short") | Nothing. Say the thing |
+| Bullets that argue a case | A paragraph. Lists are for steps, options and inventories |
+| Three items because three sounds complete | However many there are |
+| A sentence with no number, name, path, command or date in it | Delete it, or put the fact in |
+
+Passive voice is not on the list and is never a reason to rewrite. A quotation keeps its words.
+
+`bin/check-prose` checks the user-facing pages for the countable habits (commas, bold, staged contrasts
+and signposts) and runs in CI. The other habits need a human reader.
+
 ## Citations
 
 Every fact about users, the product under test or the code carries a citation.
