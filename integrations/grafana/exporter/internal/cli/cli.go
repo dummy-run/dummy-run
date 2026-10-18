@@ -233,7 +233,13 @@ func (s *session) dropLogsAlreadyInLoki(ctx context.Context, plans []telemetry.P
 	if oldest.IsZero() {
 		return nil
 	}
-	have, err := s.loki.Count(ctx, "dummyrun", oldest, newest)
+	ids := make([]string, 0, len(plans))
+	for _, p := range plans {
+		if len(p.Logs) > 0 {
+			ids = append(ids, p.RunID)
+		}
+	}
+	have, err := s.loki.Count(ctx, "dummyrun", ids, oldest, newest)
 	if err != nil {
 		return fmt.Errorf("loki check: %w", err)
 	}
@@ -410,17 +416,23 @@ func runExport(ctx context.Context, args []string, env Env) int {
 	}
 	fmt.Fprintln(env.Stderr, s.summary())
 	if code == ExitOK && s.loki != nil {
-		if !s.verifyLogs(shutdownCtx) {
+		// The check gets its own deadline, so a slow flush does not eat into it.
+		verifyCtx, cancelVerify := context.WithTimeout(context.WithoutCancel(ctx), verifyWait+opts.timeout)
+		defer cancelVerify()
+		if !s.verifyLogs(verifyCtx, s.wants, s.oldest, s.newest) {
 			code = ExitFailure
 		}
 	}
 	return code
 }
 
-// verifyLogs counts the exported runs' log lines back from Loki and reports every run that is short.
+// verifyWait is how long the Loki check waits for lines to appear, because the collector batches.
+const verifyWait = 15 * time.Second
+
+// verifyLogs counts the given runs' log lines back from Loki and reports every run that is short.
 // It returns false when lines are missing or Loki could not be queried.
-func (s *session) verifyLogs(ctx context.Context) bool {
-	if len(s.wants) == 0 {
+func (s *session) verifyLogs(ctx context.Context, wants []verify.Want, oldest, newest time.Time) bool {
+	if len(wants) == 0 {
 		if s.presentLogs > 0 {
 			fmt.Fprintf(s.env.Stderr, "loki check: all %d log records were already in Loki\n", s.presentLogs)
 		} else {
@@ -428,7 +440,7 @@ func (s *session) verifyLogs(ctx context.Context) bool {
 		}
 		return true
 	}
-	short, err := s.loki.Check(ctx, "dummyrun", s.wants, s.oldest, s.newest, 15*time.Second)
+	short, err := s.loki.Check(ctx, "dummyrun", wants, oldest, newest, verifyWait)
 	if err != nil {
 		fmt.Fprintf(s.env.Stderr, "dummyrun-otel: loki check: %v\n", err)
 		return false
@@ -440,7 +452,7 @@ func (s *session) verifyLogs(ctx context.Context) bool {
 	for _, sf := range short {
 		fmt.Fprintf(s.env.Stderr, "dummyrun-otel: %s\n", sf)
 	}
-	fmt.Fprintf(s.env.Stderr, "dummyrun-otel: loki check: %d of %d runs are missing log lines. Loki drops a line more than an hour older than the newest line in its stream. Export runs in ended_at order, and never a batch that ends more than an hour before one already sent\n", len(short), len(s.wants))
+	fmt.Fprintf(s.env.Stderr, "dummyrun-otel: loki check: %d of %d runs are missing log lines. Loki drops a line more than an hour older than the newest line in its stream. Export runs in ended_at order, and never a batch that ends more than an hour before one already sent\n", len(short), len(wants))
 	return false
 }
 
@@ -534,6 +546,15 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: %s: export failed: %v\n", path, err)
 			failed++
 			return
+		}
+		if s.loki != nil && len(p.Logs) > 0 {
+			verifyCtx, cancelVerify := context.WithTimeout(ctx, verifyWait+opts.timeout)
+			defer cancelVerify()
+			if !s.verifyLogs(verifyCtx, []verify.Want{{RunID: p.RunID, Lines: len(p.Logs)}}, p.Logs[0].Time, p.Logs[len(p.Logs)-1].Time) {
+				fmt.Fprintf(env.Stderr, "dummyrun-otel: %s: log lines did not reach Loki\n", path)
+				failed++
+				return
+			}
 		}
 		fmt.Fprintf(env.Stderr, "sent %s\n", path)
 	})

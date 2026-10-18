@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/telemetry"
+	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/verify"
 )
 
 // Client talks to one Grafana instance with a service account token.
@@ -33,8 +34,11 @@ func New(baseURL, token string, hc *http.Client) (*Client, error) {
 	if token == "" {
 		return nil, fmt.Errorf("GRAFANA_TOKEN is not set; annotations need a Grafana service account token")
 	}
+	if err := verify.RequireSecureTransport(u, "GRAFANA_TOKEN"); err != nil {
+		return nil, err
+	}
 	if hc == nil {
-		hc = &http.Client{Timeout: 30 * time.Second}
+		hc = &http.Client{Timeout: 30 * time.Second, CheckRedirect: verify.RefuseInsecureRedirect}
 	}
 	return &Client{base: strings.TrimRight(baseURL, "/"), token: token, http: hc}, nil
 }

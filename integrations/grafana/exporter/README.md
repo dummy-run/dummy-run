@@ -102,8 +102,10 @@ Set `service.namespace` in the resource attributes to group runs by the app unde
 export OTEL_RESOURCE_ATTRIBUTES=service.namespace=inkwell
 ```
 
-There is no flag for `GRAFANA_TOKEN` or `LOKI_BASIC_AUTH`, so neither secret appears in a shell history or
-a process list.
+The exporter does not accept `GRAFANA_TOKEN` or `LOKI_BASIC_AUTH` as flags, so neither secret appears in
+a process list. Set them from your secret store or CI secrets rather than typing them, because an
+interactive shell records typed commands in its history. Both secrets travel only over HTTPS or to
+localhost. A plain HTTP URL on another host is refused, and so is a redirect from HTTPS to HTTP.
 
 ## What gets sent
 
@@ -168,12 +170,13 @@ HTTP 400 (sourced), so `--logs-max-age` skips those lines and says how many (cod
 also keeps one stream for the exporter and drops a line more than `max_chunk_age / 2` (default 1 hour)
 older than the newest line in that stream (sourced, and measured: 14 of 41 lines survived an export in
 file name order). `export` therefore sorts every line by its own time and sends the oldest first (code).
-Before sending, it checks that the oldest line is no more than an hour older than the newest line
-already sent to the stream, and exits 1 with nothing sent when it is (code). Within one process that
+Before sending, it compares its oldest line with the newest line already sent to the stream. When the
+oldest line is more than an hour older, it exits 1 and sends nothing (code). Within one process that
 newest line is what the process has sent so far. With `--verify-loki` it is also the newest line Loki
 already holds, so a batch that ends more than an hour before an earlier export is refused rather than
 silently lost. Lines Loki already holds are left out first, so repeating an export is still safe.
-`watch` applies the same check to each file and reports the file it refused. Export runs
+`watch` applies the same check to each file, counts the file's lines back from Loki after sending, and
+reports the file when either step fails. Export runs
 in `ended_at` order, and never export a batch that ends more than an hour before one already sent. The
 collector in `grafana/otel-lgtm` answers 200 while Loki rejects (measured), so without the Loki URL the
 exporter cannot see a loss caused by an earlier process. `--verify-loki` also counts the lines back after
@@ -203,8 +206,8 @@ go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run ./...
 go test -tags e2e -timeout 15m -v ./e2e/   # needs Docker and python3
 ```
 
-The end-to-end test starts `grafana/otel-lgtm` on random ports and exports `examples/runs` plus a
-freshly generated set. It then searches Tempo by `dummyrun.run.id`, counts the lines in Loki and sums
+The end-to-end test starts `grafana/otel-lgtm` on random ports and exports a copy of `examples/runs`
+with its timestamps shifted to two days ago, plus a freshly generated set. It then searches Tempo by `dummyrun.run.id`, counts the lines in Loki and sums
 the counters in Prometheus. A second process then exports the same records again: the annotation count
 and the Prometheus total must not change, and `--verify-loki` must pass. A third process exports a set
 that ended days earlier, and `--verify-loki` must refuse it before sending anything.

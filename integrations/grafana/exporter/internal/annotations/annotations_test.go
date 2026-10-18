@@ -168,4 +168,10 @@ func TestNewRejectsBadInput(t *testing.T) {
 	if _, err := New("http://localhost:3000", "", nil); err == nil || !strings.Contains(err.Error(), "GRAFANA_TOKEN") {
 		t.Errorf("an empty token must be rejected with a message naming GRAFANA_TOKEN, got %v", err)
 	}
+	if _, err := New("http://grafana.example.net", "glsa_x", nil); err == nil || !strings.Contains(err.Error(), "clear text") {
+		t.Errorf("a token over plain http to a remote host must be rejected, got %v", err)
+	}
+	if _, err := New("https://grafana.example.net", "glsa_x", nil); err != nil {
+		t.Errorf("https must be accepted: %v", err)
+	}
 }

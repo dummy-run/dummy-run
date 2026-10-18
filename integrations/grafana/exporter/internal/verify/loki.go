@@ -5,10 +5,13 @@ package verify
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,19 +26,53 @@ type Loki struct {
 }
 
 // NewLoki returns a client for the Loki at baseURL, such as http://localhost:3100. basicAuth is
-// "user:password" for Grafana Cloud, or empty.
+// "user:password" for Grafana Cloud, or empty. Credentials travel only over HTTPS or to the loopback
+// interface.
 func NewLoki(baseURL, basicAuth string, hc *http.Client) (*Loki, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		return nil, fmt.Errorf("loki URL %q must be absolute, such as http://localhost:3100", baseURL)
 	}
 	if basicAuth != "" && !strings.Contains(basicAuth, ":") {
-		return nil, fmt.Errorf("LOKI_BASIC_AUTH must be user:password")
+		return nil, errors.New("LOKI_BASIC_AUTH must be user:password")
+	}
+	if basicAuth != "" {
+		if err := RequireSecureTransport(u, "LOKI_BASIC_AUTH"); err != nil {
+			return nil, err
+		}
 	}
 	if hc == nil {
-		hc = &http.Client{Timeout: 30 * time.Second}
+		hc = &http.Client{Timeout: 30 * time.Second, CheckRedirect: RefuseInsecureRedirect}
 	}
 	return &Loki{base: strings.TrimRight(baseURL, "/"), basicAuth: basicAuth, http: hc}, nil
+}
+
+// RequireSecureTransport rejects a plain HTTP URL on anything but the loopback interface when a
+// credential named by secret would be sent to it.
+func RequireSecureTransport(u *url.URL, secret string) error {
+	if u.Scheme == "https" {
+		return nil
+	}
+	host := u.Hostname()
+	if host == "localhost" {
+		return nil
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		return nil
+	}
+	return fmt.Errorf("%s would be sent in clear text to %s; use https, or http only on localhost", secret, u.Redacted())
+}
+
+// RefuseInsecureRedirect stops a redirect from HTTPS to plain HTTP, which would otherwise carry the
+// Authorization header along.
+func RefuseInsecureRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if req.URL.Scheme == "http" && via[0].URL.Scheme == "https" {
+		return fmt.Errorf("refusing redirect from %s to plain http", via[0].URL.Redacted())
+	}
+	return nil
 }
 
 // Want is how many log lines one run should have in Loki.
@@ -122,15 +159,46 @@ func (l *Loki) get(ctx context.Context, path string) ([]byte, error) {
 	return data, nil
 }
 
-// Count returns the number of log lines per run ID in the dummyrun stream between oldest and newest.
-func (l *Loki) Count(ctx context.Context, serviceName string, oldest, newest time.Time) (map[string]int, error) {
-	span := newest.Sub(oldest) + 2*time.Second
+// countChunk bounds the run IDs per query, which also bounds the series Loki must return. Loki caps a
+// metric query at max_query_series, 500 by default.
+const countChunk = 200
+
+// countWindow bounds the range of one count query, well inside Loki's max_query_length of 30 days.
+const countWindow = 7 * 24 * time.Hour
+
+// Count returns the number of log lines per run ID in the service's stream between oldest and
+// newest, for the runs named. Runs without lines are absent from the result. The span is cut into
+// windows of countWindow, and each window queries at most countChunk runs.
+func (l *Loki) Count(ctx context.Context, serviceName string, runIDs []string, oldest, newest time.Time) (map[string]int, error) {
+	counts := map[string]int{}
+	// Loki's range vector covers (end-range, end], so adjoining windows do not overlap.
+	for start := oldest.Add(-time.Second); start.Before(newest.Add(time.Second)); start = start.Add(countWindow) {
+		end := start.Add(countWindow)
+		if end.After(newest.Add(time.Second)) {
+			end = newest.Add(time.Second)
+		}
+		for i := 0; i < len(runIDs); i += countChunk {
+			if err := l.countInto(ctx, counts, serviceName, runIDs[i:min(i+countChunk, len(runIDs))], start, end); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return counts, nil
+}
+
+// countInto adds the lines in (start, end] per run to counts.
+func (l *Loki) countInto(ctx context.Context, counts map[string]int, serviceName string, runIDs []string, start, end time.Time) error {
+	quoted := make([]string, len(runIDs))
+	for i, id := range runIDs {
+		quoted[i] = regexp.QuoteMeta(id)
+	}
 	q := url.Values{}
-	q.Set("query", fmt.Sprintf(`sum by (dummyrun_run_id) (count_over_time({service_name=%q} [%ds]))`, serviceName, int64(span.Seconds())+1))
-	q.Set("time", strconv.FormatInt(newest.Add(time.Second).UnixNano(), 10))
+	q.Set("query", fmt.Sprintf(`sum by (dummyrun_run_id) (count_over_time({service_name=%q} | dummyrun_run_id=~%q [%ds]))`,
+		serviceName, strings.Join(quoted, "|"), int64(end.Sub(start).Seconds())))
+	q.Set("time", strconv.FormatInt(end.UnixNano(), 10))
 	data, err := l.get(ctx, "/loki/api/v1/query?"+q.Encode())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	var out struct {
 		Data struct {
@@ -141,9 +209,8 @@ func (l *Loki) Count(ctx context.Context, serviceName string, oldest, newest tim
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(data, &out); err != nil {
-		return nil, fmt.Errorf("loki query: bad JSON: %w", err)
+		return fmt.Errorf("loki query: bad JSON: %w", err)
 	}
-	counts := map[string]int{}
 	for _, r := range out.Data.Result {
 		if len(r.Value) != 2 {
 			continue
@@ -153,17 +220,21 @@ func (l *Loki) Count(ctx context.Context, serviceName string, oldest, newest tim
 		if err != nil {
 			continue
 		}
-		counts[r.Metric["dummyrun_run_id"]] = int(n)
+		counts[r.Metric["dummyrun_run_id"]] += int(n)
 	}
-	return counts, nil
+	return nil
 }
 
 // Check compares the lines Loki holds with what was sent. It retries for up to wait, because the
 // collector batches, and returns the runs that are still short, sorted by run ID.
 func (l *Loki) Check(ctx context.Context, serviceName string, wants []Want, oldest, newest time.Time, wait time.Duration) ([]Shortfall, error) {
 	deadline := time.Now().Add(wait)
+	ids := make([]string, len(wants))
+	for i, w := range wants {
+		ids[i] = w.RunID
+	}
 	for {
-		counts, err := l.Count(ctx, serviceName, oldest, newest)
+		counts, err := l.Count(ctx, serviceName, ids, oldest, newest)
 		if err != nil {
 			return nil, err
 		}

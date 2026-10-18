@@ -53,9 +53,10 @@ func TestEndToEnd(t *testing.T) {
 	st := startStack(ctx, t)
 	token := st.serviceAccountToken(ctx, t)
 
-	// Two sets of records: the shipped examples, and a fresh set generated to end yesterday so
-	// its logs are inside Loki's seven day window whenever the test runs.
-	examples := filepath.Join(repoRoot, "examples", "runs")
+	// Two sets of records: the shipped examples with every timestamp shifted so the newest run
+	// ended two days ago, and a fresh set generated to end yesterday. Both stay inside Loki's seven
+	// day window and Tempo's 30 day slack whenever the test runs.
+	examples := shiftedExamples(t, 2)
 	generated := generateRuns(ctx, t, 12, 1, "-e2e")
 	validator, err := record.NewValidator()
 	if err != nil {
@@ -515,6 +516,62 @@ func (st *stack) promScalar(ctx context.Context, query string) (float64, error) 
 	}
 	s, _ := res.Data.Result[0].Value[1].(string)
 	return strconv.ParseFloat(s, 64)
+}
+
+// shiftedExamples copies examples/runs into a temporary directory with every timestamp moved by one
+// common offset, so the newest ended_at falls daysAgo days before now at 18:00 UTC. The checked-in
+// fixtures stay unchanged and keep their IDs.
+func shiftedExamples(t *testing.T, daysAgo int) string {
+	t.Helper()
+	src := filepath.Join(repoRoot, "examples", "runs")
+	names, err := filepath.Glob(filepath.Join(src, "*.json"))
+	if err != nil || len(names) == 0 {
+		t.Fatalf("no example records in %s: %v", src, err)
+	}
+	type rec = map[string]any
+	parse := func(v any) time.Time {
+		tm, err := time.Parse(time.RFC3339Nano, v.(string))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return tm
+	}
+	records := make([]rec, 0, len(names))
+	var newest time.Time
+	for _, name := range names {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var r rec
+		if err := json.Unmarshal(data, &r); err != nil {
+			t.Fatal(err)
+		}
+		if ended := parse(r["ended_at"]); ended.After(newest) {
+			newest = ended
+		}
+		records = append(records, r)
+	}
+	target := time.Now().UTC().AddDate(0, 0, -daysAgo).Truncate(24 * time.Hour).Add(18 * time.Hour)
+	offset := target.Sub(newest)
+	format := func(v any) string { return parse(v).Add(offset).UTC().Format("2006-01-02T15:04:05.000Z07:00") }
+	dir := t.TempDir()
+	for i, r := range records {
+		r["started_at"] = format(r["started_at"])
+		r["ended_at"] = format(r["ended_at"])
+		for _, st := range r["steps"].([]any) {
+			step := st.(map[string]any)
+			step["at"] = format(step["at"])
+		}
+		out, err := json.Marshal(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, filepath.Base(names[i])), out, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
 }
 
 // generateRuns writes n synthetic runs ending daysAgo days ago with examples/generate-runs.py. Each
