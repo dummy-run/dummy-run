@@ -3,3 +3,7 @@ Copyright 2026 Joel Merrick and the Dummy Run contributors
 
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 "Dummy Run" and the Dummy Run logo are not licensed under it (see TRADEMARKS.md).
+
+This product bundles axe-core 4.13.0 (internal/page/axe/axe.min.js), Copyright (c) 2015 - 2026 Deque Systems, Inc.,
+licensed under the Mozilla Public License 2.0 (see internal/page/axe/LICENSE and LICENSES/MPL-2.0.txt). Its own
+third-party notices are in internal/page/axe/LICENSE-3RD-PARTY.txt.

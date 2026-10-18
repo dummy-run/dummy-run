@@ -58,6 +58,7 @@ flowchart LR
 | Document | What it covers |
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
+| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the read-only policy and the model providers |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |

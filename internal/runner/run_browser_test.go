@@ -1,0 +1,220 @@
+package runner_test
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/dummy-run/dummy-run/internal/cast"
+	"github.com/dummy-run/dummy-run/internal/policy"
+	"github.com/dummy-run/dummy-run/internal/provider"
+	"github.com/dummy-run/dummy-run/internal/record"
+	"github.com/dummy-run/dummy-run/internal/runner"
+	"github.com/dummy-run/dummy-run/internal/telemetry"
+)
+
+// scripted is a provider that replays tool calls and records what it was shown.
+type scripted struct {
+	calls    []provider.ToolCall
+	requests []provider.Request
+	mu       sync.Mutex
+}
+
+func (s *scripted) Kind() string   { return "openai-compatible" }
+func (s *scripted) Model() string  { return "scripted" }
+func (s *scripted) Region() string { return "local" }
+func (s *scripted) Chat(_ context.Context, req provider.Request) (provider.Response, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.requests = append(s.requests, req)
+	n := len(s.requests) - 1
+	resp := provider.Response{Usage: provider.Usage{InputTokens: 1000, OutputTokens: 50}, FinishReason: "tool_calls"}
+	if req.ForceTool == "finish" || n >= len(s.calls) {
+		resp.ToolCalls = []provider.ToolCall{{ID: fmt.Sprintf("call_%d", n), Name: "finish", Args: json.RawMessage(
+			`{"verdict":"friction","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","title":"The subscribe form cannot be used","steps":[4],"evidence":"measured"}]}`)}}
+		return resp, nil
+	}
+	c := s.calls[n]
+	c.ID = fmt.Sprintf("call_%d", n)
+	resp.ToolCalls = []provider.ToolCall{c}
+	return resp, nil
+}
+
+const sitePage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Site</title></head><body><main>
+<h1>Welcome</h1><p>Read me.</p><a href="/docs">Documentation</a>
+<form method="post" action="/subscribe"><label for="e">Email</label><input id="e" name="e"><button type="submit">Subscribe</button></form>
+</main></body></html>`
+
+func writeCast(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	dir := filepath.Join(root, "reader")
+	if err := os.MkdirAll(filepath.Join(dir, "scenarios"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"profile.md":                "---\nid: reader\nrole: visitor\ndevice: desktop\n---\n# Reader\n",
+		"prompt.md":                 "You are a reader.\n",
+		"scenarios/01-read-docs.md": "# Read the documentation\n\nFind the docs and read them.\n",
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
+}
+
+// TestRunEndToEnd plays a scripted persona against a local site on each
+// browser in DUMMYRUN_BROWSERS and checks the run record, the read-only
+// policy and the headers the site received.
+func TestRunEndToEnd(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the end-to-end test")
+	}
+	for _, browser := range strings.Split(browsers, ",") {
+		t.Run(browser, func(t *testing.T) {
+			var mu sync.Mutex
+			seen := map[string]http.Header{}
+			var posts int
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				seen[r.URL.Path] = r.Header.Clone()
+				if r.Method == http.MethodPost {
+					posts++
+				}
+				mu.Unlock()
+				w.Header().Set("Content-Type", "text/html")
+				if r.URL.Path == "/docs" {
+					_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Docs</title><main><h1>Docs</h1><p>All the docs.</p></main></html>`)
+					return
+				}
+				_, _ = io.WriteString(w, sitePage)
+			}))
+			t.Cleanup(srv.Close)
+
+			castDir := writeCast(t)
+			persona, err := cast.Load(castDir, "reader")
+			if err != nil {
+				t.Fatal(err)
+			}
+			prov := &scripted{calls: []provider.ToolCall{
+				{Name: "click", Args: json.RawMessage(`{"target":"Documentation"}`)},
+				{Name: "back", Args: json.RawMessage(`{}`)},
+				{Name: "click", Args: json.RawMessage(`{"target":"Subscribe"}`)},
+				{Name: "a11y", Args: json.RawMessage(`{}`)},
+				{Name: "visit", Args: json.RawMessage(`{"url":"https://elsewhere.test/"}`)},
+			}}
+			out := t.TempDir()
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			res, err := runner.Run(ctx, runner.Config{
+				Persona: persona, Scenario: persona.Scenarios[0], Provider: prov, Browser: browser, Headless: true, OutDir: out,
+				Target: policy.Target{Adapter: "url", Environment: "local", BaseURL: srv.URL + "/", AllowedHosts: []string{"127.0.0.1"}, ReadOnly: true},
+			})
+			if err != nil {
+				t.Fatalf("run: %v", err)
+			}
+			rec := res.Record
+			if rec.Outcome != record.OutcomeCompleted || res.Finish == nil || res.Finish.Verdict != "friction" {
+				t.Errorf("outcome %s finish %+v", rec.Outcome, res.Finish)
+			}
+			if len(rec.Steps) != 7 {
+				t.Fatalf("%d steps: %+v", len(rec.Steps), rec.Steps)
+			}
+			actions := []string{}
+			for _, s := range rec.Steps {
+				actions = append(actions, s.Action)
+			}
+			if got := strings.Join(actions, ","); got != "visit,click,back,click,a11y,visit,finish" {
+				t.Errorf("actions %s", got)
+			}
+			if !strings.HasSuffix(rec.Steps[1].URL, "/docs") || *rec.Steps[1].Status != 200 {
+				t.Errorf("step 2 %+v", rec.Steps[1])
+			}
+			if !strings.Contains(rec.Steps[3].Note, "blocked: POST") {
+				t.Errorf("step 4 should note the blocked POST: %+v", rec.Steps[3])
+			}
+			if rec.Steps[4].A11yViolations == nil {
+				t.Error("a11y step has no violation count")
+			}
+			if !strings.Contains(rec.Steps[5].Note, "outside this run's target") {
+				t.Errorf("step 6 should refuse the other host: %+v", rec.Steps[5])
+			}
+			if len(rec.Findings) != 1 || rec.Findings[0].Verdict != "pending" || rec.Findings[0].Steps[0] != 4 {
+				t.Errorf("findings %+v", rec.Findings)
+			}
+			if rec.Usage.ModelCalls != 6 || rec.Usage.InputTokens != 6000 {
+				t.Errorf("usage %+v", rec.Usage)
+			}
+			if rec.Browser.Version == "unknown" || rec.Browser.Name != browser {
+				t.Errorf("browser %+v", rec.Browser)
+			}
+			// The record on disk validates, and the screenshots it names exist.
+			back, err := record.Read(res.Path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, s := range back.Steps {
+				if s.Screenshot == "" {
+					t.Errorf("step %d has no screenshot", s.N)
+					continue
+				}
+				if _, err := os.Stat(filepath.Join(out, s.Screenshot)); err != nil {
+					t.Errorf("screenshot %s missing", s.Screenshot)
+				}
+			}
+			for _, f := range []string{"report.md", "steps.jsonl"} {
+				if _, err := os.Stat(filepath.Join(out, rec.ID, f)); err != nil {
+					t.Errorf("%s missing", f)
+				}
+			}
+			// The site saw the baggage and the derived traceparent on every page, and no POST.
+			mu.Lock()
+			defer mu.Unlock()
+			tr := telemetry.NewTrace(rec.ID)
+			for _, path := range []string{"/", "/docs"} {
+				h := seen[path]
+				if h == nil {
+					t.Fatalf("site never saw %s", path)
+				}
+				if h.Get("baggage") != "dummyrun.run.id="+rec.ID+",dummyrun.persona.id=reader" {
+					t.Errorf("%s baggage %q", path, h.Get("baggage"))
+				}
+				if h.Get("traceparent") != tr.Traceparent() {
+					t.Errorf("%s traceparent %q, want %q", path, h.Get("traceparent"), tr.Traceparent())
+				}
+				if !strings.HasSuffix(h.Get("User-Agent"), "DummyRun/"+telemetry.Version) {
+					t.Errorf("%s user agent %q", path, h.Get("User-Agent"))
+				}
+			}
+			if posts != 0 {
+				t.Errorf("the site received %d POST requests", posts)
+			}
+			// The model saw the first page with a screenshot and the budget line.
+			last := prov.requests[len(prov.requests)-1]
+			if len(last.Turns) == 0 || !strings.Contains(last.Turns[0].Text, "Begin.") || len(prov.requests[0].Turns[0].Images) != 1 {
+				t.Errorf("opening turn %+v", prov.requests[0].Turns)
+			}
+			var sawBudget bool
+			for _, turn := range last.Turns {
+				if strings.Contains(turn.Text, "Actions left:") {
+					sawBudget = true
+				}
+			}
+			if !sawBudget {
+				t.Error("the model was never told its remaining budget")
+			}
+		})
+	}
+}
