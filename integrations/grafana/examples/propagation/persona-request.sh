@@ -14,8 +14,10 @@ VERSION="${DUMMYRUN_VERSION:-0.1.0}"
 
 hex() { od -An -N"$1" -tx1 /dev/urandom | tr -d ' \n'; }
 
-TRACE_ID="$(hex 16)"
-echo "trace id: $TRACE_ID"
+# The contract derives the trace ID from the run ID, so the exporter's trace and the app's spans meet
+# (docs/TELEMETRY.md, Traces): the first 16 bytes of SHA-256 of "dummyrun.run:<id>".
+TRACE_ID="$(python3 -I -c 'import hashlib,sys; print(hashlib.sha256(("dummyrun.run:"+sys.argv[1]).encode()).hexdigest()[:32])' "$RUN_ID")"
+echo "trace id: $TRACE_ID (sha256 of dummyrun.run:$RUN_ID, first 16 bytes)"
 printf '%s' "$TRACE_ID" > .trace-id
 
 # One request per persona step, each with its own parent span ID, all in one trace.

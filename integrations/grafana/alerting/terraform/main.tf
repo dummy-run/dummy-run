@@ -1,7 +1,6 @@
 # The same four rules as ../provisioning/alerting/dummyrun-rules.yaml, for teams that manage
-# Grafana with Terraform. Keep the two files in step: the YAML is the reference.
-#
-# METRIC NAMES ARE ASSUMED. See ../README.md and the CHECK NAME comments in the YAML.
+# Grafana with Terraform. Keep the two files in step: the YAML is the reference and its header
+# explains the names and the `dummyrun-otel watch` caveat on the two Prometheus rules.
 
 terraform {
   required_version = ">= 1.9"
@@ -69,7 +68,7 @@ resource "grafana_rule_group" "dummyrun" {
     no_data_state  = "OK"
     exec_err_state = "Error"
     annotations = {
-      summary     = "Run {{ $labels.dummyrun_run_id }} ({{ $labels.dummyrun_persona_id }}) confirmed a permission finding: {{ $labels.dummyrun_finding_title }}"
+      summary     = "Run {{ $labels.dummyrun_run_id }} ({{ $labels.dummyrun_persona_id }} on {{ $labels.dummyrun_target_environment }}) confirmed a permission finding: {{ $labels.dummyrun_finding_title }}"
       description = "Finding {{ $labels.dummyrun_finding_id }}. Open the run on the results board and check the screenshot before raising a ticket."
     }
     labels = { dummyrun_kind = "permission", severity = "high" }
@@ -85,7 +84,7 @@ resource "grafana_rule_group" "dummyrun" {
         refId     = "A"
         queryType = "instant"
         expr      = <<-EOT
-          sum by (dummyrun_run_id, dummyrun_persona_id, dummyrun_finding_id, dummyrun_finding_title) (
+          sum by (dummyrun_run_id, dummyrun_persona_id, dummyrun_target_environment, dummyrun_finding_id, dummyrun_finding_title) (
             count_over_time({service_name="dummyrun"}
               | dummyrun_finding_kind="permission"
               | dummyrun_finding_verdict="confirmed" [15m])
@@ -118,22 +117,28 @@ resource "grafana_rule_group" "dummyrun" {
     no_data_state  = "OK"
     exec_err_state = "Error"
     annotations = {
-      summary     = "{{ $labels.dummyrun_persona_id }} hit a blocker in the last 15 minutes"
-      description = "Blocker findings are listed on the results board. Query the finding logs for dummyrun_finding_severity=\"blocker\" to see titles and run IDs."
+      summary     = "Run {{ $labels.dummyrun_run_id }} ({{ $labels.dummyrun_persona_id }} on {{ $labels.dummyrun_target_environment }}) hit a blocker: {{ $labels.dummyrun_finding_title }}"
+      description = "Finding {{ $labels.dummyrun_finding_id }}. A blocker stopped the persona from doing its job. Check the step and screenshot on the results board."
     }
     labels = { dummyrun_kind = "blocker", severity = "high" }
 
     data {
       ref_id         = "A"
-      datasource_uid = var.prometheus_uid
+      datasource_uid = var.loki_uid
       relative_time_range {
         from = 900
         to   = 0
       }
       model = jsonencode({
-        refId   = "A"
-        instant = true
-        expr    = "sum by (dummyrun_persona_id) (increase(dummyrun_findings_total{dummyrun_severity=\"blocker\", dummyrun_verdict!=\"rejected\"}[15m])) > 0"
+        refId     = "A"
+        queryType = "instant"
+        expr      = <<-EOT
+          sum by (dummyrun_run_id, dummyrun_persona_id, dummyrun_target_environment, dummyrun_finding_id, dummyrun_finding_title) (
+            count_over_time({service_name="dummyrun"}
+              | dummyrun_finding_severity="blocker"
+              | dummyrun_finding_verdict!="rejected" [15m])
+          )
+        EOT
       })
     }
     data {

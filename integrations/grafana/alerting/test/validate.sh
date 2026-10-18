@@ -9,8 +9,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# grafana/grafana:13.2.3, published 2026-09-29
-IMAGE="grafana/grafana@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572"
+# grafana/grafana:13.2.2, published 2026-09-15. The same Grafana version as grafana/otel-lgtm 0.35.0 in
+# integrations/grafana/stack/, so what passes here provisions there.
+IMAGE="grafana/grafana@sha256:ac461fb352abc50da10a51c7d02462e9c05488f11f53f14b3ad79a8145f638a0"
 PORT="${GRAFANA_TEST_PORT:-3330}"
 NAME="dummyrun-alerting-validate-$$"
 RULES="provisioning/alerting/dummyrun-rules.yaml"

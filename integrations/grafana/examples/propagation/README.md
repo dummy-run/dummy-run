@@ -25,7 +25,8 @@ defaults so this runs beside the full stack in `../../stack/`. Override them wit
 
 ## What it proves
 
-`persona-request.sh` picks a random trace ID and sends `GET /drafts`, `/payments` and `/reviews`.
+`persona-request.sh` derives the trace ID from the run ID as the contract says (the first 16 bytes
+of SHA-256 of `dummyrun.run:<id>`) and sends `GET /drafts`, `/payments` and `/reviews`.
 Each request carries a `traceparent` for a fresh step span and the `baggage` header from
 docs/TELEMETRY.md. The user agent is Chrome's with `DummyRun/0.1.0` at the end. `check_tempo.py` then runs this TraceQL query against
 Tempo's search API until the trace arrives:
@@ -38,22 +39,23 @@ It fails unless the trace ID Tempo returns is the one the script sent, and unles
 trace carries both `dummyrun.run.id` and `dummyrun.persona.id`. A run on 2026-10-18 printed:
 
 ```text
+trace id: 32d794d3234508fe094bb2afc7eb5dca (sha256 of dummyrun.run:2026-10-17-ravi-reviewer-005, first 16 bytes)
 TraceQL: { resource.service.name = "inkwell" && span.dummyrun.run.id = "2026-10-17-ravi-reviewer-005" }
-matched trace 1aa6abbca8a5255200262f475abeb521: 6 spans, root <root span not yet received> None
-trace 1aa6abbca8a5255200262f475abeb521 is the one the persona's traceparent named
+matched trace 32d794d3234508fe094bb2afc7eb5dca: 6 spans, root <root span not yet received> None
+trace 32d794d3234508fe094bb2afc7eb5dca is the one the persona's traceparent named
 service  span             parent span        dummyrun.run.id                dummyrun.persona.id
-inkwell  inkwell.render   61c25133641169d9   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  inkwell.render   f438b4f775aa4f2d   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  inkwell.render   6cf3fe806bc7b640   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  GET /drafts      4746a94e38a3f1d9   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  GET /payments    17d57a11f362d35c   2026-10-17-ravi-reviewer-005   ravi-reviewer
-inkwell  GET /reviews     993c1291e82b1a26   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  inkwell.render   946f3a26d709fea9   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  inkwell.render   492bd0a709202e85   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  inkwell.render   32ac415b7e39cc13   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  GET /drafts      99edeccdab1732bc   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  GET /payments    9be6c4f7bb7ae27c   2026-10-17-ravi-reviewer-005   ravi-reviewer
+inkwell  GET /reviews     22b2cf7709369a37   2026-10-17-ravi-reviewer-005   ravi-reviewer
 all 6 spans carry dummyrun.run.id=2026-10-17-ravi-reviewer-005 and dummyrun.persona.id=ravi-reviewer
 ```
 
-Tempo reports the root span as not received because only the app sends here. In a full setup the
-Dummy Run exporter sends the `dummyrun.run` root span and the step spans with the same trace ID, and
-the trace is complete.
+Tempo reports the root span as not received because only the app sends here. The exporter derives
+the same trace ID from the run ID, so in a full setup it supplies the `dummyrun.run` root span and the
+step spans and the trace is complete.
 
 `inkwell/main_test.go` checks the same thing without Docker, with an in-memory exporter. Both spans
 join the trace and the server span's parent is the step span. The two attributes are present. A third

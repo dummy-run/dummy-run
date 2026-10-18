@@ -2,8 +2,8 @@
 
 Dummy Run describes every run in OpenTelemetry. [docs/TELEMETRY.md](../TELEMETRY.md) is the contract.
 It gives each run one trace and one Grafana annotation. It adds a log record per run and per finding.
-Counters and histograms cover runs and steps. This page says how to use that in Grafana. It is written per audience, so
-read the section with your job title and skip the rest.
+Counters and histograms cover runs and steps. This page says how to use that in Grafana, one section
+per audience.
 
 The code is in [integrations/grafana/](../../integrations/grafana/README.md).
 
@@ -11,8 +11,9 @@ The code is in [integrations/grafana/](../../integrations/grafana/README.md).
 
 ### Five minutes, on your laptop
 
-1. Start the local stack in `integrations/grafana/stack/`. Its README has the command. It runs Grafana with Tempo, Loki and Prometheus or Mimir, and it listens for OTLP
-   on port 4318.
+1. Start the local stack in `integrations/grafana/stack/`. Its README has the command. It runs
+   Grafana with Tempo, Loki and Prometheus, and it listens for OTLP on port 4318. Grafana Cloud uses
+   Mimir in place of Prometheus; the queries are the same.
 2. Export a directory of run records with the exporter in `integrations/grafana/exporter/`. The
    command is `dummyrun-otel`. It reads run records that match `schema/run-record.schema.json`, so you can try it
    on `examples/runs/` before you have a run of your own. Point it at `http://localhost:4318`. The
@@ -49,9 +50,16 @@ app's own telemetry"):
 
 | Header | Example | Meaning |
 |---|---|---|
-| `traceparent` | `00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ab902b7-01` | W3C Trace Context. The trace is the run and the parent is the step span [[4]](#sources) |
+| `traceparent` | `00-7d7e4c2d8c9a4b1f0a3e5d6c7b8a9f01-3c4d5e6f7a8b9c0d-01` | W3C Trace Context. The trace is the run and the parent is the step span [[4]](#sources) |
 | `baggage` | `dummyrun.run.id=2026-10-17-ravi-reviewer-005,dummyrun.persona.id=ravi-reviewer` | W3C Baggage with the run and persona IDs [[5]](#sources) |
 | `User-Agent` | `Mozilla/5.0 (...) Chrome/148.0.0.0 Safari/537.36 DummyRun/0.1.0` | The normal browser string with `DummyRun/<version>` at the end |
+
+The IDs are derived from the run ID, so the exporter and the runner agree without talking to each
+other. The trace ID is the first 16 bytes of SHA-256 of `dummyrun.run:<id>`. The root span ID is the
+first 8 bytes of SHA-256 of `dummyrun.span:<id>:root` (docs/TELEMETRY.md, Traces). The exporter writes
+the `dummyrun.run` root span and the step spans with those IDs. The runner sends the same trace ID in
+every `traceparent`. Your app's spans therefore land in the exporter's trace, whether the exporter ran
+before or after your app recorded them.
 
 An app instrumented with OpenTelemetry joins the trace by default. The baggage does not reach your
 spans by default. OpenTelemetry keeps baggage apart from span attributes and says you must copy it
@@ -144,11 +152,11 @@ sets the session sampling rate to 0 for matches; add `DummyRun/` to the pattern 
 Or return `null` from `beforeSend` for items whose user agent contains the token [[21]](#sources).
 
 Faro's tracing uses the OpenTelemetry fetch instrumentation and adds its own `traceparent` to requests
-your page makes, controlled by `propagateTraceHeaderCorsUrls` [[22]](#sources). Dummy Run's runner adds
-a `traceparent` to the same request. Which one your server sees depends on how the runner injects
-headers, and the contract does not say. The safe reading is that a Faro-instrumented fetch may land in
-either the persona's trace or Faro's. The baggage reaches your server either way, so searching by
-`dummyrun.run.id` still finds every span.
+your page makes, controlled by `propagateTraceHeaderCorsUrls` [[22]](#sources). When the page has set
+one, the runner keeps it and adds only the baggage (docs/TELEMETRY.md, Linking to the app's own
+telemetry). Faro's client span stays the parent of your server span, so that request sits in Faro's
+trace rather than the persona's. The baggage still reaches your server, so searching by
+`dummyrun.run.id` finds those spans too.
 
 ### Beyla, for an app with no SDK
 
@@ -174,13 +182,15 @@ Grafana file provisioning and as Terraform:
 | Rule | Fires when |
 |---|---|
 | Confirmed permission finding | A finding log record has `kind=permission` and `verdict=confirmed` in the last 15 minutes. The alert names the run and the finding |
-| Blocker | `dummyrun.findings` rose for `severity=blocker` with a verdict other than rejected in the last 15 minutes |
+| Blocker | A finding log record has `severity=blocker` and a verdict other than rejected in the last 15 minutes |
 | Blocked-run rate | More than 25% of runs against one environment ended `blocked` over 6 hours, for 10 minutes |
-| Runs stopped | No run ended in 24 hours, or the metric is missing |
+| Runs stopped | No run was exported in 24 hours, or the metric is missing |
 
 The rules use the Prometheus and Loki names that OTLP translation produces from the contract names,
-such as `dummyrun_runs_total` and `dummyrun_target_environment` [[27]](#sources). Those names are an
-assumption until checked against the running stack. The alerting README lists each one.
+such as `dummyrun_runs_total` and `dummyrun_target_environment` [[27]](#sources). They were checked
+against the local stack fed by `dummyrun-otel` on 2026-10-18. The two Prometheus rules read counters,
+and a counter carries the time the exporter sent it. Run them with `dummyrun-otel watch`, which exports
+runs as they end. A batch export of old runs would make them fire today.
 
 ## I'm in compliance or security
 

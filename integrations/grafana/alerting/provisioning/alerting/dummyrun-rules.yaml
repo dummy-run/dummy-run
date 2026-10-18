@@ -4,11 +4,13 @@
 # Mount this directory as <GF_PATHS_PROVISIONING>/alerting. The data sources must exist with the UIDs
 # below (prometheus, loki). integrations/grafana/stack/ and grafana/otel-lgtm both use those UIDs.
 #
-# METRIC NAMES ARE ASSUMED. The rules are written against the names in docs/TELEMETRY.md after the
-# OTLP to Prometheus translation (dots to underscores, _total on counters, unit suffixes on
-# histograms), and against Loki's OTLP mapping (dots to underscores, attributes as structured
-# metadata). Confirm each name in a running stack before relying on an alert. Each place that
-# needs checking is marked "CHECK NAME". See ../README.md for the full table.
+# Names come from docs/TELEMETRY.md after the OTLP translation. They were checked against the stack in
+# integrations/grafana/stack/ fed by dummyrun-otel on 2026-10-18: every metric, label and structured
+# metadata key below resolved.
+#
+# The two finding rules read Loki, because a finding log record carries the run's own time. The two
+# Prometheus rules read counters, which carry the time the exporter sent them. A batch export of old runs
+# makes those counters rise today, so the Prometheus rules are only meaningful with `dummyrun-otel watch`.
 apiVersion: 1
 
 groups:
@@ -18,7 +20,7 @@ groups:
     interval: 1m
     rules:
       # 1. A confirmed permission finding: a persona saw or did something its role should not.
-      # Reads the finding log records, so the alert carries the run ID and the finding title.
+      # One alert per finding, with the run ID and the finding title in the summary.
       - uid: dummyrun-permission-confirmed
         title: Dummy Run confirmed a permission finding
         condition: C
@@ -29,10 +31,8 @@ groups:
             model:
               refId: A
               queryType: instant
-              # CHECK NAME: service_name label, and the structured metadata keys dummyrun_finding_kind,
-              # dummyrun_finding_verdict, dummyrun_run_id, dummyrun_finding_id, dummyrun_finding_title.
               expr: |
-                sum by (dummyrun_run_id, dummyrun_persona_id, dummyrun_finding_id, dummyrun_finding_title) (
+                sum by (dummyrun_run_id, dummyrun_persona_id, dummyrun_target_environment, dummyrun_finding_id, dummyrun_finding_title) (
                   count_over_time({service_name="dummyrun"}
                     | dummyrun_finding_kind="permission"
                     | dummyrun_finding_verdict="confirmed" [15m])
@@ -49,28 +49,29 @@ groups:
         noDataState: OK
         execErrState: Error
         annotations:
-          summary: 'Run {{ $labels.dummyrun_run_id }} ({{ $labels.dummyrun_persona_id }}) confirmed a permission finding: {{ $labels.dummyrun_finding_title }}'
+          summary: 'Run {{ $labels.dummyrun_run_id }} ({{ $labels.dummyrun_persona_id }} on {{ $labels.dummyrun_target_environment }}) confirmed a permission finding: {{ $labels.dummyrun_finding_title }}'
           description: 'Finding {{ $labels.dummyrun_finding_id }}. Open the run on the results board and check the screenshot before raising a ticket.'
         labels:
           dummyrun_kind: permission
           severity: high
 
-      # 2. A blocker finding that the reviewer did not reject.
+      # 2. A blocker finding that the reviewer did not reject. Same shape as rule 1.
       - uid: dummyrun-blocker-finding
         title: Dummy Run found a blocker
         condition: C
         data:
           - refId: A
             relativeTimeRange: { from: 900, to: 0 }
-            datasourceUid: prometheus
+            datasourceUid: loki
             model:
               refId: A
-              instant: true
-              # CHECK NAME: dummyrun_findings_total and the labels dummyrun_persona_id, dummyrun_severity, dummyrun_verdict.
+              queryType: instant
               expr: |
-                sum by (dummyrun_persona_id) (
-                  increase(dummyrun_findings_total{dummyrun_severity="blocker", dummyrun_verdict!="rejected"}[15m])
-                ) > 0
+                sum by (dummyrun_run_id, dummyrun_persona_id, dummyrun_target_environment, dummyrun_finding_id, dummyrun_finding_title) (
+                  count_over_time({service_name="dummyrun"}
+                    | dummyrun_finding_severity="blocker"
+                    | dummyrun_finding_verdict!="rejected" [15m])
+                )
           - refId: C
             datasourceUid: __expr__
             model:
@@ -83,13 +84,14 @@ groups:
         noDataState: OK
         execErrState: Error
         annotations:
-          summary: '{{ $labels.dummyrun_persona_id }} hit a blocker in the last 15 minutes'
-          description: 'Blocker findings are listed on the results board. Query the finding logs for dummyrun_finding_severity="blocker" to see titles and run IDs.'
+          summary: 'Run {{ $labels.dummyrun_run_id }} ({{ $labels.dummyrun_persona_id }} on {{ $labels.dummyrun_target_environment }}) hit a blocker: {{ $labels.dummyrun_finding_title }}'
+          description: 'Finding {{ $labels.dummyrun_finding_id }}. A blocker stopped the persona from doing its job. Check the step and screenshot on the results board.'
         labels:
           dummyrun_kind: blocker
           severity: high
 
       # 3. Too many runs ended blocked in one environment. A blocked run means the app stopped the persona.
+      # Counters carry export time, so use this with `dummyrun-otel watch`.
       - uid: dummyrun-blocked-run-rate
         title: Dummy Run blocked-run rate is high
         condition: C
@@ -100,7 +102,6 @@ groups:
             model:
               refId: A
               instant: true
-              # CHECK NAME: dummyrun_runs_total and the labels dummyrun_target_environment, dummyrun_outcome.
               # Division by zero gives NaN, so an environment with no runs in the window does not alert.
               expr: |
                 sum by (dummyrun_target_environment) (increase(dummyrun_runs_total{dummyrun_outcome="blocked"}[6h]))
@@ -124,7 +125,8 @@ groups:
           dummyrun_kind: blocked-rate
           severity: medium
 
-      # 4. Runs have stopped. Alerts when no run ended in 24 hours, or when the metric is missing.
+      # 4. Runs have stopped. Alerts when no run was exported in 24 hours, or when the metric is missing.
+      # Counters carry export time, so use this with `dummyrun-otel watch`.
       # To watch one environment, add {dummyrun_target_environment="main"} to the selector.
       - uid: dummyrun-runs-stopped
         title: Dummy Run has not run for a day
@@ -136,7 +138,6 @@ groups:
             model:
               refId: A
               instant: true
-              # CHECK NAME: dummyrun_runs_total.
               expr: sum(increase(dummyrun_runs_total[24h])) or vector(0)
           - refId: C
             datasourceUid: __expr__
