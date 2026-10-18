@@ -11,14 +11,24 @@ import (
 	"time"
 )
 
-// fakeLoki answers the instant query with fixed counts per run and records the query it got.
+// fakeLoki answers the instant query with fixed counts per run and records the query it got. The
+// range query returns the newest line when one is set.
 type fakeLoki struct {
 	counts map[string]int
+	newest time.Time
 	query  string
 	user   string
 }
 
 func (f *fakeLoki) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/loki/api/v1/query_range" {
+		var results []map[string]any
+		if !f.newest.IsZero() {
+			results = append(results, map[string]any{"stream": map[string]string{}, "values": [][]string{{strconv.FormatInt(f.newest.UnixNano(), 10), "run x"}}})
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"status": "success", "data": map[string]any{"resultType": "streams", "result": results}})
+		return
+	}
 	if r.URL.Path != "/loki/api/v1/query" {
 		http.NotFound(w, r)
 		return
@@ -85,6 +95,24 @@ func TestNewLokiRejectsBadInput(t *testing.T) {
 	}
 	if _, err := NewLoki("http://localhost:3100", "token-only", nil); err == nil {
 		t.Error("basic auth without a colon must be rejected")
+	}
+}
+
+func TestNewestLine(t *testing.T) {
+	fake := &fakeLoki{}
+	srv := httptest.NewServer(fake)
+	defer srv.Close()
+	l, err := NewLoki(srv.URL, "", srv.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, err := l.Newest(context.Background(), "dummyrun"); err != nil || ok {
+		t.Fatalf("empty stream: ok=%v err=%v", ok, err)
+	}
+	fake.newest = time.Date(2026, 10, 17, 13, 54, 3, 183000000, time.UTC)
+	got, ok, err := l.Newest(context.Background(), "dummyrun")
+	if err != nil || !ok || !got.Equal(fake.newest) {
+		t.Fatalf("newest = %s ok=%v err=%v, want %s", got, ok, err, fake.newest)
 	}
 }
 

@@ -180,9 +180,13 @@ func rootAttributes(run *record.Run) []attribute.KeyValue {
 		attribute.String("cloud.region", run.Provider.Region),
 		attribute.String("browser.name", run.Browser.Name),
 		attribute.String("dummyrun.outcome", run.Outcome),
+		attribute.Int("dummyrun.steps.count", len(run.Steps)),
 		attribute.Int64("gen_ai.usage.input_tokens", run.Usage.InputTokens),
 		attribute.Int64("gen_ai.usage.output_tokens", run.Usage.OutputTokens),
 	)
+	if run.Usage.CostUSD != nil {
+		attrs = append(attrs, attribute.Float64("dummyrun.cost.usd", *run.Usage.CostUSD))
+	}
 	return attrs
 }
 

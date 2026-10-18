@@ -74,7 +74,7 @@ file failed. Run it next to the runner that writes records.
 | `--protocol` | `OTEL_EXPORTER_OTLP_PROTOCOL` or `http/protobuf` | OTLP transport, `http/protobuf` or `grpc` |
 | `--metrics-temporality` | `cumulative` | `cumulative` for Prometheus and Mimir, `delta` for a backend that converts deltas |
 | `--grafana-url` | unset | Grafana base URL for annotations. The token comes from `GRAFANA_TOKEN` |
-| `--verify-loki` | unset | Loki base URL. After the export, count the log lines back per run and exit 1 naming any run that is short |
+| `--verify-loki` | unset | Loki base URL. Before the export, refuse lines Loki would drop as too old for its stream. After it, count the lines back per run and exit 1 naming any run that is short |
 | `--logs-max-age` | `168h` | Skip log records older than this, because Loki rejects them. The local stack in `integrations/grafana/stack` accepts `720h`. `0` sends every record |
 | `--timeout` | `30s` | How long the final flush may take |
 | `--interval` (watch) | `5s` | How often to look for new files |
@@ -167,13 +167,18 @@ HTTP 400 (sourced), so `--logs-max-age` skips those lines and says how many (cod
 `integrations/grafana/stack` raises the limit to 30 days, so pass `--logs-max-age 720h` there. Loki
 also keeps one stream for the exporter and drops a line more than `max_chunk_age / 2` (default 1 hour)
 older than the newest line in that stream (sourced, and measured: 14 of 41 lines survived an export in
-file name order). `export` therefore sends every log record oldest first (code). Two exports whose time
-ranges overlap by more than an hour still lose lines from the earlier one. Export runs in `ended_at`
-order, and never export a batch that ends more than an hour before one already sent. The collector in
-`grafana/otel-lgtm` answers 200 while Loki rejects (measured), so the exporter cannot see the loss on
-its own. Pass `--verify-loki http://localhost:3100` to count the lines back after each export and exit 1
-naming the runs that are short. Or point `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` at Loki itself, such as
-`http://localhost:3100/otlp/v1/logs`, and its rejections become exporter errors.
+file name order). `export` therefore sorts every line by its own time and sends the oldest first (code).
+Before sending, it checks that the oldest line is no more than an hour older than the newest line
+already sent to the stream, and exits 1 with nothing sent when it is (code). Within one process that
+newest line is what the process has sent so far. With `--verify-loki` it is also the newest line Loki
+already holds, so a batch that ends more than an hour before an earlier export is refused rather than
+silently lost. Lines Loki already holds are left out first, so repeating an export is still safe.
+`watch` applies the same check to each file and reports the file it refused. Export runs
+in `ended_at` order, and never export a batch that ends more than an hour before one already sent. The
+collector in `grafana/otel-lgtm` answers 200 while Loki rejects (measured), so without the Loki URL the
+exporter cannot see a loss caused by an earlier process. `--verify-loki` also counts the lines back after
+the export and exits 1 naming the runs that are short. Or point `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` at
+Loki itself, such as `http://localhost:3100/otlp/v1/logs`, and its rejections become exporter errors.
 
 For charts over history, query Loki within its window or use the annotations. For charts of live
 activity, run `dummyrun-otel watch` next to the runner and query Prometheus.
@@ -202,7 +207,7 @@ The end-to-end test starts `grafana/otel-lgtm` on random ports and exports `exam
 freshly generated set. It then searches Tempo by `dummyrun.run.id`, counts the lines in Loki and sums
 the counters in Prometheus. A second process then exports the same records again: the annotation count
 and the Prometheus total must not change, and `--verify-loki` must pass. A third process exports a set
-that ended days earlier, and `--verify-loki` must exit 1 naming every run Loki dropped.
+that ended days earlier, and `--verify-loki` must refuse it before sending anything.
 
 `e2e/tempo-config.yaml` is the `grafana/otel-lgtm` Tempo configuration with the slack raised to 30 days
 and faster block flushing. `integrations/grafana/stack/config/tempo-config.yaml` carries the same

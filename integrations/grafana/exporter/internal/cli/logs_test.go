@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"testing"
+	"time"
 
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
@@ -34,17 +35,31 @@ func TestExportSendsLogsOldestFirst(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := &session{env: Env{}, emitter: emitter, providers: providers}
-	var deferred []runLogs
+	s := &session{env: Env{Now: time.Now}, emitter: emitter, providers: providers}
+	var plans []telemetry.Plan
 	for _, f := range files {
-		if err := s.send(context.Background(), f, &deferred); err != nil {
+		plans = append(plans, s.prepare(f.Run))
+	}
+	entries := sortedLogs(plans)
+	if err := s.guard(entries[0].rec.Time); err != nil {
+		t.Fatalf("guard refused a fresh export: %v", err)
+	}
+	for i, f := range files {
+		if err := s.sendPlan(context.Background(), f.Path, plans[i], false); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if got := len(logs.Records()); got != 0 {
 		t.Fatalf("%d log records sent before sorting, want 0", got)
 	}
-	s.emitSortedLogs(context.Background(), deferred)
+	s.emitLogs(context.Background(), entries)
+	// After sending, a batch that ends more than an hour before the newest line is refused.
+	if err := s.guard(entries[0].rec.Time); err == nil {
+		t.Error("guard accepted lines more than an hour behind the newest sent")
+	}
+	if err := s.guard(s.newestSent.Add(-59 * time.Minute)); err != nil {
+		t.Errorf("guard refused a line within the hour: %v", err)
+	}
 	if err := providers.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}

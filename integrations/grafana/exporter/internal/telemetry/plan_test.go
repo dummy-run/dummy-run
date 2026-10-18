@@ -86,8 +86,10 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 		attribute.String("cloud.region", "europe-west2"),
 		attribute.String("browser.name", "chrome"),
 		attribute.String("dummyrun.outcome", "blocked"),
+		attribute.Int("dummyrun.steps.count", 8),
 		attribute.Int64("gen_ai.usage.input_tokens", 64570),
 		attribute.Int64("gen_ai.usage.output_tokens", 6600),
+		attribute.Float64("dummyrun.cost.usd", 0.0359),
 	})
 
 	if len(p.Steps) != 8 {
@@ -313,7 +315,7 @@ func TestOptionalFieldsAreOmitted(t *testing.T) {
 	run.Usage.CostUSD = nil
 	p := Build(run)
 	for _, kv := range p.Root.Attributes {
-		if kv.Key == "dummyrun.batch.id" || kv.Key == "dummyrun.target.commit" {
+		if kv.Key == "dummyrun.batch.id" || kv.Key == "dummyrun.target.commit" || kv.Key == "dummyrun.cost.usd" {
 			t.Errorf("%s must be left out when the record has no value", kv.Key)
 		}
 	}

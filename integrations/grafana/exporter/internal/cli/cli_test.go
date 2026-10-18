@@ -84,18 +84,34 @@ func (f *fakeGrafana) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// fakeLoki answers the verification query with a fixed count per run ID.
+// fakeLoki answers the verification query with a fixed count per run ID and the newest-line query
+// with newest when set.
 type fakeLoki struct {
 	mu     sync.Mutex
 	counts map[string]int
+	newest time.Time
+	// empty is how many instant queries to answer with no lines first, as if nothing had been sent yet.
+	empty int
 }
 
-func (f *fakeLoki) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+func (f *fakeLoki) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if r.URL.Path == "/loki/api/v1/query_range" {
+		var results []map[string]any
+		if !f.newest.IsZero() {
+			results = append(results, map[string]any{"stream": map[string]string{}, "values": [][]string{{strconv.FormatInt(f.newest.UnixNano(), 10), "run x"}}})
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"status": "success", "data": map[string]any{"resultType": "streams", "result": results}})
+		return
+	}
 	var results []map[string]any
-	for id, n := range f.counts {
-		results = append(results, map[string]any{"metric": map[string]string{"dummyrun_run_id": id}, "value": []any{1.0, strconv.Itoa(n)}})
+	if f.empty > 0 {
+		f.empty--
+	} else {
+		for id, n := range f.counts {
+			results = append(results, map[string]any{"metric": map[string]string{"dummyrun_run_id": id}, "value": []any{1.0, strconv.Itoa(n)}})
+		}
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"status": "success", "data": map[string]any{"resultType": "vector", "result": results}})
 }
@@ -117,19 +133,119 @@ func TestExportVerifiesLogsInLoki(t *testing.T) {
 	if code != ExitFailure {
 		t.Fatalf("exit %d, want %d; stderr %s", code, ExitFailure, stderr)
 	}
-	if !strings.Contains(stderr, "run 2026-10-17-sam-author-007: 0 of 2 log lines in Loki") || !strings.Contains(stderr, "1 of 8 runs are missing log lines") {
+	// The seven runs whose lines Loki already holds are not sent again; the eighth is, and stays missing.
+	if !strings.Contains(stderr, "2 log records, ") || !strings.Contains(stderr, "14 log records already in Loki") {
+		t.Errorf("summary %q", stderr)
+	}
+	if !strings.Contains(stderr, "run 2026-10-17-sam-author-007: 0 of 2 log lines in Loki") || !strings.Contains(stderr, "1 of 1 runs are missing log lines") {
 		t.Errorf("stderr %q", stderr)
 	}
 	loki.mu.Lock()
 	loki.counts["2026-10-17-sam-author-007"] = 2
 	loki.mu.Unlock()
 	code, _, stderr = run(t, nil, "export", "--logs-max-age", "0", "--verify-loki", lsrv.URL, examples)
+	if code != ExitOK || !strings.Contains(stderr, "all 16 log records were already in Loki") {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+	// With nothing in Loki yet, every line is sent and then found.
+	sent := &fakeLoki{empty: 1, counts: map[string]int{
+		"2026-10-15-sam-author-001": 2, "2026-10-16-ada-editor-003": 2, "2026-10-16-lin-contributor-002": 2,
+		"2026-10-16-lin-contributor-004": 2, "2026-10-17-lin-contributor-008": 3, "2026-10-17-ravi-reviewer-005": 1,
+		"2026-10-17-sam-author-006": 2, "2026-10-17-sam-author-007": 2,
+	}}
+	ssrv := httptest.NewServer(sent)
+	defer ssrv.Close()
+	code, _, stderr = run(t, nil, "export", "--logs-max-age", "0", "--verify-loki", ssrv.URL, examples)
 	if code != ExitOK || !strings.Contains(stderr, "every one of the 16 log records is in Loki") {
 		t.Errorf("exit %d, stderr %q", code, stderr)
 	}
 	if code, _, stderr := run(t, map[string]string{"LOKI_BASIC_AUTH": "nocolon"}, "export", "--verify-loki", lsrv.URL, examples); code != ExitFailure || !strings.Contains(stderr, "LOKI_BASIC_AUTH") {
 		t.Errorf("bad LOKI_BASIC_AUTH: exit %d, stderr %q", code, stderr)
 	}
+}
+
+func TestExportRefusesLinesLokiWouldDrop(t *testing.T) {
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	// Loki already holds a line from the 19th; the examples start on the 15th.
+	loki := &fakeLoki{newest: time.Date(2026, 10, 19, 9, 0, 0, 0, time.UTC)}
+	lsrv := httptest.NewServer(loki)
+	defer lsrv.Close()
+	code, _, stderr := run(t, nil, "export", "--logs-max-age", "0", "--verify-loki", lsrv.URL, examples)
+	if code != ExitFailure {
+		t.Fatalf("exit %d, want %d; stderr %s", code, ExitFailure, stderr)
+	}
+	if !strings.Contains(stderr, "nothing sent") || !strings.Contains(stderr, "more than an hour before the newest line already sent (2026-10-19T09:00:00Z)") {
+		t.Errorf("stderr %q", stderr)
+	}
+	if otlp.count("/v1/traces")+otlp.count("/v1/logs")+otlp.count("/v1/metrics") != 0 {
+		t.Error("the export sent data although the guard refused it")
+	}
+}
+
+func TestWatchRefusesAFileOlderThanTheStream(t *testing.T) {
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	dir := t.TempDir()
+	newer, err := os.ReadFile(filepath.Join(examples, "2026-10-17-ravi-reviewer-005.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	older, err := os.ReadFile(filepath.Join(examples, "2026-10-15-sam-author-001.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sigs := make(chan os.Signal, 1)
+	var out, errb syncBuffer
+	done := make(chan int)
+	go func() {
+		done <- Main(context.Background(), []string{"watch", "--interval", "20ms", "--logs-max-age", "0", dir}, Env{
+			Stdout: &out, Stderr: &errb, Getenv: func(string) string { return "" }, Signals: sigs,
+		})
+	}()
+	time.Sleep(100 * time.Millisecond)
+	if err := os.WriteFile(filepath.Join(dir, "2026-10-17-ravi-reviewer-005.json"), newer, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for otlp.count("/v1/logs") == 0 && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "2026-10-15-sam-author-001.json"), older, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	deadline = time.Now().Add(5 * time.Second)
+	for !strings.Contains(errb.String(), "not sent") && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	sigs <- os.Interrupt
+	code := <-done
+	stderr := errb.String()
+	if code != ExitFailure || !strings.Contains(stderr, "2026-10-15-sam-author-001.json: not sent: log lines start at 2026-10-15T21:52:52Z") {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}
+
+// syncBuffer is a bytes.Buffer safe to read while another goroutine writes.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
 }
 
 func run(t *testing.T, env map[string]string, args ...string) (int, string, string) {
