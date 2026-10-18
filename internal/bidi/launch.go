@@ -167,7 +167,8 @@ func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 		args = append(args, "--headless")
 	}
 	args = append(args, "about:blank")
-	cmd := exec.CommandContext(context.Background(), bin, args...) //nolint:gosec // the binary path is configuration
+	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- the binary path is the operator's configuration, never page or model output
+	cmd := exec.CommandContext(context.Background(), bin, args...) //nolint:gosec // see above
 	cmd.Env = append(os.Environ(), opts.Env...)
 	if runtime.GOOS == "linux" {
 		// A clean config home keeps the system Firefox's settings out of the run.
@@ -232,7 +233,8 @@ func launchChrome(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 		return nil, err
 	}
 	b := &Browser{Name: "chrome", tempDirs: []string{userData}}
-	cmd := exec.CommandContext(context.Background(), driver, fmt.Sprintf("--port=%d", port)) //nolint:gosec // the binary path is configuration
+	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- the binary path is the operator's configuration, never page or model output
+	cmd := exec.CommandContext(context.Background(), driver, fmt.Sprintf("--port=%d", port)) //nolint:gosec // see above
 	cmd.Env = append(os.Environ(), opts.Env...)
 	if err := cmd.Start(); err != nil {
 		b.Close()

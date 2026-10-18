@@ -1,6 +1,6 @@
 # The dummyrun.dev cast
 
-Four fictional visitors to https://dummyrun.dev. Each only browses and reads. None signs up, fills in a form or
+Four fictional visitors to the project's own site, dummyrun.dev. Each only browses and reads. None signs up, fills in a form or
 types into a chat widget. The cast exists to dogfood the engine against the project's own site.
 
 | Persona | Who | Device |
