@@ -29,7 +29,7 @@ func (c Config) Run() *dashboard.DashboardBuilder {
 	b.WithRow(dashboard.NewRowBuilder("Pick a run").Id(ids.id()))
 	b.WithPanel(c.runsTable(ids.id(), "Runs matching the filters",
 		"Runs for the selected environment, persona and scenario. Click a run ID to show it below.",
-		lokiRunEnd+lokiRunSel, 24, 7))
+		lokiRunEnd+lokiFilters, 24, 7))
 
 	b.WithRow(dashboard.NewRowBuilder("Run $run").Id(ids.id()))
 	b.WithPanel(c.attributesTable(ids.id(), "Run", "From the run end log line.",

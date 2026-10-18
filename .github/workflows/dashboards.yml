@@ -114,11 +114,14 @@ jobs:
           token=$(curl -sf -u "$auth" -H 'Content-Type: application/json' -d '{"name":"smoke"}' "localhost:3000/api/serviceaccounts/$sa/tokens" | jq -r .key)
           echo "::add-mask::$token"
           echo "token=$token" >> "$GITHUB_OUTPUT"
-      - name: Shift the example runs so the latest ends now
+      - name: Write 40 synthetic runs that end now
         working-directory: integrations/grafana/stack/seed
+        # The generator is deterministic for its default seed and end date, and 40 runs over two
+        # days hold every outcome, kind and severity the panels show.
         run: |
           uv sync --locked
-          uv run seed.py ../../../../examples/runs --end-now --write "$RUNNER_TEMP/runs"
+          python3 ../../../../examples/generate-runs.py --runs 40 --days 2 --out "$RUNNER_TEMP/generated"
+          uv run seed.py "$RUNNER_TEMP/generated" --end-now --write "$RUNNER_TEMP/runs"
       - name: Send the runs with the exporter, or with the seeder when the exporter is not here yet
         working-directory: integrations/grafana/stack/seed
         env:

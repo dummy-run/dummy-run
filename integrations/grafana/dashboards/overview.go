@@ -20,8 +20,8 @@ func (c Config) Overview() *dashboard.DashboardBuilder {
 	b := c.base(uidOverview, "Dummy Run: overview",
 		"Runs by outcome, pass rate, confirmed findings, step timing and model cost. Pick an environment, persona or scenario at the top.")
 
-	runs := lokiRunEnd + lokiRunSel
-	findings := lokiFindings + lokiFindSel
+	runs := lokiRunEnd + lokiFilters
+	findings := lokiFindings + lokiFilters
 
 	b.WithRow(dashboard.NewRowBuilder("Runs").Id(ids.id()))
 	b.WithPanel(c.lokiStat(ids.id(), "Runs", "Runs that ended in the time range, counted from run end log lines.",
@@ -112,7 +112,7 @@ func sumBy(selector, label, field, window string) string {
 // findingsBarGauge ranks confirmed findings by one label over the time range. Loki returns one
 // frame per label value, so the gauge shows every value and names each bar after its label.
 func (c Config) findingsBarGauge(id uint32, title, description, label string, colours map[string]string, order []string, w, h uint32) *bargauge.PanelBuilder {
-	expr := fmt.Sprintf(`sort_desc(%s)`, countBy(lokiFindings+lokiFindSel+` | dummyrun_finding_verdict="confirmed"`, label, "$__range"))
+	expr := fmt.Sprintf(`sort_desc(%s)`, countBy(lokiFindings+lokiFilters+` | dummyrun_finding_verdict="confirmed"`, label, "$__range"))
 	p := bargauge.NewPanelBuilder().
 		Id(id).
 		Title(title).
@@ -139,7 +139,7 @@ func (c Config) findingsBarGauge(id uint32, title, description, label string, co
 // findingsOverTime stacks confirmed findings per interval by one label.
 func (c Config) findingsOverTime(id uint32, title, description, label string, colours map[string]string, order []string, w, h uint32) *timeseries.PanelBuilder {
 	p := c.lokiSeries(id, title, description, w, h,
-		series{countBy(lokiFindings+lokiFindSel+` | dummyrun_finding_verdict="confirmed"`, label, "$__interval"), "{{" + label + "}}"}).
+		series{countBy(lokiFindings+lokiFilters+` | dummyrun_finding_verdict="confirmed"`, label, "$__interval"), "{{" + label + "}}"}).
 		Unit("short").
 		Decimals(0)
 	if colours == nil {

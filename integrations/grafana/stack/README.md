@@ -55,20 +55,24 @@ cd seed
 uv run seed.py /tmp/runs --end-now
 ```
 
-To send the same records with the product exporter instead, write the shifted records and export
-them: `uv run seed.py /tmp/runs --end-now --write /tmp/shifted`, then
+The product exporter `dummyrun-otel` is planned for `../exporter` (PR #12). To send the same
+records with it instead, write the shifted records and export them:
+`uv run seed.py /tmp/runs --end-now --write /tmp/shifted`, then
 `dummyrun-otel export --grafana-url http://localhost:3000 /tmp/shifted`.
 
 `--end-now` moves every timestamp so the latest run ends now and the gaps between runs stay the
-same. The generator writes fixed dates, and the stores only accept recent data (code: `config/*.yaml`,
+same. Spans and log lines carry the run's own times. Metrics are one cumulative snapshot stamped
+with the send time, as the contract says an exporter does, so the histogram panels show the seeded
+runs as one export. The generator writes fixed dates, and the stores only accept recent data (code: `config/*.yaml`,
 with the image defaults they replace). Loki rejects lines older than `reject_old_samples_max_age`.
 Prometheus rejects samples older than its out-of-order window. Tempo clamps block times to the
 ingestion time plus `ingestion_time_range_slack`. Loki only asks its ingester about the last three hours, so older lines stay hidden until a
 flush. The files in `config/` raise those limits to 30 days and make Loki ask the ingester for any
-range, so a seeded fortnight lands at its real times and shows at once. Tempo searches reach the new blocks within a
-minute (measured: 300 runs seeded into this stack). Reseeding an old history into a stack that
-already holds newer samples fails in Prometheus (inferred: samples must fall inside the out-of-order
-window), so run `docker compose down -v` first.
+range, so a seeded fortnight lands at its real times and shows at once. A Tempo search over past
+days reads the backend blocks, which the block builder writes every 30 seconds and the query
+frontend lists every 10 seconds (code: `config/tempo-config.yaml`). Reseeding an old history into a
+stack that already holds newer samples fails in Prometheus (inferred: samples must fall inside the
+out-of-order window), so run `docker compose down -v` first.
 
 `uv run pytest` runs the seeder's tests. `uv run check_panels.py` sends every panel query through
 Grafana's API and prints data or no data per panel, with `--retries` for a stack that is still
@@ -82,7 +86,7 @@ screenshot of each dashboard with headless Chrome.
 | `compose.yaml` | The one service, pinned by image digest, with the mounts below |
 | `grafana/provisioning/datasources/dummyrun.yaml` | Prometheus, Tempo and Loki with the UIDs `prometheus`, `tempo` and `loki` |
 | `grafana/provisioning/dashboards/dummyrun.yaml` | Loads `../dashboards/json` into a Dummy Run folder |
-| `compose.yaml` mount of `../alerting/provisioning/alerting` | Loads the alert rules from [../alerting](../alerting) |
+| `compose.yaml` mount of `../alerting/provisioning/alerting` | Loads the alert rules from `../alerting`, which PR #8 adds |
 | `config/prometheus.yaml` | The image default plus a 30 day out of order window |
 | `config/tempo-config.yaml` | The image default plus 30 days of slack, faster block flushes, no search length limit and 90 days of retention |
 | `config/loki-config.yaml` | The image default plus 30 days for old samples, and queries that always ask the ingester |

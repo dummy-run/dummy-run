@@ -94,8 +94,8 @@ const (
 	lokiStream   = `{service_name="dummyrun"}`
 	lokiRunEnd   = lokiStream + ` | dummyrun_outcome != ""`
 	lokiFindings = lokiStream + ` | dummyrun_finding_id != ""`
-	lokiRunSel   = ` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_scenario_id=~"$scenario"`
-	lokiFindSel  = ` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_scenario_id=~"$scenario"`
+	// Both record kinds carry environment, persona and scenario, so one filter serves both.
+	lokiFilters = ` | dummyrun_target_environment=~"$environment" | dummyrun_persona_id=~"$persona" | dummyrun_scenario_id=~"$scenario"`
 )
 
 // rawQuery is a query the SDK has no typed builder for, such as the built-in annotation target.

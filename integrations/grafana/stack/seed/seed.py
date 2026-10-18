@@ -4,7 +4,9 @@
 It reads run records (schema/run-record.schema.json) and sends them as OpenTelemetry traces,
 metrics and logs following docs/TELEMETRY.md, then posts one Grafana annotation per run. It is a
 second, independent implementation of the telemetry contract, written to check the dashboards
-before the real exporter in integrations/grafana/exporter/ exists.
+before the real exporter in integrations/grafana/exporter/ exists. Spans and log records carry the
+run's own times. Metrics are one cumulative snapshot stamped with the send time, as the contract
+says an exporter process does.
 
 Usage:
   uv run seed.py RUNS_DIR_OR_FILES... [--otlp http://localhost:4318] [--grafana http://localhost:3000]
@@ -26,6 +28,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -429,7 +432,8 @@ def emit(runs: list[dict], otlp: str, namespace: str | None, version: str) -> No
                     metrics.append(Metric(name, description, unit, Histogram(points, AggregationTemporality.CUMULATIVE)))
         return MetricsData([ResourceMetrics(resource, [ScopeMetrics(scope, metrics, "")], "")])
 
-    # Metrics must reach Prometheus in time order, so sort by the time the run ended.
+    # Log lines must reach Loki oldest first, so collect them and send them sorted at the end.
+    log_records: list[tuple[dict, int]] = []
     for run in sorted(runs, key=lambda r: r["ended_at"]):
         ids.trace_id = trace_id_for(run["id"])
         ids.span_id = span_id_for(run["id"], None)
@@ -461,8 +465,19 @@ def emit(runs: list[dict], otlp: str, namespace: str | None, version: str) -> No
     metric_exporter.shutdown()
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A redirect would carry the token somewhere else, so refuse it."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, f"refusing to follow a redirect to {newurl}", headers, fp)
+
+
 def post_annotations(runs: list[dict], grafana: str, token: str) -> int:
     """Post one annotation per run with a service account token. Skips runs that already have one."""
+    parsed = urllib.parse.urlsplit(grafana)
+    if parsed.scheme != "https" and parsed.hostname not in ("localhost", "127.0.0.1", "::1"):
+        raise SystemExit("GRAFANA_TOKEN is only sent over https or to this machine")
+    urllib.request.install_opener(urllib.request.build_opener(NoRedirect))
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
     posted = 0
     for run in runs:

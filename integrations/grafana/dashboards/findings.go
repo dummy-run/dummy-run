@@ -13,28 +13,28 @@ func (c Config) Findings() *dashboard.DashboardBuilder {
 	b := c.base(uidFindings, "Dummy Run: findings",
 		"Confirmed permission findings first, then blockers, then every distinct finding with when it was seen and who hit it. Everything here comes from the finding log lines.")
 
-	personaOnly := lokiFindSel
+	filters := lokiFilters
 
 	b.WithRow(dashboard.NewRowBuilder("Permission findings").Id(ids.id()))
 	b.WithPanel(c.lokiStat(ids.id(), "Permission findings",
 		"A role saw or did something beyond its rights, and the reviewer confirmed it.",
-		countOver(lokiFindings+personaOnly+` | dummyrun_finding_kind="permission" | dummyrun_finding_verdict="confirmed"`, "$__range"),
+		countOver(lokiFindings+filters+` | dummyrun_finding_kind="permission" | dummyrun_finding_verdict="confirmed"`, "$__range"),
 		"short", 0, thresholds(colourPass, 1.0, colourBlocker), 6, 7))
 	b.WithPanel(c.findingsSurfaced(ids.id(), "Confirmed permission findings",
 		"Distinct confirmed permission findings in the time range, with the number of runs that hit each one.",
-		lokiFindings+personaOnly+` | dummyrun_finding_kind="permission" | dummyrun_finding_verdict="confirmed"`, 18, 7))
+		lokiFindings+filters+` | dummyrun_finding_kind="permission" | dummyrun_finding_verdict="confirmed"`, 18, 7))
 
 	b.WithRow(dashboard.NewRowBuilder("Blockers").Id(ids.id()))
 	b.WithPanel(c.lokiStat(ids.id(), "Confirmed blockers",
 		"Confirmed findings with blocker severity, of any kind.",
-		countOver(lokiFindings+personaOnly+` | dummyrun_finding_severity="blocker" | dummyrun_finding_verdict="confirmed"`, "$__range"),
+		countOver(lokiFindings+filters+` | dummyrun_finding_severity="blocker" | dummyrun_finding_verdict="confirmed"`, "$__range"),
 		"short", 0, thresholds(colourPass, 1.0, colourBlocker), 6, 7))
 	b.WithPanel(c.findingsSurfaced(ids.id(), "Confirmed blockers",
 		"Distinct confirmed blockers in the time range, with the number of runs that hit each one.",
-		lokiFindings+personaOnly+` | dummyrun_finding_severity="blocker" | dummyrun_finding_verdict="confirmed"`, 18, 7))
+		lokiFindings+filters+` | dummyrun_finding_severity="blocker" | dummyrun_finding_verdict="confirmed"`, 18, 7))
 
 	b.WithRow(dashboard.NewRowBuilder("All findings").Id(ids.id()))
-	b.WithPanel(c.distinctFindings(ids.id(), lokiFindings+personaOnly, 24, 14))
+	b.WithPanel(c.distinctFindings(ids.id(), lokiFindings+filters, 24, 14))
 	b.WithPanel(c.findingsOverTime(ids.id(), "Confirmed findings by kind over time", "Confirmed findings in each interval, stacked by kind.",
 		"dummyrun_finding_kind", nil, nil, 12, 8))
 	b.WithPanel(c.findingsOverTime(ids.id(), "Confirmed findings by severity over time", "Confirmed findings in each interval, stacked by severity.",
@@ -47,7 +47,7 @@ func (c Config) Findings() *dashboard.DashboardBuilder {
 		Description("One line per finding per run. Open a line to see its attributes and the link to the run's trace.").
 		Datasource(c.loki()).
 		Span(24).Height(14).
-		WithTarget(lokiLogs(c.loki(), lokiFindings+personaOnly, 500)).
+		WithTarget(lokiLogs(c.loki(), lokiFindings+filters, 500)).
 		ShowTime(true).
 		ShowLabels(false).
 		ShowCommonLabels(false).
@@ -73,7 +73,7 @@ func (c Config) distinctFindings(id uint32, expr string, w, h uint32) *table.Pan
 	return table.NewPanelBuilder().
 		Id(id).
 		Title("Distinct findings").
-		Description("Every finding ID in the time range, confirmed or not. First seen and last seen are the times of the runs that hit it.").
+		Description("Finding IDs from the latest 5000 finding log lines in the time range, confirmed or not. First seen and last seen are the times of the runs that hit it. Narrow the time range if a fortnight holds more lines than that.").
 		Datasource(c.loki()).
 		Span(w).Height(h).
 		WithTarget(lokiLogs(c.loki(), expr, 5000)).

@@ -606,7 +606,7 @@
         }
       ],
       "title": "Distinct findings",
-      "description": "Every finding ID in the time range, confirmed or not. First seen and last seen are the times of the runs that hit it.",
+      "description": "Finding IDs from the latest 5000 finding log lines in the time range, confirmed or not. First seen and last seen are the times of the runs that hit it. Narrow the time range if a fortnight holds more lines than that.",
       "transparent": false,
       "datasource": {
         "type": "loki",

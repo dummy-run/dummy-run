@@ -230,6 +230,11 @@ def test_write_shifted_records(tmp_path):
     assert (datetime.now(timezone.utc) - newest).total_seconds() < 120
 
 
+def test_token_only_goes_to_https_or_loopback(monkeypatch):
+    with pytest.raises(SystemExit):
+        seed.post_annotations([], "http://grafana.example", "glsa_x")
+
+
 def test_rejects_other_schema_versions(tmp_path):
     (tmp_path / "x.json").write_text('{"schema_version": 2, "started_at": "2026-01-01T00:00:00Z"}')
     with pytest.raises(ValueError):
