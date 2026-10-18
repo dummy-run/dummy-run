@@ -2,28 +2,28 @@
 
 ## Reporting a vulnerability in Dummy Run
 
-Use GitHub's private vulnerability reporting on this repository ("Report a vulnerability" under the
-Security tab). You will get an acknowledgement within three working days and a fix or a plan within
-thirty. Please do not open a public issue for security problems.
+Report it privately through GitHub. Open the Security tab of this repository and choose "Report a
+vulnerability". We acknowledge reports within three working days. You get a fix or a plan within thirty.
+Please keep security problems out of public issues.
 
-In scope: the harness, the reviewer, the results board, the Helm chart and the adapters in this
-organisation. Out of scope: the applications Dummy Run is pointed at (see below), and the third-party
-model providers.
+The harness, the reviewer and the results board are in scope. So are the Helm chart and the adapters in
+this organisation. The apps that Dummy Run tests are out of scope, and so are third-party model
+providers.
 
-## Findings about other people's applications
+## Findings about other people's apps
 
-Dummy Run exists to find permission leaks and broken flows in the apps it tests. If you run it against
-software you do not own and it finds something, that finding belongs to the owner of that software, not to
-this project. Report it to them through their own disclosure route. Do not post it here, in issues, in
-discussions or in example data.
+Dummy Run finds permission leaks and broken flows in the apps it tests. Suppose you run it against
+software you do not own, and it finds something. That finding belongs to the software's owner. Report it
+to them through their own disclosure route. Keep it out of this project's issues, discussions and
+example data.
 
 ## What this project never stores
 
-No run data from any target leaves the operator's environment unless the operator publishes it. The
-repository contains no run results, screenshots, credentials or persona data derived from a real customer.
-CI enforces a clean tree for known client identifiers; if you find one it missed, report it privately
-through the route above.
+Run data stays in the operator's environment unless the operator publishes it. This repository holds no
+run results or screenshots. It holds no credentials either, and no persona data drawn from a real
+customer. CI checks the tree for known client identifiers. If you find one that it missed, report it
+privately as described above.
 
 ## Supported versions
 
-Pre-release. Only `main` is supported until the first tagged release.
+Dummy Run is in pre-release. Until the first tagged release, only `main` is supported.

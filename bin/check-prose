@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Check user-facing prose against the plain-wording rules in docs/STYLE.md.
+
+Usage: bin/check-prose [FILE...]   (with no arguments, the user-facing files listed below)
+
+Per sentence it flags: more than two commas, signposts, and staged contrasts ("not X, but Y",
+"X, not Y"). Per paragraph or list item it flags bold anywhere but a run-in head at the start, and
+bold labels ending in a colon. Table rows are checked for commas only, since a bold cell may name a
+row. Code, inline code, URLs, link targets and HTML are ignored. Exits 1 on any finding.
+"""
+import re
+import sys
+from pathlib import Path
+
+USER_FACING = ["README.md", "CONTRIBUTING.md", "SECURITY.md", "TRADEMARKS.md", "CODE_OF_CONDUCT.md", "docs/LICENSING.md"]
+MAX_COMMAS = 2
+SIGNPOSTS = re.compile(
+    r"\b(it is worth noting|worth noting|note that|in summary|in short|to summarise|importantly|"
+    r"needless to say|simply put|at the end of the day|here's the thing|let's dive)\b", re.I)
+STAGED = [re.compile(r"\bnot\b[^.;:]{1,80}?,\s*but\b", re.I), re.compile(r",\s+not\s+(?!only\b)\w", re.I)]
+ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+")
+
+
+def clean(text):
+    text = re.sub(r"`[^`]*`", "CODE", text)
+    text = re.sub(r"\]\([^)]*\)", "]", text)
+    text = re.sub(r"https?://\S+", "URL", text)
+    return re.sub(r"<[^>]+>", "", text)
+
+
+def blocks(lines):
+    """Yield (first line number, kind, text) for paragraphs, list items and table rows."""
+    in_code, buf, start = False, [], 0
+    def flush():
+        if buf:
+            yield start, "prose", " ".join(buf)
+    for n, raw in enumerate(lines, 1):
+        s = raw.strip()
+        if s.startswith("```"):
+            yield from flush(); buf = []
+            in_code = not in_code
+            continue
+        if in_code:
+            continue
+        if not s or s.startswith(("#", "<", "---")):
+            yield from flush(); buf = []
+            continue
+        s = s.lstrip("> ").strip()
+        if s.startswith("|"):
+            yield from flush(); buf = []
+            if not re.fullmatch(r"[|\s:-]+", s):
+                yield n, "table", s
+            continue
+        if ITEM.match(s):
+            yield from flush(); buf, start = [ITEM.sub("", s)], n
+            continue
+        if not buf:
+            start = n
+        buf.append(s)
+    yield from flush()
+
+
+def check(path):
+    hits = []
+    for n, kind, text in blocks(Path(path).read_text().splitlines()):
+        text = clean(text)
+        parts = [c for c in text.split("|") if c.strip()] if kind == "table" else [text]
+        if kind == "prose":
+            if re.search(r"\*\*[^*]+:\*\*|\*\*[^*]+\*\*:", text):
+                hits.append((n, "bold label with a colon; write the sentence"))
+            if re.search(r"\*\*[^*]+\*\*", re.sub(r"^\*\*[^*]+\*\*", "", text)):
+                hits.append((n, "bold inside prose; bold is only for a run-in head at the start"))
+        for part in parts:
+            for sent in re.split(r"(?<=[.!?])\s+", part):
+                if sent.count(",") > MAX_COMMAS:
+                    hits.append((n, f"{sent.count(',')} commas in one sentence: \"{sent.strip()[:80]}\""))
+                if kind == "prose" and SIGNPOSTS.search(sent):
+                    hits.append((n, f"signpost \"{SIGNPOSTS.search(sent).group(0)}\""))
+                for rx in STAGED:
+                    if kind == "prose" and rx.search(sent):
+                        hits.append((n, f"staged contrast \"{rx.search(sent).group(0).strip()}\": \"{sent.strip()[:80]}\""))
+    return [f"{path}:{n}: {msg}" for n, msg in hits]
+
+
+files = sys.argv[1:] or [f for f in USER_FACING if Path(f).exists()]
+found = [h for f in files for h in check(f)]
+if found:
+    print("\n".join(found))
+    print(f"prose: {len(found)} findings. Rules: docs/STYLE.md, Plain wording.")
+    sys.exit(1)
+print(f"prose: {len(files)} files clean")

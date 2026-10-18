@@ -2,10 +2,15 @@
 
 ## Our pledge
 
-We, as members, contributors and leaders, pledge to make participation in this project a harassment-free
-experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex
-characteristics, gender identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, religion, or sexual identity and orientation.
+We pledge to make taking part in this project free of harassment for everyone. That applies to
+members, contributors and leaders alike. It holds regardless of any of these:
+
+- age, body size, or a visible or invisible disability
+- ethnicity, race, nationality or religion
+- sex characteristics, gender identity or gender expression
+- sexual identity or orientation
+- level of experience, education or socio-economic status
+- personal appearance
 
 ## Our standards
 
@@ -36,8 +41,8 @@ Report unacceptable behaviour to the maintainers at the contact address in the o
 (https://github.com/dummy-run). All reports are reviewed promptly and handled with discretion. Maintainers
 who do not follow or enforce this code may be removed from the project.
 
-Consequences follow the Contributor Covenant enforcement ladder: correction, warning, temporary ban,
-permanent ban.
+Consequences follow the Contributor Covenant enforcement ladder. It runs from a correction to a warning,
+then a temporary ban and finally a permanent ban.
 
 ## Attribution
 

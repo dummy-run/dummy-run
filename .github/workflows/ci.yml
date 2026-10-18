@@ -58,6 +58,8 @@ jobs:
             fi
           done < <(grep -rIoE --include='*.md' --exclude-dir=.git '\]\([^)]+\)' . | sed -E 's/\]\(([^)]*)\)/\1/')
           exit $fail
+      - name: Plain wording on user-facing pages
+        run: bin/check-prose
       - name: House style, no em dashes in prose
         run: |
           if grep -rIn --include='*.md' --exclude-dir=.git -P '\x{2014}' . ; then
