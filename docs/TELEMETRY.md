@@ -47,6 +47,8 @@ Root span attributes:
 | `dummyrun.outcome` | `outcome` |
 | `gen_ai.usage.input_tokens` | `usage.input_tokens` |
 | `gen_ai.usage.output_tokens` | `usage.output_tokens` |
+| `dummyrun.cost.usd` | `usage.cost_usd`, when present |
+| `dummyrun.steps.count` | The number of entries in `steps` |
 
 The root span status is `ERROR` when the outcome is `errored` or `blocked`, and `OK` otherwise.
 
@@ -88,7 +90,9 @@ a new series. Scenario IDs come from the cast's files, so `scenario.id` is a bou
 
 Metric data points carry the time the exporter sent them. Each exporter
 process starts its counters at zero. Metrics therefore describe runs as they are exported. Use
-`dummyrun-otel watch` for live charts, and use the log records for history and totals.
+`dummyrun-otel watch` for live charts. For history, use the log records. Each run-end record holds
+the run's outcome, step count, tokens and cost. Each finding record holds one finding. Step durations come from the
+step spans in traces.
 
 | Histogram | Bucket boundaries |
 |---|---|
@@ -107,9 +111,9 @@ trace ID and span ID, so Grafana can jump from a log line to the trace.
 
 Loki stores `dummyrun.finding.steps` as JSON text, such as `[2,3]`. Query it as a string.
 
-Loki rejects a line more than an hour older than the newest line in its stream. The exporter sends
-each batch oldest first. Export runs in `ended_at` order, and never export a batch that ends more than
-an hour before one already sent.
+Loki rejects a line more than an hour older than the newest line already in its stream. The exporter
+sorts every line it sends by its own time. Before sending, it checks that its oldest line is no more
+than an hour older than the newest line already sent to that stream, and it fails if not.
 
 ## Grafana annotations
 
