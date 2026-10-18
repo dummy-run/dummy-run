@@ -1,0 +1,38 @@
+{{ define "main" }}
+<section class="hero">
+  <div class="frame">
+    <h1 class="u-display">AI plays your users and tries your app before your customers do.</h1>
+  </div>
+  <div class="hero-text">
+    {{ .Content }}
+  </div>
+</section>
+
+<section class="chooser" aria-labelledby="chooser-heading">
+  <p class="chooser-line">
+    <span id="chooser-heading" class="chooser-lead">I am</span>
+    {{ range (where .Site.RegularPages "Section" "for").ByWeight }}
+    <a class="chooser-choice" href="{{ .RelPermalink }}">{{ .Params.choice }}</a>
+    {{- end }}
+  </p>
+</section>
+
+<section class="home-section" aria-labelledby="how-heading">
+  <h2 id="how-heading" class="u-title-sm">How a run works</h2>
+  {{ partial "diagrams/how-it-works.html" . }}
+  <p>A finding needs a run ID, a step number and a screenshot or log line. Nothing is posted for you. A person decides what becomes a ticket. The full description is in <a href="/docs/how-it-works/">How it works</a>.</p>
+</section>
+
+<section class="home-section" aria-labelledby="ref-heading">
+  <h2 id="ref-heading" class="u-title-sm">Reference</h2>
+  <dl class="ref-list">
+    {{ range (where .Site.RegularPages "Section" "docs").ByWeight }}
+    {{ if .Params.home_hidden }}{{ continue }}{{ end }}
+    <div class="ref-item">
+      <dt><a href="{{ .RelPermalink }}">{{ .Title }}</a></dt>
+      <dd>{{ .Summary | plainify }}</dd>
+    </div>
+    {{ end }}
+  </dl>
+</section>
+{{ end }}

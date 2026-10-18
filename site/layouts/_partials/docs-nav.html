@@ -1,0 +1,14 @@
+<nav class="docs-nav" aria-label="All pages">
+  <p class="docs-nav-heading"><a href="/for/" {{ if eq .RelPermalink "/for/" }}aria-current="page"{{ end }}>Who it is for</a></p>
+  <ul>
+    {{ range (where .Site.RegularPages "Section" "for").ByWeight }}
+    <li><a href="{{ .RelPermalink }}" {{ if eq $.RelPermalink .RelPermalink }}aria-current="page"{{ end }}>{{ .Title }}</a></li>
+    {{ end }}
+  </ul>
+  <p class="docs-nav-heading"><a href="/docs/" {{ if eq .RelPermalink "/docs/" }}aria-current="page"{{ end }}>Reference</a></p>
+  <ul>
+    {{ range (where .Site.RegularPages "Section" "docs").ByWeight }}
+    <li><a href="{{ .RelPermalink }}" {{ if eq $.RelPermalink .RelPermalink }}aria-current="page"{{ end }}>{{ .Title }}</a></li>
+    {{ end }}
+  </ul>
+</nav>

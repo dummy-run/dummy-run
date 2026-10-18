@@ -9,3 +9,12 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      site-checks:
+        patterns: ["*"]

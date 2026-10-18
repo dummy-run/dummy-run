@@ -1,0 +1,37 @@
+{{- /* Links in Markdown copied from the repository point at repository files. Map the ones the site renders to site pages and send the rest to GitHub. */ -}}
+{{- $u := .Destination -}}
+{{- $href := $u -}}
+{{- $external := or (hasPrefix $u "http://") (hasPrefix $u "https://") (hasPrefix $u "mailto:") -}}
+{{- if and (not $external) (not (hasPrefix $u "#")) (not (hasPrefix $u "/")) -}}
+  {{- $parts := split $u "#" -}}
+  {{- $file := index $parts 0 -}}
+  {{- $frag := "" -}}
+  {{- if gt (len $parts) 1 }}{{ $frag = printf "#%s" (index $parts 1) }}{{ end -}}
+  {{- $dir := .Page.Params.sourcedir | default "" -}}
+  {{- if eq $dir "." }}{{ $dir = "" }}{{ end -}}
+  {{- $full := path.Clean (path.Join $dir $file) -}}
+  {{- $pages := dict
+    "docs/ARCHITECTURE.md" "/docs/architecture/"
+    "docs/TELEMETRY.md" "/docs/telemetry/"
+    "docs/PLAN.md" "/docs/plan/"
+    "docs/LICENSING.md" "/docs/licensing/"
+    "docs/STYLE.md" "/docs/style/"
+    "docs/TYPOGRAPHY.md" "/docs/typography/"
+    "docs/NAMING.md" "/docs/naming/"
+    "docs/integrations/grafana.md" "/docs/grafana-guide/"
+    "CONTRIBUTING.md" "/docs/contributing/"
+    "SECURITY.md" "/docs/security/"
+    "TRADEMARKS.md" "/docs/trademarks/"
+    "brand/README.md" "/docs/brand/"
+    "README.md" "/"
+  -}}
+  {{- with index $pages $full -}}
+    {{- $href = printf "%s%s" . $frag -}}
+  {{- else -}}
+    {{- $kind := "blob" -}}
+    {{- if or (hasSuffix $file "/") (not (path.Ext $file)) }}{{ $kind = "tree" }}{{ end -}}
+    {{- $href = printf "%s/%s/main/%s%s" site.Params.repo $kind $full $frag -}}
+  {{- end -}}
+{{- end -}}
+<a href="{{ $href | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}>{{ .Text }}</a>
+{{- /* chomp */ -}}

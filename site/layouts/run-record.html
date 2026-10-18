@@ -1,0 +1,32 @@
+{{ define "main" }}
+{{- $schema := resources.Get "repo/schema/run-record.schema.json" | transform.Unmarshal -}}
+<div class="docs-layout">
+  <article class="prose">
+    <header class="page-header">
+      <h1 class="u-title">{{ .Title }}</h1>
+      {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
+    </header>
+    {{ .Content }}
+
+    <h2 id="fields">Fields</h2>
+    <p>{{ $schema.description }} Every table below comes from <code>schema/run-record.schema.json</code>, version {{ $schema.properties.schema_version.const }}. A field marked required must be present.</p>
+    {{ partial "schema-table.html" (dict "name" "Top level" "schema" $schema "id" "top") }}
+    {{ range $key := slice "persona" "scenario" "target" "provider" "browser" "usage" }}
+      {{ $sub := index $schema.properties $key }}
+      {{ partial "schema-table.html" (dict "name" $key "schema" $sub "id" $key) }}
+    {{ end }}
+    {{ partial "schema-table.html" (dict "name" "steps, each item" "schema" $schema.properties.steps.items "id" "steps") }}
+    {{ partial "schema-table.html" (dict "name" "findings, each item" "schema" $schema.properties.findings.items "id" "findings") }}
+
+    <h2 id="example">An example record</h2>
+    {{ $ex := resources.Get "repo/examples/runs/2026-10-17-lin-contributor-008.json" }}
+    <p>This is <code>examples/runs/2026-10-17-lin-contributor-008.json</code>, one of the eight synthetic records in the repository. The persona lin-contributor checked a payment status in Inkwell on a tablet. The reviewer confirmed one permission finding and left one question pending.</p>
+    <details class="example-record">
+      <summary>Show the record ({{ len (split $ex.Content "\n") }} lines of JSON)</summary>
+      {{ transform.Highlight $ex.Content "json" }}
+    </details>
+    {{ partial "page-source.html" . }}
+  </article>
+  {{ partial "docs-nav.html" . }}
+</div>
+{{ end }}
