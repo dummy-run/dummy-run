@@ -81,6 +81,20 @@ jobs:
             sleep 3
           done
           docker compose logs; exit 1
+      - name: Wait for the Loki and Tempo plugins to answer queries
+        run: |
+          query() {
+            curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d "$1" localhost:3000/api/ds/query
+          }
+          loki='{"queries":[{"refId":"A","datasource":{"type":"loki","uid":"loki"},"expr":"{service_name=\"dummyrun\"}","queryType":"range","maxLines":1}],"from":"now-1h","to":"now"}'
+          tempo='{"queries":[{"refId":"A","datasource":{"type":"tempo","uid":"tempo"},"queryType":"traceql","query":"{ }","limit":1}],"from":"now-1h","to":"now"}'
+          for i in $(seq 1 60); do
+            if [ "$(query "$loki")" = "200" ] && [ "$(query "$tempo")" = "200" ]; then
+              echo "plugins ready after $i tries"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::Loki or Tempo queries still fail"; query "$loki"; echo; query "$tempo"; exit 1
       - name: Every dashboard is provisioned
         run: |
           for uid in dummyrun-home dummyrun-overview dummyrun-personas dummyrun-findings dummyrun-run; do
