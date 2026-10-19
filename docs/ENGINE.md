@@ -38,7 +38,9 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment`. See `examples/targets/` |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`; screenshots and the persona's report are under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
-| `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record |
+| `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
+| `--endpoint`, `--api-key-env`, `--project` | The provider's base URL, the name of the environment variable holding its API key, and the Google Cloud project for `vertex` |
+| `--reasoning-effort`, `--openai-api` | Reasoning effort, and `responses` to use the Responses API, for OpenAI-style models |
 | `--steps N` | Step budget, up to 40. A scenario can also ask with a `Budget: 30 steps` line. The default is 25 |
 | `--tokens N` | Token budget for input plus output. The default is 1,500,000 |
 | `--headful` | Show the browser window |
@@ -91,9 +93,10 @@ API key. Each call has a 120 second timeout and up to three retries. The API ver
 it. Token usage from every call is summed into the record's `usage` block, and
 `--region` is recorded as `provider.region` because a deployment does not report where it runs.
 
-Anthropic and Gemini are not implemented yet. The interface keeps room for them: `ForceTool` is a request
-that a provider may downgrade to automatic tool choice when it cannot honour it, and images travel as PNG
-bytes so each provider can encode them its own way.
+Other backends sit behind the same interface. They are any OpenAI-compatible service, Anthropic, Gemini and
+Amazon Bedrock. A capability table in `internal/provider/capabilities.go` tells the runner
+what each can do, so it picks fallbacks without checking names. `docs/PROVIDERS.md` has the flags, the notes for
+each vendor and the data region of each.
 
 ## Tests
 

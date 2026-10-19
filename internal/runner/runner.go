@@ -154,6 +154,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 
 	system := r.systemPrompt()
 	maxCalls := r.budget + 10
+	caps := provider.CapabilitiesOf(cfg.Provider)
 	for calls := 0; calls < maxCalls; calls++ {
 		if err := ctx.Err(); err != nil {
 			return nil, r.patience.GaveUp(), err
@@ -168,13 +169,20 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 			force, r.forced = "finish", "the token budget"
 		}
 		callStart := time.Now()
-		resp, err := cfg.Provider.Chat(ctx, provider.Request{System: system, Turns: r.turns(), Tools: Tools,
+		// The capability table says whether the backend can force a tool; if not,
+		// Adapt swaps the force for an instruction.
+		req, adaptNote := provider.Adapt(caps, provider.Request{System: system, Turns: r.turns(caps), Tools: Tools,
 			ForceTool: force, MaxOutputTokens: maxOutputTokens})
+		resp, err := cfg.Provider.Chat(ctx, req)
+		if resp.Note == "" {
+			resp.Note = adaptNote
+		}
 		r.usage.ModelCalls++
 		fmt.Fprintf(r.log, "  model call %d: %.1fs, %d in / %d out tokens%s\n", r.usage.ModelCalls, time.Since(callStart).Seconds(),
 			resp.Usage.InputTokens, resp.Usage.OutputTokens, errNote(err))
 		r.usage.InputTokens += resp.Usage.InputTokens
 		r.usage.OutputTokens += resp.Usage.OutputTokens
+		r.usage.CachedInputTokens += resp.Usage.CachedInputTokens
 		if err != nil {
 			return nil, r.patience.GaveUp(), fmt.Errorf("model call %d: %w", r.usage.ModelCalls, err)
 		}
@@ -367,7 +375,7 @@ func (r *run) saveStep(s *Step) {
 
 // turns builds the conversation for the next model call: the newest
 // observations in full with screenshots, older ones as one line each.
-func (r *run) turns() []provider.Turn {
+func (r *run) turns(caps provider.Capabilities) []provider.Turn {
 	var obsIdx []int
 	for i, e := range r.entries {
 		if e.step != nil {
@@ -413,8 +421,13 @@ func (r *run) turns() []provider.Turn {
 			if e.step != nil {
 				text = r.observationText(e, full[i])
 			}
-			turns = append(turns, provider.Turn{Role: provider.RoleTool, ToolCallID: e.callID, Text: text})
-			if e.step != nil && shot[i] && len(e.step.Obs.Screenshot) > 0 {
+			tool := provider.Turn{Role: provider.RoleTool, ToolCallID: e.callID, Text: text}
+			hasShot := e.step != nil && shot[i] && len(e.step.Obs.Screenshot) > 0
+			if hasShot && caps.ImagesInToolResults {
+				tool.Images = []provider.Image{{PNG: e.step.Obs.Screenshot}}
+			}
+			turns = append(turns, tool)
+			if hasShot && !caps.ImagesInToolResults {
 				pendingShots = append(pendingShots, provider.Turn{Role: provider.RoleUser,
 					Text:   fmt.Sprintf("Screenshot after step %d.", e.step.N),
 					Images: []provider.Image{{PNG: e.step.Obs.Screenshot}}})
