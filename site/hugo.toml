@@ -9,6 +9,25 @@ timeout = "120s"
   description = "AI plays your users and tries your app before your customers do."
   repo = "https://github.com/dummy-run/dummy-run"
 
+# The reference pages fall into these groups, in this order. A page joins a group with `group` in its
+# front matter, or in the content adapter for pages rendered from the repository's Markdown.
+[[params.docGroups]]
+  key = "understand"
+  title = "How it is built"
+  text = "What a run produces and the rules it follows."
+[[params.docGroups]]
+  key = "integrate"
+  title = "Connect it"
+  text = "Send runs to Grafana or any OpenTelemetry backend."
+[[params.docGroups]]
+  key = "project"
+  title = "The project"
+  text = "The plan, how to contribute, and how we write and design."
+[[params.docGroups]]
+  key = "policy"
+  title = "Licence, trademarks and security"
+  text = "What you may do with the code and the name, and how to report a problem."
+
 [markup.goldmark.renderer]
   unsafe = false
 

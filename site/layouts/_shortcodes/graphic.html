@@ -1,3 +1,1 @@
-{{- $name := .Get "name" -}}
-{{- $args := dict "kind" (.Get "kind") "who" (.Get "who") -}}
-{{ partial (printf "graphics/%s.html" $name) $args }}
+{{- partial "example.html" (dict "name" (.Get "name") "kind" (.Get "kind") "who" (.Get "who")) -}}

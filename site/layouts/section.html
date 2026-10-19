@@ -1,20 +1,19 @@
 {{ define "main" }}
-<div class="docs-layout">
+<div class="docs-layout is-wide">
   <article class="prose">
+    {{ partial "breadcrumbs.html" . }}
     <header class="page-header">
       <h1 class="u-title">{{ .Title }}</h1>
       {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
     </header>
     {{ .Content }}
-    <dl class="ref-list">
-      {{ range .RegularPages.ByWeight }}
-      <div class="ref-item">
-        <dt><a href="{{ .RelPermalink }}">{{ .Title }}</a></dt>
-        <dd>{{ .Summary | plainify }}</dd>
-      </div>
-      {{ end }}
-    </dl>
+    {{ if eq .Section "for" }}
+      {{ partial "role-tiles.html" (dict "long" true) }}
+    {{ else }}
+      {{ partial "doc-groups.html" . }}
+    {{ end }}
+    {{ partial "next-step.html" . }}
+    {{ partial "page-source.html" . }}
   </article>
-  {{ partial "docs-nav.html" . }}
 </div>
 {{ end }}
