@@ -19,7 +19,9 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/dummy-run/dummy-run/internal/a11y"
 	"github.com/dummy-run/dummy-run/internal/cast"
+	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/policy"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
@@ -41,6 +43,8 @@ func run(args []string) int {
 		return runCmd(args[1:])
 	case "a11y":
 		return a11yCmd(args[1:])
+	case "coverage":
+		return coverageCmd(args[1:])
 	case "audit":
 		if len(args) > 1 && args[1] == "a11y" {
 			return a11yCmd(args[2:])
@@ -64,11 +68,14 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
-      [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses]
+      [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
+  dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
+      [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
-Run "dummyrun run -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -105,6 +112,9 @@ func runCmd(args []string) int {
 	steps := fs.Int("steps", 0, "step budget override (up to 40)")
 	tokens := fs.Int("tokens", 0, "token budget (input plus output)")
 	batch := fs.String("batch", "", "batch ID grouping runs started together")
+	seed := fs.Int64("seed", -1, "sampling seed sent to the model API where the provider takes one (0 or more); recorded as seed, null where it is not sent")
+	repeat := fs.Int("repeat-index", -1, "repeat count for this persona, scenario and model in the batch (default: counted from the records in --out)")
+	universe := fs.String("universe", "", "where the routes that exist come from, for route coverage: \"sitemap\" (base_url/sitemap.xml) or a sitemap URL")
 	headful := fs.Bool("headful", false, "show the browser window")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -146,10 +156,22 @@ func runCmd(args []string) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	res, err := runner.Run(ctx, runner.Config{
+	cfg := runner.Config{
 		Persona: persona, Scenario: scenario, Target: target, Provider: p, Browser: *browser, Headless: !*headful,
 		OutDir: *out, StepBudget: *steps, TokenBudget: *tokens, Batch: *batch, Log: os.Stderr,
-	})
+	}
+	if *seed >= 0 {
+		cfg.Seed = seed
+	}
+	if *repeat >= 0 {
+		cfg.RepeatIndex = repeat
+	}
+	if *universe != "" {
+		if cfg.Universe, err = fetchUniverse(ctx, *universe, target.BaseURL); err != nil {
+			return fail(err)
+		}
+	}
+	res, err := runner.Run(ctx, cfg)
 	if err != nil {
 		if res != nil {
 			fmt.Fprintf(os.Stderr, "dummyrun: run errored and was recorded at %s\n", res.Path)
@@ -158,6 +180,31 @@ func runCmd(args []string) int {
 	}
 	summary(res.Record)
 	return 0
+}
+
+// fetchUniverse reads a sitemap and returns its normalised routes, each tagged with the source "sitemap".
+func fetchUniverse(ctx context.Context, spec, baseURL string) ([]record.RouteUniverseEntry, error) {
+	loc := spec
+	if spec == "sitemap" {
+		loc = strings.TrimSuffix(baseURL, "/") + "/sitemap.xml"
+	}
+	pages, err := a11y.FetchSitemap(ctx, nil, loc)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	var out []record.RouteUniverseEntry
+	for _, p := range pages {
+		r := identity.NormaliseRoute(p)
+		if !seen[r] {
+			seen[r] = true
+			out = append(out, record.RouteUniverseEntry{Route: r, Source: "sitemap"})
+		}
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("%s lists no pages", loc)
+	}
+	return out, nil
 }
 
 func loadTarget(path string) (policy.Target, error) {

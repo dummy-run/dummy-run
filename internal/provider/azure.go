@@ -91,7 +91,11 @@ func (a *Azure) Chat(ctx context.Context, req Request) (Response, error) {
 }
 
 // Capabilities reads the capability table.
-func (a *Azure) Capabilities() Capabilities { return capabilityTable[a.Kind()] }
+func (a *Azure) Capabilities() Capabilities {
+	c := capabilityTable[a.Kind()]
+	c.Seed = c.Seed && a.api != APIResponses // the Responses API has no seed
+	return c
+}
 
 // chatParams maps a Request onto the chat completions API for Azure, which is
 // told to call a tool every turn.
@@ -140,6 +144,9 @@ func chatParamsWith(model string, req Request, choice string) openai.ChatComplet
 	params := openai.ChatCompletionNewParams{Model: model, Messages: msgs}
 	if req.MaxOutputTokens > 0 {
 		params.MaxCompletionTokens = openai.Int(int64(req.MaxOutputTokens))
+	}
+	if req.Seed != nil {
+		params.Seed = openai.Int(*req.Seed)
 	}
 	for _, tool := range req.Tools {
 		def := shared.FunctionDefinitionParam{Name: tool.Name, Description: openai.String(tool.Description)}

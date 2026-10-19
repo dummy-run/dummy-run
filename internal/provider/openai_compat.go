@@ -82,7 +82,11 @@ func (o *OpenAICompatible) Model() string { return o.model }
 func (o *OpenAICompatible) Region() string { return o.region }
 
 // Capabilities reads the capability table.
-func (o *OpenAICompatible) Capabilities() Capabilities { return capabilityTable[o.Kind()] }
+func (o *OpenAICompatible) Capabilities() Capabilities {
+	c := capabilityTable[o.Kind()]
+	c.Seed = c.Seed && o.api != APIResponses // the Responses API has no seed
+	return c
+}
 
 // Chat makes one chat completion call.
 func (o *OpenAICompatible) Chat(ctx context.Context, req Request) (Response, error) {

@@ -229,3 +229,20 @@ func TestDisplay(t *testing.T) {
 		t.Errorf("zoom: big gave %v", err)
 	}
 }
+
+func TestATFollowsTheToolLimits(t *testing.T) {
+	for _, c := range []struct {
+		p    Persona
+		want string
+	}{
+		{Persona{}, "none"},
+		{Persona{ToolsDenied: []string{"click"}}, "keyboard-only"},
+		{Persona{ToolsAllowed: []string{"press", "look"}}, "keyboard-only"},
+		{Persona{ToolsDenied: []string{"screenshot"}}, "screen-reader-view"},
+		{Persona{ToolsDenied: []string{"scroll"}}, "none"},
+	} {
+		if got := c.p.AT(); got != c.want {
+			t.Errorf("%+v: AT %q, want %q", c.p, got, c.want)
+		}
+	}
+}

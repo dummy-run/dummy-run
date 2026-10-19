@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -20,6 +21,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/policy"
+	"github.com/dummy-run/dummy-run/internal/price"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
@@ -47,8 +49,18 @@ type Config struct {
 	StepBudget  int
 	TokenBudget int
 	Batch       string
-	Log         io.Writer
-	Launch      bidi.LaunchOptions
+	// Seed is the sampling seed to send to a model API that takes one. It is recorded only when
+	// the provider sends it.
+	Seed *int64
+	// RepeatIndex overrides the repeat count. Nil counts the earlier runs in OutDir with the same
+	// batch, persona, scenario and model.
+	RepeatIndex *int
+	// Universe is the list of routes that exist, written to the record as target.route_universe.
+	Universe []record.RouteUniverseEntry
+	// HTTPClient fetches the home page to identify the build of a URL target. Nil uses a default client.
+	HTTPClient *http.Client
+	Log        io.Writer
+	Launch     bidi.LaunchOptions
 }
 
 // Result is what a run produced.
@@ -88,7 +100,15 @@ type run struct {
 	forced   string
 	started  time.Time
 	log      io.Writer
+	// finishRetries counts how often finish was sent back for a symptom outside the closed list.
+	finishRetries int
+	seedSent      *int64
+	build         string
+	buildErr      error
 }
+
+// maxFinishRetries is how many times the model is asked to fix a symptom before the finding is dropped.
+const maxFinishRetries = 2
 
 // Run plays the scenario and writes the run record. The record is written
 // even when the run errors, with outcome errored.
@@ -108,8 +128,17 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 	}
 	now := time.Now().UTC()
 	id := telemetry.NewRunID(now, cfg.Persona.ID, cfg.Scenario.ID)
+	if cfg.Batch == "" {
+		cfg.Batch = now.Format("2006-01-02") + "-" + cfg.Target.Environment
+	}
 	r := &run{cfg: cfg, id: id, trace: telemetry.NewTrace(id),
 		patience: NewPatience(), budget: budget, tokens: cfg.TokenBudget, started: now, log: cfg.Log}
+	if cfg.Target.Commit == "" {
+		r.build, r.buildErr = BuildHash(ctx, cfg.HTTPClient, cfg.Target.BaseURL)
+		if r.buildErr != nil {
+			fmt.Fprintf(r.log, "build: no commit and the home page could not be hashed (%v); the record has no commit\n", r.buildErr)
+		}
+	}
 	r.dir = filepath.Join(cfg.OutDir, r.id)
 	if err := os.MkdirAll(filepath.Join(r.dir, "screens"), 0o750); err != nil {
 		return nil, err
@@ -162,6 +191,13 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	system := r.systemPrompt()
 	maxCalls := r.budget + 10
 	caps := provider.CapabilitiesOf(cfg.Provider)
+	if cfg.Seed != nil {
+		if caps.Seed {
+			r.seedSent = cfg.Seed
+		} else {
+			fmt.Fprintf(r.log, "seed: %s has no sampling seed, so the record has seed null\n", cfg.Provider.Kind())
+		}
+	}
 	for calls := 0; calls < maxCalls; calls++ {
 		if err := ctx.Err(); err != nil {
 			return nil, r.patience.GaveUp(), err
@@ -179,7 +215,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		// The capability table says whether the backend can force a tool; if not,
 		// Adapt swaps the force for an instruction.
 		req, adaptNote := provider.Adapt(caps, provider.Request{System: system, Turns: r.turns(caps), Tools: Tools,
-			ForceTool: force, MaxOutputTokens: maxOutputTokens})
+			ForceTool: force, MaxOutputTokens: maxOutputTokens, Seed: r.seedSent})
 		resp, err := cfg.Provider.Chat(ctx, req)
 		if resp.Note == "" {
 			resp.Note = adaptNote
@@ -213,6 +249,15 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 					r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID,
 						text: "finish was not understood: " + perr.Error() + ". Call finish again with verdict, report and findings."})
 					continue
+				}
+				if probs := f.Problems(); len(probs) > 0 {
+					if r.finishRetries < maxFinishRetries {
+						r.finishRetries++
+						r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID,
+							text: "finish was not understood: " + strings.Join(probs, "; ") + ". Call finish again with the same report and findings, fixing these."})
+						continue
+					}
+					fmt.Fprintf(r.log, "finish: %d finding(s) dropped, their symptom was not in the closed list\n", f.DropInvalid())
 				}
 				r.finishStep(ctx, f)
 				return &f, r.patience.GaveUp(), nil
@@ -532,17 +577,19 @@ func (r *run) systemPrompt() string {
 		"After each call you get the page as text with numbered controls, and a screenshot for the newest steps; older steps are shortened to one line. " +
 		"\"Actions left\" is your budget. If the page did not change after an action, the result says so: do not repeat it, try something else or give up. " +
 		"Step numbers in your report are the harness's own (\"step N\" in each result). When you are done, or have given up, call finish with your verdict, " +
-		"your report and your findings. Each finding is one problem or question with its kind, severity, title, the steps that show it and whether you measured it or inferred it.\n")
+		"your report and your findings. Each finding is one problem or question with its kind, severity, symptom (chosen from the list in the tool), title, the steps that show it, " +
+		"whether you measured it or inferred it and, when it is about one control, that control's @number. Say in goal_met whether you did what you came to do.\n")
 	return b.String()
 }
 
 func (r *run) record(finish *Finish, runErr error) *record.Record {
 	cfg := r.cfg
 	rec := &record.Record{
-		SchemaVersion: 1, ID: r.id, Batch: cfg.Batch, StartedAt: r.started, EndedAt: time.Now().UTC(),
-		Persona:  record.Persona{ID: cfg.Persona.ID, Role: cfg.Persona.Role, Device: r.display.Device},
-		Scenario: record.Scenario{ID: cfg.Scenario.ID, Title: cfg.Scenario.Title},
-		Target:   record.Target{Adapter: "url", Environment: cfg.Target.Environment, BaseURL: cfg.Target.BaseURL, Commit: cfg.Target.Commit},
+		SchemaVersion: record.SchemaVersion, ID: r.id, Batch: cfg.Batch, StartedAt: r.started, EndedAt: time.Now().UTC(),
+		RepeatIndex: r.repeatIndex(), Seed: r.seedSent,
+		Persona:  record.Persona{ID: cfg.Persona.ID, Role: cfg.Persona.Role, Device: r.display.Device, Dimensions: r.dimensions()},
+		Scenario: record.Scenario{ID: cfg.Scenario.ID, Title: cfg.Scenario.Title, GoalMet: "no"},
+		Target:   r.target(),
 		Provider: record.Provider{Kind: cfg.Provider.Kind(), Model: cfg.Provider.Model(), Region: cfg.Provider.Region()},
 		Browser:  record.Browser{Name: cfg.Browser, Version: "unknown"},
 		Steps:    []record.Step{}, Findings: []record.Finding{}, Usage: r.usage,
@@ -553,8 +600,9 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 	if r.page != nil && r.page.Browser().Version != "" {
 		rec.Browser.Version = r.page.Browser().Version
 	}
+	loc := NewLocator(r.steps)
 	for _, s := range r.steps {
-		st := record.Step{N: s.N, At: s.At, Action: s.Obs.Action, Target: s.Obs.Target, URL: s.Obs.URL,
+		st := record.Step{N: s.N, At: s.At, Action: s.Obs.Action, Target: s.Obs.Target, URL: s.Obs.URL, Route: loc.StepRoute(s.N),
 			DurationMs: int(s.Obs.Duration.Milliseconds()), ConsoleErrors: record.Int(len(s.Obs.ConsoleErrors))}
 		if len(s.Obs.Screenshot) > 0 {
 			st.Screenshot = fmt.Sprintf("%s/screens/%03d.png", r.id, s.N)
@@ -584,8 +632,10 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 	}
 	rec.Outcome = outcome(finish, runErr, r.forced, r.patience.GaveUp())
 	if finish != nil {
-		rec.Findings = RecordFindings(*finish)
+		rec.Findings = RecordFindings(*finish, loc)
+		rec.Scenario.GoalMet = finish.GoalMet
 	}
+	rec.Usage.CostUSD = price.Cost(rec.Provider.Model, rec.Usage.InputTokens, rec.Usage.CachedInputTokens, rec.Usage.OutputTokens)
 	return rec
 }
 
@@ -637,4 +687,51 @@ func (r *run) writeReport(finish *Finish, runErr error) {
 		b.WriteString("- None\n")
 	}
 	_ = os.WriteFile(filepath.Join(r.dir, "report.md"), []byte(b.String()), 0o600)
+}
+
+// target describes the build under test. A URL target without a commit gets one derived from its home page.
+func (r *run) target() record.Target {
+	t := record.Target{Adapter: "url", Environment: r.cfg.Target.Environment, BaseURL: r.cfg.Target.BaseURL,
+		Commit: r.cfg.Target.Commit, RouteUniverse: r.cfg.Universe}
+	if t.Commit == "" && r.build != "" {
+		t.Commit, t.BuildHash = r.build, r.build
+	}
+	return t
+}
+
+// dimensions records what varied for this run. The engine emulates the device, the zoom and the persona's
+// tool limits; the connection is the machine's own, and the locale and motion setting are the browser's defaults.
+func (r *run) dimensions() *record.Dimensions {
+	d := r.display
+	unthrottled := "unthrottled"
+	at := r.cfg.Persona.AT()
+	zoom := float64(max(d.Zoom, 100)) / 100
+	return &record.Dimensions{Viewport: &record.Viewport{Width: d.CSSWidth, Height: d.CSSHeight},
+		AT: &at, Connection: &unthrottled, Zoom: &zoom}
+}
+
+// repeatIndex is the flag value, or the number of earlier records in the output directory with the same
+// batch, persona, scenario and model.
+func (r *run) repeatIndex() int {
+	if r.cfg.RepeatIndex != nil {
+		return *r.cfg.RepeatIndex
+	}
+	return CountRepeats(r.cfg.OutDir, r.cfg.Batch, r.cfg.Persona.ID, r.cfg.Scenario.ID, r.cfg.Provider.Model(), r.id)
+}
+
+// CountRepeats counts the run records in dir that share the batch, persona, scenario and model, leaving out
+// the run with ID self. Records that cannot be read are skipped.
+func CountRepeats(dir, batch, persona, scenario, model, self string) int {
+	paths, _ := filepath.Glob(filepath.Join(dir, "*.json"))
+	n := 0
+	for _, p := range paths {
+		rec, err := record.Read(p)
+		if err != nil || rec.ID == self {
+			continue
+		}
+		if rec.Batch == batch && rec.Persona.ID == persona && rec.Scenario.ID == scenario && rec.Provider.Model == model {
+			n++
+		}
+	}
+	return n
 }
