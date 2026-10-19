@@ -2,7 +2,9 @@
 
 A persona is a fictional user that the engine plays through a scenario. The library in
 [casts/library](../casts/library/README.md) holds ten generic ones for the kinds of user that every site has.
-Your team copies the ones it needs and adapts them to its product.
+Your team copies the ones it needs and adapts them to its product. The [persona library page](https://dummyrun.dev/personas/) shows them as cards with the command to run each.
+
+What a persona can and cannot tell you is in [ETHICS.md](ETHICS.md).
 
 ## Fictional composites
 
@@ -65,4 +67,4 @@ around each one in the prompt, and the engine code is unchanged.
 | No screen reader | `screen-reader-user` works from the text view, the accessibility outline and `a11y` results. The outline is computed from the page and only approximates what a screen reader says |
 | No sign-in step, per-role credentials or secrets file | The permission trio assumes the scenario can sign in through the form. Test credentials have no safe place to live |
 | A read-only target blocks sign-in because sign-in is a POST | The permission trio needs a target that allows changes |
-| Front matter is flat `key: value` | `tags` and `leans-on` are space-separated strings and nothing reads them yet |
+| Front matter is flat `key: value` | `tags` and `leans-on` are space-separated strings and nothing reads them yet. The website reads `label`, `need`, `summary`, `finds` and `limit` |
