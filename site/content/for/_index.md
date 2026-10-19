@@ -1,6 +1,6 @@
 ---
 title: Who it is for
-lead: Six jobs read the same results board for different reasons. Pick yours, and each page shows what you get, answers the questions people in that job asked and ends with a next step.
+lead: Six jobs use Dummy Run for different reasons. Pick yours. Each page shows what you get and ends with one next step.
 description: Dummy Run written for six jobs, from the QA lead who runs it to the executive who reads the board.
 next:
   title: Not sure which job fits

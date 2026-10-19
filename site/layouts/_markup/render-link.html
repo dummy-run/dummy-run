@@ -17,6 +17,11 @@
   {{- if eq $dir "." }}{{ $dir = "" }}{{ end -}}
   {{- $full := path.Clean (path.Join $dir $file) -}}
   {{- $pages := dict
+    "docs/ENGINE.md" "/docs/engine/"
+    "docs/CLI.md" "/docs/cli/"
+    "docs/PROVIDERS.md" "/docs/providers/"
+    "docs/PERSONAS.md" "/docs/personas/"
+    "docs/COVERAGE.md" "/docs/coverage/"
     "docs/ARCHITECTURE.md" "/docs/architecture/"
     "docs/TELEMETRY.md" "/docs/telemetry/"
     "docs/PLAN.md" "/docs/plan/"

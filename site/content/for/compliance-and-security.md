@@ -28,7 +28,7 @@ The provider and the backend both receive what the persona sees, so run against 
 
 {{< graphic name="finding-card" kind="permission" >}}
 
-A persona signs in with one role and the reviewer checks what that role could reach. This example is tagged code because the reviewer confirmed it in the source. Every blocker or major finding waits for a person before it counts.
+A persona signs in with one role and the reviewer checks what that role could reach. This example is tagged code because the reviewer confirmed it in the source. Every blocker or major finding waits for a person before it counts. The reviewer and the board are planned. The run record, the report and the screenshots work today.
 
 ## What the exporter sends {#export}
 

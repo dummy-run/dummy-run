@@ -6,6 +6,10 @@ device: desktop
 zoom: 200
 tags: accessibility low-vision zoom reflow
 leans-on: look screenshot scroll a11y
+label: Low vision at 200 percent zoom
+need: vision
+summary: Reads with the page enlarged to 200 percent and needs the layout to reflow.
+finds: Cut-off text, sideways scrolling, overlapping controls and sticky bars that cover the page.
 ---
 # Hana, low-vision user at 200 percent zoom
 
