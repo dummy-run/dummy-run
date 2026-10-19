@@ -40,7 +40,8 @@ jobs:
     # and the production environment refuses it too.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Ten scenarios of up to 15 minutes each take 150 minutes. The rest is setup, export and upload.
+    timeout-minutes: 180
     environment: production
     permissions:
       contents: read
@@ -108,13 +109,22 @@ jobs:
             echo "::endgroup::"
           done
           records="$(find "$out" -maxdepth 1 -name '*.json' | wc -l | tr -d ' ')"
+          # A run that is blocked or runs out of budget still exits 0 and writes a record, so the
+          # outcome in the record is the only sign of it.
+          non_completed=0
+          if [ "$records" -gt 0 ]; then
+            non_completed="$(jq -rs '[.[] | select(.outcome != "completed")] | length' "$out"/*.json)"
+          fi
           {
             echo "## Dogfood runs"
             echo
-            echo "${records} run records from ${total} scenarios. ${failed} scenarios failed to run."
+            echo "${records} run records from ${total} scenarios. ${failed} scenarios failed to run. ${non_completed} records were not completed."
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "failed=${failed}" >> "$GITHUB_OUTPUT"
-          echo "records=${records}" >> "$GITHUB_OUTPUT"
+          {
+            echo "failed=${failed}"
+            echo "non_completed=${non_completed}"
+            echo "records=${records}"
+          } >> "$GITHUB_OUTPUT"
       - name: Summarise every run and finding
         if: always() && steps.runs.outputs.records != '' && steps.runs.outputs.records != '0'
         run: |
@@ -157,8 +167,11 @@ jobs:
           export OTEL_RESOURCE_ATTRIBUTES=service.namespace=dummyrun-dev
           # --verify-loki is left out: it needs the Loki URL and a token that can read logs, and the
           # production environment holds only a token that writes them.
+          # The step runs with -e. Turn it off so a failed export reaches the status check below.
+          set +e
           dummyrun-otel export --grafana-url "$GRAFANA_URL" "$RUNS_DIR" 2>&1 | tee "$RUNNER_TEMP/export.log"
           status=${PIPESTATUS[0]}
+          set -e
           if [ "$status" -ne 0 ]; then
             echo "::error title=Grafana export failed::dummyrun-otel exited with ${status}. The run records are in the dogfood-runs artifact."
             {
@@ -187,10 +200,12 @@ jobs:
         env:
           RUNS_FAILED: ${{ steps.runs.outputs.failed }}
           RECORDS: ${{ steps.runs.outputs.records }}
+          NON_COMPLETED: ${{ steps.runs.outputs.non_completed }}
           EXPORT_STATUS: ${{ steps.export.outputs.status }}
         run: |
           problems=0
           if [ -z "$RECORDS" ] || [ "$RECORDS" = "0" ]; then echo "::error::No run records were written"; problems=1; fi
           if [ "${RUNS_FAILED:-0}" != "0" ]; then echo "::error::${RUNS_FAILED} scenarios failed to run"; problems=1; fi
+          if [ "${NON_COMPLETED:-0}" != "0" ]; then echo "::error::${NON_COMPLETED} run records were not completed"; problems=1; fi
           if [ "${EXPORT_STATUS:-0}" != "0" ]; then echo "::error::The Grafana export failed"; problems=1; fi
           exit "$problems"
