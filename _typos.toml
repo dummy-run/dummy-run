@@ -1,2 +1,2 @@
 [files]
-extend-exclude = ["*.png", "*.svg", "LICENSES/*", "LICENSE"]
+extend-exclude = ["*.png", "*.svg", "LICENSES/*", "LICENSE", "internal/page/axe/*"]

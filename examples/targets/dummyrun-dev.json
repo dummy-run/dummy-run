@@ -1,0 +1,7 @@
+{
+  "adapter": "url",
+  "environment": "production",
+  "base_url": "https://dummyrun.dev/",
+  "allowed_hosts": ["dummyrun.dev", "www.dummyrun.dev"],
+  "read_only": true
+}

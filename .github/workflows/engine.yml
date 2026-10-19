@@ -1,0 +1,122 @@
+name: Engine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - cmd/**
+      - internal/**
+      - casts/**
+      - schema/**
+      - go.mod
+      - go.sum
+      - .golangci.yml
+      - .github/workflows/engine.yml
+  pull_request:
+    paths:
+      - cmd/**
+      - internal/**
+      - casts/**
+      - schema/**
+      - go.mod
+      - go.sum
+      - .golangci.yml
+      - .github/workflows/engine.yml
+
+permissions:
+  contents: read
+
+env:
+  # Chrome for Testing and the matching chromedriver, 2026-09-22.
+  CHROME_FOR_TESTING: 155.0.8059.12
+  # Firefox 157.0, released 2026-09-29.
+  FIREFOX_VERSION: "157.0"
+
+jobs:
+  lint:
+    name: Engine passes golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.14.0
+
+  test:
+    name: Engine unit tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Embedded schema matches the repository copy
+        run: cmp internal/record/run-record.schema.json schema/run-record.schema.json
+      - name: go vet
+        run: go vet ./...
+      - name: go test with the race detector and coverage
+        run: go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...
+      - name: Upload coverage to Codecov
+        # OIDC tokens are not issued to pull requests from forks, so those skip the upload.
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          use_oidc: true
+          files: coverage.out
+          flags: engine
+          disable_search: true
+          fail_ci_if_error: false
+      - name: Fuzz the BiDi message decoder for 30 seconds
+        run: go test -run='^$' -fuzz=FuzzDecode -fuzztime=30s ./internal/bidi/
+      - name: Fuzz the run record writer for 30 seconds
+        run: go test -run='^$' -fuzz=FuzzWrite -fuzztime=30s ./internal/record/
+
+  conformance:
+    name: BiDi conformance on Chrome and Firefox
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Install Chrome for Testing and chromedriver
+        env:
+          VERSION: ${{ env.CHROME_FOR_TESTING }}
+        run: |
+          set -euo pipefail
+          base="https://storage.googleapis.com/chrome-for-testing-public/${VERSION}/linux64"
+          curl -fsSLo chrome.zip "${base}/chrome-linux64.zip"
+          curl -fsSLo chromedriver.zip "${base}/chromedriver-linux64.zip"
+          unzip -q chrome.zip -d "$HOME/cft"
+          unzip -q chromedriver.zip -d "$HOME/cft"
+          echo "DUMMYRUN_CHROME=$HOME/cft/chrome-linux64/chrome" >> "$GITHUB_ENV"
+          echo "DUMMYRUN_CHROMEDRIVER=$HOME/cft/chromedriver-linux64/chromedriver" >> "$GITHUB_ENV"
+          "$HOME/cft/chrome-linux64/chrome" --version
+          "$HOME/cft/chromedriver-linux64/chromedriver" --version
+      - uses: browser-actions/setup-firefox@0bc507ddf224827e3b1af68e014d5e42ab93e795 # v1.7.2
+        with:
+          firefox-version: ${{ env.FIREFOX_VERSION }}
+      - name: Firefox version
+        run: |
+          firefox --version
+          echo "DUMMYRUN_FIREFOX=$(command -v firefox)" >> "$GITHUB_ENV"
+      - name: Run the conformance suite, the tool suite and the end-to-end run on both browsers
+        env:
+          DUMMYRUN_BROWSERS: chrome,firefox
+        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd' ./internal/bidi/ ./internal/page/ ./internal/runner/

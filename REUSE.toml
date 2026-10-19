@@ -13,6 +13,12 @@ SPDX-FileCopyrightText = "2026 Joel Merrick"
 SPDX-License-Identifier = "LicenseRef-DummyRun-Brand"
 
 [[annotations]]
+path = ["internal/page/axe/axe.min.js", "internal/page/axe/LICENSE", "internal/page/axe/LICENSE-3RD-PARTY.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "2015 - 2026 Deque Systems, Inc."
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
 path = "site/static/fonts/space-grotesk-*.woff2"
 precedence = "override"
 SPDX-FileCopyrightText = "2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)"

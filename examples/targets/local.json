@@ -1,0 +1,7 @@
+{
+  "adapter": "url",
+  "environment": "local",
+  "base_url": "http://127.0.0.1:8080/",
+  "allowed_hosts": ["127.0.0.1"],
+  "read_only": false
+}
