@@ -32,7 +32,7 @@
     "adapter": "url",
     "environment": "pr-41",
     "base_url": "https://pr-41.inkwell.example",
-    "commit": "fc2958b"
+    "commit": "a865ffd"
   },
   "provider": {
     "kind": "anthropic",

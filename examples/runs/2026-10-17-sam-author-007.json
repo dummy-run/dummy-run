@@ -31,7 +31,7 @@
     "adapter": "url",
     "environment": "pr-44",
     "base_url": "https://pr-44.inkwell.example",
-    "commit": "494927b"
+    "commit": "1953351"
   },
   "provider": {
     "kind": "vertex-gemini",

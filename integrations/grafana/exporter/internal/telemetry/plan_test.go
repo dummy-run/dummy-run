@@ -82,7 +82,7 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 		attribute.Int("dummyrun.repeat_index", 0),
 		attribute.String("dummyrun.target.adapter", "url"),
 		attribute.String("dummyrun.target.environment", "pr-41"),
-		attribute.String("dummyrun.target.commit", "fc2958b"),
+		attribute.String("dummyrun.target.commit", "a865ffd"),
 		attribute.String("url.full", "https://pr-41.inkwell.example"),
 		attribute.String("gen_ai.system", "vertex-gemini"),
 		attribute.String("gen_ai.request.model", "gemini-3.5-flash-lite"),

@@ -34,16 +34,16 @@ func TestCoverageExitCodes(t *testing.T) {
 	}{
 		"no runs":               {[]string{"coverage"}, 2},
 		"mixed builds":          {[]string{"coverage", "--runs", examples}, 2},
-		"one build":             {[]string{"coverage", "--runs", examples, "--build", "fc2958b"}, 0},
+		"one build":             {[]string{"coverage", "--runs", examples, "--build", "a865ffd"}, 0},
 		"build too short":       {[]string{"coverage", "--runs", examples, "--build", "fc"}, 2},
-		"bad format":            {[]string{"coverage", "--runs", examples, "--build", "fc2958b", "--format", "xml"}, 2},
-		"bad threshold name":    {[]string{"coverage", "--runs", examples, "--build", "fc2958b", "--threshold", "speed=1"}, 2},
-		"bad threshold value":   {[]string{"coverage", "--runs", examples, "--build", "fc2958b", "--threshold", "coverage=2"}, 2},
+		"bad format":            {[]string{"coverage", "--runs", examples, "--build", "a865ffd", "--format", "xml"}, 2},
+		"bad threshold name":    {[]string{"coverage", "--runs", examples, "--build", "a865ffd", "--threshold", "speed=1"}, 2},
+		"bad threshold value":   {[]string{"coverage", "--runs", examples, "--build", "a865ffd", "--threshold", "coverage=2"}, 2},
 		"missing directory":     {[]string{"coverage", "--runs", "/no/such/dir"}, 2},
-		"bad strata":            {[]string{"coverage", "--runs", examples, "--build", "fc2958b", "--strata", "colour"}, 2},
-		"not stopped":           {[]string{"coverage", "--runs", examples, "--build", "fc2958b", "--fail-unless-stopped"}, 3},
-		"demonstration":         {[]string{"coverage", "--runs", examples, "--build", "fc2958b", "--confirmed-only=false", "--format", "json"}, 0},
-		"missing clusters file": {[]string{"coverage", "--runs", examples, "--build", "fc2958b", "--clusters", "/no/such.json"}, 2},
+		"bad strata":            {[]string{"coverage", "--runs", examples, "--build", "a865ffd", "--strata", "colour"}, 2},
+		"not stopped":           {[]string{"coverage", "--runs", examples, "--build", "a865ffd", "--fail-unless-stopped"}, 3},
+		"demonstration":         {[]string{"coverage", "--runs", examples, "--build", "a865ffd", "--confirmed-only=false", "--format", "json"}, 0},
+		"missing clusters file": {[]string{"coverage", "--runs", examples, "--build", "a865ffd", "--clusters", "/no/such.json"}, 2},
 	} {
 		if got := run(c.args); got != c.want {
 			t.Errorf("%s: dummyrun %v exited %d, want %d", name, c.args, got, c.want)
@@ -53,7 +53,7 @@ func TestCoverageExitCodes(t *testing.T) {
 
 func TestCoverageWritesJSONToAFile(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "report.json")
-	if got := run([]string{"coverage", "--runs", examples, "--build", "fc2958b", "--format", "json", "--out", out}); got != 0 {
+	if got := run([]string{"coverage", "--runs", examples, "--build", "a865ffd", "--format", "json", "--out", out}); got != 0 {
 		t.Fatalf("exit %d", got)
 	}
 	data, err := os.ReadFile(out)
@@ -69,7 +69,7 @@ func TestCoverageWritesJSONToAFile(t *testing.T) {
 	if err := json.Unmarshal(data, &rep); err != nil {
 		t.Fatal(err)
 	}
-	if rep.Build != "fc2958b" || !strings.Contains(rep.Completeness.Label, "at least") {
+	if rep.Build != "a865ffd" || !strings.Contains(rep.Completeness.Label, "at least") {
 		t.Errorf("%+v", rep)
 	}
 }

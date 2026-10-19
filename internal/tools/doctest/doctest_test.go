@@ -50,8 +50,8 @@ func TestCheckSafe(t *testing.T) {
 		"dummyrun run -h",
 		"dummyrun-otel export --dry-run examples/runs",
 		"dummyrun-otel export --dry-run examples/runs | head -n 5",
-		"dummyrun coverage --runs examples/runs --build fc2958b",
-		"dummyrun coverage --runs examples/runs --build fc2958b --format json | head -n 20",
+		"dummyrun coverage --runs examples/runs --build a865ffd",
+		"dummyrun coverage --runs examples/runs --build a865ffd --format json | head -n 20",
 		"dummyrun a11y --sitemap http://127.0.0.1:1313/sitemap.xml --allow site/a11y-allow.txt http://localhost:1313/404.html",
 	}
 	for _, c := range ok {

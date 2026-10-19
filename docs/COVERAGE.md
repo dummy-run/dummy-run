@@ -17,14 +17,14 @@ nothing about another, so the command refuses to mix builds and asks for `--buil
 
 <!-- doctest -->
 ```sh
-dummyrun coverage --runs examples/runs --build fc2958b
+dummyrun coverage --runs examples/runs --build a865ffd
 ```
 
 For JSON, which the other tools read, add `--format json`.
 
 <!-- doctest -->
 ```sh
-dummyrun coverage --runs examples/runs --build fc2958b --format json | head -n 20
+dummyrun coverage --runs examples/runs --build a865ffd --format json | head -n 20
 ```
 
 The example records are synthetic runs against a made-up app. The report on them shows the shape of the

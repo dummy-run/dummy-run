@@ -80,7 +80,7 @@ def fingerprint(route, locus, symptom):
 
 
 def commit_for(env):
-    return hashlib.sha1(f"inkwell-{env}".encode()).hexdigest()[:7]
+    return hashlib.sha256(f"inkwell-{env}".encode()).hexdigest()[:7]
 
 
 def make_run(rng, start, n, seen):

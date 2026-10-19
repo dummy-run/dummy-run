@@ -453,7 +453,7 @@ func TestExampleRecords(t *testing.T) {
 			}
 		}
 	}
-	rep := build(t, recs, Options{Build: "fc2958b", ConfirmedOnly: true})
+	rep := build(t, recs, Options{Build: "a865ffd", ConfirmedOnly: true})
 	if rep.Runs.Total != 4 || rep.Runs.Completed != 3 || rep.Runs.Blocked != 1 || rep.Completeness.SObs != 2 || rep.Completeness.T != 3 {
 		t.Errorf("%+v %+v", rep.Runs, rep.Completeness)
 	}

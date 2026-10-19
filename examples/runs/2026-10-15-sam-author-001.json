@@ -31,7 +31,7 @@
     "adapter": "url",
     "environment": "pr-42",
     "base_url": "https://pr-42.inkwell.example",
-    "commit": "13cc45e"
+    "commit": "3660793"
   },
   "provider": {
     "kind": "anthropic",
