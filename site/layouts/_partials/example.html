@@ -1,0 +1,12 @@
+{{- /* Wraps a mock-up so nobody reads it as real output. "inkwell" graphics carry made-up data about Inkwell, a fictional publishing app, so they also get a watermark. "illustration" graphics explain a structure and hold no run data. */ -}}
+{{- $kinds := dict
+  "persona-card" "inkwell" "run-timeline" "inkwell" "finding-card" "inkwell" "board" "inkwell" "cost" "inkwell" "record" "inkwell" "phone" "inkwell" "headers" "inkwell"
+  "export" "illustration" "residency" "illustration"
+-}}
+{{- $kind := index $kinds .name -}}
+{{- if not $kind }}{{ errorf "example.html: add %q to the kinds map" .name }}{{ end -}}
+{{- $args := dict "kind" .kind "who" .who -}}
+<div class="example is-{{ $kind }}">
+  <p class="example-tag">{{ if eq $kind "inkwell" }}Example. Inkwell is a made-up app{{ else }}Illustration. No real run data{{ end }}</p>
+  {{ partial (printf "graphics/%s.html" .name) $args }}
+</div>
