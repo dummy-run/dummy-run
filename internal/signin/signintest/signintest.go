@@ -264,7 +264,7 @@ func Inkwell(t testing.TB) *App {
 	}
 	addr := l.Addr().String()
 	_ = l.Close()
-	cmd := exec.CommandContext(context.Background(), bin, "-addr", addr) //nolint:gosec // the binary was built above
+	cmd := exec.CommandContext(context.Background(), bin, "-addr", addr) //nolint:gosec // the binary was built above // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
