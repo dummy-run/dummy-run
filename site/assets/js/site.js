@@ -36,3 +36,56 @@
   label();
   button.hidden = false;
 })();
+
+// The persona library. Without JavaScript every persona shows and the filter and copy buttons stay hidden.
+(function () {
+  var filter = document.querySelector(".lib-filter");
+  if (!filter) {
+    return;
+  }
+  var cards = document.querySelectorAll(".lib-card");
+  var chips = filter.querySelectorAll(".lib-chip");
+  var status = document.querySelector(".lib-status");
+
+  function show(need) {
+    var shown = 0;
+    cards.forEach(function (card) {
+      var on = need === "all" || card.getAttribute("data-need") === need;
+      card.hidden = !on;
+      if (on) {
+        shown++;
+      }
+    });
+    chips.forEach(function (chip) {
+      chip.setAttribute("aria-pressed", chip.getAttribute("data-need") === need ? "true" : "false");
+    });
+    status.textContent = need === "all" ? "" : "Showing " + shown + " of " + cards.length + " personas.";
+  }
+
+  chips.forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      show(chip.getAttribute("data-need"));
+    });
+  });
+  filter.hidden = false;
+  status.hidden = false;
+
+  document.querySelectorAll(".lib-copy").forEach(function (button) {
+    var label = button.textContent;
+    var timer;
+    button.addEventListener("click", function () {
+      var code = document.getElementById(button.getAttribute("data-target"));
+      if (!code || !navigator.clipboard) {
+        return;
+      }
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        button.textContent = "Copied";
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          button.textContent = label;
+        }, 2000);
+      });
+    });
+    button.hidden = false;
+  });
+})();

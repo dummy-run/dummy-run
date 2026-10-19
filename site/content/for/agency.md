@@ -29,7 +29,7 @@ A market profile lists the regions that satisfy it. Every adapter declares its r
 
 {{< graphic name="board" >}}
 
-The results board is static files. You decide which rows go into the client's backlog. Apache-2.0 lets you [run Dummy Run for clients](../../../docs/LICENSING.md) with no conditions, and the [trademark policy](../../../TRADEMARKS.md) covers the name.
+The results board is static files. You decide which rows go into the client's backlog. The reviewer and the board are planned. The run record, the report and the screenshots work today. Apache-2.0 lets you [run Dummy Run for clients](../../../docs/LICENSING.md) with no conditions, and the [trademark policy](../../../TRADEMARKS.md) covers the name.
 
 ## Sources
 
