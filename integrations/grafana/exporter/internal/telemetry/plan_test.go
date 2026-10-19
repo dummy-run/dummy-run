@@ -326,6 +326,27 @@ func TestOptionalFieldsAreOmitted(t *testing.T) {
 	}
 }
 
+func TestPersonaZoomIsExportedWhenPresent(t *testing.T) {
+	zoomed := load(t, "2026-10-16-lin-contributor-002.json")
+	if zoomed.Persona.Zoom != 200 {
+		t.Fatalf("the example run has zoom %d, want 200", zoomed.Persona.Zoom)
+	}
+	var got attribute.Value
+	for _, kv := range Build(zoomed).Root.Attributes {
+		if kv.Key == "dummyrun.persona.zoom" {
+			got = kv.Value
+		}
+	}
+	if got.AsInt64() != 200 {
+		t.Errorf("dummyrun.persona.zoom = %v, want 200", got.AsInt64())
+	}
+	for _, kv := range Build(load(t, "2026-10-17-ravi-reviewer-005.json")).Root.Attributes {
+		if kv.Key == "dummyrun.persona.zoom" {
+			t.Error("a record without zoom exported one")
+		}
+	}
+}
+
 // The contract fixes the derivation: trace ID is the first 16 bytes of SHA-256 of
 // "dummyrun.run:<id>", root span ID the first 8 bytes of SHA-256 of "dummyrun.span:<id>:root", and
 // step span IDs the first 8 bytes of SHA-256 of "dummyrun.span:<id>:step:<n>".

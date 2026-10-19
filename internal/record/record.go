@@ -41,11 +41,14 @@ type Record struct {
 	Usage         Usage     `json:"usage"`
 }
 
-// Persona identifies the persona.
+// Persona identifies the persona and how it browsed in this run. Device and
+// Zoom are the values the run used: a scenario can replace the persona's own.
 type Persona struct {
 	ID     string `json:"id"`
 	Role   string `json:"role"`
 	Device string `json:"device"`
+	// Zoom is the page zoom in percent, 100 to 500. Zero leaves it out, meaning 100.
+	Zoom int `json:"zoom,omitempty"`
 }
 
 // Scenario identifies the scenario.

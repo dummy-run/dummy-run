@@ -148,3 +148,12 @@ func containsInt(list []int, v int) bool {
 	}
 	return false
 }
+
+// toolNames lists the tools in the order the persona is shown them.
+func toolNames() []string {
+	names := make([]string, len(Tools))
+	for i, t := range Tools {
+		names[i] = t.Name
+	}
+	return names
+}

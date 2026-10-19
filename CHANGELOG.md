@@ -8,6 +8,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Added
 - Model providers beyond Azure: any OpenAI-compatible service or local server, Anthropic, Gemini (Vertex AI and the Developer API) and Amazon Bedrock. `docs/PROVIDERS.md` covers each one.
 - `--reasoning-effort` and `--openai-api responses` for OpenAI-style models, and `cached_input_tokens` in the run record's usage.
+- `dummyrun a11y` sweeps pages with axe-core for WCAG 2.2 A and AA on Chrome and Firefox, with no model calls. The site's accessibility check now uses it in place of pa11y-ci, which removes the extract-zip alerts.
 - The project is licensed under Apache-2.0, with a trademark policy for the name and logo.
 - Contributors sign off commits under the Developer Certificate of Origin, and CI checks every commit.
 - CI also blocks credentials and known customer identifiers, broken links and em dashes.

@@ -16,6 +16,9 @@ type Step struct {
 	Obs page.Observation
 	// PageChanged is false when the page looked the same before and after.
 	PageChanged bool
+	// Refusal is set when the persona may not use the tool: it says why.
+	// The browser did nothing for this step.
+	Refusal string
 }
 
 // Render writes the observation the way the persona reads it.
@@ -27,7 +30,10 @@ func Render(s Step) string {
 		fmt.Fprintf(&b, " %s", o.Target)
 	}
 	fmt.Fprintf(&b, " · %d ms · %s\n", o.Duration.Milliseconds(), o.URL)
-	if o.Error != "" {
+	switch {
+	case s.Refusal != "":
+		fmt.Fprintf(&b, "REFUSED: %s\n", s.Refusal)
+	case o.Error != "":
 		fmt.Fprintf(&b, "ACTION FAILED: %s\n", o.Error)
 	}
 	if !s.PageChanged && o.Error == "" && s.N > 1 && isTry(o.Action) {
@@ -48,10 +54,17 @@ func Render(s Step) string {
 	if len(p.Alerts) > 0 {
 		fmt.Fprintf(&b, "alerts: %s\n", strings.Join(p.Alerts, " | "))
 	}
+	if p.Zoom > 100 && len(p.Viewport) == 2 {
+		fmt.Fprintf(&b, "zoom: %d%% (the page lays out in %d x %d CSS px, device pixel ratio %g)\n", p.Zoom, p.Viewport[0], p.Viewport[1], p.DevicePixelRatio)
+	}
 	if len(p.Scroll) == 2 && p.Scroll[1] > 0 && len(p.Viewport) == 2 {
 		fmt.Fprintf(&b, "scroll: %d of %d px (viewport %d px tall)\n", p.Scroll[0], p.Scroll[1], p.Viewport[1])
 	}
 	b.WriteString(problems(o))
+	b.WriteString(focusLine(p))
+	if p.Tree != "" {
+		fmt.Fprintf(&b, "accessibility tree (roles and names computed from the page; @n matches the controls):\n%s\n", indent(p.Tree))
+	}
 	b.WriteString("controls:\n")
 	b.WriteString(controlRows(p.Controls))
 	b.WriteString("text:\n")
@@ -63,6 +76,31 @@ func Render(s Step) string {
 		fmt.Fprintf(&b, "  %s\n", strings.TrimRight(line, " "))
 	}
 	return b.String()
+}
+
+// focusLine says which element has keyboard focus.
+func focusLine(p *page.Snapshot) string {
+	if p.TreeError != "" {
+		return "focus: unknown (the accessibility view could not be read)\n"
+	}
+	f := p.Focus
+	if f == nil {
+		return "focus: nothing (no element has keyboard focus)\n"
+	}
+	line := "focus: " + f.Role
+	if f.Name != "" {
+		line += fmt.Sprintf(" %q", f.Name)
+	} else {
+		line += " (no accessible name)"
+	}
+	if f.Ref != "" {
+		line += " @" + f.Ref
+	}
+	return line + "\n"
+}
+
+func indent(s string) string {
+	return "  " + strings.ReplaceAll(s, "\n", "\n  ")
 }
 
 func problems(o page.Observation) string {
@@ -151,6 +189,11 @@ func Signature(o page.Observation) uint64 {
 		for _, c := range o.Snapshot.Controls {
 			_, _ = h.Write([]byte(c.Tag + c.Type + c.Label))
 		}
+		// Moving focus with Tab changes what the persona sees even when nothing else does.
+		if f := o.Snapshot.Focus; f != nil {
+			_, _ = h.Write([]byte("focus:" + f.Ref + f.Role + f.Name))
+		}
+		_, _ = h.Write([]byte("tree-error:" + o.Snapshot.TreeError))
 		if len(o.Snapshot.Scroll) == 2 {
 			fmt.Fprintf(h, "%d", o.Snapshot.Scroll[0])
 		}

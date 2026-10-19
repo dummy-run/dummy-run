@@ -2,6 +2,7 @@
 {{- $schema := resources.Get "repo/schema/run-record.schema.json" | transform.Unmarshal -}}
 <div class="docs-layout">
   <article class="prose">
+    {{ partial "breadcrumbs.html" . }}
     <header class="page-header">
       <h1 class="u-title">{{ .Title }}</h1>
       {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
@@ -25,8 +26,9 @@
       <summary>Show the record ({{ len (split $ex.Content "\n") }} lines of JSON)</summary>
       {{ transform.Highlight $ex.Content "json" }}
     </details>
+    {{ partial "next-step.html" . }}
     {{ partial "page-source.html" . }}
   </article>
-  {{ partial "docs-nav.html" . }}
+  {{ partial "section-nav.html" . }}
 </div>
 {{ end }}

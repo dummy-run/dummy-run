@@ -1,7 +1,10 @@
 ---
 title: How it works
-weight: 10
-summary: A run from cast to results board, and the words we use
+next:
+  title: Try it
+  text: Install the command, run one persona read-only and look at the run in Grafana.
+  label: Get started
+  href: /start/
 lead: A persona signs in to a preview of your app, tries to do its job and reports back. A reviewer checks every claim before it reaches the board.
 description: How a Dummy Run run works, from the cast of personas through the browser run, the report and the reviewer to the results board.
 ---
@@ -39,7 +42,7 @@ High-severity findings wait for a person to confirm them. Nothing is posted for 
 | Word | Meaning |
 |---|---|
 | Persona | A fictional user with a role, goals, habits and a device |
-| Cast | A set of personas |
+| Cast | A set of personas. The [persona library](personas.md) holds ready-made ones |
 | Scenario | One job a persona tries to do |
 | Preview | A copy of an app built for one pull request |
 | Run | One persona working through one scenario against one preview |
@@ -47,4 +50,4 @@ High-severity findings wait for a person to confirm them. Nothing is posted for 
 | Finding | A claim with evidence, confirmed or rejected by the reviewer |
 | Results board | Static HTML and JSON listing the confirmed findings |
 
-The crash-test theme calls the cast "dummies" and gives the project its [mascot](../../../brand/README.md). The cautions about the name are in [How the name was chosen](../../../docs/NAMING.md).
+The crash-test theme calls the cast "dummies" and gives the project its [mascot](../../brand/README.md). The cautions about the name are in [How the name was chosen](../../docs/NAMING.md).

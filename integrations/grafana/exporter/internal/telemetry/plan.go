@@ -170,6 +170,9 @@ func rootAttributes(run *record.Run) []attribute.KeyValue {
 		attribute.String("dummyrun.target.adapter", run.Target.Adapter),
 		attribute.String("dummyrun.target.environment", run.Target.Environment),
 	)
+	if run.Persona.Zoom != 0 {
+		attrs = append(attrs, attribute.Int("dummyrun.persona.zoom", run.Persona.Zoom))
+	}
 	if run.Target.Commit != "" {
 		attrs = append(attrs, attribute.String("dummyrun.target.commit", run.Target.Commit))
 	}

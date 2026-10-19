@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -80,6 +81,8 @@ type run struct {
 	usage    record.Usage
 	lastSig  uint64
 	controls []page.Control
+	display  cast.Display
+	opening  bool
 	budget   int
 	tokens   int
 	forced   string
@@ -128,7 +131,8 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 
 func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err error) {
 	cfg := r.cfg
-	size := cast.Devices[cfg.Persona.Device]
+	disp := cfg.Persona.DisplayFor(cfg.Scenario)
+	r.display = disp
 	hook := func(req page.Request) page.Decision {
 		switch v := cfg.Target.Decide(req.Method, req.URL); v {
 		case policy.Allow:
@@ -137,8 +141,8 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 			return page.Decision{Block: true, Reason: v.String()}
 		}
 	}
-	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: size[0], Height: size[1],
-		RequestHook: hook, Launch: cfg.Launch})
+	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: disp.CSSWidth, Height: disp.CSSHeight,
+		Zoom: disp.Zoom, RequestHook: hook, Launch: cfg.Launch})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open browser: %w", err)
 	}
@@ -148,7 +152,10 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		return nil, nil, fmt.Errorf("set user agent: %w", err)
 	}
 
+	// The opening visit is the harness's, not the persona's choice, so tool limits do not apply.
+	r.opening = true
 	first := r.execute(ctx, provider.ToolCall{Name: "visit", Args: json.RawMessage(`{"url":""}`)})
+	r.opening = false
 	r.entries = append(r.entries, entry{role: provider.RoleUser, step: first,
 		text: "Begin. This is what you see now.\n\n"})
 
@@ -232,6 +239,14 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 	r.trace.SetStep(len(r.steps) + 1)
 	startedAt := time.Now().UTC()
 	var obs page.Observation
+	refusal := r.refusal(call.Name)
+	if refusal != "" {
+		// The browser is not touched; the persona sees the page as it was.
+		obs = r.page.Look(ctx)
+		obs.Action, obs.Target = call.Name, firstOf(get("target"), get("key"), get("url"), get("direction"))
+		obs.Error = refusal
+		return r.finishExecute(obs, controlsBefore, startedAt, refusal)
+	}
 	switch call.Name {
 	case "look":
 		obs = r.page.Look(ctx)
@@ -275,8 +290,14 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 		obs = r.page.Look(ctx)
 		obs.Action, obs.Error = "look", fmt.Sprintf("unknown tool %q", call.Name)
 	}
+	return r.finishExecute(obs, controlsBefore, startedAt, "")
+}
+
+// finishExecute records a step: it notes the patience rule, keeps the controls
+// for the next step and saves the observation.
+func (r *run) finishExecute(obs page.Observation, controlsBefore []page.Control, startedAt time.Time, refusal string) *Step {
 	sig := Signature(obs)
-	step := &Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: sig != r.lastSig}
+	step := &Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: sig != r.lastSig, Refusal: refusal}
 	r.lastSig = sig
 	r.patience.Note(step.N, obs.URL, obs.Action, obs.Target, controlsBefore, obs.Error != "" || !step.PageChanged)
 	if obs.Snapshot != nil {
@@ -286,6 +307,24 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 	r.saveStep(step)
 	fmt.Fprintf(r.log, "  step %d: %s %s -> %s%s\n", step.N, obs.Action, obs.Target, shorten(obs.URL, 80), errSuffix(obs))
 	return step
+}
+
+// refusal returns why the persona may not use the tool, or "" if it may. An
+// unknown tool is not refused here; execute reports it.
+func (r *run) refusal(tool string) string {
+	if r.opening || !slices.Contains(record.Actions, tool) || r.cfg.Persona.Allows(tool) {
+		return ""
+	}
+	return fmt.Sprintf("%s is not one of the tools %s may use, so nothing was done. Use another tool.", tool, r.cfg.Persona.ID)
+}
+
+func firstOf(vs ...string) string {
+	for _, v := range vs {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func errNote(err error) string {
@@ -354,7 +393,8 @@ func (r *run) saveStep(s *Step) {
 		_ = os.WriteFile(filepath.Join(r.dir, "screens", name), s.Obs.Screenshot, 0o600)
 	}
 	line := map[string]any{
-		"step": s.N, "at": s.At.Format(time.RFC3339Nano), "action": s.Obs.Action, "target": s.Obs.Target,
+		"refusal": s.Refusal,
+		"step":    s.N, "at": s.At.Format(time.RFC3339Nano), "action": s.Obs.Action, "target": s.Obs.Target,
 		"ms": s.Obs.Duration.Milliseconds(), "error": s.Obs.Error, "url": s.Obs.URL, "status": s.Obs.Status,
 		"page_changed": s.PageChanged, "page": s.Obs.Snapshot,
 		"problems": map[string]any{"console_errors": s.Obs.ConsoleErrors, "failed_requests": s.Obs.FailedRequests,
@@ -384,11 +424,14 @@ func (r *run) turns(caps provider.Capabilities) []provider.Turn {
 	}
 	full := map[int]bool{}
 	shot := map[int]bool{}
+	// A persona that may not use the screenshot tool does not get screenshots
+	// by the back door. They are still saved for the reviewer.
+	seesShots := r.cfg.Persona.Allows("screenshot")
 	for k, i := range obsIdx {
 		if k >= len(obsIdx)-keepFull {
 			full[i] = true
 		}
-		if k >= len(obsIdx)-keepShots {
+		if k >= len(obsIdx)-keepShots && seesShots {
 			shot[i] = true
 		}
 	}
@@ -472,6 +515,12 @@ func (r *run) systemPrompt() string {
 	if t.ReadOnly {
 		b.WriteString("- This target is read-only. The browser refuses any request that could change it (POST, PUT, PATCH, DELETE), so a form, sign-up, log-in, search box that posts or chat widget will not work. Do not fill in or submit forms and do not type into chat widgets. If your scenario would need that, note it in the report and move on.\n")
 	}
+	if d := r.display; d.Zoom > 100 {
+		fmt.Fprintf(&b, "- Your browser is at %d percent zoom on a %s-sized window, so pages lay out in %d x %d CSS pixels and text is %d percent of its normal size. Judge the site as you see it at this zoom.\n", d.Zoom, d.Device, d.CSSWidth, d.CSSHeight, d.Zoom)
+	}
+	if refused := r.cfg.Persona.Refused(toolNames()); len(refused) > 0 {
+		fmt.Fprintf(&b, "- You may not use these tools: %s. The harness refuses them, does nothing in the browser and records a blocked step that counts against your actions. If the job cannot be done without one, that is a finding: say so and finish.\n", strings.Join(refused, ", "))
+	}
 	fmt.Fprintf(&b, "- Patience: you have %d actions. After three failed tries at the same thing, give up and report where you got stuck, as a real user would.\n", r.budget)
 	b.WriteString("- Look, then act. Use the numbered controls (@12) from the latest result. Type an address only when the scenario says to.\n")
 	b.WriteString("- Evidence or it did not happen: every finding names the step numbers that show it.\n")
@@ -491,12 +540,15 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 	cfg := r.cfg
 	rec := &record.Record{
 		SchemaVersion: 1, ID: r.id, Batch: cfg.Batch, StartedAt: r.started, EndedAt: time.Now().UTC(),
-		Persona:  record.Persona{ID: cfg.Persona.ID, Role: cfg.Persona.Role, Device: cfg.Persona.Device},
+		Persona:  record.Persona{ID: cfg.Persona.ID, Role: cfg.Persona.Role, Device: r.display.Device},
 		Scenario: record.Scenario{ID: cfg.Scenario.ID, Title: cfg.Scenario.Title},
 		Target:   record.Target{Adapter: "url", Environment: cfg.Target.Environment, BaseURL: cfg.Target.BaseURL, Commit: cfg.Target.Commit},
 		Provider: record.Provider{Kind: cfg.Provider.Kind(), Model: cfg.Provider.Model(), Region: cfg.Provider.Region()},
 		Browser:  record.Browser{Name: cfg.Browser, Version: "unknown"},
 		Steps:    []record.Step{}, Findings: []record.Finding{}, Usage: r.usage,
+	}
+	if r.display.Zoom > 100 {
+		rec.Persona.Zoom = r.display.Zoom
 	}
 	if r.page != nil && r.page.Browser().Version != "" {
 		rec.Browser.Version = r.page.Browser().Version
@@ -514,7 +566,10 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 			st.A11yViolations = record.Int(len(s.Obs.A11y))
 		}
 		var notes []string
-		if s.Obs.Error != "" {
+		switch {
+		case s.Refusal != "":
+			notes = append(notes, "blocked: "+s.Refusal)
+		case s.Obs.Error != "":
 			notes = append(notes, "error: "+s.Obs.Error)
 		}
 		for _, bl := range s.Obs.Blocked {

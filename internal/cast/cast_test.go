@@ -115,3 +115,117 @@ func TestFrontMatter(t *testing.T) {
 		t.Errorf("%v %q %v", meta, body, err)
 	}
 }
+
+func writePersona(t *testing.T, profile, scenario string) string {
+	t.Helper()
+	root := t.TempDir()
+	dir := filepath.Join(root, "kit")
+	if err := os.MkdirAll(filepath.Join(dir, "scenarios"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"profile.md":                "---\nid: kit\nrole: visitor\ndevice: desktop\n" + profile + "---\n# Kit\n",
+		"prompt.md":                 "You are Kit.\n",
+		"scenarios/01-read-docs.md": "# Read\n\n" + scenario + "\n",
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
+}
+
+func TestToolLimits(t *testing.T) {
+	t.Run("denied", func(t *testing.T) {
+		p, err := Load(writePersona(t, "tools-denied: click, Fill\n", "Go."), "kit")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for tool, want := range map[string]bool{"click": false, "fill": false, "press": true, "look": true, "finish": true} {
+			if got := p.Allows(tool); got != want {
+				t.Errorf("Allows(%s) = %v, want %v", tool, got, want)
+			}
+		}
+		if got := p.Refused([]string{"look", "click", "fill"}); strings.Join(got, ",") != "click,fill" {
+			t.Errorf("Refused gave %v", got)
+		}
+	})
+	t.Run("allowed", func(t *testing.T) {
+		p, err := Load(writePersona(t, "tools-allowed: press look a11y\ntools-denied: a11y\n", "Go."), "kit")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for tool, want := range map[string]bool{"press": true, "look": true, "a11y": false, "click": false, "visit": false, "finish": true} {
+			if got := p.Allows(tool); got != want {
+				t.Errorf("Allows(%s) = %v, want %v", tool, got, want)
+			}
+		}
+	})
+	t.Run("no limits", func(t *testing.T) {
+		p, err := Load(writePersona(t, "", "Go."), "kit")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !p.Allows("click") || len(p.ToolsAllowed) != 0 || len(p.ToolsDenied) != 0 {
+			t.Errorf("a persona without limits was limited: %+v", p)
+		}
+	})
+	t.Run("mistakes are errors", func(t *testing.T) {
+		for profile, want := range map[string]string{
+			"tools-denied: smash\n":       `"smash" is not a tool`,
+			"tools-allowed: scroll tap\n": `"tap" is not a tool`,
+			"tools-denied: finish\n":      "finish cannot be denied",
+		} {
+			if _, err := Load(writePersona(t, profile, "Go."), "kit"); err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("%q: error %v, want %q", profile, err, want)
+			}
+		}
+	})
+}
+
+func TestDisplay(t *testing.T) {
+	cases := []struct {
+		name, profile, scenario string
+		device                  string
+		zoom, cssW, cssH        int
+	}{
+		{"defaults", "", "Go.", "desktop", 100, 1400, 1000},
+		{"persona zoom", "zoom: 200\n", "Go.", "desktop", 200, 700, 500},
+		{"persona zoom with a percent sign", "zoom: 150%\n", "Go.", "desktop", 150, 933, 667},
+		{"scenario device", "", "Device: phone. Start at the home page.", "phone", 100, 390, 844},
+		{"scenario overrides persona zoom", "zoom: 200\n", "Zoom: 400%", "desktop", 400, 350, 250},
+		{"mixed-case percent", "", "Zoom: 250 PERCENT", "desktop", 250, 560, 400},
+		{"device with prose after it", "", "Device: tablet. Start at the home page.", "tablet", 100, 820, 1180},
+		{"scenario sets both", "device: tablet\n", "Device: Tablet\nZoom: 200 percent", "tablet", 200, 410, 590},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p, err := Load(writePersona(t, c.profile, c.scenario), "kit")
+			if err != nil {
+				t.Fatal(err)
+			}
+			d := p.DisplayFor(p.Scenarios[0])
+			if d.Device != c.device || d.Zoom != c.zoom || d.CSSWidth != c.cssW || d.CSSHeight != c.cssH {
+				t.Errorf("DisplayFor = %+v, want device %s zoom %d css %dx%d", d, c.device, c.zoom, c.cssW, c.cssH)
+			}
+		})
+	}
+	for scenario, want := range map[string]string{
+		"Device: watch":     `device "watch" must be desktop, tablet or phone`,
+		"Zoom: 600%":        "outside 100 to 500",
+		"Zoom: 50":          "outside 100 to 500",
+		"Device: 4k-tv":     `device "4k-tv" must be desktop, tablet or phone`,
+		"Device:":           `device "" must be desktop, tablet or phone`,
+		"Zoom: two hundred": "not a percentage",
+		"Zoom: x2":          "not a percentage",
+		"Zoom: 200% please": "not a percentage",
+	} {
+		if _, err := Load(writePersona(t, "", scenario), "kit"); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: error %v, want %q", scenario, err, want)
+		}
+	}
+	if _, err := Load(writePersona(t, "zoom: big\n", "Go."), "kit"); err == nil || !strings.Contains(err.Error(), "not a percentage") {
+		t.Errorf("zoom: big gave %v", err)
+	}
+}

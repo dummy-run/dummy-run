@@ -1,13 +1,15 @@
 {{ define "main" }}
-<div class="docs-layout">
+<div class="docs-layout{{ if not (in (slice "for" "docs") .Section) }} is-single{{ end }}{{ if .Params.wide }} is-wide{{ end }}">
   <article class="prose">
+    {{ partial "breadcrumbs.html" . }}
     <header class="page-header">
       <h1 class="u-title">{{ .Title }}</h1>
       {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
     </header>
     {{ .Content }}
+    {{ partial "next-step.html" . }}
     {{ partial "page-source.html" . }}
   </article>
-  {{ partial "docs-nav.html" . }}
+  {{ partial "section-nav.html" . }}
 </div>
 {{ end }}

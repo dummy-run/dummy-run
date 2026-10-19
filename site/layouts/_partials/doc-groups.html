@@ -1,0 +1,17 @@
+{{- /* The docs index: each group with a line about it, then its pages with their summaries. */ -}}
+{{- $pages := where site.RegularPages "Section" "docs" -}}
+{{- range site.Params.docGroups }}
+{{- $key := .key }}
+<section class="doc-group" aria-labelledby="group-{{ $key }}">
+  <h2 id="group-{{ $key }}">{{ .title }}</h2>
+  <p class="doc-group-text">{{ .text }}</p>
+  <dl class="ref-list">
+    {{- range (where $pages "Params.group" $key).ByWeight }}
+    <div class="ref-item">
+      <dt><a href="{{ .RelPermalink }}">{{ .Title }}</a></dt>
+      <dd>{{ .Summary | plainify }}</dd>
+    </div>
+    {{- end }}
+  </dl>
+</section>
+{{- end }}

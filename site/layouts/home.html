@@ -2,60 +2,83 @@
 <section class="hero">
   <div class="hero-copy">
     <h1 class="u-display">AI plays your users and tries your app before your customers do.</h1>
-    <p class="u-lead">A fictional user with a real role signs in to your preview and reports what broke, with the screenshot to prove it.</p>
+    <p class="u-lead">A fictional user with a real role signs in to your preview, tries to do its job and reports what broke, with the screenshot to prove it.</p>
+    <p class="actions">
+      <a class="btn" href="/start/">Get started</a>
+      <a class="btn btn-quiet" href="/how-it-works/">See how a run works</a>
+    </p>
   </div>
   <div class="hero-scene">
-    <div class="frame">
+    <div class="frame is-inkwell">
       <span class="frame-inner"></span>
       <div class="scene">
         {{ partial "graphics/phone.html" . }}
         <div class="scene-finding">{{ partial "graphics/finding-card.html" (dict "kind" "friction") }}</div>
       </div>
     </div>
+    <p class="example-tag is-caption">Example. Inkwell is a made-up app, so this finding is not real.</p>
   </div>
 </section>
 
-<section class="home-section" aria-labelledby="how-heading">
+<section class="band" aria-labelledby="role-heading">
+  <h2 id="role-heading" class="u-title-sm">Start with your job</h2>
+  <p class="band-lede">Each page is written for one role and ends with the next thing to do.</p>
+  {{ partial "role-tiles.html" (dict "long" false) }}
+</section>
+
+<section class="band" aria-labelledby="how-heading">
   <div class="panel">
     <h2 id="how-heading" class="u-title-sm">How a run works</h2>
-    <p class="section-caption">Amber marks the two stages where a model acts. Green marks what people read.</p>
+    <p class="band-lede">Amber marks the two stages where a model acts. Green marks what people read.</p>
     {{ partial "pipeline.html" . }}
+    <p class="band-more"><a href="/how-it-works/">Read how it works</a></p>
   </div>
 </section>
 
-<section class="home-section" aria-labelledby="get-heading">
+<section class="band" aria-labelledby="get-heading">
   <h2 id="get-heading" class="u-title-sm">What you get back</h2>
-  <p class="section-caption">Everything below is drawn from the example cast for Inkwell, a fictional publishing app.</p>
+  <p class="band-lede">Every picture on this site is an example drawn from Inkwell, a made-up publishing app. None of its findings are real.</p>
   <div class="trio">
-    <figure>{{ partial "graphics/persona-card.html" (dict "who" "sam-author") }}<figcaption>A persona is a fictional user with a role, a device and permissions.</figcaption></figure>
-    <figure>{{ partial "graphics/run-timeline.html" . }}<figcaption>A run is one persona working through one scenario, step by step.</figcaption></figure>
-    <figure>{{ partial "graphics/finding-card.html" (dict "kind" "permission") }}<figcaption>A finding carries its evidence tag, its step and the reviewer's verdict.</figcaption></figure>
+    <figure>{{ partial "example.html" (dict "name" "persona-card" "who" "sam-author") }}<figcaption>A persona is a fictional user with a role, a device and permissions.</figcaption></figure>
+    <figure>{{ partial "example.html" (dict "name" "run-timeline") }}<figcaption>A run is one persona working through one scenario, step by step.</figcaption></figure>
+    <figure>{{ partial "example.html" (dict "name" "finding-card" "kind" "permission") }}<figcaption>A finding carries its evidence tag, its step and the reviewer's verdict.</figcaption></figure>
+  </div>
+  <figure class="wide-figure">{{ partial "example.html" (dict "name" "board") }}<figcaption>The results board lists confirmed findings as static HTML and JSON you host yourself. A person decides what becomes a ticket.</figcaption></figure>
+</section>
+
+<section class="band" aria-labelledby="library-heading">
+  <div class="panel">
+    <h2 id="library-heading" class="u-title-sm">A persona library for every site</h2>
+    <p class="band-lede">Every site has screen-reader users, phone users and people who have never seen it before. The library holds ready-made personas for them, so you do not write them from scratch.</p>
+    {{ partial "library.html" (dict "short" true) }}
+    <p class="band-more"><a href="/personas/">Browse the persona library</a></p>
   </div>
 </section>
 
-<section class="home-section" aria-labelledby="board-heading">
-  <h2 id="board-heading" class="u-title-sm">The results board</h2>
-  <figure class="wide-figure">{{ partial "graphics/board.html" . }}<figcaption>Confirmed findings only, as static HTML and JSON you host yourself. A person decides what becomes a ticket.</figcaption></figure>
+<section class="band" aria-labelledby="answers-heading">
+  <h2 id="answers-heading" class="u-title-sm">Straight answers</h2>
+  <dl class="answers">
+    <div><dt>Does it replace our scripted tests?</dt><dd>No. A script checks the steps you wrote. A persona tries the jobs you did not script. <a href="/for/qa-lead/">Beside your scripted suite</a></dd></div>
+    <div><dt>Which browsers does it drive?</dt><dd>Chrome and Firefox, in desktop and phone-sized windows. <a href="/for/qa-lead/">The browser table</a></dd></div>
+    <div><dt>Do screenshots leave our network?</dt><dd>They go to the model provider and the results store you choose. Exported telemetry carries none. <a href="/for/compliance-and-security/">What goes where</a></dd></div>
+    <div><dt>How do I install it?</dt><dd>Run <code>go install</code>, then point one persona at a site in read-only mode. <a href="/start/">Get started</a></dd></div>
+  </dl>
 </section>
 
-<section class="home-section" aria-labelledby="grafana-heading">
+<section class="band" aria-labelledby="grafana-heading">
   <div class="stage">
     <h2 id="grafana-heading" class="u-title-sm">Every run in Grafana</h2>
-    <p class="section-caption">Each run is one OpenTelemetry trace. Four dashboards read the traces, metrics and logs, and the <a href="/docs/grafana/">Grafana page</a> shows them in full.</p>
+    <p class="band-lede">Each run is one OpenTelemetry trace. Four dashboards read the traces, metrics and logs. The screenshots show synthetic runs against Inkwell. <a href="/docs/grafana/">See the dashboards</a></p>
     {{ partial "graphics/grafana-stack.html" . }}
   </div>
 </section>
 
-<section class="home-section" aria-labelledby="who-heading">
-  <h2 id="who-heading" class="u-title-sm">I am</h2>
-  <ul class="tiles">
-    {{ range (where .Site.RegularPages "Section" "for").ByWeight }}
-    <li><a class="tile" href="{{ .RelPermalink }}">{{ partial "icons/icon.html" (dict "name" .Params.icon) }}<span>{{ .Params.choice }}<small>{{ .Params.lead_short }}</small></span></a></li>
-    {{ end }}
-  </ul>
-</section>
-
-<section class="home-close">
-  <p class="status">Dummy Run is pre-release and nothing installs yet. The <a href="/docs/">reference</a> has the plan, the architecture and the run record format.</p>
+<section class="band close" aria-labelledby="close-heading">
+  <h2 id="close-heading" class="u-title-sm">Run one persona today</h2>
+  <p class="band-lede">Install the command, point a persona at a site in read-only mode and read the run in Grafana.</p>
+  <p class="actions">
+    <a class="btn" href="/start/">Get started</a>
+    <a class="btn btn-quiet" href="{{ .Site.Params.repo }}">Open the repository</a>
+  </p>
 </section>
 {{ end }}

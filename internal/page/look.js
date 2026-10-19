@@ -68,6 +68,7 @@
     url: location.href,
     title: document.title,
     viewport: [innerWidth, innerHeight],
+    device_pixel_ratio: devicePixelRatio,
     scroll: [Math.round(scrollY), Math.round(document.documentElement.scrollHeight)],
     headings: texts("h1, h2").slice(0, 10),
     alerts: texts("[role=alert], [role=status], [aria-live]").slice(0, 5),
