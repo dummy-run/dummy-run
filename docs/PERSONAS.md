@@ -43,7 +43,7 @@ admin page for an editor. Run them only on a test environment with test data and
 a role can do something it should not is usually the most useful one a run produces.
 
 These three sign in as the role named in their `role` key. Give the target file a `signin` block with credentials
-for those roles, or for your renamed ones. The engine then signs each persona in before it starts. The persona never sees the password. [ENGINE.md](ENGINE.md#sign-in) has the block and the two methods.
+for those roles, or for your renamed ones. The engine then signs each persona in before it starts. The persona never sees the password. [ENGINE.md](ENGINE.md) has the block, under Sign in, and the two methods.
 Use a test account that has no multi-factor step, or a saved session file. A target that is read-only still
 works, because the engine's own sign-in request is the one write it allows.
 

@@ -34,7 +34,7 @@ A target file can name test accounts so the engine signs in before a persona sta
 - The engine takes no screenshot while it signs in, so the password field is never captured.
 - A saved session file holds live session cookies and is as sensitive as a password. The engine writes it with mode 0600. Keep it out of version control and rotate it as you would a token.
 - A page can show the signed-in user's own name or email, since the engine does not edit what a site displays. The model may see that and may repeat it in a report. Use test users whose details are fake.
-- The read-only policy has one exception, the sign-in form's own request, and only while the engine signs in. See [docs/ENGINE.md](docs/ENGINE.md#sign-in).
+- The read-only policy has one exception, the sign-in form's own request, and only while the engine signs in. See the Sign in section of [docs/ENGINE.md](docs/ENGINE.md).
 
 ## Supported versions
 
