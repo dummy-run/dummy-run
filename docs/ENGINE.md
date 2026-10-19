@@ -175,7 +175,7 @@ A version 2 record adds the fingerprint of each finding and the route of each st
 dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
 `internal/price/prices.json`. The cost is null for a model that is not in the table. A target without a `commit` gets one from a hash of its
 home page, which the engine fetches with one GET request outside the browser. Findings
-start with the verdict `pending`, and [Review](#review) shows how a person changes it. Next to the record, `report.md` holds the
+start with the verdict `pending`, and the Review section below shows how a person changes it. Next to the record, `report.md` holds the
 persona's own report and `steps.jsonl` holds the full observation for each step, including page text the
 reviewer can check quotes against.
 
