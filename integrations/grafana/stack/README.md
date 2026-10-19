@@ -55,8 +55,8 @@ cd seed
 uv run seed.py /tmp/runs --end-now
 ```
 
-The product exporter `dummyrun-otel` is planned for `../exporter` (PR #12). To send the same
-records with it instead, write the shifted records and export them:
+To send the same records with the exporter in [`../exporter`](../exporter/README.md) instead, write
+the shifted records and export them:
 `uv run seed.py /tmp/runs --end-now --write /tmp/shifted`, then
 `dummyrun-otel export --grafana-url http://localhost:3000 /tmp/shifted`.
 
