@@ -331,14 +331,12 @@ func TestAFailedWriteKeepsTheOldRecord(t *testing.T) {
 	})
 	t.Run("the result would not match the schema", func(t *testing.T) {
 		dir := copyExamples(t)
-		g, _ := load(t, dir).Find(fpLone)
 		path := filepath.Join(dir, "2026-10-15-sam-author-001.json")
 		before := readFile(t, path)
-		// A reviewer name cannot be empty in the schema, and the check catches it even past Decision.Check.
+		// The schema refuses an unknown verdict, even when editFile is called without Decision.Check.
 		if _, err := editFile(path, fpLone, Decision{Verdict: "not-a-verdict", Reviewer: "R", At: when}); err == nil {
 			t.Fatal("an invalid verdict was written")
 		}
-		_ = g
 		if !bytes.Equal(before, readFile(t, path)) {
 			t.Error("the file was changed")
 		}

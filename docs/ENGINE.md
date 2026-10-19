@@ -201,7 +201,7 @@ and the step span ID are derived from the run ID and the step number, as `docs/T
 
 ## Review
 
-A paid report holds only findings that a person has confirmed. `dummyrun review` is where that person works. It reads a folder of run records, or the record files you name. It lists the findings that are still `pending` and sets each one to `confirmed` or `rejected`.
+A paid report holds only findings that a person has confirmed. `dummyrun review` is where that person works. It reads a folder of run records, or the record files you name (code: `internal/review/store.go`). It lists the findings that are still `pending` and sets each one to `confirmed` or `rejected` (code: `Apply` in `internal/review/store.go`).
 
 List what is waiting. This changes nothing.
 
@@ -289,7 +289,7 @@ For each finding it changes, the command sets `verdict` and adds three optional 
 | `reviewed_at` | The time of the decision in UTC |
 | `reason` | Why. Required for a rejection |
 
-Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. If another reviewer saves the record in between, the command reads it again and applies your verdict to what is still pending. A failure at any point leaves the old record in place. It then adds one line to `review-log.jsonl` in the folder of the record. The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
+Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. If another reviewer saves the record in between, the command reads it again and applies your verdict to what is still pending. Two reviewers who work in the same folder take turns, because the command holds a lock on the folder while it rewrites a record (code: `internal/review/lock_unix.go`). A failure while the record is checked or replaced leaves the old record in place (code: `editOnce` in `internal/review/store.go`). It then adds one line to `review-log.jsonl` in the folder of the record. If that write fails, the records have already changed and the command says so (code: `Apply` in `internal/review/store.go`). The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
 
 Version 1 records have no fingerprint and no review fields. The command skips them and says so.
 

@@ -332,8 +332,14 @@ func editFile(path, fingerprint string, d Decision) ([]Applied, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Another reviewer may save the same record between our read and our rename. Before the rename
-	// the file is read once more, and if it changed the edit starts again from the new text.
+	// Two reviewers in one folder take turns: the lock covers the read, the edit, the check and the
+	// rename. Where there is no lock, the record is read once more before the rename, and if it
+	// changed the edit starts again from the new text.
+	unlock, err := lockDir(filepath.Dir(target))
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
 	for attempt := 0; attempt < casAttempts; attempt++ {
 		applied, retry, err := editOnce(path, target, fingerprint, d)
 		if !retry {
