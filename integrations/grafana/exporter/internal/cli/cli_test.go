@@ -258,7 +258,10 @@ func TestUsageErrors(t *testing.T) {
 	if code, _, _ := run(t, nil, "watch"); code != ExitUsage {
 		t.Errorf("watch without a directory: exit %d, want %d", code, ExitUsage)
 	}
-	if code, out, _ := run(t, nil, "version"); code != ExitOK || !strings.HasPrefix(out, "dummyrun-otel ") {
+	oldV, oldC := Version, Commit
+	t.Cleanup(func() { Version, Commit = oldV, oldC })
+	Version, Commit = "1.2.3", "abc1234"
+	if code, out, _ := run(t, nil, "version"); code != ExitOK || out != "dummyrun-otel 1.2.3 (commit abc1234)\n" {
 		t.Errorf("version: exit %d, out %q", code, out)
 	}
 }

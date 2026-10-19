@@ -11,6 +11,12 @@ if goreleaser check >"$log" 2>&1; then
   exit 0
 fi
 cat "$log"
+# Accept the failure only with positive evidence: the brews notice is there, nothing else is deprecated,
+# and the one error line is the summary of that notice.
+if ! grep -qE 'DEPRECATED:.*brews' "$log"; then
+  echo "goreleaser check failed, and not for the brews deprecation" >&2
+  exit 1
+fi
 if grep -E 'DEPRECATED:' "$log" | grep -vq 'brews'; then
   echo "goreleaser check: a deprecation other than brews" >&2
   exit 1

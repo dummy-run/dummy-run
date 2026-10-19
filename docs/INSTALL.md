@@ -81,6 +81,7 @@ The second command checks the SLSA provenance. The release also attaches an SBOM
 ### Run a persona in the container
 
 ```sh
+DEPLOYMENT=my-deployment
 docker run --rm \
   -v "$PWD/casts:/cast:ro" \
   -v "$PWD/results:/data" \
@@ -88,7 +89,7 @@ docker run --rm \
   ghcr.io/dummy-run/dummyrun:${VERSION} run \
   --cast /cast/dummyrun-dev --persona tom-developer --scenario find-the-quickstart \
   --target /cast/target.json --out /data/runs --browser firefox \
-  --provider azure --model <deployment> --region uksouth
+  --provider azure --model "$DEPLOYMENT" --region uksouth
 ```
 
 ### What the image contains
@@ -148,7 +149,3 @@ go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dumm
 
 A build made this way reports the version `0.1.0-dev` for `dummyrun` and `dev` for `dummyrun-otel`. Use a
 release binary when you need to know which release you run.
-
-## Homebrew
-
-Homebrew is not available yet. When it is, the command will be `brew install dummy-run/tap/dummyrun`.

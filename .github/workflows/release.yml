@@ -146,7 +146,7 @@ jobs:
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.IMAGE_TAGS }}
+          # No tag yet. The digest gets its tags after it is signed and attested.
           # The attestations below replace BuildKit's own, which add manifests that some registries' tools mishandle.
           provenance: false
           sbom: false
@@ -180,6 +180,16 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           sbom-path: image.sbom.spdx.json
           push-to-registry: true
+
+      - name: Give the signed digest its release tags
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          args=()
+          IFS=',' read -ra tags <<< "$IMAGE_TAGS"
+          for t in "${tags[@]}"; do args+=(--tag "$t"); done
+          docker buildx imagetools create "${args[@]}" "${IMAGE}@${DIGEST}"
 
   publish:
     name: Publish the release

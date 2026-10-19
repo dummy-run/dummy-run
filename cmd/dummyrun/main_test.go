@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
 // Asking for help is not an error, so the documented help commands exit 0.
@@ -83,5 +85,14 @@ func TestParseThresholds(t *testing.T) {
 		if _, err := parseThresholds([]string{bad}); err == nil {
 			t.Errorf("accepted %q", bad)
 		}
+	}
+}
+
+func TestVersionLineHasVersionAndCommit(t *testing.T) {
+	oldV, oldC := telemetry.Version, telemetry.Commit
+	t.Cleanup(func() { telemetry.Version, telemetry.Commit = oldV, oldC })
+	telemetry.Version, telemetry.Commit = "1.2.3", "abc1234"
+	if got, want := versionLine(), "dummyrun 1.2.3 (commit abc1234)"; got != want {
+		t.Errorf("versionLine() = %q, want %q", got, want)
 	}
 }

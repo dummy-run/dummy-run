@@ -10,7 +10,8 @@ rest. This page is the release manager's checklist, followed by the one-time set
    SBOMs and `checksums.txt`, signs the checksums with cosign and attests their build provenance. It creates a
    draft GitHub release with the notes from `CHANGELOG.md`.
 2. `image` builds the image on the released Linux binaries and smoke tests it before pushing. It pushes
-   `ghcr.io/dummy-run/dummyrun` for amd64 and arm64, signs the digest and attests its provenance and SBOM.
+   `ghcr.io/dummy-run/dummyrun` for amd64 and arm64 by digest only. It signs the digest and attests its
+   provenance and SBOM. Only then does it give the digest the version, minor version and `latest` tags.
 3. `publish` takes the release out of draft. It runs only when both earlier jobs pass, so a failed run never
    leaves a public release without its image.
 
@@ -45,13 +46,16 @@ Homebrew token.
 9. Announce it. Link the release page and the changelog section.
 
 After the first release, remove the "no tagged version" wording. It is in the README banner, in the
-Supported versions section of `SECURITY.md` and in the install note of `docs/ENGINE.md`. Update the Homebrew
-section of `docs/INSTALL.md` when the tap is on.
+Supported versions section of `SECURITY.md` and in the install note of `docs/ENGINE.md`. Add a Homebrew
+section to `docs/INSTALL.md` when the tap is on.
 
 ## When a release fails
 
-A failed run before `publish` leaves a draft release and possibly an image. Nothing public points at the draft.
-Fix the cause, then delete the draft release and the tag on GitHub and push the tag again on the fixed commit.
+A failed run before `publish` leaves a draft release. The image has no version tag until it is signed and
+attested, so a failure before that point leaves only an untagged digest. If the `image` job failed after it gave
+the digest its tags, check `ghcr.io/dummy-run/dummyrun` in the package settings and delete those tags before
+you retry. Fix the cause, then delete the draft release and the tag on GitHub and push the tag again on the
+fixed commit.
 Never move a tag that was published. A published release is final: ship a new patch version instead. Only
 `publish` makes a release public.
 
@@ -64,12 +68,11 @@ The repository owner does these steps once.
 The `release` environment limits who can publish. Create it and restrict it to `v*` tags.
 
 ```sh
-gh api -X PUT repos/dummy-run/dummy-run/environments/release
-gh api -X POST repos/dummy-run/dummy-run/environments/release/deployment-branch-policies \
-  -f name='v*' -f type=tag
 gh api -X PUT repos/dummy-run/dummy-run/environments/release \
   -F deployment_branch_policy[protected_branches]=false \
   -F deployment_branch_policy[custom_branch_policies]=true
+gh api -X POST repos/dummy-run/dummy-run/environments/release/deployment-branch-policies \
+  -f name='v*' -f type=tag
 ```
 
 Add the owner as a required reviewer if you want a pause before each release. Add a tag ruleset for `v*` so
@@ -92,8 +95,8 @@ gh variable set HOMEBREW_TAP_ENABLED --body true --repo dummy-run/dummy-run
 
 The next release then pushes `Formula/dummyrun.rb` to the tap. The formula installs the macOS and Linux
 archives, and its test runs `dummyrun version`. The tap is updated while the release is still a draft, so a
-failed image job leaves a formula that points at a draft. Fix the failure and tag again. Then update the
-Homebrew section of `docs/INSTALL.md`.
+failed image job leaves a formula that points at a draft. Fix the failure and tag again. Then add a Homebrew
+section to `docs/INSTALL.md`.
 
 ### Package visibility
 

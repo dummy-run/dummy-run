@@ -19,7 +19,7 @@ go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 | Chrome | chromedriver, which starts Chrome for Testing or Chrome | `DUMMYRUN_CHROMEDRIVER` and `DUMMYRUN_CHROME`, then the PATH |
 
 Set `DUMMYRUN_NO_SANDBOX=1` to start the browsers without their own sandboxes. Do this only inside a container
-or a VM, as the container image does. CI has the same effect through `CI`.
+or a VM, as the container image does. CI has the same effect through `CI` (code: `internal/bidi/launch.go`).
 
 Chrome for Testing and its chromedriver come from the same version listing at
 https://googlechromelabs.github.io/chrome-for-testing/. CI pins 155.0.8059.12 and Firefox 157.0 in
