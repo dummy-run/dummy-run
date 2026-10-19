@@ -84,10 +84,10 @@ func Parse(data []byte, token string) *Rules {
 			}
 			r := rule{allow: key == "allow", pattern: value}
 			for _, a := range agents {
-				switch {
-				case a == token:
+				switch a {
+				case token:
 					named = append(named, r)
-				case a == "*":
+				case "*":
 					star = append(star, r)
 				}
 			}

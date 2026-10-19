@@ -2,6 +2,7 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -193,7 +194,7 @@ func robotsServer(t *testing.T, robots string) *httptest.Server {
 func TestRobotsSiteWideDisallowStartsNoBrowser(t *testing.T) {
 	srv := robotsServer(t, "User-agent: DummyRun\nDisallow: /\n")
 	rep, err := Run(context.Background(), Config{URLs: []string{srv.URL + "/", srv.URL + "/a"}, Browser: "chrome", Headless: true, RespectRobots: true})
-	if err != ErrRobotsDisallow {
+	if !errors.Is(err, ErrRobotsDisallow) {
 		t.Fatalf("err = %v, want ErrRobotsDisallow", err)
 	}
 	if rep.Summary.Skipped != 2 || rep.Summary.Runs != 0 || rep.Failed() || !rep.RespectRobots {
