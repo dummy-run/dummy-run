@@ -5,9 +5,13 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Browsers are no longer left running after runs and tests (#49). The engine starts the driver and the browser in their own process group. It closes the session and stops the group. It then waits for the exit and removes the temporary profile. This holds after an error or a panic. It also holds after a timeout, Ctrl-C and SIGTERM. A watchdog stops the browser if the engine is killed. Every test closes its browser, and CI fails when one is left behind. `docs/ENGINE.md` covers cleanup and troubleshooting.
+
 ### Added
 - `docs/ETHICS.md`, on the website as Ethics and limits. It says what a persona can and cannot tell you, how the screen-reader persona works and what goes to the model provider.
 - The persona library page on the website shows a card for each persona with filters by need, what the persona does differently, what it looks for and the command to run it. It is built from the files in `casts/library`. Each persona gains five front matter keys that the page reads.
+- `dummyrun doctor` lists the browsers and profile directories that an earlier run left behind. `--stop` stops them and removes the directories.
 - `dummyrun coverage` counts what a set of runs covers. It reports the problems found and a Chao2 lower bound on the problems still unfound, always as "at least" with its form named. It also reports sample coverage and the expected new problems per extra run. Route and persona-dimension coverage, a stratified stopping rule and scoring bands complete the report. It refuses to pool runs from different builds. `docs/COVERAGE.md` says what each number means and when to trust it.
 - Run record schema version 2. Each finding has a `route` and a `locus`. It also has a `symptom` from a closed list and a `fingerprint` that the engine computes. Steps have a `route`. The persona has `dimensions` and the scenario has `goal_met`. The record has `repeat_index`, `seed`, a required `batch` and `target.route_universe`. `usage.cost_usd` comes from the price table in `internal/price`, with a source and date for each model, and is null for a model that is not in it. Version 1 records stay readable by `dummyrun coverage` and `dummyrun-otel`. The version 1 schema is kept as `schema/run-record.v1.schema.json`. The exporter gains the attributes listed in `docs/TELEMETRY.md`, such as `dummyrun.finding.fingerprint`.
 - `dummyrun run` takes `--seed`, `--repeat-index` and `--universe`. The `finish` tool asks for `goal_met` and for a `symptom` on each finding. A finding may name the control it is about. A URL target without a commit is identified by a hash of its home page.
