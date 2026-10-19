@@ -20,7 +20,7 @@ Each persona has `profile.md`, `prompt.md` and four scenarios in `scenarios/`, t
 [casts/dummyrun-dev](../dummyrun-dev/README.md). The first seven are visitors and read only. They find a fact,
 start a sign-up or contact journey and stop before the submit button, move around the site and recover from an
 error. The last three need a sign-in and a target that allows changes, so run them on a test environment with
-test data.
+test data. [Inkwell](../../docs/INKWELL.md) is a test app for that. [Inkwell](../../docs/INKWELL.md) is a test app for exactly that.
 
 The front matter carries two extra keys the engine ignores. `tags` groups personas and `leans-on` names the
 engine tools the persona uses most. Both are space-separated lists. Three personas use settings the engine

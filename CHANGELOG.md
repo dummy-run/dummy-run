@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Inkwell is a made-up publishing app in `examples/inkwell`. It has five roles and seeded test accounts. A `-defects` manifest plants up to thirty-six faults, and a hidden prompt-injection test is available. `-test-login` signs a run in with a cookie route. `casts/inkwell` adds an author and a reviewer persona. `docs/INKWELL.md` covers it.
 - `dummyrun run` plays one persona through one scenario in Chrome or Firefox over WebDriver BiDi, with thirteen tools and a step and token budget. A read-only mode blocks every request that could change data. The run record matches `schema/run-record.schema.json`. `docs/ENGINE.md` covers it.
 - Each observation names the element that has focus and lists an accessibility outline. A persona can set `zoom` from 100 to 500 percent and `tools-allowed` or `tools-denied`, and a scenario can set its own `Device:` and `Zoom:`. The run record gains `persona.zoom`.
 - `dummyrun a11y` takes `--rebase`, `--viewport`, `--scheme` and `--headful`. `dummyrun audit a11y` is the same command.
