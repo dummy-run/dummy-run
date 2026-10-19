@@ -113,6 +113,9 @@ type Snapshot struct {
 	Tree string `json:"tree,omitempty"`
 	// TreeOmitted counts the outline entries cut to fit the budget.
 	TreeOmitted int `json:"tree_omitted,omitempty"`
+	// TreeError is set when focus and the outline could not be read, so that
+	// "no focus" is never reported for a page that was not checked.
+	TreeError string `json:"tree_error,omitempty"`
 }
 
 // Focus is the focused element as an assistive technology would announce it.
@@ -581,6 +584,7 @@ func (p *Page) addOutline(ctx context.Context, snap *Snapshot) {
 		Omitted int    `json:"omitted"`
 	}
 	if err := p.conn.CallFunctionJSON(ctx, p.cx, treeJS, &out, TreeChars); err != nil {
+		snap.TreeError = firstLine(err.Error())
 		return
 	}
 	snap.Focus, snap.Tree, snap.TreeOmitted = out.Focus, out.Tree, out.Omitted

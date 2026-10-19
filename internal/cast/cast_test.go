@@ -195,6 +195,8 @@ func TestDisplay(t *testing.T) {
 		{"persona zoom with a percent sign", "zoom: 150%\n", "Go.", "desktop", 150, 933, 667},
 		{"scenario device", "", "Device: phone. Start at the home page.", "phone", 100, 390, 844},
 		{"scenario overrides persona zoom", "zoom: 200\n", "Zoom: 400%", "desktop", 400, 350, 250},
+		{"mixed-case percent", "", "Zoom: 250 PERCENT", "desktop", 250, 560, 400},
+		{"device with prose after it", "", "Device: tablet. Start at the home page.", "tablet", 100, 820, 1180},
 		{"scenario sets both", "device: tablet\n", "Device: Tablet\nZoom: 200 percent", "tablet", 200, 410, 590},
 	}
 	for _, c := range cases {
@@ -210,9 +212,14 @@ func TestDisplay(t *testing.T) {
 		})
 	}
 	for scenario, want := range map[string]string{
-		"Device: watch": `device "watch" must be desktop, tablet or phone`,
-		"Zoom: 600%":    "outside 100 to 500",
-		"Zoom: 50":      "outside 100 to 500",
+		"Device: watch":     `device "watch" must be desktop, tablet or phone`,
+		"Zoom: 600%":        "outside 100 to 500",
+		"Zoom: 50":          "outside 100 to 500",
+		"Device: 4k-tv":     `device "4k-tv" must be desktop, tablet or phone`,
+		"Device:":           `device "" must be desktop, tablet or phone`,
+		"Zoom: two hundred": "not a percentage",
+		"Zoom: x2":          "not a percentage",
+		"Zoom: 200% please": "not a percentage",
 	} {
 		if _, err := Load(writePersona(t, "", scenario), "kit"); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%q: error %v, want %q", scenario, err, want)

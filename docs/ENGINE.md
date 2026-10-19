@@ -69,7 +69,7 @@ browser behaves for that persona.
 
 | Key | Meaning |
 |---|---|
-| `device` | `desktop` (1400 x 1000), `tablet` (820 x 1180) or `phone` (390 x 844). The window in device pixels. Required |
+| `device` | `desktop` (1400 x 1000), `tablet` (820 x 1180) or `phone` (390 x 844). The window size is in device pixels. This key is required. |
 | `zoom` | Page zoom in percent, from 100 to 500. `200` and `200%` both work. The default is 100 |
 | `tools-allowed` | The only tools the persona may use, separated by spaces or commas. `finish` is always allowed |
 | `tools-denied` | Tools the persona may not use. When both keys are set, a tool must be allowed and not denied |
@@ -77,8 +77,9 @@ browser behaves for that persona.
 A scenario file can put `Device: phone` and `Zoom: 200%` on lines of their own. A scenario's setting replaces
 the persona's, so one persona can be run on several devices. The scenario files already start with a line such
 as `Device: desktop. Start at the home page.`, and the engine reads that line. A `Budget: 30 steps` line works
-the same way. A device that is not `desktop`, `tablet` or `phone` and a zoom outside 100 to 500 stop the run
-before it starts.
+the same way. A `Device:` line may carry other words after the device name. A `Zoom:` value has its line to
+itself. A run does not start with a device other than `desktop`, `tablet` or `phone`. It does not start with a
+zoom that is not a number from 100 to 500.
 
 ### Tool limits
 
@@ -100,7 +101,9 @@ the `devicePixelRatio` parameter ([WebDriver BiDi, setViewport](https://w3c.gith
 The setting is kept across navigations. CSS `zoom` set from a script would not survive a page load, would not
 change media queries and is not standard on Firefox. Observations show a `zoom:` line with the viewport and
 pixel ratio the page reports, so a screenshot and the page's own numbers can be compared. The run record
-holds the zoom in `persona.zoom`. It is left out at 100.
+holds the zoom in `persona.zoom`. It is left out at 100. The persona object does not allow other keys, so a
+reader that still has the earlier schema rejects a record that has `persona.zoom`. Update the reader's copy of
+`schema/run-record.schema.json` first. The Grafana exporter in this repository is already updated.
 
 This is the setting for WCAG 2.2 SC 1.4.4 (resize text) and SC 1.4.10 (reflow).
 

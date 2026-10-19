@@ -80,6 +80,9 @@ func Render(s Step) string {
 
 // focusLine says which element has keyboard focus.
 func focusLine(p *page.Snapshot) string {
+	if p.TreeError != "" {
+		return "focus: unknown (the accessibility view could not be read)\n"
+	}
 	f := p.Focus
 	if f == nil {
 		return "focus: nothing (no element has keyboard focus)\n"
@@ -190,6 +193,7 @@ func Signature(o page.Observation) uint64 {
 		if f := o.Snapshot.Focus; f != nil {
 			_, _ = h.Write([]byte("focus:" + f.Ref + f.Role + f.Name))
 		}
+		_, _ = h.Write([]byte("tree-error:" + o.Snapshot.TreeError))
 		if len(o.Snapshot.Scroll) == 2 {
 			fmt.Fprintf(h, "%d", o.Snapshot.Scroll[0])
 		}

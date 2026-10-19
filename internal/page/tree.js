@@ -84,7 +84,9 @@
   const roleOf = (el) => {
     const explicit = squash(el.getAttribute("role")).split(" ")[0].toLowerCase();
     if (explicit && explicit !== "none" && explicit !== "presentation") return explicit;
-    if (el.isContentEditable && el.getAttribute("contenteditable") !== "inherit") return "textbox";
+    // isContentEditable is inherited; only the editing host itself is a textbox.
+    const host = el.getAttribute("contenteditable");
+    if (el.isContentEditable && host !== null && host.toLowerCase() !== "false" && host.toLowerCase() !== "inherit") return "textbox";
     return implicitRole(el);
   };
 

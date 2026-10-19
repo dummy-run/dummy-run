@@ -31,6 +31,7 @@ const outlinePage = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <input id="agree" type="checkbox" aria-label="I agree" checked>
 <button id="off" disabled>Not now</button>
 <div id="dead" onclick="1">A clickable div</div>
+<div id="editor" contenteditable="true">Edit me <a href="/inner">Inner link</a></div>
 <div style="display:none"><a href="/hidden">Hidden link</a></div>
 </main>
 <footer>Contact</footer>
@@ -136,6 +137,9 @@ func TestFocusAndOutline(t *testing.T) {
 					if !strings.Contains(tree, want) {
 						t.Errorf("outline lacks %q:\n%s", want, tree)
 					}
+				}
+				if !strings.Contains(tree, `textbox "`) || !strings.Contains(tree, `link "Inner link" @`) {
+					t.Errorf("a link inside an editable host must stay a link, and the host is a textbox:\n%s", tree)
 				}
 				if strings.Contains(tree, "Hidden link") {
 					t.Errorf("outline lists a hidden link:\n%s", tree)

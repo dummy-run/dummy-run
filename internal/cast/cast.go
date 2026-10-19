@@ -16,7 +16,10 @@
 //	tools-denied: click           tools the persona may not use
 //
 // A scenario file can set "Device: phone", "Zoom: 200%" and "Budget: 30 steps"
-// on lines of their own; Device and Zoom there replace the persona's.
+// on lines of their own; Device and Zoom there replace the persona's. A Device
+// line may carry prose after the device name ("Device: desktop. Start at the
+// home page."); a Zoom value has the line to itself. A value that is not valid
+// is an error, never ignored.
 package cast
 
 import (
@@ -155,8 +158,8 @@ var (
 	numberPrefix = regexp.MustCompile(`^[0-9]+-`)
 	budgetLine   = regexp.MustCompile(`(?m)^Budget:\s*([0-9]+)`)
 	titleLine    = regexp.MustCompile(`(?m)^#\s+(.+)$`)
-	deviceLine   = regexp.MustCompile(`(?mi)^Device:\s*([A-Za-z]+)`)
-	zoomLine     = regexp.MustCompile(`(?mi)^Zoom:\s*([0-9]+\s*(?:%|percent)?)`)
+	deviceLine   = regexp.MustCompile(`(?mi)^Device:[ \t]*([^\s.]*)`)
+	zoomLine     = regexp.MustCompile(`(?mi)^Zoom:[ \t]*([^\n]*)$`)
 )
 
 // Zoom limits in percent. Browsers offer 25 to 500; below 100 is not a
@@ -169,7 +172,7 @@ const (
 // ParseZoom reads a zoom level such as "200", "200%" or "200 percent". Empty
 // means no setting and gives 0.
 func ParseZoom(v string) (int, error) {
-	v = strings.TrimSpace(v)
+	v = strings.ToLower(strings.TrimSpace(v))
 	if v == "" {
 		return 0, nil
 	}

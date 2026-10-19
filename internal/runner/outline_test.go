@@ -109,3 +109,15 @@ func TestScreenshotsWithheldWhenTheToolIsDenied(t *testing.T) {
 		t.Error("a persona limited to look and press was shown a screenshot")
 	}
 }
+
+func TestUnreadableOutlineIsNotNoFocus(t *testing.T) {
+	a := sampleStep(1, "press", "")
+	b := sampleStep(2, "press", "")
+	b.Obs.Snapshot.TreeError = "script threw"
+	if got := Render(b); !strings.Contains(got, "focus: unknown") || strings.Contains(got, "focus: nothing") {
+		t.Errorf("a failed read must not say nothing has focus:\n%s", got)
+	}
+	if Signature(a.Obs) == Signature(b.Obs) {
+		t.Error("a failed outline read has the same signature as a read that found no focus")
+	}
+}
