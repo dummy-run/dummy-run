@@ -1,5 +1,9 @@
 {{/* Build the reference pages from the repository's own Markdown, so there is one source of truth. */}}
 {{ $pages := slice
+  (dict "src" "repo/docs/ENGINE.md" "path" "engine" "group" "use" "weight" 1 "summary" "Install the engine, run a persona, the read-only policy and the accessibility sweep")
+  (dict "src" "repo/docs/CLI.md" "path" "cli" "group" "use" "weight" 2 "summary" "Every command and flag, generated from the engine's own help text")
+  (dict "src" "repo/docs/PROVIDERS.md" "path" "providers" "group" "use" "weight" 3 "summary" "The model providers, what each needs and where your data goes")
+  (dict "src" "repo/docs/PERSONAS.md" "path" "personas" "group" "use" "weight" 4 "summary" "Copy a persona from the library and adapt it to your product")
   (dict "src" "repo/docs/ARCHITECTURE.md" "path" "architecture" "group" "understand" "weight" 10 "summary" "Adapters, the evidence pipeline, browsers and data residency")
   (dict "src" "repo/docs/TELEMETRY.md" "path" "telemetry" "group" "understand" "weight" 12 "summary" "How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations")
   (dict "src" "repo/docs/integrations/grafana.md" "path" "grafana-guide" "title" "Grafana guide" "group" "integrate" "weight" 21 "summary" "Wire runs into Grafana, Tempo, Loki and your own app's traces")
