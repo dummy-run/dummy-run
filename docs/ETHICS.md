@@ -28,4 +28,4 @@ A target with `"read_only": true` blocks every request that could change data an
 
 ## Findings about apps you do not own
 
-Do not run Dummy Run against a site you have no right to test. [Security](../SECURITY.md) explains how to report a problem in a site you do not own. If Dummy Run visited your site and you want it to stop, see [Dummy Run visited my site](https://dummyrun.dev/scanner/).
+Do not run Dummy Run against a site you have no right to test. [Security](../SECURITY.md) explains how to report a problem in a site you do not own. If Dummy Run visited your site and you want it to stop, see [Dummy Run visited my site](../site/content/scanner.md).

@@ -27,7 +27,7 @@ The browser's own user agent comes first, so your site renders as it does for an
 
 A visit happens for one of two reasons. Someone asked the hosted free scan to check a public page. Or someone ran the open-source tool themselves.
 
-The hosted scan loads public pages only and sends only GET, HEAD and OPTIONS requests. It is rate limited and it honours robots.txt. [The free scan page](/scan/) has the detail.
+The hosted scan loads public pages only and sends only GET, HEAD and OPTIONS requests. It is rate limited and it honours robots.txt. [The free scan page](scan.md) has the detail.
 
 Anyone can run the open-source engine with any user agent. The identifying string is a courtesy of the hosted service and of our own runs. It is not a guarantee about other people's copies.
 

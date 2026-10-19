@@ -27,19 +27,19 @@ Anyone who wants a first look at a public site. That includes owners, developers
 
 It is not an audit. It is not a statement that your site meets WCAG or any law. It samples pages, so a clean report does not mean the rest of the site is clean.
 
-A persona is a model. It finds likely problems and a person should check each one. [Ethics and limits](/docs/ethics/) says what a persona can and cannot tell you.
+A persona is a model. It finds likely problems and a person should check each one. [Ethics and limits](../../docs/ETHICS.md) says what a persona can and cannot tell you.
 
 ## How it protects your site
 
 - It loads public pages only. It never signs in.
 - It is read-only. Only GET, HEAD and OPTIONS requests reach your site. The browser blocks every other request.
 - It is rate limited, with caps for each domain and for each email address, and a limit on pages for each scan.
-- It identifies itself in the user agent. [The scanner page](/scanner/) shows the string.
+- It identifies itself in the user agent. [The scanner page](scanner.md) shows the string.
 - It honours robots.txt. If your file disallows `DummyRun`, no scan starts.
 - It stops when you object. Write to abuse@dummyrun.dev and scans of your domain stop.
 
 ## What happens to the data
 
-The text and screenshots of the pages it visits go to the model that plays the persona. The privacy page says what we keep and for how long. It covers the waitlist today. The free scan will get its own notice before it opens. [Read the privacy page](/privacy/).
+The text and screenshots of the pages it visits go to the model that plays the persona. The privacy page says what we keep and for how long. It covers the waitlist today. The free scan will get its own notice before it opens. [Read the privacy page](privacy.md).
 
 {{< waitlist >}}
