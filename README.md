@@ -13,7 +13,7 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> Pre-release. Nothing here installs yet.
+> Pre-release. Nothing here installs yet. The website is at [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 

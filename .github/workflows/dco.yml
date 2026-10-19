@@ -19,11 +19,15 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
           fail=0
           for c in $(git rev-list --no-merges "$BASE..$HEAD"); do
             email=$(git log -1 --format=%ae "$c")
+            # Dependabot cannot sign off. Skip its commits only on pull requests GitHub says Dependabot
+            # opened, because a commit's author email alone can be set by anyone.
+            if [ "$PR_AUTHOR" = "dependabot[bot]" ] && [ "$email" = "49699333+dependabot[bot]@users.noreply.github.com" ]; then continue; fi
             if ! git log -1 --format=%B "$c" | grep -i '^Signed-off-by:' | grep -qF "<$email>"; then
               echo "::error::Commit $c by $email has no matching Signed-off-by line. Use 'git commit -s' (see CONTRIBUTING.md)."
               fail=1
