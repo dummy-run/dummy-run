@@ -1,6 +1,6 @@
 {{- /* The six audience pages as a card grid. Used on the home page and on Who it is for. */ -}}
 {{- $long := .long -}}
-<ul class="cards cards-roles">
+<ul class="cards cards-roles{{ if $long }} is-long{{ end }}">
   {{- range (where site.RegularPages "Section" "for").ByWeight }}
   <li><a class="card is-link" href="{{ .RelPermalink }}">{{ partial "icons/icon.html" (dict "name" .Params.icon) }}<span class="card-title">{{ .Params.role }}</span><span class="card-text">{{ if $long }}{{ .Params.lead | markdownify }}{{ else }}{{ .Params.lead_short }}{{ end }}</span></a></li>
   {{- end }}
