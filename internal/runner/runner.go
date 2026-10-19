@@ -385,7 +385,17 @@ func (r *run) turns() []provider.Turn {
 		}
 	}
 	var turns []provider.Turn
+	// Every tool reply for one assistant turn must come before any other message,
+	// so screenshots wait until the run of tool entries ends.
+	var pendingShots []provider.Turn
+	flushShots := func() {
+		turns = append(turns, pendingShots...)
+		pendingShots = nil
+	}
 	for i, e := range r.entries {
+		if e.role != provider.RoleTool {
+			flushShots()
+		}
 		switch e.role {
 		case provider.RoleUser:
 			t := provider.Turn{Role: provider.RoleUser, Text: e.text}
@@ -405,12 +415,13 @@ func (r *run) turns() []provider.Turn {
 			}
 			turns = append(turns, provider.Turn{Role: provider.RoleTool, ToolCallID: e.callID, Text: text})
 			if e.step != nil && shot[i] && len(e.step.Obs.Screenshot) > 0 {
-				turns = append(turns, provider.Turn{Role: provider.RoleUser,
+				pendingShots = append(pendingShots, provider.Turn{Role: provider.RoleUser,
 					Text:   fmt.Sprintf("Screenshot after step %d.", e.step.N),
 					Images: []provider.Image{{PNG: e.step.Obs.Screenshot}}})
 			}
 		}
 	}
+	flushShots()
 	return turns
 }
 
