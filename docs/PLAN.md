@@ -29,6 +29,6 @@ mascot. The cautions are in [NAMING.md](NAMING.md).
 |---|---|---|
 | 2026-10-18 | Name: Dummy Run, org `dummy-run`, command `dummyrun` | [NAMING.md](NAMING.md). The GitHub name `dummyrun` belongs to a dormant account |
 | 2026-10-18 | Licence: Apache-2.0 with DCO sign-off and a trademark policy | [LICENSING.md](LICENSING.md) |
-| 2026-10-18 | Body text at least 17px on every surface | [TYPOGRAPHY.md](TYPOGRAPHY.md) |
+| 2026-10-19 | Body text at least 18px on every surface | [TYPOGRAPHY.md](TYPOGRAPHY.md) |
 | 2026-10-18 | Logo: the Viewfinder mark, with the Dummy as mascot | [brand/README.md](../brand/README.md) |
 | 2026-10-18 | Domain: dummyrun.dev | Docs and the public board will live there |

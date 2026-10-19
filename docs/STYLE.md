@@ -51,7 +51,7 @@ Privacy rules for personas and data are in [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ## Design
 
-- Type sizes are in [TYPOGRAPHY.md](TYPOGRAPHY.md). Body text is 17px with a 1.65 line height, and
-  nothing a person reads is below 15px.
+- Type sizes are in [TYPOGRAPHY.md](TYPOGRAPHY.md). Body text is 18px with a 1.65 line height, and
+  nothing a person reads is below 16px.
 - The logo, mascot and palette are in [brand/](../brand/README.md).
 - Diagrams are Mermaid in Markdown, so they render on GitHub.

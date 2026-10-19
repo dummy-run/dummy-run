@@ -58,9 +58,9 @@
   --type-title: clamp(1.875rem, 1.66rem + 1.05vw, 2.5rem);
   --type-title-sm: clamp(1.5rem, 1.38rem + 0.6vw, 1.875rem);
   --type-subtitle: clamp(1.25rem, 1.18rem + 0.34vw, 1.4375rem);
-  --type-lead: clamp(1.125rem, 1.08rem + 0.22vw, 1.25rem);
-  --type-body: 1.0625rem;
-  --type-small: 0.9375rem;
+  --type-lead: clamp(1.25rem, 1.2rem + 0.25vw, 1.375rem);
+  --type-body: 1.125rem;
+  --type-small: 1rem;
   --type-caption: 0.8125rem;
 
   --measure: 72ch;
