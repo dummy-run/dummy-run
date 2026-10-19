@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.14.1
 	github.com/coder/websocket v1.8.15
-	github.com/openai/openai-go/v3 v3.71.1
+	github.com/openai/openai-go/v3 v3.71.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 )
 

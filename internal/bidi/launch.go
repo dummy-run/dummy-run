@@ -34,6 +34,10 @@ type LaunchOptions struct {
 	Timeout time.Duration
 	// Env is appended to the browser's environment.
 	Env []string
+	// Args are extra command-line arguments for the browser, appended after the defaults.
+	Args []string
+	// FirefoxPrefs are extra Firefox preferences, written to the temporary profile.
+	FirefoxPrefs map[string]any
 }
 
 // Browser is a launched browser with its BiDi connection.
@@ -154,6 +158,9 @@ func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 	if opts.UserAgent != "" {
 		prefs["general.useragent.override"] = opts.UserAgent
 	}
+	for k, v := range opts.FirefoxPrefs {
+		prefs[k] = v
+	}
 	var userJS strings.Builder
 	for k, v := range prefs {
 		val, _ := json.Marshal(v)
@@ -171,6 +178,7 @@ func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 	if opts.Headless {
 		args = append(args, "--headless")
 	}
+	args = append(args, opts.Args...)
 	args = append(args, "about:blank")
 	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- the binary path is the operator's configuration, never page or model output
 	cmd := exec.CommandContext(context.Background(), bin, args...) //nolint:gosec // see above
@@ -266,6 +274,7 @@ func launchChrome(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 	if os.Getenv("CI") != "" {
 		args = append(args, "--no-sandbox", "--disable-dev-shm-usage")
 	}
+	args = append(args, opts.Args...)
 	chromeOpts := map[string]any{"args": args}
 	if chrome != "" {
 		chromeOpts["binary"] = chrome
