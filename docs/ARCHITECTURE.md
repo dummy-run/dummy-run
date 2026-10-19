@@ -33,9 +33,12 @@ flowchart TB
 | Results store | Where run records and the board live | Local directory; object storage (GCS, Azure Blob, S3); the board is always static files on top |
 | Secrets | Test-user credentials and provider keys | OS keychain; CI secrets; Secret Manager; Key Vault |
 
+The model providers are Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Gemini runs on Vertex AI or the Developer API. Any OpenAI-compatible service works too. [PROVIDERS.md](PROVIDERS.md) has the table of what each one needs and can do.
+
 An adapter declares the regions it can run in. A market profile (for example `uk`) lists the regions
 that satisfy it (`europe-west2`, `uksouth`, `ukwest`). A run refuses to start if any adapter in the chain
-cannot satisfy the market.
+cannot satisfy the market. The profile covers adapters only. Telemetry residency is wherever your own
+OpenTelemetry backend is, and [TELEMETRY.md](TELEMETRY.md) says what leaves the network.
 
 ## The evidence rule
 

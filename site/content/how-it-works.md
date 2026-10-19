@@ -24,11 +24,15 @@ The engine runs a persona in Chrome or Firefox and writes the run record, the pe
 
 [Watch a real run](watch-a-run.md) of this website, step by step.
 
+## Does it replace a scripted suite?
+
+No. Keep your suite. A script checks the steps you wrote, the same way every time. A persona explores like a user and finds what nobody wrote a script for. When a persona finds a problem you want guarded for good, write the test for it. [Beside your scripted suite](for/qa-lead.md) compares the two.
+
 ## Targets and models
 
 An adapter finds the preview for a pull request, creates a test user with the right role and loads test data. The only adapter today takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages are planned. The adapter also says which hosts a run may touch.
 
-The persona and the reviewer are two separate model roles. Providers are Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service works too, including a local server. Choose one per market to keep runs inside a jurisdiction such as the UK or the EU.
+The persona and the reviewer are two separate model roles. Providers are Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Gemini runs on Vertex AI or the Developer API. Any OpenAI-compatible service works too, including a local server. [The provider table](../../docs/PROVIDERS.md) shows what each one needs and can do. Choose one per market to keep runs inside a jurisdiction such as the UK or the EU.
 
 ## Evidence
 
@@ -41,7 +45,15 @@ A finding is a claim plus evidence. The reviewer rejects a claim unless a step i
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them. Nothing is posted for you. The board will be static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
+High-severity findings wait for a person to confirm them. The board will be static HTML plus JSON built from the run records.
+
+## After review
+
+Nothing is posted for you. A person reads the findings and decides what becomes a ticket. Today you copy a finding into your tracker by hand, or write a script that reads the run record JSON.
+
+## What leaves the network
+
+Screenshots and page text go to the model provider you choose, because the persona is a model that reads what the browser shows. Telemetry has no screenshots and no page text. It goes only to the OpenTelemetry backend you configure, so it lives wherever that backend lives. [Telemetry](../../docs/TELEMETRY.md) lists what it carries.
 
 ## Words we use
 

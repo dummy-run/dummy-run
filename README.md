@@ -44,7 +44,21 @@ flowchart LR
 - **Model providers.** Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service
   works too, such as a local server. Choose one per market to keep runs inside a
   jurisdiction such as the UK or the EU.
-- **Nothing is posted for you.** Findings go to the board. A person decides what becomes a ticket.
+- **After review.** Nothing is posted for you. A person reads the findings and decides what becomes a ticket.
+  Today you copy a finding into your tracker by hand, or write a script that reads the run record JSON.
+
+## Does it replace a scripted regression suite?
+
+No. Keep your suite. A script checks the steps you wrote, the same way every time. A persona explores
+like a user and finds what nobody wrote a script for. When a persona finds a problem you want guarded for
+good, write the test for it.
+
+## What leaves your network
+
+Screenshots and page text go to the model provider you choose, because the persona is a model that reads
+what the browser shows. Telemetry holds no screenshots and no page text. It goes only to the
+OpenTelemetry backend you configure, so it lives wherever that backend lives.
+[docs/TELEMETRY.md](docs/TELEMETRY.md) lists what it does carry.
 
 ## Who it is for
 

@@ -10,6 +10,17 @@ the version 2 fields, so the attributes marked "version 2" are left out for them
 `dummyrun.cost.usd` is present when the model is in the price table, and the record has `cost_usd: null`
 otherwise.
 
+## What leaves the network
+
+Dummy Run sends data to two places, and you choose both.
+
+- The model provider you pick with `--provider` receives screenshots and page text. The persona is a model that reads what the browser shows. [Ethics and limits](ETHICS.md) covers what providers keep.
+- The OpenTelemetry backend you configure receives the telemetry on this page. The exporter sends it to `OTEL_EXPORTER_OTLP_ENDPOINT` and to nowhere else. Annotations go to the Grafana at `--grafana-url`.
+
+Telemetry has no screenshots, no page text and no copy of the persona's report. It holds IDs and outcomes. It holds each step's action, page URL and the label of the control it used. It holds the model, its region, the token counts and the cost. It also holds each finding's title, which the persona wrote. A title can quote a few words from the page. A URL can hold personal data if the app puts it there. The run record and its screenshots stay where you run Dummy Run.
+
+Where telemetry lives is wherever your own backend is. The market profile in [ARCHITECTURE.md](ARCHITECTURE.md) checks the adapters of a run. It does not check your backend, so host the backend in the market you need.
+
 ## Resource
 
 | Attribute | Value |
