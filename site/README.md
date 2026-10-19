@@ -28,13 +28,15 @@ npm ci
 hugo --gc --minify --panicOnWarning
 npm run check:html
 npm run serve &
-THEME=light npm run check:a11y
-THEME=dark npm run check:a11y
+npm run check:a11y
 lychee --offline --root-dir "$PWD/public" --include-fragments 'public/**/*.html'
 ```
 
-`hugo server` serves a live preview on port 1313. The accessibility check runs every page at 1280 and
-375 pixels wide. Set `CHROME_PATH` to a Chrome binary if Puppeteer has not downloaded one.
+`hugo server` serves a live preview on port 1313. The accessibility check is `dummyrun a11y`, the
+engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, and the 404 page, at
+1280 and 375 pixels wide in the light and dark colour schemes. It needs Go, Chrome with chromedriver
+(`DUMMYRUN_CHROME`, `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
+to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a reason.
 
 ## Typefaces
 

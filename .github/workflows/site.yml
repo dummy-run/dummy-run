@@ -11,6 +11,8 @@ on:
       - "CONTRIBUTING.md"
       - "SECURITY.md"
       - "TRADEMARKS.md"
+      - "cmd/dummyrun/a11y.go"
+      - "internal/a11y/**"
       - ".github/workflows/site.yml"
   push:
     branches: [main]
@@ -23,10 +25,17 @@ on:
       - "CONTRIBUTING.md"
       - "SECURITY.md"
       - "TRADEMARKS.md"
+      - "cmd/dummyrun/a11y.go"
+      - "internal/a11y/**"
       - ".github/workflows/site.yml"
 
 permissions:
   contents: read
+
+env:
+  # The same pinned browsers as the Engine workflow's conformance job. Keep the two in step.
+  CHROME_FOR_TESTING: 155.0.8059.12
+  FIREFOX_VERSION: "157.0"
 
 # A newer push cancels the run before it, so an older build can never deploy after a newer one.
 concurrency:
@@ -40,7 +49,7 @@ jobs:
     # Pull requests from forks are not built. They cannot reach the deploy job either.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install Hugo 0.165.0 extended
@@ -54,10 +63,12 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - name: Install the check tools
         working-directory: site
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: "true"
         run: npm ci --no-audit --no-fund
       - name: Build
         working-directory: site
@@ -70,24 +81,54 @@ jobs:
         with:
           args: --offline --root-dir "${{ github.workspace }}/site/public" --include-fragments --no-progress 'site/public/**/*.html'
           fail: true
+      - name: Install Chrome for Testing and chromedriver
+        env:
+          VERSION: ${{ env.CHROME_FOR_TESTING }}
+        run: |
+          set -euo pipefail
+          base="https://storage.googleapis.com/chrome-for-testing-public/${VERSION}/linux64"
+          curl -fsSLo chrome.zip "${base}/chrome-linux64.zip"
+          curl -fsSLo chromedriver.zip "${base}/chromedriver-linux64.zip"
+          unzip -q chrome.zip -d "$HOME/cft"
+          unzip -q chromedriver.zip -d "$HOME/cft"
+          echo "DUMMYRUN_CHROME=$HOME/cft/chrome-linux64/chrome" >> "$GITHUB_ENV"
+          echo "DUMMYRUN_CHROMEDRIVER=$HOME/cft/chromedriver-linux64/chromedriver" >> "$GITHUB_ENV"
+          "$HOME/cft/chrome-linux64/chrome" --version
+          "$HOME/cft/chromedriver-linux64/chromedriver" --version
+      - uses: browser-actions/setup-firefox@0bc507ddf224827e3b1af68e014d5e42ab93e795 # v1.7.2
+        with:
+          firefox-version: ${{ env.FIREFOX_VERSION }}
+      - name: Firefox version
+        run: |
+          firefox --version
+          echo "DUMMYRUN_FIREFOX=$(command -v firefox)" >> "$GITHUB_ENV"
       - name: Serve the built site
         working-directory: site
         run: |
           python3 -m http.server 1313 -d public --bind 127.0.0.1 &
           sleep 1
           curl -fsS -o /dev/null http://127.0.0.1:1313/
-      - name: Accessibility at 1280 and 375 pixels, light theme
-        working-directory: site
-        env:
-          THEME: light
-          CHROME_PATH: /usr/bin/google-chrome
-        run: npm run --silent check:a11y
-      - name: Accessibility at 1280 and 375 pixels, dark theme
-        working-directory: site
-        env:
-          THEME: dark
-          CHROME_PATH: /usr/bin/google-chrome
-        run: npm run --silent check:a11y
+      - name: Build the sweep
+        run: go build -o "$RUNNER_TEMP/dummyrun" ./cmd/dummyrun
+      - name: Accessibility, Chrome, 1280 and 375 pixels, light and dark
+        run: >-
+          "$RUNNER_TEMP/dummyrun" a11y --browser chrome
+          --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
+          --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-chrome.json"
+          http://127.0.0.1:1313/404.html
+      - name: Accessibility, Firefox, 1280 and 375 pixels, light and dark
+        run: >-
+          "$RUNNER_TEMP/dummyrun" a11y --browser firefox
+          --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
+          --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-firefox.json"
+          http://127.0.0.1:1313/404.html
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: a11y-reports
+          path: ${{ runner.temp }}/a11y-*.json
+          retention-days: 7
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: site
