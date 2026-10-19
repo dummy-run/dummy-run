@@ -26,10 +26,12 @@ Flags:
   --scheme NAME     light, dark or both (default both)
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
+  --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --headful         show the browser window
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
-tested, 2 for a usage error.`
+tested, 2 for a usage error, 3 when robots.txt disallows every page. Pages skipped for robots.txt do not fail the sweep.`
 
 func a11yCmd(args []string) int {
 	fs := flag.NewFlagSet("a11y", flag.ContinueOnError)
@@ -42,6 +44,8 @@ func a11yCmd(args []string) int {
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
 	headful := fs.Bool("headful", false, "show the browser window")
+	identify := fs.Bool("identify", false, "name the scanner page in the user agent")
+	respect := fs.Bool("respect-robots", false, "skip pages that robots.txt disallows for DummyRun or *")
 	// Flags may come after the URLs, so parse in a loop that peels off positional arguments.
 	var urls []string
 	rest := args
@@ -94,7 +98,7 @@ func a11yCmd(args []string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if *sitemap != "" {
-		pages, err := a11y.FetchSitemap(ctx, nil, *sitemap)
+		pages, err := a11y.FetchSitemap(ctx, requestClient(*identify), *sitemap)
 		if err != nil {
 			return fail(err)
 		}
@@ -108,8 +112,13 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11y.Run(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		Headless: !*headful, Log: os.Stderr,
+		Headless: !*headful, Log: os.Stderr, Identify: *identify, RespectRobots: *respect,
 	})
+	if errors.Is(err, a11y.ErrRobotsDisallow) {
+		rep.WriteSummary(os.Stderr)
+		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
+		return exitRobots
+	}
 	if err != nil {
 		return fail(err)
 	}

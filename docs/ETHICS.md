@@ -24,7 +24,7 @@ Some providers keep prompts and responses for abuse monitoring. Azure OpenAI can
 
 ## Read-only by policy
 
-A target with `"read_only": true` blocks every request that could change data and every request to another host. Use it for any site you do not own. [Engine](ENGINE.md) describes the policy. Run the permission personas only on a test environment with test accounts.
+A target with `"read_only": true` blocks every request that could change data and every request to another host. Use it for any site you do not own. Add `--identify` and `--respect-robots` when you test a site that is not yours. [Engine](ENGINE.md) describes the policy. Run the permission personas only on a test environment with test accounts.
 
 ## Findings about apps you do not own
 

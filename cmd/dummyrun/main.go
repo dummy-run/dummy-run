@@ -14,10 +14,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -75,10 +77,10 @@ func usage() {
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--identify] [--respect-robots]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
+  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--identify] [--respect-robots]
   dummyrun doctor [--stop]
   dummyrun version
 
@@ -123,6 +125,8 @@ func runCmd(args []string) int {
 	repeat := fs.Int("repeat-index", -1, "repeat count for this persona, scenario and model in the batch (default: counted from the records in --out)")
 	universe := fs.String("universe", "", "where the routes that exist come from, for route coverage: \"sitemap\" (base_url/sitemap.xml) or a sitemap URL")
 	headful := fs.Bool("headful", false, "show the browser window")
+	identify := fs.Bool("identify", false, "add \"DummyRun/<version> (+"+telemetry.ScannerURL+")\" to the browser's user agent (also set by \"identify\": true in the target file)")
+	respect := fs.Bool("respect-robots", false, "fetch robots.txt from the target origin and block what it disallows for DummyRun or * (also set by \"respect_robots\": true in the target file); a site-wide disallow stops the run before the browser starts")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -145,6 +149,8 @@ func runCmd(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	target.Identify = target.Identify || *identify
+	target.RespectRobots = target.RespectRobots || *respect
 	persona, err := cast.Load(*castDir, *personaID)
 	if err != nil {
 		return fail(err)
@@ -166,6 +172,7 @@ func runCmd(args []string) int {
 	cfg := runner.Config{
 		Persona: persona, Scenario: scenario, Target: target, Provider: p, Browser: *browser, Headless: !*headful,
 		OutDir: *out, StepBudget: *steps, TokenBudget: *tokens, Batch: *batch, Log: os.Stderr,
+		HTTPClient: requestClient(target.Identify),
 	}
 	if *seed >= 0 {
 		cfg.Seed = seed
@@ -179,6 +186,10 @@ func runCmd(args []string) int {
 		}
 	}
 	res, err := runner.Run(ctx, cfg)
+	if errors.Is(err, runner.ErrRobotsDisallow) {
+		fmt.Fprintf(os.Stderr, "dummyrun: %v; the run was recorded as blocked at %s\n", err, res.Path)
+		return exitRobots
+	}
 	if err != nil {
 		if res != nil {
 			fmt.Fprintf(os.Stderr, "dummyrun: run errored and was recorded at %s\n", res.Path)
@@ -230,6 +241,30 @@ func loadTarget(path string) (policy.Target, error) {
 		return policy.Target{}, fmt.Errorf("%s: %w", path, err)
 	}
 	return t, nil
+}
+
+// exitRobots is the exit status when robots.txt keeps Dummy Run off the site.
+const exitRobots = 3
+
+// requestClient is the HTTP client for the engine's own requests (sitemaps, the home page). With identify
+// they carry the same suffix as the browser.
+func requestClient(identify bool) *http.Client {
+	c := &http.Client{Timeout: 30 * time.Second}
+	if identify {
+		c.Transport = uaTransport{ua: telemetry.RequestUserAgent(true), next: http.DefaultTransport}
+	}
+	return c
+}
+
+type uaTransport struct {
+	ua   string
+	next http.RoundTripper
+}
+
+func (t uaTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r = r.Clone(r.Context())
+	r.Header.Set("User-Agent", t.ua)
+	return t.next.RoundTrip(r)
 }
 
 func summary(rec *record.Record) {

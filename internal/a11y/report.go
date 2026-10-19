@@ -64,6 +64,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 		_, _ = fmt.Fprintf(w, "FAIL %s\n     %s (%s%s) at %s\n     %s\n     in %s\n     %s\n", k.url, k.rule, orUnknown(rw.f.Impact), wcag, rw.target, rw.f.Help, strings.Join(rw.combos, ", "), rw.f.HelpURL)
 	}
 	for _, p := range r.Results {
+		if p.Skipped != "" {
+			_, _ = fmt.Fprintf(w, "SKIPPED %s: %s\n", p.URL, p.Skipped)
+		}
 		if p.Error != "" {
 			_, _ = fmt.Fprintf(w, "ERROR %s (%s/%s/%s): %s\n", p.URL, p.Browser, p.Viewport, p.Scheme, p.Error)
 		}
@@ -71,6 +74,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
 		r.Browser, r.BrowserVersion, r.AxeVersion, s.Pages, s.Runs, s.Failing, s.Allowed, s.NeedsReview, s.PageErrors)
+	if s.Skipped > 0 {
+		_, _ = fmt.Fprintf(w, ", %d pages skipped for robots.txt", s.Skipped)
+	}
 	if s.UnusedAllowed > 0 {
 		_, _ = fmt.Fprintf(w, ", %d unused allow-list entries", s.UnusedAllowed)
 	}

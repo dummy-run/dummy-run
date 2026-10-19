@@ -1,6 +1,10 @@
 package policy
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/dummy-run/dummy-run/internal/robots"
+)
 
 func target(readOnly bool) Target {
 	return Target{Adapter: "url", Environment: "production", BaseURL: "https://www.example.test/",
@@ -65,9 +69,40 @@ func TestDecide(t *testing.T) {
 }
 
 func TestVerdictString(t *testing.T) {
-	for v, s := range map[Verdict]string{Allow: "allow", BlockHost: "host not allowed", BlockWrite: "read-only target", Verdict(9): "unknown"} {
+	for v, s := range map[Verdict]string{BlockRobots: "robots.txt disallows DummyRun", Allow: "allow", BlockHost: "host not allowed", BlockWrite: "read-only target", Verdict(9): "unknown"} {
 		if v.String() != s {
 			t.Errorf("%d.String() = %q", v, v.String())
 		}
+	}
+}
+
+func TestDecideRobots(t *testing.T) {
+	tg := target(true)
+	tg.Robots = robots.Parse([]byte("User-agent: DummyRun\nDisallow: /admin\nDisallow: /*.pdf$\n"), "DummyRun")
+	cases := []struct {
+		name, method, url string
+		want              Verdict
+	}{
+		{"disallowed path", "GET", "https://www.example.test/admin/users", BlockRobots},
+		{"disallowed with query", "GET", "https://www.example.test/admin?x=1", BlockRobots},
+		{"pattern", "GET", "https://www.example.test/files/a.pdf", BlockRobots},
+		{"allowed path", "GET", "https://www.example.test/blog", Allow},
+		{"robots.txt itself", "GET", "https://www.example.test/robots.txt", Allow},
+		{"other allowed host is not covered", "GET", "https://example.test/admin", Allow},
+		{"other scheme is not covered", "GET", "http://www.example.test/admin", Allow},
+		{"host block comes first", "GET", "https://cdn.other.test/admin", BlockHost},
+		{"write to a disallowed path reports robots", "POST", "https://www.example.test/admin", BlockRobots},
+		{"write to an allowed path", "POST", "https://www.example.test/blog", BlockWrite},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tg.Decide(tc.method, tc.url); got != tc.want {
+				t.Errorf("Decide(%s %s) = %s, want %s", tc.method, tc.url, got, tc.want)
+			}
+		})
+	}
+	tg.Robots = nil
+	if tg.Decide("GET", "https://www.example.test/admin") != Allow {
+		t.Error("no rules should allow")
 	}
 }
