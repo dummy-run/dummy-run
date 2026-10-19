@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- The Grafana exporter retries annotations on HTTP 429 and 5xx (#34). It waits for `Retry-After` and spaces its calls. If an annotation still fails, the exporter still sends and flushes all the telemetry. It then lists the failed annotations and exits with code 3. Code 3 means the telemetry arrived. `--signals traces,metrics,logs,annotations` chooses what to send, so a re-export can send only what is missing. The dogfood workflow treats code 3 as a warning.
 - Browsers are no longer left running after runs and tests (#49). The engine starts the driver and the browser in their own process group. It closes the session and stops the group. It then waits for the exit and removes the temporary profile. This holds after an error or a panic. It also holds after a timeout, Ctrl-C and SIGTERM. A watchdog stops the browser if the engine is killed. Every test closes its browser, and CI fails when one is left behind. `docs/ENGINE.md` covers cleanup and troubleshooting.
 
 ### Added

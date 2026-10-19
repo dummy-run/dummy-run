@@ -237,7 +237,8 @@ func run(t *testing.T, env map[string]string, args ...string) (int, string, stri
 			}
 			return os.Getenv(k)
 		},
-		Now: func() time.Time { return time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC) },
+		Now:   func() time.Time { return time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC) },
+		Sleep: func(ctx context.Context, _ time.Duration) error { return ctx.Err() },
 	})
 	return code, out.String(), errb.String()
 }
@@ -421,5 +422,124 @@ func TestWatchSendsNewFiles(t *testing.T) {
 	}
 	if otlp.count("/v1/traces") == 0 || otlp.count("/v1/logs") == 0 {
 		t.Error("watch did not send the good record")
+	}
+}
+
+// limitedGrafana wraps fakeGrafana and answers the first refuse POSTs with 429 and a Retry-After.
+// A negative refuse means every POST.
+type limitedGrafana struct {
+	fakeGrafana
+	mu2    sync.Mutex
+	refuse int
+	posts  int
+}
+
+func (l *limitedGrafana) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		l.mu2.Lock()
+		l.posts++
+		limited := l.refuse < 0 || l.posts <= l.refuse
+		l.mu2.Unlock()
+		if limited {
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+			return
+		}
+	}
+	l.fakeGrafana.ServeHTTP(w, r)
+}
+
+func TestExportRetriesAnnotationsOn429(t *testing.T) {
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	grafana := &limitedGrafana{refuse: 4}
+	gsrv := httptest.NewServer(grafana)
+	defer gsrv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	code, _, stderr := run(t, map[string]string{"GRAFANA_TOKEN": "glsa_test"}, "export", "--grafana-url", gsrv.URL, "--logs-max-age", "0", examples)
+	if code != ExitOK {
+		t.Fatalf("exit %d, stderr %s", code, stderr)
+	}
+	if len(grafana.store) != 8 || !strings.Contains(stderr, "annotations: 8 created") {
+		t.Errorf("%d annotations stored, stderr %q", len(grafana.store), stderr)
+	}
+}
+
+func TestExportKeepsSendingTelemetryWhenAnnotationsAlwaysFail(t *testing.T) {
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	grafana := &limitedGrafana{refuse: -1}
+	gsrv := httptest.NewServer(grafana)
+	defer gsrv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	code, _, stderr := run(t, map[string]string{"GRAFANA_TOKEN": "glsa_test"}, "export", "--grafana-url", gsrv.URL, "--logs-max-age", "0", examples)
+	if code != ExitAnnotations {
+		t.Fatalf("exit %d, want %d; stderr %s", code, ExitAnnotations, stderr)
+	}
+	for _, p := range []string{"/v1/traces", "/v1/metrics", "/v1/logs"} {
+		if otlp.count(p) == 0 {
+			t.Errorf("nothing posted to %s", p)
+		}
+	}
+	if !strings.Contains(stderr, "sent 8 runs: 102 spans, 16 log records") {
+		t.Errorf("not every run was sent: %q", stderr)
+	}
+	if !strings.Contains(stderr, "8 annotations could not be created") || !strings.Contains(stderr, "HTTP 429") || !strings.Contains(stderr, "--signals annotations") {
+		t.Errorf("stderr %q lacks the annotation report", stderr)
+	}
+}
+
+func TestExportTelemetryFailureBeatsAnnotationFailure(t *testing.T) {
+	srv := httptest.NewServer(newFakeOTLP(http.StatusBadRequest))
+	defer srv.Close()
+	gsrv := httptest.NewServer(&limitedGrafana{refuse: -1})
+	defer gsrv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	code, _, stderr := run(t, map[string]string{"GRAFANA_TOKEN": "glsa_test"}, "export", "--timeout", "10s", "--grafana-url", gsrv.URL, filepath.Join(examples, "2026-10-17-ravi-reviewer-005.json"))
+	if code != ExitFailure {
+		t.Fatalf("exit %d, want %d; stderr %s", code, ExitFailure, stderr)
+	}
+}
+
+func TestSignalsChoosesWhatIsSent(t *testing.T) {
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	grafana := &fakeGrafana{}
+	gsrv := httptest.NewServer(grafana)
+	defer gsrv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	env := map[string]string{"GRAFANA_TOKEN": "glsa_test"}
+
+	code, _, stderr := run(t, env, "export", "--signals", "logs", "--grafana-url", gsrv.URL, "--logs-max-age", "0", examples)
+	if code != ExitOK {
+		t.Fatalf("logs only: exit %d, stderr %s", code, stderr)
+	}
+	if otlp.count("/v1/logs") == 0 || otlp.count("/v1/traces") != 0 || len(grafana.store) != 0 {
+		t.Errorf("logs only sent traces %d, metrics %d, logs %d, annotations %d", otlp.count("/v1/traces"), otlp.count("/v1/metrics"), otlp.count("/v1/logs"), len(grafana.store))
+	}
+
+	logsBefore := otlp.count("/v1/traces") + otlp.count("/v1/metrics") + otlp.count("/v1/logs")
+	code, _, stderr = run(t, env, "export", "--signals", "annotations", "--grafana-url", gsrv.URL, examples)
+	if code != ExitOK || len(grafana.store) != 8 {
+		t.Fatalf("annotations only: exit %d, %d stored, stderr %s", code, len(grafana.store), stderr)
+	}
+	if n := otlp.count("/v1/traces") + otlp.count("/v1/metrics") + otlp.count("/v1/logs") - logsBefore; n != 0 {
+		t.Errorf("annotations only sent %d OTLP requests", n)
+	}
+}
+
+func TestSignalsUsageErrors(t *testing.T) {
+	for _, args := range [][]string{
+		{"export", "--signals", "traces,spans", examples},
+		{"export", "--signals", "annotations", examples},
+		{"export", "--signals", "traces", "--verify-loki", "http://127.0.0.1:1", examples},
+		{"watch", "--signals", "nope", t.TempDir()},
+	} {
+		if code, _, stderr := run(t, nil, args...); code != ExitUsage || !strings.Contains(stderr, "--") {
+			t.Errorf("%v: exit %d, stderr %q", args, code, stderr)
+		}
 	}
 }

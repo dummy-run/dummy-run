@@ -17,11 +17,37 @@ import (
 	"github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/verify"
 )
 
+// Defaults for the pause between calls and for retries. Grafana Cloud answers 429 when annotation
+// calls come too fast, so the client spaces its calls and retries a call that is refused.
+const (
+	// DefaultMinInterval is the least time between two calls to the Grafana API.
+	DefaultMinInterval = 500 * time.Millisecond
+	// DefaultRetries is how many times a call is repeated after a 429 or a 5xx.
+	DefaultRetries = 5
+	// DefaultBackoff is the first wait between retries when Grafana sends no Retry-After. It doubles.
+	DefaultBackoff = time.Second
+	// maxWait caps any single wait, including a longer Retry-After.
+	maxWait = 2 * time.Minute
+)
+
 // Client talks to one Grafana instance with a service account token.
 type Client struct {
 	base  string
 	token string
 	http  *http.Client
+
+	// MinInterval is the least time between two calls. Zero means no pause.
+	MinInterval time.Duration
+	// Retries is how many times a call is repeated after a 429 or a 5xx. Zero means none.
+	Retries int
+	// Backoff is the first wait between retries. Each retry doubles it.
+	Backoff time.Duration
+	// Sleep waits for d or until ctx ends. Tests replace it.
+	Sleep func(ctx context.Context, d time.Duration) error
+	// Now exists so tests can fix the clock that a Retry-After date is read against.
+	Now func() time.Time
+
+	last time.Time
 }
 
 // New returns a client for the Grafana at baseURL, such as http://localhost:3000. The token is a
@@ -40,7 +66,11 @@ func New(baseURL, token string, hc *http.Client) (*Client, error) {
 	if hc == nil {
 		hc = &http.Client{Timeout: 30 * time.Second, CheckRedirect: verify.RefuseInsecureRedirect}
 	}
-	return &Client{base: strings.TrimRight(baseURL, "/"), token: token, http: hc}, nil
+	return &Client{
+		base: strings.TrimRight(baseURL, "/"), token: token, http: hc,
+		MinInterval: DefaultMinInterval, Retries: DefaultRetries, Backoff: DefaultBackoff,
+		Sleep: sleep, Now: time.Now,
+	}, nil
 }
 
 // Result says what happened to one annotation.
@@ -125,14 +155,79 @@ func hasAllTags(have, want []string) bool {
 	return true
 }
 
+func sleep(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
+		return ctx.Err()
+	}
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
+}
+
+// retryable says whether a status is worth another try: too many requests or a server error.
+func retryable(status int) bool {
+	return status == http.StatusTooManyRequests || status >= 500
+}
+
+// retryAfter reads a Retry-After header, which holds seconds or an HTTP date. It returns false when
+// the header is missing or unreadable.
+func (c *Client) retryAfter(h string) (time.Duration, bool) {
+	h = strings.TrimSpace(h)
+	if h == "" {
+		return 0, false
+	}
+	if secs, err := strconv.Atoi(h); err == nil && secs >= 0 {
+		return time.Duration(secs) * time.Second, true
+	}
+	if t, err := http.ParseTime(h); err == nil {
+		return max(t.Sub(c.Now()), 0), true
+	}
+	return 0, false
+}
+
+// do sends a request. It spaces calls by MinInterval and repeats a call that gets a 429 or a 5xx,
+// waiting for Retry-After when Grafana sends it and for a doubling backoff when it does not.
 func (c *Client) do(ctx context.Context, method, path string, body []byte, out any) error {
+	wait := c.Backoff
+	for attempt := 0; ; attempt++ {
+		if gap := c.MinInterval - c.Now().Sub(c.last); !c.last.IsZero() && gap > 0 {
+			if err := c.Sleep(ctx, gap); err != nil {
+				return err
+			}
+		}
+		status, header, err := c.once(ctx, method, path, body, out)
+		c.last = c.Now()
+		if err == nil || status == 0 || !retryable(status) || attempt >= c.Retries {
+			if err != nil && attempt > 0 {
+				err = fmt.Errorf("%w (after %d retries)", err, attempt)
+			}
+			return err
+		}
+		d := wait
+		if ra, ok := c.retryAfter(header.Get("Retry-After")); ok {
+			d = ra
+		}
+		wait *= 2
+		if err := c.Sleep(ctx, min(d, maxWait)); err != nil {
+			return err
+		}
+	}
+}
+
+// once sends one request. It returns the HTTP status, 0 when none arrived, and the response headers.
+func (c *Client) once(ctx context.Context, method, path string, body []byte, out any) (int, http.Header, error) {
 	var rdr io.Reader
 	if body != nil {
 		rdr = bytes.NewReader(body)
 	}
 	req, err := http.NewRequestWithContext(ctx, method, c.base+path, rdr)
 	if err != nil {
-		return err
+		return 0, nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Accept", "application/json")
@@ -141,21 +236,21 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte, out a
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return err
+		return 0, nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return err
+		return 0, nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("%s %s: HTTP %d: %s", method, path, resp.StatusCode, strings.TrimSpace(string(data)))
+		return resp.StatusCode, resp.Header, fmt.Errorf("%s %s: HTTP %d: %s", method, path, resp.StatusCode, strings.TrimSpace(string(data)))
 	}
 	if out == nil {
-		return nil
+		return resp.StatusCode, resp.Header, nil
 	}
 	if err := json.Unmarshal(data, out); err != nil {
-		return fmt.Errorf("%s %s: bad JSON in response: %w", method, path, err)
+		return 0, nil, fmt.Errorf("%s %s: bad JSON in response: %w", method, path, err)
 	}
-	return nil
+	return resp.StatusCode, resp.Header, nil
 }

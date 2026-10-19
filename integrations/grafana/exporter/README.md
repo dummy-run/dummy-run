@@ -60,12 +60,22 @@ The OTLP token needs the `metrics:write`, `logs:write` and `traces:write` scopes
 separate service account token on the Grafana instance, because annotations use Grafana's HTTP API
 rather than OTLP.
 
+Grafana Cloud limits how fast annotations can be created. The exporter waits half a second between
+calls to the Grafana API. It retries a call that gets HTTP 429 or a 5xx error up to five times. It waits
+for the `Retry-After` time when Grafana sends one. Without it the wait starts at one second and doubles each time.
+No single wait is longer than two minutes. If a call still fails, the exporter notes the annotation and
+carries on with the next run.
+
 ## Commands
 
 `dummyrun-otel export [flags] FILE|DIR...` reads every file named, or every `*.json` file in each
 directory, validates all of them against `schema/run-record.schema.json` and then sends them. One
 invalid record stops the export before anything is sent, and the error names the file. The exit code
-is 0 on success, 1 when a record is invalid or a backend rejects the data, and 2 for a usage error.
+is 0 on success, 1 when a record is invalid or a backend rejects the data, 2 for a usage error and
+3 when all the telemetry was sent but some annotations could not be created. A CI job can treat 3 as a
+warning and 1 as a failure. The exporter always flushes its traces, metrics and logs before it exits,
+whatever happened to the annotations. It lists each failed annotation at the end. To add them later,
+run the same export with `--signals annotations`.
 
 `dummyrun-otel watch [flags] DIR` polls a directory and sends each new record once its size and
 modification time have stayed the same across two polls. Files already in the directory at start are
@@ -82,6 +92,7 @@ file failed. Run it next to the runner that writes records.
 | `--protocol` | `OTEL_EXPORTER_OTLP_PROTOCOL` or `http/protobuf` | OTLP transport, `http/protobuf` or `grpc` |
 | `--metrics-temporality` | `cumulative` | `cumulative` for Prometheus and Mimir, `delta` for a backend that converts deltas |
 | `--grafana-url` | unset | Grafana base URL for annotations. The token comes from `GRAFANA_TOKEN` |
+| `--signals` | `traces,metrics,logs,annotations` | What to send. Use it to send only what an earlier export missed, such as `--signals logs` or `--signals annotations`. Annotations also need `--grafana-url`. `--verify-loki` needs `logs` |
 | `--verify-loki` | unset | Loki base URL. Before the export, refuse lines Loki would drop as too old for its stream. After it, count the lines back per run and exit 1 naming any run that is short |
 | `--logs-max-age` | `168h` | Skip log records older than this, because Loki rejects them. The local stack in `integrations/grafana/stack` accepts `720h`. `0` sends every record |
 | `--timeout` | `30s` | How long the final flush may take |

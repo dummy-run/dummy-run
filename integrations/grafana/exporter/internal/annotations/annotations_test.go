@@ -81,7 +81,7 @@ func TestPostIsIdempotent(t *testing.T) {
 	fake := &fakeGrafana{token: "glsa_test"}
 	srv := httptest.NewServer(fake.handler())
 	defer srv.Close()
-	c, err := New(srv.URL+"/", "glsa_test", srv.Client())
+	c, err := newFast(srv.URL+"/", "glsa_test", srv.Client())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestPostDistinguishesRuns(t *testing.T) {
 	fake := &fakeGrafana{token: "glsa_test"}
 	srv := httptest.NewServer(fake.handler())
 	defer srv.Close()
-	c, err := New(srv.URL, "glsa_test", srv.Client())
+	c, err := newFast(srv.URL, "glsa_test", srv.Client())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestBadTokenIsReported(t *testing.T) {
 	fake := &fakeGrafana{token: "glsa_test"}
 	srv := httptest.NewServer(fake.handler())
 	defer srv.Close()
-	c, err := New(srv.URL, "wrong", srv.Client())
+	c, err := newFast(srv.URL, "wrong", srv.Client())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,5 +173,160 @@ func TestNewRejectsBadInput(t *testing.T) {
 	}
 	if _, err := New("https://grafana.example.net", "glsa_x", nil); err != nil {
 		t.Errorf("https must be accepted: %v", err)
+	}
+}
+
+// newFast returns a client that records its waits instead of sleeping.
+func newFast(baseURL, token string, hc *http.Client) (*Client, error) {
+	c, err := New(baseURL, token, hc)
+	if err != nil {
+		return nil, err
+	}
+	c.Sleep = func(ctx context.Context, _ time.Duration) error { return ctx.Err() }
+	return c, nil
+}
+
+// flakyGrafana answers the first n POSTs with status and the headers, then behaves like fakeGrafana.
+type flakyGrafana struct {
+	fakeGrafana
+	status  int
+	header  map[string]string
+	refuse  int
+	refused int
+}
+
+func (f *flakyGrafana) handler() http.Handler {
+	inner := f.fakeGrafana.handler()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && (f.refuse < 0 || f.refused < f.refuse) {
+			f.refused++
+			for k, v := range f.header {
+				w.Header().Set(k, v)
+			}
+			http.Error(w, `{"message":"slow down"}`, f.status)
+			return
+		}
+		inner.ServeHTTP(w, r)
+	})
+}
+
+func TestPostRetriesAfter429AndHonoursRetryAfter(t *testing.T) {
+	fake := &flakyGrafana{fakeGrafana: fakeGrafana{token: "glsa_test"}, status: http.StatusTooManyRequests, header: map[string]string{"Retry-After": "7"}, refuse: 2}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	c, err := New(srv.URL, "glsa_test", srv.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var waits []time.Duration
+	c.Sleep = func(_ context.Context, d time.Duration) error { waits = append(waits, d); return nil }
+	res, err := c.Post(context.Background(), sample())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Created || len(fake.store) != 1 {
+		t.Errorf("result %+v with %d stored, want one created", res, len(fake.store))
+	}
+	if fake.refused != 2 {
+		t.Errorf("%d refusals, want 2", fake.refused)
+	}
+	sevens := 0
+	for _, w := range waits {
+		if w == 7*time.Second {
+			sevens++
+		}
+	}
+	if sevens != 2 {
+		t.Errorf("waits %v, want two of 7s from Retry-After", waits)
+	}
+}
+
+func TestPostBacksOffOn5xxWithoutRetryAfter(t *testing.T) {
+	fake := &flakyGrafana{fakeGrafana: fakeGrafana{token: "glsa_test"}, status: http.StatusBadGateway, refuse: 3}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	c, _ := New(srv.URL, "glsa_test", srv.Client())
+	c.MinInterval = 0
+	var waits []time.Duration
+	c.Sleep = func(_ context.Context, d time.Duration) error { waits = append(waits, d); return nil }
+	if _, err := c.Post(context.Background(), sample()); err != nil {
+		t.Fatal(err)
+	}
+	want := []time.Duration{time.Second, 2 * time.Second, 4 * time.Second}
+	if len(waits) != 3 || waits[0] != want[0] || waits[1] != want[1] || waits[2] != want[2] {
+		t.Errorf("waits %v, want %v", waits, want)
+	}
+}
+
+func TestPostGivesUpWhenGrafanaAlwaysSays429(t *testing.T) {
+	fake := &flakyGrafana{fakeGrafana: fakeGrafana{token: "glsa_test"}, status: http.StatusTooManyRequests, refuse: -1}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	c, _ := newFast(srv.URL, "glsa_test", srv.Client())
+	c.Retries = 3
+	_, err := c.Post(context.Background(), sample())
+	if err == nil || !strings.Contains(err.Error(), "HTTP 429") || !strings.Contains(err.Error(), "after 3 retries") {
+		t.Fatalf("got %v, want an HTTP 429 error after 3 retries", err)
+	}
+	if fake.refused != 4 {
+		t.Errorf("%d attempts, want 4", fake.refused)
+	}
+}
+
+func TestPostDoesNotRetryOtherClientErrors(t *testing.T) {
+	fake := &fakeGrafana{token: "glsa_test"}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	c, _ := newFast(srv.URL, "wrong", srv.Client())
+	if _, err := c.Post(context.Background(), sample()); err == nil {
+		t.Fatal("want an error")
+	}
+	// One listing call, no retry.
+	if fake.gets+fake.posts != 0 {
+		t.Errorf("the handler counted %d calls past the token check", fake.gets+fake.posts)
+	}
+}
+
+func TestPostSpacesCalls(t *testing.T) {
+	fake := &fakeGrafana{token: "glsa_test"}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	c, _ := New(srv.URL, "glsa_test", srv.Client())
+	c.MinInterval = time.Hour
+	var waits []time.Duration
+	c.Sleep = func(_ context.Context, d time.Duration) error { waits = append(waits, d); return nil }
+	if _, err := c.Post(context.Background(), sample()); err != nil {
+		t.Fatal(err)
+	}
+	// The listing call goes first. The create call waits for the interval.
+	if len(waits) != 1 || waits[0] <= 59*time.Minute {
+		t.Errorf("waits %v, want one wait close to the interval", waits)
+	}
+}
+
+func TestRetryAfterReadsSecondsAndDates(t *testing.T) {
+	c, _ := New("https://grafana.example.net", "t", nil)
+	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
+	c.Now = func() time.Time { return now }
+	if d, ok := c.retryAfter("12"); !ok || d != 12*time.Second {
+		t.Errorf("seconds: %v %v", d, ok)
+	}
+	if d, ok := c.retryAfter(now.Add(30 * time.Second).Format(http.TimeFormat)); !ok || d != 30*time.Second {
+		t.Errorf("date: %v %v", d, ok)
+	}
+	if _, ok := c.retryAfter("soon"); ok {
+		t.Error("an unreadable value must be ignored")
+	}
+}
+
+func TestRetryStopsWhenTheContextEnds(t *testing.T) {
+	fake := &flakyGrafana{fakeGrafana: fakeGrafana{token: "glsa_test"}, status: http.StatusTooManyRequests, refuse: -1}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	c, _ := New(srv.URL, "glsa_test", srv.Client())
+	ctx, cancel := context.WithCancel(context.Background())
+	c.Sleep = func(ctx context.Context, _ time.Duration) error { cancel(); return ctx.Err() }
+	if _, err := c.Post(ctx, sample()); err == nil {
+		t.Fatal("want an error")
 	}
 }

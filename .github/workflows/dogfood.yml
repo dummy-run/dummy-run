@@ -177,14 +177,26 @@ jobs:
           dummyrun-otel export --grafana-url "$GRAFANA_URL" "$RUNS_DIR" 2>&1 | tee "$RUNNER_TEMP/export.log"
           status=${PIPESTATUS[0]}
           set -e
-          if [ "$status" -ne 0 ]; then
+          # Exit code 3 means every trace, metric and log arrived and some annotations did not.
+          # Any other code means the telemetry failed.
+          if [ "$status" -eq 3 ]; then
+            echo "::warning title=Some Grafana annotations failed::The traces, metrics and logs arrived. The run records are in the dogfood-runs artifact."
+            {
+              echo "## Some Grafana annotations failed"
+              echo
+              echo "dummyrun-otel exited with 3. The traces, metrics and logs of every run arrived. Add the missing annotations with \`dummyrun-otel export --signals annotations\` on the run records in the dogfood-runs artifact."
+              echo
+              echo '```text'
+              tail -n 40 "$RUNNER_TEMP/export.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$status" -ne 0 ]; then
             echo "::error title=Grafana export failed::dummyrun-otel exited with ${status}. The run records are in the dogfood-runs artifact."
             {
               echo "## Grafana export failed"
               echo
               echo "dummyrun-otel exited with ${status}. The run records are in the dogfood-runs artifact, and the output is below."
-              echo "An HTTP 429 from the annotation API stops the exporter before it flushes its logs (issue 34)."
-              echo "Some spans and metrics may have arrived. Check Grafana before you export the records again, because a repeat duplicates them."
+              echo "Some spans and metrics may have arrived. Check Grafana before you export the records again, because a repeat duplicates them. To send only what is missing, use --signals."
               echo
               echo '```text'
               tail -n 40 "$RUNNER_TEMP/export.log"
@@ -212,5 +224,6 @@ jobs:
           if [ -z "$RECORDS" ] || [ "$RECORDS" = "0" ]; then echo "::error::No run records were written"; problems=1; fi
           if [ "${RUNS_FAILED:-0}" != "0" ]; then echo "::error::${RUNS_FAILED} scenarios failed to run"; problems=1; fi
           if [ "${NON_COMPLETED:-0}" != "0" ]; then echo "::error::${NON_COMPLETED} run records were not completed"; problems=1; fi
-          if [ "${EXPORT_STATUS:-0}" != "0" ]; then echo "::error::The Grafana export failed"; problems=1; fi
+          # Status 3 is annotations only. The export step has already raised a warning for it.
+          if [ "${EXPORT_STATUS:-0}" != "0" ] && [ "${EXPORT_STATUS:-0}" != "3" ]; then echo "::error::The Grafana export failed"; problems=1; fi
           exit "$problems"
