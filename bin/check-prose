@@ -17,6 +17,7 @@ MAX_COMMAS = 2
 SIGNPOSTS = re.compile(
     r"\b(it is worth noting|worth noting|note that|in summary|in short|to summarise|importantly|"
     r"needless to say|simply put|at the end of the day|here's the thing|let's dive)\b", re.I)
+PROJECT_STATE = re.compile(r"\bPR #\d+|/pull/\d+|\bin review\b|\bonce (?:PR|#)\S* (?:merges|lands)|\buntil (?:PR|#)\S* (?:merges|lands)", re.I)
 STAGED = [re.compile(r"\bnot\b[^.;:]{1,80}?,\s*but\b", re.I), re.compile(r",\s+not\s+(?!only\b)\w", re.I)]
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+")
 
@@ -74,6 +75,8 @@ def check(path):
             for sent in re.split(r"(?<=[.!?])\s+", part):
                 if sent.count(",") > MAX_COMMAS:
                     hits.append((n, f"{sent.count(',')} commas in one sentence: \"{sent.strip()[:80]}\""))
+                if PROJECT_STATE.search(sent) and not path.endswith("CHANGELOG.md"):
+                    hits.append((n, f"project state \"{PROJECT_STATE.search(sent).group(0)}\": write for users, not about this repo's pull requests"))
                 if kind == "prose" and SIGNPOSTS.search(sent):
                     hits.append((n, f"signpost \"{SIGNPOSTS.search(sent).group(0)}\""))
                 for rx in STAGED:

@@ -25,6 +25,7 @@ what to write instead.
 | Three items because three sounds complete | However many there are |
 | A sentence with no number, name, path, command or date in it | Delete it, or put the fact in |
 | A byline or date under the title | Nothing. Git records who and when |
+| Project state in user docs (pull request numbers, "in review", "once it merges") | What the user can do today. Work in progress belongs in pull requests and issues |
 
 Passive voice is not on the list and is never a reason to rewrite. A quotation keeps its words.
 

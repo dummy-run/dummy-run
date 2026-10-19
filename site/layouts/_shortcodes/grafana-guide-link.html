@@ -1,5 +1,0 @@
-{{- with .Page.Site.GetPage "/docs/grafana-guide" -}}
-<p>The full guide is on this site at <a href="{{ .RelPermalink }}">{{ .Title }}</a>. It has a section for each job, from running the local stack to filtering persona sessions out of Faro.</p>
-{{- else -}}
-<p>The full guide, <code>docs/integrations/grafana.md</code>, appears on this site once PR #8 merges. It has a section for each job, from running the local stack to filtering persona sessions out of Faro.</p>
-{{- end -}}
