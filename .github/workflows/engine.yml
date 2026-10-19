@@ -119,4 +119,4 @@ jobs:
       - name: Run the conformance suite, the tool suite and the end-to-end run on both browsers
         env:
           DUMMYRUN_BROWSERS: chrome,firefox
-        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd' ./internal/bidi/ ./internal/page/ ./internal/runner/
+        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/
