@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -49,43 +50,112 @@ type Browser struct {
 	Version string
 	// UserAgent is navigator.userAgent of the first context.
 	UserAgent string
-	procs     []*exec.Cmd
+	procs     []*proc
 	tempDirs  []string
+	closeOnce sync.Once
 }
 
-// Launch starts the browser and connects to it.
-func Launch(ctx context.Context, opts LaunchOptions) (*Browser, error) {
+// proc is a started process, its exit watcher and its parent-death guard.
+type proc struct {
+	cmd      *exec.Cmd
+	done     chan struct{}
+	watchdog *exec.Cmd
+}
+
+// start runs cmd in a group of its own and reaps it when it exits.
+func (b *Browser) start(cmd *exec.Cmd) error {
+	ownGroup(cmd)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	p := &proc{cmd: cmd, done: make(chan struct{}), watchdog: startWatchdog(cmd)}
+	go func() { _ = cmd.Wait(); close(p.done) }()
+	b.procs = append(b.procs, p)
+	return nil
+}
+
+// Launch starts the browser and connects to it. It returns only a browser that
+// Close can stop. When it fails or panics, it stops what it started first.
+func Launch(ctx context.Context, opts LaunchOptions) (br *Browser, err error) {
 	if opts.Timeout == 0 {
 		opts.Timeout = 60 * time.Second
 	}
 	ctx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
+	b := &Browser{Name: opts.Browser}
+	register(b)
+	defer func() {
+		if r := recover(); r != nil {
+			b.Close()
+			panic(r)
+		}
+		if err != nil {
+			b.Close()
+			br = nil
+		}
+	}()
 	switch opts.Browser {
 	case "firefox":
-		return launchFirefox(ctx, opts)
+		err = launchFirefox(ctx, opts, b)
 	case "chrome":
-		return launchChrome(ctx, opts)
+		err = launchChrome(ctx, opts, b)
 	default:
-		return nil, fmt.Errorf("bidi: unknown browser %q (chrome or firefox)", opts.Browser)
+		err = fmt.Errorf("bidi: unknown browser %q (chrome or firefox)", opts.Browser)
 	}
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
-// Close ends the session, stops the processes and removes temporary profiles.
+// Close ends the session, stops the driver and the browser with every helper,
+// waits for them to exit and removes the temporary profile. It is safe to call
+// more than once and from a deferred call.
 func (b *Browser) Close() {
-	if b.Conn != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_ = b.Conn.BrowserClose(ctx)
-		cancel()
-		_ = b.Conn.Close()
+	b.closeOnce.Do(func() {
+		defer unregister(b)
+		if b.Conn != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			_ = b.Conn.SessionEnd(ctx)
+			_ = b.Conn.BrowserClose(ctx)
+			cancel()
+			_ = b.Conn.Close()
+		}
+		// Stop the driver first would orphan the browser, so signal every group, newest first.
+		for i := len(b.procs) - 1; i >= 0; i-- {
+			stopProc(b.procs[i])
+		}
+		for _, d := range b.tempDirs {
+			// Helpers that left the group still name the profile on their command line.
+			stopProcsUsing(d)
+			_ = removeProfile(d)
+		}
+	})
+}
+
+func stopProc(p *proc) {
+	if p.watchdog != nil && p.watchdog.Process != nil {
+		_ = p.watchdog.Process.Kill()
+		_ = p.watchdog.Wait()
 	}
-	for _, p := range b.procs {
-		if p.Process != nil {
-			_ = p.Process.Kill()
-			_ = p.Wait()
+	exited := func() bool {
+		select {
+		case <-p.done:
+			return true
+		default:
+			return false
 		}
 	}
-	for _, d := range b.tempDirs {
-		_ = os.RemoveAll(d)
+	// Give the browser a moment to quit after the session ended, then ask, then force.
+	if !waitGone(func() bool { return !exited() || groupAlive(p.cmd) }, 500*time.Millisecond) {
+		termGroup(p.cmd)
+		if !waitGone(func() bool { return !exited() || groupAlive(p.cmd) }, 3*time.Second) {
+			killGroup(p.cmd)
+		}
+	}
+	select {
+	case <-p.done:
+	case <-time.After(5 * time.Second):
 	}
 }
 
@@ -136,21 +206,21 @@ var firefoxPrefs = map[string]any{
 	"remote.active-protocols":                    1, // BiDi only
 }
 
-func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
+func launchFirefox(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	bin := firstExisting(opts.FirefoxPath, os.Getenv("DUMMYRUN_FIREFOX"),
 		"/Applications/Firefox.app/Contents/MacOS/firefox", "firefox", "firefox-esr")
 	if bin == "" {
-		return nil, errors.New("bidi: firefox not found; set DUMMYRUN_FIREFOX")
+		return errors.New("bidi: firefox not found; set DUMMYRUN_FIREFOX")
 	}
 	port, err := freePort()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	profile, err := os.MkdirTemp("", "dummyrun-firefox-")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	b := &Browser{Name: "firefox", tempDirs: []string{profile}}
+	b.tempDirs = append(b.tempDirs, profile)
 	prefs := make(map[string]any, len(firefoxPrefs)+1)
 	for k, v := range firefoxPrefs {
 		prefs[k] = v
@@ -167,8 +237,7 @@ func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 		fmt.Fprintf(&userJS, "user_pref(%q, %s);\n", k, val)
 	}
 	if err := os.WriteFile(filepath.Join(profile, "user.js"), []byte(userJS.String()), 0o600); err != nil {
-		b.Close()
-		return nil, err
+		return err
 	}
 	args := []string{
 		fmt.Sprintf("--remote-debugging-port=%d", port),
@@ -191,16 +260,13 @@ func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 			cmd.Env = append(cmd.Env, "MOZ_DISABLE_CONTENT_SANDBOX=1")
 		}
 	}
-	if err := cmd.Start(); err != nil {
-		b.Close()
-		return nil, fmt.Errorf("bidi: start firefox: %w", err)
+	if err := b.start(cmd); err != nil {
+		return fmt.Errorf("bidi: start firefox: %w", err)
 	}
-	b.procs = append(b.procs, cmd)
 	url := fmt.Sprintf("ws://127.0.0.1:%d/session", port)
 	conn, err := dialUntilReady(ctx, url)
 	if err != nil {
-		b.Close()
-		return nil, fmt.Errorf("bidi: firefox did not open its BiDi port: %w", err)
+		return fmt.Errorf("bidi: firefox did not open its BiDi port: %w", err)
 	}
 	b.Conn = conn
 	res, err := conn.SessionNew(ctx, Capabilities{AlwaysMatch: map[string]any{
@@ -209,11 +275,10 @@ func launchFirefox(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 		"unhandledPromptBehavior": map[string]any{"default": "ignore"},
 	}})
 	if err != nil {
-		b.Close()
-		return nil, err
+		return err
 	}
 	b.Version, _ = res.Capabilities["browserVersion"].(string)
-	return b, nil
+	return nil
 }
 
 func dialUntilReady(ctx context.Context, url string) (*Conn, error) {
@@ -232,10 +297,10 @@ func dialUntilReady(ctx context.Context, url string) (*Conn, error) {
 	}
 }
 
-func launchChrome(ctx context.Context, opts LaunchOptions) (*Browser, error) {
+func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	driver := firstExisting(opts.ChromedriverPath, os.Getenv("DUMMYRUN_CHROMEDRIVER"), "chromedriver")
 	if driver == "" {
-		return nil, errors.New("bidi: chromedriver not found; set DUMMYRUN_CHROMEDRIVER")
+		return errors.New("bidi: chromedriver not found; set DUMMYRUN_CHROMEDRIVER")
 	}
 	chrome := firstExisting(opts.ChromePath, os.Getenv("DUMMYRUN_CHROME"),
 		"/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
@@ -243,25 +308,22 @@ func launchChrome(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 		"google-chrome", "chrome", "chromium")
 	port, err := freePort()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	userData, err := os.MkdirTemp("", "dummyrun-chrome-")
 	if err != nil {
-		return nil, err
+		return err
 	}
-	b := &Browser{Name: "chrome", tempDirs: []string{userData}}
+	b.tempDirs = append(b.tempDirs, userData)
 	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- the binary path is the operator's configuration, never page or model output
 	cmd := exec.CommandContext(context.Background(), driver, fmt.Sprintf("--port=%d", port)) //nolint:gosec // see above
 	cmd.Env = append(os.Environ(), opts.Env...)
-	if err := cmd.Start(); err != nil {
-		b.Close()
-		return nil, fmt.Errorf("bidi: start chromedriver: %w", err)
+	if err := b.start(cmd); err != nil {
+		return fmt.Errorf("bidi: start chromedriver: %w", err)
 	}
-	b.procs = append(b.procs, cmd)
 	base := fmt.Sprintf("http://127.0.0.1:%d", port)
 	if err := waitHTTP(ctx, base+"/status"); err != nil {
-		b.Close()
-		return nil, fmt.Errorf("bidi: chromedriver did not answer: %w", err)
+		return fmt.Errorf("bidi: chromedriver did not answer: %w", err)
 	}
 	args := []string{"--user-data-dir=" + userData, "--no-first-run", "--no-default-browser-check",
 		"--disable-background-networking", "--disable-sync", "--window-size=1280,900"}
@@ -289,8 +351,7 @@ func launchChrome(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		b.Close()
-		return nil, fmt.Errorf("bidi: chromedriver session: %w", err)
+		return fmt.Errorf("bidi: chromedriver session: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	var v struct {
@@ -302,26 +363,22 @@ func launchChrome(ctx context.Context, opts LaunchOptions) (*Browser, error) {
 		} `json:"value"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
-		b.Close()
-		return nil, fmt.Errorf("bidi: chromedriver session reply: %w", err)
+		return fmt.Errorf("bidi: chromedriver session reply: %w", err)
 	}
 	if v.Value.Error != "" {
-		b.Close()
-		return nil, fmt.Errorf("bidi: chromedriver: %s: %s", v.Value.Error, v.Value.Message)
+		return fmt.Errorf("bidi: chromedriver: %s: %s", v.Value.Error, v.Value.Message)
 	}
 	wsURL, _ := v.Value.Capabilities["webSocketUrl"].(string)
 	if wsURL == "" {
-		b.Close()
-		return nil, errors.New("bidi: chromedriver returned no webSocketUrl")
+		return errors.New("bidi: chromedriver returned no webSocketUrl")
 	}
 	conn, err := Dial(ctx, wsURL)
 	if err != nil {
-		b.Close()
-		return nil, err
+		return err
 	}
 	b.Conn = conn
 	b.Version, _ = v.Value.Capabilities["browserVersion"].(string)
-	return b, nil
+	return nil
 }
 
 func waitHTTP(ctx context.Context, url string) error {

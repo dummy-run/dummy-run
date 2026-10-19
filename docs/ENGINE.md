@@ -82,6 +82,21 @@ engine computes the finding's route, locus and fingerprint from the page. [COVER
 the list and what the fingerprint is for. A symptom outside the list sends the model back to `finish` twice at
 most, and then the finding is dropped.
 
+## Browser cleanup
+
+The engine starts the driver and the browser in a process group of its own. Their profile is a temporary
+directory named `dummyrun-chrome-*` or `dummyrun-firefox-*` (code: `internal/bidi/launch.go` and
+`internal/bidi/cleanup.go`). When a run ends the engine closes the BiDi session and signals the group. It waits
+for the group to exit and kills what is left. It also stops any helper that still names the profile. Then it
+removes the profile. This happens when a run succeeds or fails. It also happens on a panic, a timeout, Ctrl-C
+and SIGTERM. A second process watches the engine and stops the browser group if the engine disappears without
+cleaning up, for example after SIGKILL.
+
+Use Chrome for Testing where you can. On macOS each running Google Chrome keeps a code-signing clone of the
+app of about 1.4 GB, and the engine looks for Chrome for Testing first. Set `DUMMYRUN_CHROME` and
+`DUMMYRUN_CHROMEDRIVER` to a matching pair. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/)
+lists the downloads.
+
 ## Persona and scenario settings
 
 A persona's `profile.md` starts with a front matter block of `key: value` lines. These keys set how the
@@ -253,3 +268,26 @@ against a local test server. They cover the conformance suite (`internal/bidi`) 
 accessibility sweep (`internal/a11y`, on a fixture page with known violations). CI runs all of them on ubuntu-latest with pinned browsers.
 The conformance suite includes `browsingContext.setViewport` with `devicePixelRatio`, and the tool suite
 covers focus, the outline and zoom on both browsers.
+
+Every test that launches a browser closes it with `t.Cleanup`. Each test binary fails when a browser was
+launched and never closed. The conformance suite also fails when a browser's process or profile outlives its
+test. CI runs `dummyrun doctor` after the browser tests and fails when it finds anything.
+
+## Troubleshooting
+
+Leftover browsers fill the disk and the process table. To list the browsers and profile directories that
+earlier runs left behind, run this:
+
+```sh
+dummyrun doctor
+```
+
+It exits 1 when it finds any. Add `--stop` to stop them and remove the profile directories. Check first that
+no run is in progress, since a browser that belongs to a live run is listed too. Without the command, this
+lists the processes:
+
+```sh
+ps -axo pid=,args= | grep -E 'dummyrun-(chrome|firefox)-' | grep -v grep
+```
+
+The engine only removes directories that it made itself in the temporary directory with those prefixes.
