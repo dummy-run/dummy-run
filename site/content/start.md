@@ -65,6 +65,8 @@ Open `http://localhost:3000` and sign in as `admin` with the password `admin`. P
 
 Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The [Grafana guide](../../docs/integrations/grafana.md) covers the dashboards and alerts.
 
+{{< waitlist >}}
+
 ## Sources
 
 The install and run commands are in `docs/ENGINE.md`, code. The export commands are in `integrations/grafana/exporter/README.md`, code. The read-only behaviour is the engine's request interception, code.

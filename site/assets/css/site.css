@@ -642,3 +642,19 @@ td code, th code { white-space: nowrap; }
 .rp-outline summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; font-family: var(--font-heading); font-weight: 600; }
 .rp-outline pre { margin: 0; padding: 0.85rem 1rem; max-height: 22rem; overflow: auto; border-radius: 10px; background: var(--panel); border: 1.5px solid var(--rule); font-size: var(--type-caption); line-height: 1.5; }
 @media (max-width: 30em) { .rp-facts > div, .rp-detail > div { grid-template-columns: 1fr; gap: 0.1rem; } }
+/* Waitlist form */
+.waitlist-form { display: grid; gap: 1.25rem; max-width: 36rem; }
+.waitlist-form .field { display: grid; gap: 0.35rem; }
+.waitlist-form label { font-family: var(--font-heading); font-weight: 600; }
+.waitlist-form .field-hint { font-weight: 400; color: var(--ink-muted); }
+.waitlist-form input[type="email"], .waitlist-form input[type="url"], .waitlist-form select { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 2px solid var(--ink-muted); border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; width: 100%; }
+.waitlist-form input:focus-visible, .waitlist-form select:focus-visible, .waitlist-form button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.waitlist-form .field-check { grid-template-columns: auto 1fr; align-items: start; gap: 0.75rem; }
+.waitlist-form .field-check input { width: 1.5rem; height: 1.5rem; margin: 0.15rem 0 0; accent-color: var(--text-amber); }
+.waitlist-form .field-check label { font-family: var(--font-body); font-weight: 400; }
+.waitlist-form button { justify-self: start; cursor: pointer; }
+.waitlist-status:empty { display: none; }
+.waitlist-status { margin: 0; padding: 0.75rem 1rem; border-left: 6px solid var(--ink); background: var(--paper); border-radius: 8px; font-weight: 600; }
+.waitlist-status.is-error { border-left-color: var(--blocker); }
+.waitlist-status.is-ok { border-left-color: var(--pass); }
+.waitlist-status:focus { outline: 3px solid var(--ink); outline-offset: 2px; }

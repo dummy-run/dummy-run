@@ -167,3 +167,61 @@
   index.hidden = false;
   show(fromHash(), false);
 })();
+
+// The waitlist form. Without JavaScript the form posts to the API and the API redirects to a result page.
+(function () {
+  var form = document.querySelector("[data-waitlist] form");
+  if (!form || !window.fetch) {
+    return;
+  }
+  var status = form.querySelector(".waitlist-status");
+  var messages = {
+    invalid_email: "That email address does not look right. Check it and try again.",
+    consent_required: "Tick the box to agree, then try again.",
+    turnstile: "The human check did not pass. Try again.",
+    rate_limited: "Too many tries. Wait a little and try again.",
+    unavailable: "The list is not taking sign-ups right now. Try again later."
+  };
+
+  var prefixes = { error: "Problem: ", ok: "Done: " };
+
+  function show(kind, text) {
+    status.className = "waitlist-status is-" + kind;
+    status.textContent = prefixes[kind] + text;
+    status.focus();
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var data = new FormData(form);
+    var body = {};
+    data.forEach(function (value, key) {
+      body[key] = value;
+    });
+    var button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    fetch(form.action, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (response) {
+      return response.json().then(function (parsed) {
+        return { ok: response.ok && !!parsed && parsed.ok === true, error: parsed && parsed.error };
+      }).catch(function () { return { ok: false, error: "unavailable" }; });
+    }).then(function (result) {
+      if (result.ok) {
+        form.reset();
+        show("ok", "Thank you. Check your inbox for an email and select the link in it to confirm.");
+      } else {
+        show("error", Object.prototype.hasOwnProperty.call(messages, result.error) ? messages[result.error] : messages.unavailable);
+      }
+    }).catch(function () {
+      show("error", messages.unavailable);
+    }).then(function () {
+      button.disabled = false;
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+    });
+  });
+})();
