@@ -105,9 +105,11 @@
     unavailable: "The list is not taking sign-ups right now. Try again later."
   };
 
+  var prefixes = { error: "Problem: ", ok: "Done: " };
+
   function show(kind, text) {
     status.className = "waitlist-status is-" + kind;
-    status.textContent = text;
+    status.textContent = prefixes[kind] + text;
     status.focus();
   }
 
@@ -125,13 +127,15 @@
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body)
     }).then(function (response) {
-      return response.json().catch(function () { return { ok: false, error: "unavailable" }; });
+      return response.json().then(function (parsed) {
+        return { ok: response.ok && !!parsed && parsed.ok === true, error: parsed && parsed.error };
+      }).catch(function () { return { ok: false, error: "unavailable" }; });
     }).then(function (result) {
       if (result.ok) {
         form.reset();
         show("ok", "Thank you. Check your inbox for an email and select the link in it to confirm.");
       } else {
-        show("error", messages[result.error] || messages.unavailable);
+        show("error", Object.prototype.hasOwnProperty.call(messages, result.error) ? messages[result.error] : messages.unavailable);
       }
     }).catch(function () {
       show("error", messages.unavailable);

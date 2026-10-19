@@ -618,8 +618,6 @@ td code, th code { white-space: nowrap; }
 .waitlist-form button { justify-self: start; cursor: pointer; }
 .waitlist-status:empty { display: none; }
 .waitlist-status { margin: 0; padding: 0.75rem 1rem; border-left: 6px solid var(--ink); background: var(--paper); border-radius: 8px; font-weight: 600; }
-.waitlist-status.is-error::before { content: "Problem: "; }
-.waitlist-status.is-ok::before { content: "Done: "; }
 .waitlist-status.is-error { border-left-color: var(--blocker); }
 .waitlist-status.is-ok { border-left-color: var(--pass); }
 .waitlist-status:focus { outline: 3px solid var(--ink); outline-offset: 2px; }

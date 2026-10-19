@@ -1,7 +1,7 @@
 ---
 title: That did not work
-lead: The sign-up or the link did not go through. Nothing was stored.
-description: The sign-up or the link did not go through. Nothing was stored.
+lead: The sign-up or the link did not go through.
+description: The sign-up or the link did not go through.
 noindex: true
 sitemap:
   disable: true

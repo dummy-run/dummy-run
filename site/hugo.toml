@@ -13,6 +13,7 @@ timeout = "120s"
 # Turnstile, until the Worker at the endpoint is live. Then set waitlist_turnstile_sitekey to the widget's
 # public site key and switch waitlist_enabled on. For a local build, override with
 # HUGO_PARAMS_WAITLIST_ENABLED=true and HUGO_PARAMS_WAITLIST_TURNSTILE_SITEKEY=<test key>.
+# The endpoint must match connect-src and form-action in site/static/_headers. Change both together.
   waitlist_enabled = false
   waitlist_endpoint = "https://api.dummyrun.dev/waitlist"
   waitlist_turnstile_sitekey = ""
