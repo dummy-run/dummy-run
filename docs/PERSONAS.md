@@ -4,6 +4,8 @@ A persona is a fictional user that the engine plays through a scenario. The libr
 [casts/library](../casts/library/README.md) holds ten generic ones for the kinds of user that every site has.
 Your team copies the ones it needs and adapts them to its product. The [persona library page](https://dummyrun.dev/personas/) shows them as cards with the command to run each.
 
+What a persona can and cannot tell you is in [ETHICS.md](ETHICS.md).
+
 ## Fictional composites
 
 Every persona in the library is invented. Each is a composite built from public sources and from common

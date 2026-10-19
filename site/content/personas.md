@@ -12,7 +12,7 @@ next:
 
 Every site has screen-reader users, phone users and people who have never seen it before. Each persona below brings one way of using a page. You bring the job, such as "renew a loan" or "change a password".
 
-A persona simulates a barrier to find likely problems. It does not replace testing with disabled people.
+A persona simulates a barrier to find likely problems. It does not replace testing with disabled people. [Ethics and limits](../../docs/ETHICS.md) says more.
 
 ## Pick a persona
 

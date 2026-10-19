@@ -22,7 +22,7 @@ next:
 | Does exported telemetry carry screenshots? | No. It carries IDs, outcomes and the target environment. It adds page URLs, the model, its region and the cost. It adds each finding's title and verdict. |
 | Does a market profile cover exported telemetry? | No. The profile checks the adapters. Your OpenTelemetry backend is not one, so host it in the same market. |
 
-The provider and the backend both receive what the persona sees, so run against previews that hold synthetic data.
+The provider and the backend both receive what the persona sees, so run against previews that hold synthetic data. [Ethics and limits](../../../docs/ETHICS.md) covers provider retention.
 
 ## Permission findings
 
