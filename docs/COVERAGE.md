@@ -50,7 +50,7 @@ output and nothing about a real product.
 The estimates of unfound problems need three things. Without them the command still prints, but it labels the
 figures as a demonstration and warns.
 
-- Reviewer-confirmed findings. A pending finding is a claim nobody has checked. The default is `--confirmed-only`, which counts only confirmed ones. With `--confirmed-only=false` pending findings count too and the report says it is a demonstration on unreviewed findings. Rejected findings and observations never count.
+- Reviewer-confirmed findings. A pending finding is a claim nobody has checked. The default is `--confirmed-only`, which counts only confirmed ones. With `--confirmed-only=false` pending findings count too and the report says it is a demonstration on unreviewed findings. Rejected findings never count. Observations are not findings, so they never count either (see below).
 - Enough runs per stratum. The stopping rule needs 4 completed runs in each stratum, and Chao advises at least 5 samples for the estimator. The report warns for every stratum below the minimum.
 - A measured identity rule. Every count assumes two findings are the same problem when their fingerprints match. Give two reviewers' groupings with `--clusters` to measure how far people agree with each other. Below a kappa of 0.6 only the observed count is printed.
 
@@ -148,7 +148,8 @@ lists every field.
 
 - Each step has a `route`.
 - Each finding has a `route`, a `locus` and a `symptom`.
-- Each finding also has the `fingerprint` the engine computes from them, a `class` of problem or observation, and a `taxonomy_version`.
+- Each finding also has the `fingerprint` the engine computes from them, a `class` and a `taxonomy_version`. The engine writes `class: problem` for every finding.
+- A record may have an `observations` list of `text` and `steps`. These are things that worked, kept apart from the findings. Nothing in this document counts them, and they have no fingerprint. Records from before the lists were separated can hold a finding with `class: observation`, and the estimators skip those too.
 - `scenario.goal_met` says whether the persona did what it came to do. The persona reports it when it finishes.
 - `persona.dimensions` records six things: the viewport, the assistive technology and the connection. It also holds the zoom, the locale and the motion setting. The assistive technology is `keyboard-only` when the persona cannot click and `screen-reader-view` when it is sent no screenshots.
 - `repeat_index` counts earlier runs of the same persona, scenario and model in the batch, and `seed` is the sampling seed when the provider takes one. `--repeat-index` and `--seed` set them.

@@ -76,10 +76,12 @@ time of the finding's first step.
 | `dummyrun.finding.evidence` | `evidence` |
 | `dummyrun.finding.verdict` | `verdict` |
 | `dummyrun.finding.steps` | `steps`, as an integer array |
-| `dummyrun.finding.class` | `class`, when present (version 2 records) |
+| `dummyrun.finding.class` | `class`, when present (version 2 records). Always `problem` in records from the current engine |
 | `dummyrun.finding.route` | `route`, when present |
 | `dummyrun.finding.symptom` | `symptom`, when present |
 | `dummyrun.finding.fingerprint` | `fingerprint`, when present. The same problem has the same fingerprint in every run |
+
+A record may hold an `observations` list of things that worked. The exporter reads it so that the record passes validation. It sends nothing for it. The findings metric does not count it.
 
 ## Metrics
 

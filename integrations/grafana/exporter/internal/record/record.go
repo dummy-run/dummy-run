@@ -55,7 +55,15 @@ type Run struct {
 	Outcome       string    `json:"outcome"`
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
-	Usage         Usage     `json:"usage"`
+	// Observations are read so that the strict decoder accepts them. The exporter does not send them.
+	Observations []Observation `json:"observations,omitempty"`
+	Usage        Usage         `json:"usage"`
+}
+
+// Observation is a note that something worked. It is not a finding and the exporter ignores it.
+type Observation struct {
+	Text  string `json:"text"`
+	Steps []int  `json:"steps"`
 }
 
 // Persona is the fictional user who ran the scenario.

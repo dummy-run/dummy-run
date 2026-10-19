@@ -75,7 +75,16 @@ same page (code: `internal/runner/patience.go`).
 | `press` | Press a key such as Enter, Escape or ArrowDown |
 | `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, wait up to 15 seconds |
 | `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. Only rule IDs and counts are recorded |
-| `finish` | End the run with a verdict, `goal_met`, a report and findings that cite step numbers |
+| `finish` | End the run with a verdict, `goal_met`, a report, findings and observations that cite step numbers |
+
+### Findings and observations
+
+`finish` takes two lists. `findings` holds problems only: something wrong, missing or confusing. `observations`
+holds what worked and neutral notes, such as "The home page accessibility check found no violations." The system
+prompt gives the persona one example of each. An observation is a sentence and the steps that show it. It has no
+kind, severity or symptom, and the engine gives it no fingerprint. The list is optional. If a model still sends a
+finding marked `class: observation`, the engine moves it to the observations. The run record keeps both lists.
+Observations never count in coverage, in the findings metric or in the problems a report lists.
 
 Each finding names a `symptom` from a closed list, and may name the control it is about by its `@12` number. The
 engine computes the finding's route, locus and fingerprint from the page. [COVERAGE.md](COVERAGE.md) explains
