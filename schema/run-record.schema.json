@@ -507,6 +507,20 @@
             "items": {
               "type": "string"
             }
+          },
+          "reviewer": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Who set the verdict, as dummyrun review records it: the --reviewer value or git config user.name. Optional; present once a person has confirmed or rejected the finding"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the reviewer set the verdict, in UTC. Optional; written together with reviewer"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the reviewer set the verdict. Required by dummyrun review for a rejection and optional for a confirmation"
           }
         }
       }

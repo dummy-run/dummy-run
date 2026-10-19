@@ -160,6 +160,10 @@ type Finding struct {
 	ClusterID       string   `json:"cluster_id,omitempty"`
 	SeededDefectID  string   `json:"seeded_defect_id,omitempty"`
 	ReviewedBy      []string `json:"reviewed_by,omitempty"`
+	// Reviewer, ReviewedAt and Reason are set by dummyrun review when a person confirms or rejects the finding.
+	Reviewer   string     `json:"reviewer,omitempty"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	Reason     string     `json:"reason,omitempty"`
 }
 
 // Usage is what the run cost in model calls, tokens and money.
