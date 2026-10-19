@@ -96,7 +96,9 @@ gh variable set HOMEBREW_TAP_ENABLED --body true --repo dummy-run/dummy-run
 
 The next release then pushes `Formula/dummyrun.rb` to the tap. The formula installs the macOS and Linux
 archives, and its test runs `dummyrun version`. The tap is updated while the release is still a draft, so a
-failed image job leaves a formula that points at a draft. Fix the failure and tag again. Then add a Homebrew
+failed image job leaves a formula that points at a draft. Fix the failure and tag again. Then check that
+`Formula/dummyrun.rb` points at the new release before users install from the tap, and repair it if it is stale.
+After that, add a Homebrew
 section to `docs/INSTALL.md`.
 
 ### Package visibility
