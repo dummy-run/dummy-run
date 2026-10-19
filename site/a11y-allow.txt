@@ -1,0 +1,4 @@
+# Accepted accessibility violations for dummyrun.dev, checked by `dummyrun a11y --allow`.
+# One entry per line: rule | page | selector | reason
+# The page is a URL path and the selector is matched against the element's selector. "*" matches
+# anything. Every entry needs a reason. Entries that match nothing are reported so they can be removed.

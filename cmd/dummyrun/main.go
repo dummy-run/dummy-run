@@ -34,6 +34,14 @@ func run(args []string) int {
 	switch args[0] {
 	case "run":
 		return runCmd(args[1:])
+	case "a11y":
+		return a11yCmd(args[1:])
+	case "audit":
+		if len(args) > 1 && args[1] == "a11y" {
+			return a11yCmd(args[2:])
+		}
+		fmt.Fprintln(os.Stderr, "dummyrun audit: want \"a11y\"")
+		return 2
 	case "version":
 		fmt.Println("dummyrun", telemetry.Version)
 		return 0
@@ -51,6 +59,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
       --browser chrome|firefox --provider azure --model DEPLOYMENT --region REGION [--endpoint URL]
+  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
 The Azure endpoint comes from --endpoint or DUMMYRUN_AZURE_ENDPOINT. The engine authenticates with
