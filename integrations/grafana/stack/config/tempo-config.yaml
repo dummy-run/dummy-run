@@ -1,0 +1,71 @@
+# Tempo for the local stack. This is the otel-lgtm default plus three changes for a seeded history:
+# blocks keep the real span times for spans up to 30 days old (the slack settings), a search may
+# span any time range, and blocks are kept for 90 days.
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9096
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "127.0.0.1:4417"
+        http:
+          endpoint: "127.0.0.1:4418"
+
+memberlist:
+  bind_addr: [127.0.0.1]
+  bind_port: 7947
+
+querier:
+  frontend_worker:
+    frontend_address: 127.0.0.1:9096
+
+query_frontend:
+  search:
+    max_duration: 0
+
+live_store:
+  wal:
+    path: /data/tempo/live-store/traces
+    ingestion_time_range_slack: 720h
+
+block_builder:
+  # Flush blocks to the backend every 30 seconds rather than every 5 minutes, so a search over a
+  # past time range, which only looks in the backend, finds new traces soon after seeding.
+  consume_cycle_duration: 30s
+  wal:
+    path: /data/tempo/block-builder/traces
+    ingestion_time_range_slack: 720h
+
+storage:
+  trace:
+    backend: local
+    # Notice new backend blocks quickly for the same reason.
+    blocklist_poll: 10s
+    wal:
+      path: /data/tempo/wal
+      ingestion_time_range_slack: 720h
+    local:
+      path: /data/tempo/blocks
+
+metrics_generator:
+  processor:
+    span_metrics:
+      dimensions:
+        - service_name
+        - operation
+        - status_code
+  storage:
+    path: /data/tempo/generator/wal
+    remote_write:
+      - url: http://127.0.0.1:9090/api/v1/write
+        send_exemplars: true
+
+overrides:
+  defaults:
+    compaction:
+      block_retention: 2160h
+    metrics_generator:
+      processors: [service-graphs, span-metrics]

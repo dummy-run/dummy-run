@@ -13,7 +13,7 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> Pre-release. Nothing here installs yet.
+> Pre-release. Nothing here installs yet. The website is at [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
@@ -62,6 +62,7 @@ flowchart LR
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
+| [docs/integrations/grafana.md](docs/integrations/grafana.md) | Sending runs to Grafana, linking them to your app's traces, and alerts |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the automated checks, and the rules on evidence and privacy |
 | [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and findings about apps you do not own |
 | [docs/LICENSING.md](docs/LICENSING.md) | What the licence lets you do |

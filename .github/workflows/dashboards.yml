@@ -1,0 +1,143 @@
+name: Dashboards
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - integrations/grafana/dashboards/**
+      - integrations/grafana/stack/**
+      - .github/workflows/dashboards.yml
+  pull_request:
+    paths:
+      - integrations/grafana/dashboards/**
+      - integrations/grafana/stack/**
+      - .github/workflows/dashboards.yml
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    name: Dashboard JSON is current
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/grafana/dashboards
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: integrations/grafana/dashboards/go.mod
+          cache-dependency-path: integrations/grafana/dashboards/go.sum
+      - name: Code is formatted
+        run: test -z "$(gofmt -l .)"
+      - name: go vet
+        run: go vet ./...
+      - name: Tests
+        run: go test ./...
+      - name: Generated JSON matches the committed files
+        run: go run . -check
+
+  seeder:
+    name: Seeder tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/grafana/stack/seed
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.8.22"
+      - run: uv sync --locked
+      - run: uv run pytest
+
+  smoke:
+    name: Stack loads every dashboard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: integrations/grafana/stack
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.8.22"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.1"
+          cache: false
+      - name: Start the stack
+        run: docker compose up -d --quiet-pull
+      - name: Wait for Grafana, Tempo and Loki
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf localhost:3000/api/health >/dev/null && curl -sf localhost:3200/ready >/dev/null && curl -sf localhost:3100/ready >/dev/null; then
+              echo "ready after $i tries"; exit 0
+            fi
+            sleep 3
+          done
+          docker compose logs; exit 1
+      - name: Wait for the Prometheus, Loki and Tempo plugins to answer queries
+        run: |
+          query() {
+            curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d "$1" localhost:3000/api/ds/query
+          }
+          prom='{"queries":[{"refId":"A","datasource":{"type":"prometheus","uid":"prometheus"},"expr":"up","instant":true}],"from":"now-1h","to":"now"}'
+          loki='{"queries":[{"refId":"A","datasource":{"type":"loki","uid":"loki"},"expr":"{service_name=\"dummyrun\"}","queryType":"range","maxLines":1}],"from":"now-1h","to":"now"}'
+          tempo='{"queries":[{"refId":"A","datasource":{"type":"tempo","uid":"tempo"},"queryType":"traceql","query":"{ }","limit":1}],"from":"now-1h","to":"now"}'
+          for i in $(seq 1 60); do
+            if [ "$(query "$prom")" = "200" ] && [ "$(query "$loki")" = "200" ] && [ "$(query "$tempo")" = "200" ]; then
+              echo "plugins ready after $i tries"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::data source queries still fail"; query "$prom"; echo; query "$loki"; echo; query "$tempo"; exit 1
+      - name: Every dashboard is provisioned
+        run: |
+          for uid in dummyrun-home dummyrun-overview dummyrun-personas dummyrun-findings dummyrun-run; do
+            curl -sf "localhost:3000/api/dashboards/uid/$uid" >/dev/null || { echo "::error::$uid is missing"; exit 1; }
+          done
+      - name: Make a service account token for annotations
+        id: token
+        run: |
+          set -euo pipefail
+          auth='admin:admin'
+          sa=$(curl -sf -u "$auth" -H 'Content-Type: application/json' -d '{"name":"dummyrun-seed","role":"Editor"}' localhost:3000/api/serviceaccounts | jq -r .id)
+          token=$(curl -sf -u "$auth" -H 'Content-Type: application/json' -d '{"name":"smoke"}' "localhost:3000/api/serviceaccounts/$sa/tokens" | jq -r .key)
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+      - name: Write 40 synthetic runs that end now
+        working-directory: integrations/grafana/stack/seed
+        # The generator is deterministic for its default seed and end date, and 40 runs over two
+        # days hold every outcome, kind and severity the panels show.
+        run: |
+          uv sync --locked
+          python3 ../../../../examples/generate-runs.py --runs 40 --days 2 --out "$RUNNER_TEMP/generated"
+          uv run seed.py "$RUNNER_TEMP/generated" --end-now --write "$RUNNER_TEMP/runs"
+      - name: Send the runs with the exporter, or with the seeder when the exporter is not here yet
+        working-directory: integrations/grafana/stack/seed
+        env:
+          GRAFANA_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          set -euo pipefail
+          if [ -d ../../exporter/cmd/dummyrun-otel ]; then
+            (cd ../../exporter && go run ./cmd/dummyrun-otel export --grafana-url http://localhost:3000 "$RUNNER_TEMP/runs")
+          else
+            echo "::notice::integrations/grafana/exporter is not on this branch yet, sending with the test seeder"
+            uv run seed.py "$RUNNER_TEMP/runs"
+          fi
+      - name: Every panel returns data
+        working-directory: integrations/grafana/stack/seed
+        # Cost by model may be empty until the exporter sends dummyrun.cost.usd on the run end log line.
+        run: uv run check_panels.py --retries 18 --wait 10 --expect-empty "Cost by model"
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

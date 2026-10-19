@@ -1,0 +1,75 @@
+name: Grafana alerting and propagation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - integrations/grafana/alerting/**
+      - integrations/grafana/examples/**
+      - .github/workflows/alerting.yml
+  pull_request:
+    paths:
+      - integrations/grafana/alerting/**
+      - integrations/grafana/examples/**
+      - .github/workflows/alerting.yml
+
+permissions:
+  contents: read
+
+jobs:
+  alert-rules:
+    name: Alert rules provision in Grafana
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Dry run the provisioning file in the pinned Grafana image
+        run: integrations/grafana/alerting/test/validate.sh
+
+  terraform:
+    name: Terraform rules are valid
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: integrations/grafana/alerting/terraform
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.13.1
+          terraform_wrapper: false
+      - run: terraform fmt -check -diff
+      - run: terraform init -backend=false -input=false -lockfile=readonly
+      - run: terraform validate
+
+  propagation:
+    name: Baggage reaches the app's spans
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: integrations/grafana/examples/propagation
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: integrations/grafana/examples/propagation/inkwell/go.mod
+          cache-dependency-path: integrations/grafana/examples/propagation/inkwell/go.sum
+      - name: Unit test the stub app
+        working-directory: integrations/grafana/examples/propagation/inkwell
+        run: |
+          go vet ./...
+          go test -count=1 ./...
+      - name: Scripts parse and the checker compiles
+        run: |
+          bash -n run.sh persona-request.sh check-tempo.sh
+          python3 -m py_compile check_tempo.py
+      - name: End to end against grafana/otel-lgtm
+        run: ./run.sh

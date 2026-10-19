@@ -1,0 +1,1187 @@
+{
+  "uid": "dummyrun-personas",
+  "title": "Dummy Run: personas",
+  "description": "One row per persona. Each row shows the persona's runs, what it found, where it was slow and its traces.",
+  "tags": [
+    "dummyrun"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-14d",
+    "to": "now"
+  },
+  "fiscalYearStartMonth": 0,
+  "refresh": "",
+  "schemaVersion": 42,
+  "panels": [
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "$persona",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "repeat": "persona"
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" [$__range])) or vector(0)",
+          "instant": true,
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Runs",
+      "description": "Runs by this persona that ended in the time range.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "repeatDirection": "h",
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "percentChangeColorMode": "standard",
+        "orientation": ""
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#f3f1ec"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_outcome=\"completed\" [$__range])) / sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" [$__range]))",
+          "instant": true,
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Pass rate",
+      "description": "Share of this persona's runs where it finished its job.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "repeatDirection": "h",
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "percentChangeColorMode": "standard",
+        "orientation": ""
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#ff7b72"
+              },
+              {
+                "value": 0.8,
+                "color": "#fbad18"
+              },
+              {
+                "value": 0.9,
+                "color": "#57d273"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__range])) or vector(0)",
+          "instant": true,
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Findings",
+      "description": "Findings this persona surfaced that the reviewer confirmed.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "repeatDirection": "h",
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "percentChangeColorMode": "standard",
+        "orientation": ""
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#f3f1ec"
+              },
+              {
+                "value": 1,
+                "color": "#fbad18"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum(count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_severity=\"blocker\" | dummyrun_finding_verdict=\"confirmed\" [$__range])) or vector(0)",
+          "instant": true,
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Blockers",
+      "description": "Confirmed blocker findings from this persona.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "repeatDirection": "h",
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "justifyMode": "auto",
+        "textMode": "value",
+        "wideLayout": true,
+        "showPercentChange": false,
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "percentChangeColorMode": "standard",
+        "orientation": ""
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "#57d273"
+              },
+              {
+                "value": 1,
+                "color": "#ff7b72"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "table",
+      "id": 6,
+      "targets": [
+        {
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_persona_id=~\"$persona\"",
+          "maxLines": 1,
+          "range": true,
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Role, device, browser and model",
+      "description": "From the persona's latest run end log line.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": false,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "browser_name": true,
+              "dummyrun_persona_device": true,
+              "dummyrun_persona_role": true,
+              "gen_ai_request_model": true
+            },
+            "indexByName": {
+              "browser_name": 2,
+              "dummyrun_persona_device": 1,
+              "dummyrun_persona_role": 0,
+              "gen_ai_request_model": 3
+            },
+            "renameByName": {
+              "browser_name": "Browser",
+              "dummyrun_persona_device": "Device",
+              "dummyrun_persona_role": "Role",
+              "gen_ai_request_model": "Model"
+            }
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Browser"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Model"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 7,
+      "targets": [
+        {
+          "expr": "sum by (dummyrun_outcome) (count_over_time({service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" [$__interval]))",
+          "legendFormat": "{{dummyrun_outcome}}",
+          "range": true,
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Outcomes",
+      "description": "This persona's runs that ended in each interval, stacked by outcome.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 0,
+        "y": 5
+      },
+      "repeatDirection": "h",
+      "maxDataPoints": 60,
+      "interval": "1h",
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "completed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#57d273",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "blocked"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#ff7b72",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "budget_exhausted"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fbad18",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errored"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "text",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "id": 8,
+      "targets": [
+        {
+          "expr": "sort_desc(sum by (dummyrun_finding_id, dummyrun_finding_kind, dummyrun_finding_severity, dummyrun_finding_title) (count_over_time({service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\" | dummyrun_finding_verdict=\"confirmed\" [$__range])))",
+          "instant": true,
+          "refId": "A",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Findings surfaced",
+      "description": "Confirmed findings from this persona in the time range, with the number of runs that hit each one.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 9,
+        "y": 5
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "Value": true,
+              "dummyrun_finding_id": true,
+              "dummyrun_finding_severity": true,
+              "dummyrun_finding_title": true
+            },
+            "indexByName": {
+              "Value": 2,
+              "dummyrun_finding_id": 0,
+              "dummyrun_finding_severity": 1,
+              "dummyrun_finding_title": 3
+            },
+            "renameByName": {
+              "Value": "Runs",
+              "dummyrun_finding_id": "Finding",
+              "dummyrun_finding_severity": "Severity",
+              "dummyrun_finding_title": "Title"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "desc": true,
+                "field": "Runs"
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Finding"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show these findings in Explore",
+                    "url": "/explore?schemaVersion=1\u0026panes=%7B%22a%22%3A%7B%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B%7B%22datasource%22%3A%7B%22type%22%3A%22loki%22%2C%22uid%22%3A%22loki%22%7D%2C%22expr%22%3A%22%7Bservice_name%3D%5C%22dummyrun%5C%22%7D+%7C+dummyrun_finding_id+%21%3D+%5C%22%5C%22+%7C+dummyrun_finding_id%3D%5C%22${__value.raw}%5C%22%22%2C%22refId%22%3A%22A%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22${__from}%22%2C%22to%22%3A%22${__to}%22%7D%7D%7D"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 170
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "blocker": {
+                        "color": "#ff7b72",
+                        "index": 0
+                      },
+                      "info": {
+                        "color": "text",
+                        "index": 3
+                      },
+                      "major": {
+                        "color": "#fbad18",
+                        "index": 1
+                      },
+                      "minor": {
+                        "color": "blue",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Title"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Runs"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 55
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "bargauge",
+      "id": 9,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sort_desc(histogram_quantile(0.9, sum by (le, dummyrun_action) (max_over_time(dummyrun_step_duration_milliseconds_bucket{dummyrun_persona_id=~\"$persona\"}[$__range]))))",
+          "instant": true,
+          "legendFormat": "{{dummyrun_action}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Slowest actions, p90",
+      "description": "Step actions ranked by the duration 9 in 10 steps stay under, from the step duration histogram.",
+      "transparent": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 5
+      },
+      "repeatDirection": "h",
+      "options": {
+        "displayMode": "basic",
+        "valueMode": "color",
+        "namePlacement": "left",
+        "showUnfilled": true,
+        "sizing": "auto",
+        "minVizWidth": 8,
+        "minVizHeight": 16,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "maxVizHeight": 300,
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#fbad18"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "table",
+      "id": 10,
+      "targets": [
+        {
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\"",
+          "maxLines": 200,
+          "range": true,
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Recent runs",
+      "description": "This persona's recent runs. Click a run ID to open the run dashboard, or the trace ID to open the trace.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": false,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "Time": true,
+              "dummyrun_outcome": true,
+              "dummyrun_persona_device": true,
+              "dummyrun_persona_id": true,
+              "dummyrun_run_id": true,
+              "dummyrun_scenario_id": true,
+              "dummyrun_target_environment": true,
+              "gen_ai_request_model": true,
+              "trace_id": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "dummyrun_outcome": 2,
+              "dummyrun_persona_device": 4,
+              "dummyrun_persona_id": 3,
+              "dummyrun_run_id": 1,
+              "dummyrun_scenario_id": 5,
+              "dummyrun_target_environment": 6,
+              "gen_ai_request_model": 7,
+              "trace_id": 8
+            },
+            "renameByName": {
+              "Time": "Ended",
+              "dummyrun_outcome": "Outcome",
+              "dummyrun_persona_device": "Device",
+              "dummyrun_persona_id": "Persona",
+              "dummyrun_run_id": "Run",
+              "dummyrun_scenario_id": "Scenario",
+              "dummyrun_target_environment": "Environment",
+              "gen_ai_request_model": "Model",
+              "trace_id": "Trace"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "desc": true,
+                "field": "Ended"
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false,
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Run"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open run",
+                    "url": "/d/dummyrun-run/dummy-run-run?${environment:queryparam}\u0026${persona:queryparam}\u0026${scenario:queryparam}\u0026var-run=${__value.raw}\u0026${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 250
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open trace",
+                    "url": "/explore?schemaVersion=1\u0026panes=%7B%22a%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22query%22%3A%22${__value.raw}%22%2C%22queryType%22%3A%22traceql%22%2C%22refId%22%3A%22A%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22${__from}%22%2C%22to%22%3A%22${__to}%22%7D%7D%7D"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outcome"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "blocked": {
+                        "color": "#ff7b72",
+                        "index": 1
+                      },
+                      "budget_exhausted": {
+                        "color": "#fbad18",
+                        "index": 2
+                      },
+                      "completed": {
+                        "color": "#57d273",
+                        "index": 0
+                      },
+                      "errored": {
+                        "color": "text",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ended"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "environment",
+        "label": "Environment",
+        "skipUrlSync": false,
+        "query": "label_values(dummyrun_runs_total, dummyrun_target_environment)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "multi": true,
+        "allowCustomValue": true,
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_min": "10s",
+        "auto_count": 30,
+        "definition": "label_values(dummyrun_runs_total, dummyrun_target_environment)"
+      },
+      {
+        "type": "query",
+        "name": "persona",
+        "label": "Persona",
+        "skipUrlSync": false,
+        "query": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\"}, dummyrun_persona_id)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "multi": true,
+        "allowCustomValue": true,
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_min": "10s",
+        "auto_count": 30,
+        "definition": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\"}, dummyrun_persona_id)"
+      },
+      {
+        "type": "query",
+        "name": "scenario",
+        "label": "Scenario",
+        "skipUrlSync": false,
+        "query": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\"}, dummyrun_scenario_id)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "multi": true,
+        "allowCustomValue": true,
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_min": "10s",
+        "auto_count": 30,
+        "definition": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\"}, dummyrun_scenario_id)"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Annotations \u0026 Alerts",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "type": "dashboard",
+        "builtIn": 1,
+        "placement": "inControlsMenu"
+      },
+      {
+        "name": "Dummy Run runs",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": false,
+        "hide": false,
+        "iconColor": "#fbad18",
+        "target": {
+          "limit": 500,
+          "matchAny": false,
+          "tags": [
+            "dummyrun"
+          ],
+          "type": "tags"
+        },
+        "type": "tags",
+        "builtIn": 0,
+        "placement": "inControlsMenu"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Dummy Run dashboards",
+      "type": "dashboards",
+      "icon": "",
+      "tooltip": "",
+      "tags": [
+        "dummyrun"
+      ],
+      "asDropdown": true,
+      "placement": "inControlsMenu",
+      "targetBlank": false,
+      "includeVars": true,
+      "keepTime": true
+    }
+  ]
+}

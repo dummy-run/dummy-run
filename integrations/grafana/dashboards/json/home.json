@@ -1,0 +1,65 @@
+{
+  "uid": "dummyrun-home",
+  "title": "Dummy Run: home",
+  "description": "Start page for the local stack. It links to the four Dummy Run dashboards.",
+  "tags": [
+    "dummyrun-home"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 0,
+  "time": {
+    "from": "now-14d",
+    "to": "now"
+  },
+  "fiscalYearStartMonth": 0,
+  "refresh": "",
+  "schemaVersion": 42,
+  "panels": [
+    {
+      "type": "text",
+      "id": 1,
+      "transparent": true,
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "repeatDirection": "h",
+      "options": {
+        "mode": "html",
+        "content": "\u003cdiv style=\"padding: 8px 4px;\"\u003e\u003cimg src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNTEgODgiIHdpZHRoPSIzNTEiIGhlaWdodD0iODgiPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMiAxMikiPjxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjE4IiBmaWxsPSIjZmJhZDE4Ii8+PHBhdGggZmlsbD0iI2YzZjFlYyIgZD0iTTMyIDE0QTE4IDE4IDAgMCAwIDE0IDMySDMyWk0zMiA1MEExOCAxOCAwIDAgMCA1MCAzMkgzMloiLz48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjNmMWVjIiBzdHJva2Utd2lkdGg9IjMiLz48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiNmM2YxZWMiIHN0cm9rZS13aWR0aD0iNiIgZD0iTTMgMTVWM0gxNU00OSAzSDYxVjE1TTYxIDQ5VjYxSDQ5TTE1IDYxSDNWNDkiLz48cGF0aCBmaWxsPSIjZjNmMWVjIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4MCA0Ny40KSBzY2FsZSguMSkiIGQ9Im0yMCAwdi00N2g0MnYtMjE0aC00MnYtNDdoMTI2YzgyIDAgMTI2IDQyIDEyNiAxMjV2NThjMCA4My00NCAxMjUtMTI2IDEyNXptOTQtNDhoMzJjNTAgMCA3NC0yNiA3NC03NXYtNjFjMC01MC0yNC03Ni03NC03NmgtMzJ6bTI4OSA1MmMtNTEgMC04NS0zNy04NS05MXYtMTMwaDUwdjEyNmMwIDM1IDE4IDUyIDUwIDUyIDM1IDAgNTgtMjQgNTgtNjh2LTExMGg1MHYyMTdoLTUwdi0zMGgtN2MtOCAxNi0yNiAzNC02NiAzNHptMTgyLTR2LTIxN2g0OXYyNGg4YzgtMTUgMjUtMjggNTUtMjggMzIgMCA1MCAxNCA2MCAzNGg3YzEwLTIwIDI3LTM0IDYyLTM0IDQwIDAgNzMgMjYgNzMgNzd2MTQ0aC01MXYtMTQwYzAtMjYtMTQtMzktMzgtMzktMjYgMC00MyAxOC00MyA1MHYxMjloLTUwdi0xNDBjMC0yNi0xNS0zOS0zOS0zOS0yNiAwLTQzIDE4LTQzIDUwdjEyOXptMzcxIDB2LTIxN2g0OXYyNGg4YzctMTUgMjUtMjggNTUtMjggMzIgMCA1MCAxNCA2MCAzNGg3YzEwLTIwIDI3LTM0IDYyLTM0IDQwIDAgNzMgMjYgNzMgNzd2MTQ0aC01MXYtMTQwYzAtMjYtMTQtMzktMzgtMzktMjYgMC00MyAxOC00MyA1MHYxMjloLTUwdi0xNDBjMC0yNi0xNC0zOS0zOS0zOS0yNyAwLTQzIDE4LTQzIDUwdjEyOXptMzkxIDg4di00NGgxMjBjOSAwIDEzLTQgMTMtMTN2LTYxaC04Yy03IDE2LTI1IDM0LTY2IDM0LTUwIDAtODUtMzctODUtOTF2LTEzMGg1MXYxMjZjMCAzNSAxOCA1MiA0OSA1MiAzNiAwIDU4LTI0IDU4LTY4di0xMTBoNTB2MjU4YzAgMjktMTcgNDctNDUgNDd6bTM0Ny04OHYtMzA4aDEzMWM1OCAwIDk3IDMxIDk3IDgydjVjMCAzOC0yMSA2MC00NyA3MXY3YzIzIDEgMzcgMTcgMzcgNDF2MTAyaC01M3YtOTRjMC0xNS03LTI1LTI1LTI1aC04N3YxMTl6bTUzLTE2N2g3M2MzMCAwIDQ5LTE3IDQ5LTQ0di00YzAtMjgtMTgtNDUtNDktNDVoLTczem0zMDQgMTcxYy01MCAwLTg1LTM3LTg1LTkxdi0xMzBoNTB2MTI2YzAgMzUgMTkgNTIgNTAgNTIgMzYgMCA1OC0yNCA1OC02OHYtMTEwaDUwdjIxN2gtNDl2LTMwaC03Yy04IDE2LTI2IDM0LTY3IDM0em0xODItNHYtMjE3aDUwdjMwaDhjNy0xNiAyNS0zNCA2Ni0zNCA1MCAwIDg1IDM1IDg1IDkxdjEzMGgtNTF2LTEyNmMwLTM2LTE4LTUzLTQ5LTUzLTM2IDAtNTggMjUtNTggNjl2MTEweiIvPjwvZz4KPC9zdmc+Cg==\" alt=\"Dummy Run\" height=\"64\" style=\"display: block; margin-bottom: 12px;\"\u003e\u003cp style=\"font-size: 16px; margin: 0;\"\u003eAI personas have tried your app. These dashboards show what they did and what they found. Start with the overview, or open a persona to see one user\u0026#39;s runs.\u003c/p\u003e\u003c/div\u003e"
+      }
+    },
+    {
+      "type": "dashlist",
+      "id": 2,
+      "title": "Dashboards",
+      "transparent": false,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "repeatDirection": "h",
+      "options": {
+        "keepTime": true,
+        "includeVars": false,
+        "showStarred": false,
+        "showRecentlyViewed": false,
+        "showSearch": true,
+        "showHeadings": false,
+        "showFolderNames": false,
+        "maxItems": 10,
+        "query": "",
+        "tags": [
+          "dummyrun"
+        ]
+      }
+    }
+  ],
+  "templating": {},
+  "annotations": {}
+}

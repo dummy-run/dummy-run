@@ -1,0 +1,1193 @@
+{
+  "uid": "dummyrun-run",
+  "title": "Dummy Run: run",
+  "description": "One run: its trace, steps, findings and logs. Pick the run at the top or click one in the table.",
+  "tags": [
+    "dummyrun"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-14d",
+    "to": "now"
+  },
+  "fiscalYearStartMonth": 0,
+  "refresh": "",
+  "schemaVersion": 42,
+  "panels": [
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "Pick a run",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "id": 2,
+      "targets": [
+        {
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_target_environment=~\"$environment\" | dummyrun_persona_id=~\"$persona\" | dummyrun_scenario_id=~\"$scenario\"",
+          "maxLines": 200,
+          "range": true,
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Runs matching the filters",
+      "description": "Runs for the selected environment, persona and scenario. Click a run ID to show it below.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": false,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "Time": true,
+              "dummyrun_outcome": true,
+              "dummyrun_persona_device": true,
+              "dummyrun_persona_id": true,
+              "dummyrun_run_id": true,
+              "dummyrun_scenario_id": true,
+              "dummyrun_target_environment": true,
+              "gen_ai_request_model": true,
+              "trace_id": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "dummyrun_outcome": 2,
+              "dummyrun_persona_device": 4,
+              "dummyrun_persona_id": 3,
+              "dummyrun_run_id": 1,
+              "dummyrun_scenario_id": 5,
+              "dummyrun_target_environment": 6,
+              "gen_ai_request_model": 7,
+              "trace_id": 8
+            },
+            "renameByName": {
+              "Time": "Ended",
+              "dummyrun_outcome": "Outcome",
+              "dummyrun_persona_device": "Device",
+              "dummyrun_persona_id": "Persona",
+              "dummyrun_run_id": "Run",
+              "dummyrun_scenario_id": "Scenario",
+              "dummyrun_target_environment": "Environment",
+              "gen_ai_request_model": "Model",
+              "trace_id": "Trace"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "desc": true,
+                "field": "Ended"
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false,
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Run"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open run",
+                    "url": "/d/dummyrun-run/dummy-run-run?${environment:queryparam}\u0026${persona:queryparam}\u0026${scenario:queryparam}\u0026var-run=${__value.raw}\u0026${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 250
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open trace",
+                    "url": "/explore?schemaVersion=1\u0026panes=%7B%22a%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22query%22%3A%22${__value.raw}%22%2C%22queryType%22%3A%22traceql%22%2C%22refId%22%3A%22A%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22${__from}%22%2C%22to%22%3A%22${__to}%22%7D%7D%7D"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outcome"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "blocked": {
+                        "color": "#ff7b72",
+                        "index": 1
+                      },
+                      "budget_exhausted": {
+                        "color": "#fbad18",
+                        "index": 2
+                      },
+                      "completed": {
+                        "color": "#57d273",
+                        "index": 0
+                      },
+                      "errored": {
+                        "color": "text",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Ended"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "row",
+      "collapsed": false,
+      "title": "Run $run",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "id": 4,
+      "targets": [
+        {
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_outcome != \"\" | dummyrun_run_id=\"$run\"",
+          "maxLines": 1,
+          "range": true,
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Run",
+      "description": "From the run end log line.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": false,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "browser_name": true,
+              "dummyrun_outcome": true,
+              "dummyrun_persona_device": true,
+              "dummyrun_persona_id": true,
+              "dummyrun_persona_role": true,
+              "dummyrun_scenario_id": true,
+              "dummyrun_target_environment": true,
+              "gen_ai_request_model": true
+            },
+            "indexByName": {
+              "browser_name": 6,
+              "dummyrun_outcome": 0,
+              "dummyrun_persona_device": 3,
+              "dummyrun_persona_id": 1,
+              "dummyrun_persona_role": 2,
+              "dummyrun_scenario_id": 4,
+              "dummyrun_target_environment": 5,
+              "gen_ai_request_model": 7
+            },
+            "renameByName": {
+              "browser_name": "Browser",
+              "dummyrun_outcome": "Outcome",
+              "dummyrun_persona_device": "Device",
+              "dummyrun_persona_id": "Persona",
+              "dummyrun_persona_role": "Role",
+              "dummyrun_scenario_id": "Scenario",
+              "dummyrun_target_environment": "Environment",
+              "gen_ai_request_model": "Model"
+            }
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Outcome"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "blocked": {
+                        "color": "#ff7b72",
+                        "index": 1
+                      },
+                      "budget_exhausted": {
+                        "color": "#fbad18",
+                        "index": 2
+                      },
+                      "completed": {
+                        "color": "#57d273",
+                        "index": 0
+                      },
+                      "errored": {
+                        "color": "text",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Environment"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Browser"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "id": 5,
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceql",
+          "query": "{ span.dummyrun.run.id = \"$run\" }",
+          "limit": 1,
+          "spss": 1,
+          "filters": [],
+          "tableType": "traces",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          }
+        }
+      ],
+      "title": "Trace",
+      "description": "The run's trace in Tempo. Click the trace ID to open the trace view, where the root span is the run and each child span is a step.",
+      "transparent": false,
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "Duration": true,
+              "Service": true,
+              "Start time": true,
+              "Trace ID": true
+            },
+            "indexByName": {
+              "Duration": 2,
+              "Service": 3,
+              "Start time": 1,
+              "Trace ID": 0
+            },
+            "renameByName": {
+              "Start time": "Started"
+            }
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 320
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Started"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "id": 6,
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceql",
+          "query": "{ span.dummyrun.run.id = \"$run\" } \u003e { span.dummyrun.step.n != nil } | select(span.dummyrun.step.n, span.dummyrun.step.action, span.dummyrun.step.target, span.http.response.status_code, span.dummyrun.step.console_errors, span.dummyrun.step.a11y_violations)",
+          "limit": 1,
+          "spss": 100,
+          "filters": [],
+          "tableType": "spans",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          }
+        }
+      ],
+      "title": "Steps",
+      "description": "The step spans of the run, from Tempo. Errors is the number of console errors and A11y the number of accessibility violations.",
+      "transparent": false,
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 14,
+        "x": 0,
+        "y": 17
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "Duration": true,
+              "Start time": true,
+              "dummyrun.step.a11y_violations": true,
+              "dummyrun.step.action": true,
+              "dummyrun.step.console_errors": true,
+              "dummyrun.step.n": true,
+              "dummyrun.step.target": true,
+              "http.response.status_code": true
+            },
+            "indexByName": {
+              "Duration": 3,
+              "Start time": 7,
+              "dummyrun.step.a11y_violations": 6,
+              "dummyrun.step.action": 1,
+              "dummyrun.step.console_errors": 5,
+              "dummyrun.step.n": 0,
+              "dummyrun.step.target": 2,
+              "http.response.status_code": 4
+            },
+            "renameByName": {
+              "Start time": "Started",
+              "dummyrun.step.a11y_violations": "A11y",
+              "dummyrun.step.action": "Action",
+              "dummyrun.step.console_errors": "Errors",
+              "dummyrun.step.n": "Step",
+              "dummyrun.step.target": "Target",
+              "http.response.status_code": "Status"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "desc": false,
+                "field": "Step"
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Step"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 55
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Action"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ns"
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#f3f1ec",
+                      "value": null
+                    },
+                    {
+                      "color": "#ff7b72",
+                      "value": 500
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Errors"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "A11y"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 55
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Started"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "table",
+      "id": 7,
+      "targets": [
+        {
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_finding_id != \"\" | dummyrun_run_id=\"$run\"",
+          "maxLines": 100,
+          "range": true,
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Findings",
+      "description": "Findings raised in this run, confirmed or not. Steps is the JSON list of step numbers the finding points at.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 10,
+        "x": 14,
+        "y": 17
+      },
+      "repeatDirection": "h",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "auto",
+            "keepTime": false,
+            "replace": false,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "includeByName": {
+              "dummyrun_finding_kind": true,
+              "dummyrun_finding_severity": true,
+              "dummyrun_finding_steps": true,
+              "dummyrun_finding_title": true,
+              "dummyrun_finding_verdict": true
+            },
+            "indexByName": {
+              "dummyrun_finding_kind": 1,
+              "dummyrun_finding_severity": 0,
+              "dummyrun_finding_steps": 3,
+              "dummyrun_finding_title": 4,
+              "dummyrun_finding_verdict": 2
+            },
+            "renameByName": {
+              "dummyrun_finding_kind": "Kind",
+              "dummyrun_finding_severity": "Severity",
+              "dummyrun_finding_steps": "Steps",
+              "dummyrun_finding_title": "Title",
+              "dummyrun_finding_verdict": "Verdict"
+            }
+          }
+        }
+      ],
+      "options": {
+        "frameIndex": 0,
+        "showHeader": true,
+        "showTypeIcons": false,
+        "footer": {
+          "show": false,
+          "reducer": null,
+          "countRows": false
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "blocker": {
+                        "color": "#ff7b72",
+                        "index": 0
+                      },
+                      "info": {
+                        "color": "text",
+                        "index": 3
+                      },
+                      "major": {
+                        "color": "#fbad18",
+                        "index": 1
+                      },
+                      "minor": {
+                        "color": "blue",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Kind"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Verdict"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Steps"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "json-view"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Title"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "logs",
+      "id": 8,
+      "targets": [
+        {
+          "expr": "{service_name=\"dummyrun\"} | dummyrun_run_id=\"$run\"",
+          "maxLines": 200,
+          "range": true,
+          "refId": "A",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "title": "Logs",
+      "description": "Every log line for this run: the run end line and one line per finding.",
+      "transparent": false,
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "repeatDirection": "h",
+      "options": {
+        "showLabels": false,
+        "showCommonLabels": false,
+        "showTime": true,
+        "showLogContextToggle": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "environment",
+        "label": "Environment",
+        "skipUrlSync": false,
+        "query": "label_values(dummyrun_runs_total, dummyrun_target_environment)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "multi": true,
+        "allowCustomValue": true,
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_min": "10s",
+        "auto_count": 30,
+        "definition": "label_values(dummyrun_runs_total, dummyrun_target_environment)"
+      },
+      {
+        "type": "query",
+        "name": "persona",
+        "label": "Persona",
+        "skipUrlSync": false,
+        "query": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\"}, dummyrun_persona_id)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "multi": true,
+        "allowCustomValue": true,
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_min": "10s",
+        "auto_count": 30,
+        "definition": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\"}, dummyrun_persona_id)"
+      },
+      {
+        "type": "query",
+        "name": "scenario",
+        "label": "Scenario",
+        "skipUrlSync": false,
+        "query": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\"}, dummyrun_scenario_id)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "multi": true,
+        "allowCustomValue": true,
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "auto": false,
+        "auto_min": "10s",
+        "auto_count": 30,
+        "definition": "label_values(dummyrun_runs_total{dummyrun_target_environment=~\"$environment\", dummyrun_persona_id=~\"$persona\"}, dummyrun_scenario_id)"
+      },
+      {
+        "type": "query",
+        "name": "run",
+        "label": "Run",
+        "skipUrlSync": false,
+        "query": {
+          "label": "dummyrun.run.id",
+          "refId": "TempoDatasourceVariableQueryEditor-VariableQuery",
+          "type": 1
+        },
+        "datasource": {
+          "type": "tempo",
+          "uid": "tempo"
+        },
+        "multi": false,
+        "allowCustomValue": true,
+        "refresh": 2,
+        "sort": 2,
+        "includeAll": false,
+        "auto": false,
+        "auto_min": "10s",
+        "auto_count": 30,
+        "definition": "dummyrun.run.id"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Annotations \u0026 Alerts",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "type": "dashboard",
+        "builtIn": 1,
+        "placement": "inControlsMenu"
+      },
+      {
+        "name": "Dummy Run runs",
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": false,
+        "hide": false,
+        "iconColor": "#fbad18",
+        "target": {
+          "limit": 500,
+          "matchAny": false,
+          "tags": [
+            "dummyrun"
+          ],
+          "type": "tags"
+        },
+        "type": "tags",
+        "builtIn": 0,
+        "placement": "inControlsMenu"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Dummy Run dashboards",
+      "type": "dashboards",
+      "icon": "",
+      "tooltip": "",
+      "tags": [
+        "dummyrun"
+      ],
+      "asDropdown": true,
+      "placement": "inControlsMenu",
+      "targetBlank": false,
+      "includeVars": true,
+      "keepTime": true
+    }
+  ]
+}
