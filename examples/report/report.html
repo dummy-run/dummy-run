@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="generator" content="dummyrun 0.1.0-dev">
+<title>Inkwell preview audit</title>
+<style>
+:root { --ink: #1a1a1a; --muted: #4a4a4a; --line: #767676; --soft: #eef0f2; --link: #0b4f9c; --paper: #ffffff; }
+* { box-sizing: border-box; }
+html { font-size: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow-wrap: anywhere; }
+a { color: var(--link); text-underline-offset: 0.15em; }
+a:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.skip { position: absolute; left: 0.5rem; top: -4rem; background: var(--ink); color: #fff; padding: 0.6rem 1rem; z-index: 10; }
+.skip:focus { top: 0.5rem; }
+.wrap { max-width: 62rem; margin: 0 auto; padding: 0 1rem; }
+header[role="banner"], body > header { border-bottom: 4px solid var(--ink); padding: 2rem 0 1.25rem; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); line-height: 1.15; margin: 0 0 0.5rem; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 2.75rem 0 0.75rem; padding-top: 0.75rem; border-top: 2px solid var(--ink); }
+h3 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 0.5rem; }
+h4 { font-size: 1rem; margin: 1.25rem 0 0.25rem; }
+p, ul, ol, dl, table, figure { margin: 0 0 1rem; }
+.meta { color: var(--muted); font-size: 1rem; margin: 0; }
+nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+nav a { display: inline-block; padding: 0.25rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: 1rem; table-layout: auto; }
+caption { text-align: left; font-weight: 700; padding: 0.5rem 0; }
+th, td { border: 1px solid var(--line); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+thead th { background: var(--soft); }
+tbody th { background: #f7f8f9; font-weight: 600; }
+.num { text-align: right; }
+article.finding { border: 2px solid var(--ink); padding: 1rem 1.25rem; margin: 0 0 1.5rem; }
+.badge { display: inline-block; padding: 0.05rem 0.55rem; font-size: 1rem; font-weight: 700; border: 2px solid var(--ink); margin-right: 0.4rem; }
+.sev-blocker, .sev-critical { background: #7a0019; color: #fff; }
+.sev-major, .sev-serious { background: #8a3b00; color: #fff; }
+.sev-minor, .sev-moderate { background: #594700; color: #fff; }
+.sev-info { background: #3d4852; color: #fff; }
+.st-confirmed { background: #e3f1e6; color: #0d3d1b; }
+.st-not-reviewed { background: #fff3c4; color: var(--ink); border-style: dashed; }
+.bl-new { background: #dbe8f8; color: #0b2f5c; }
+.bl-still-present, .bl-fixed { background: var(--soft); color: var(--ink); }
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; font-size: 1rem; }
+dl.facts dt { font-weight: 700; }
+dl.facts dd { margin: 0; }
+figure { border: 1px solid var(--line); padding: 0.5rem; }
+figure img { max-width: 100%; height: auto; display: block; }
+figcaption { font-size: 1rem; color: var(--muted); margin-top: 0.4rem; }
+.notice { border-left: 6px solid var(--ink); background: var(--soft); padding: 0.75rem 1rem; margin: 0 0 1rem; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; background: var(--soft); padding: 0 0.2em; }
+footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2rem; font-size: 1rem; color: var(--muted); }
+.big { font-size: 1.1rem; }
+@page { margin: 16mm; }
+@media print {
+  body { font-size: 11pt; line-height: 1.45; }
+  .skip, nav { display: none; }
+  h2 { break-after: avoid; margin-top: 1.5rem; }
+  article.finding, figure, tr { break-inside: avoid; }
+  .wrap { max-width: none; padding: 0; }
+  a { color: var(--ink); }
+  .badge, thead th, .notice { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the report</a>
+<header>
+<div class="wrap">
+<h1>Inkwell preview audit</h1>
+<p class="meta">Prepared for Inkwell Press (a fictional client). Report date 2026-10-19. Made with dummyrun 0.1.0-dev. Findings included: confirmed findings and findings not reviewed.</p>
+</div>
+</header>
+<div class="wrap">
+<nav aria-label="Contents">
+<ul>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#scope">Scope and method</a></li>
+<li><a href="#coverage">Coverage</a></li>
+<li><a href="#findings">Findings</a></li>
+<li><a href="#axe-sweep">Axe sweep</a></li>
+<li><a href="#limits">What this report is not</a></li>
+</ul>
+</nav>
+<main id="main">
+
+<section id="summary" aria-labelledby="h-summary">
+<h2 id="h-summary">Summary</h2>
+<p class="big">Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 2026-10-16 and 2026-10-17.</p>
+<p class="big">The runs found 3 distinct problems: 2 major, 1 info. A person has confirmed 3 of them.</p>
+<p class="big">The axe sweep tested 2 pages and found 2 failing elements on 2 rules. 1 setting could not be tested.</p>
+<p class="big">There are too few repeated findings to estimate how many problems are still unfound.</p>
+
+<table>
+<caption>Findings by severity</caption>
+<thead><tr><th scope="col">Severity</th><th scope="col" class="num">Distinct problems</th></tr></thead>
+<tbody>
+<tr><th scope="row">Blocker</th><td class="num">0</td></tr>
+<tr><th scope="row">Major</th><td class="num">2</td></tr>
+<tr><th scope="row">Minor</th><td class="num">0</td></tr>
+<tr><th scope="row">Info</th><td class="num">1</td></tr>
+</tbody>
+</table>
+
+
+</section>
+
+<section id="scope" aria-labelledby="h-scope">
+<h2 id="h-scope">Scope and method</h2>
+<p>Each run signs one fictional user, called a persona, in to the app in a real browser. The persona works through a scenario and reports what broke, what confused it and what its role should not have seen. Findings are folded together when they share a fingerprint, which is a hash of the route, the control and the kind of symptom.</p>
+
+<dl class="facts">
+<dt>Period</dt><dd>2026-10-16T15:42:31Z to 2026-10-17T13:54:03Z</dd>
+<dt>Runs</dt><dd>4 in total: 3 completed, 1 blocked, 0 errored and 0 out of budget</dd>
+<dt>Model cost</dt><dd>$0.48 over 47 model calls (339091 input and 22363 output tokens)</dd>
+<dt>Routes visited</dt><dd>4: <code>/drafts</code> <code>/issues</code> <code>/payments</code> <code>/reviews</code> </dd>
+</dl>
+
+<table>
+<caption>Target and build</caption>
+<thead><tr><th scope="col">Address</th><th scope="col">Environment</th><th scope="col">Build</th><th scope="col">Adapter</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+<tr><td>https://pr-41.inkwell.example</td><td>pr-41</td><td><code>a865ffd</code> (commit)</td><td>url</td><td class="num">4</td></tr>
+</tbody>
+</table>
+
+<table>
+<caption>Personas and the dimensions they varied</caption>
+<thead><tr><th scope="col">Persona</th><th scope="col">Role</th><th scope="col">Device</th><th scope="col">Dimensions</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+<tr><th scope="row">ada-editor</th><td>editor</td><td>desktop</td><td>viewport 1400x1000</td><td class="num">1</td></tr>
+<tr><th scope="row">lin-contributor</th><td>contributor</td><td>tablet at 200 percent zoom</td><td>viewport 410x590</td><td class="num">3</td></tr>
+</tbody>
+</table>
+
+<table>
+<caption>Scenarios and whether the persona did what it came to do</caption>
+<thead><tr><th scope="col">Scenario</th><th scope="col" class="num">Runs</th><th scope="col" class="num">Yes</th><th scope="col" class="num">Partly</th><th scope="col" class="num">No</th><th scope="col" class="num">Not recorded</th></tr></thead>
+<tbody>
+<tr><th scope="row">Check a payment status</th><td class="num">2</td><td class="num">1</td><td class="num">1</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><th scope="row">Send a first pitch</th><td class="num">1</td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+<tr><th scope="row">Reassign a stalled draft</th><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">0</td></tr>
+</tbody>
+</table>
+
+<table>
+<caption>Browsers</caption>
+<thead><tr><th scope="col">Browser</th><th scope="col">Version</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+<tr><td>chrome</td><td>148.0</td><td class="num">2</td></tr>
+<tr><td>firefox</td><td>146.0</td><td class="num">2</td></tr>
+</tbody>
+</table>
+
+<table>
+<caption>Models and providers</caption>
+<thead><tr><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Region</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+<tr><td>claude-sonnet-5-5</td><td>anthropic</td><td>global</td><td class="num">2</td></tr>
+<tr><td>gemini-3.5-flash-lite</td><td>vertex-gemini</td><td>europe-west2</td><td class="num">2</td></tr>
+</tbody>
+</table>
+
+<p>The axe sweep ran dummyrun a11y with axe-core 4.13.0 on chrome 148.0.7778.97. It tested 2 pages in 3 settings.</p>
+</section>
+
+<section id="coverage" aria-labelledby="h-coverage">
+<h2 id="h-coverage">Coverage</h2>
+
+<p>These numbers come from <code>dummyrun coverage</code> over the same runs. They say how much the sample can tell you.</p>
+<dl class="facts">
+<dt>Counted</dt><dd>findings that no person has confirmed, so a demonstration of the method and not an estimate</dd>
+<dt>Completed runs</dt><dd>3</dd>
+<dt>Distinct problems seen</dt><dd>2</dd>
+<dt>Still unfound</dt><dd>Not estimable from these runs</dd>
+<dt>Sample coverage</dt><dd>Not estimable</dd>
+<dt>New problems per extra run</dt><dd>0.33</dd>
+<dt>Stopping rule</dt><dd>Stopped: none; not stopped: desktop (0 completed runs, need 4); tablet (3 completed runs, need 4)</dd>
+</dl>
+<h3>How to read these numbers</h3>
+<ul>
+<li>The Chao2 figure is a floor. The real number of problems is at least that high. It is never a count of what remains.</li>
+<li>Sample coverage is the share of the chance of finding a problem that sits in problems already found. Below 0.50 do not extrapolate from it.</li>
+<li>New problems per extra run is how many new problems one more run is expected to find. A low figure suggests more runs will add little.</li>
+<li>With fewer than 5 completed runs the estimates are weak. The stopping rule needs 4 completed runs in each group.</li>
+</ul>
+<h3>Cautions</h3>
+<ul>
+<li>Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate..</li>
+<li>Identity reliability is not measured (no reviewer clusters): every problem count is conditional on the fingerprint rule.</li>
+<li>T=3 completed runs: Chao recommends at least 5, so read the interval as decorative.</li>
+<li>Stratum desktop has 0 completed runs; remaining-problem estimates need enough runs per stratum (at least 4).</li>
+<li>Stratum tablet has 3 completed runs; remaining-problem estimates need enough runs per stratum (at least 4).</li>
+</ul>
+
+</section>
+
+<section id="findings" aria-labelledby="h-findings">
+<h2 id="h-findings">Findings</h2>
+<p>Findings are sorted by severity, then by the number of runs that found them. Each one is a distinct problem. A problem found in several runs appears once.</p>
+
+
+<article class="finding" aria-labelledby="f-0">
+<h3 id="f-0"><span class="badge sev-major">Major</span>A contributor can open the rates table for all writers</h3>
+<p>
+<span class="badge st-confirmed">Confirmed by a reviewer</span>
+</p>
+<dl class="facts">
+<dt>Kind</dt><dd>permission</dd>
+<dt>Symptom</dt><dd>access-wrongly-allowed</dd>
+<dt>Route</dt><dd><code>/payments</code></dd>
+<dt>Control or region</dt><dd>link:rates</dd>
+<dt>Evidence</dt><dd>code</dd>
+<dt>Found by</dt><dd>lin-contributor in 1 of 4 runs</dd>
+<dt>WCAG 2.2 criterion</dt><dd>Not recorded for this finding</dd>
+<dt>Review</dt><dd>Confirmed</dd>
+<dt>Fingerprint</dt><dd><code>933d06cb3cee90e4</code></dd>
+</dl>
+<h4>How to reproduce</h4>
+<p>Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.</p>
+<ol>
+<li value="7">Look on /payments.</li>
+</ol>
+
+
+<p>Screenshot <code>screens/008-07.png</code> from run 2026-10-17-lin-contributor-008, step 7, was not found when this report was made.</p>
+
+</article>
+
+<article class="finding" aria-labelledby="f-1">
+<h3 id="f-1"><span class="badge sev-major">Major</span>Scheduling an issue for a past date returns a server error</h3>
+<p>
+<span class="badge st-confirmed">Confirmed by a reviewer</span>
+</p>
+<dl class="facts">
+<dt>Kind</dt><dd>bug</dd>
+<dt>Symptom</dt><dd>error-shown</dd>
+<dt>Route</dt><dd><code>/issues</code></dd>
+<dt>Control or region</dt><dd>button:schedule</dd>
+<dt>Evidence</dt><dd>measured</dd>
+<dt>Found by</dt><dd>ada-editor in 1 of 4 runs</dd>
+<dt>WCAG 2.2 criterion</dt><dd>Not recorded for this finding</dd>
+<dt>Review</dt><dd>Confirmed</dd>
+<dt>Fingerprint</dt><dd><code>72be5e1e780d79bb</code></dd>
+</dl>
+<h4>How to reproduce</h4>
+<p>Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.</p>
+<ol>
+<li value="7">Fill Submit on /issues.</li>
+</ol>
+
+
+</article>
+
+<article class="finding" aria-labelledby="f-2">
+<h3 id="f-2"><span class="badge sev-info">Info</span>The payment status &#39;settled&#39; is unclear to a contributor</h3>
+<p>
+<span class="badge st-confirmed">Confirmed by a reviewer</span>
+</p>
+<dl class="facts">
+<dt>Kind</dt><dd>question</dd>
+<dt>Symptom</dt><dd>unclear-label</dd>
+<dt>Route</dt><dd><code>/payments</code></dd>
+<dt>Control or region</dt><dd>region:payment status</dd>
+<dt>Evidence</dt><dd>inferred</dd>
+<dt>Found by</dt><dd>lin-contributor in 3 of 4 runs</dd>
+<dt>WCAG 2.2 criterion</dt><dd>Not recorded for this finding</dd>
+<dt>Review</dt><dd>Confirmed</dd>
+<dt>Fingerprint</dt><dd><code>1718b75300702f7b</code></dd>
+</dl>
+<h4>How to reproduce</h4>
+<p>Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.</p>
+<ol>
+<li value="5">Look on /payments.</li>
+</ol>
+<p>Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).</p>
+
+<p>Screenshot <code>screens/008-05.png</code> from run 2026-10-17-lin-contributor-008, step 5, was not found when this report was made.</p>
+
+</article>
+
+</section>
+
+<section id="axe-sweep" aria-labelledby="h-axe">
+<h2 id="h-axe">Axe sweep</h2>
+<p>The sweep ran axe-core 4.13.0 on 2 pages in 3 settings (browser, viewport and colour scheme). It checked the rules with these tags: <code>wcag21a</code> <code>wcag21aa</code> <code>wcag22aa</code> <code>wcag2a</code> <code>wcag2aa</code> . It found 2 failing elements and set aside 1 on the allow-list.</p>
+
+
+<article class="finding" aria-labelledby="a-0">
+<h3 id="a-0"><span class="badge sev-critical">Critical</span>Buttons must have discernible text</h3>
+<dl class="facts">
+<dt>Rule</dt><dd><code>button-name</code></dd>
+<dt>WCAG 2.2 criterion</dt><dd>4.1.2</dd>
+<dt>Elements</dt><dd>1</dd>
+<dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/button-name">https://dequeuniversity.com/rules/axe/4.13/button-name</a></dd>
+</dl>
+<table>
+<caption>Where button-name failed</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
+<tbody>
+<tr><td>https://pr-41.inkwell.example/issues</td><td><code>#menu-toggle</code></td><td>chrome/desktop/light</td></tr>
+</tbody>
+</table>
+</article>
+
+<article class="finding" aria-labelledby="a-1">
+<h3 id="a-1"><span class="badge sev-serious">Serious</span>Elements must meet minimum color contrast ratio thresholds</h3>
+<dl class="facts">
+<dt>Rule</dt><dd><code>color-contrast</code></dd>
+<dt>WCAG 2.2 criterion</dt><dd>1.4.3</dd>
+<dt>Elements</dt><dd>1</dd>
+<dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">https://dequeuniversity.com/rules/axe/4.13/color-contrast</a></dd>
+</dl>
+<table>
+<caption>Where color-contrast failed</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
+<tbody>
+<tr><td>https://pr-41.inkwell.example/issues</td><td><code>.hint</code></td><td>chrome/desktop/light<br>chrome/phone/light</td></tr>
+</tbody>
+</table>
+</article>
+
+
+
+<h3>Needs a person to check</h3>
+<p>Axe cannot decide these rules alone. A person has to look.</p>
+<table>
+<caption>Rules that need review</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col">WCAG 2.2 criterion</th><th scope="col">Pages</th></tr></thead>
+<tbody>
+<tr><td><code>color-contrast</code></td><td>Elements must meet minimum color contrast ratio thresholds</td><td>1.4.3</td><td>https://pr-41.inkwell.example/issues</td></tr>
+</tbody>
+</table>
+
+
+<h3>Pages that could not be tested</h3>
+<table>
+<caption>Page errors</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Setting</th><th scope="col">Error</th></tr></thead>
+<tbody>
+<tr><td>https://pr-41.inkwell.example/payments</td><td>chrome/desktop/light</td><td>the page did not load within 30 seconds</td></tr>
+</tbody>
+</table>
+
+</section>
+
+
+<section id="limits" aria-labelledby="h-limits">
+<h2 id="h-limits">What this report is not</h2>
+<ul>
+<li>This report is a sample. Personas played a set of scenarios on one build. A problem they did not meet is not in it.</li>
+<li>It is not a WCAG conformance claim, a certificate or a statement about the law.</li>
+<li>Automated checks find only some accessibility problems. The sweep covers the pages it lists and nothing else.</li>
+<li>It does not replace testing with disabled people.</li>
+<li>A finding marked not reviewed is a claim by a model that no person has checked.</li>
+<li>Parts of the app that no run visited are not covered, whether or not the report has findings.</li>
+</ul>
+</section>
+</main>
+<footer>
+<p>Made with dummyrun 0.1.0-dev on 2026-10-19. The report is one file. It loads nothing from the network.</p>
+</footer>
+</div>
+</body>
+</html>

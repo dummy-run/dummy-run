@@ -31,6 +31,10 @@ A market profile lists the regions that satisfy it. Every adapter declares its r
 
 The results board is static files. You decide which rows go into the client's backlog. Apache-2.0 lets you [run Dummy Run for clients](../../../docs/LICENSING.md) with no conditions, and the [trademark policy](../../../TRADEMARKS.md) covers the name.
 
+## A report for the client
+
+`dummyrun report` turns a set of runs and an accessibility sweep into one HTML file you can print to PDF. It lists the scope, the findings by severity with steps and screenshots, and what the report does not claim. Give it the previous report and it marks each finding new, still present or fixed. The [report guide](../../../docs/REPORT.md) covers it.
+
 ## Sources
 
 The residency rule and the adapters are in the [architecture](../../../docs/ARCHITECTURE.md), sourced. `provider.region` is defined in the [run record schema](../docs/run-record.md), code. The personas are the synthetic cast in `examples/runs/`, measured.

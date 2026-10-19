@@ -117,6 +117,7 @@ func renderCLI(bins *repo.Binaries, root string) (string, error) {
 		{"dummyrun", "Every command, and the model providers.", bins.DummyRun, root, []string{"--help"}},
 		{"dummyrun run", "Play one persona through one scenario and write a run record.", bins.DummyRun, root, []string{"run", "-h"}},
 		{"dummyrun coverage", "Count what a set of run records covers and report it as numbers with their limits. See [COVERAGE.md](COVERAGE.md).", bins.DummyRun, root, []string{"coverage", "-h"}},
+		{"dummyrun report", "Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md).", bins.DummyRun, root, []string{"report", "-h"}},
 		{"dummyrun a11y", "Check pages for WCAG 2.2 A and AA failures with no model. `dummyrun audit a11y` is the same command.", bins.DummyRun, root, []string{"a11y", "-h"}},
 		{"dummyrun-otel", "Send run records to an OpenTelemetry backend and Grafana.", bins.OTel, exporter, []string{"--help"}},
 		{"dummyrun-otel export", "Send the records in some files or directories once.", bins.OTel, exporter, []string{"export", "-h"}},

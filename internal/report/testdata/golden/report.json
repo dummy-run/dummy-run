@@ -1,0 +1,716 @@
+{
+  "report_version": 1,
+  "title": "Inkwell audit",
+  "client": "Inkwell Press",
+  "date": "2026-10-19",
+  "tool": "dummyrun",
+  "tool_version": "0.0.0-test",
+  "basis": "confirmed findings and findings not reviewed",
+  "summary": {
+    "text": [
+      "Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 2026-10-16 and 2026-10-17.",
+      "The runs found 4 distinct problems: 2 major, 1 minor, 1 info. A person has confirmed 3 of them. 1 is marked not reviewed. No person has checked it yet.",
+      "The axe sweep tested 2 pages and found 2 failing elements on 2 rules. 1 setting could not be tested.",
+      "There are too few repeated findings to estimate how many problems are still unfound."
+    ],
+    "findings_total": 4,
+    "by_severity": {
+      "blocker": 0,
+      "info": 1,
+      "major": 2,
+      "minor": 1
+    },
+    "confirmed": 3,
+    "not_reviewed": 1,
+    "pending_omitted": 0,
+    "axe_failing_rules": 2,
+    "axe_failing_elements": 2
+  },
+  "scope": {
+    "targets": [
+      {
+        "base_url": "https://pr-41.inkwell.example",
+        "environment": "pr-41",
+        "adapter": "url",
+        "build": "a865ffd",
+        "build_kind": "commit",
+        "runs": 4
+      }
+    ],
+    "started_at": "2026-10-16T15:42:31Z",
+    "ended_at": "2026-10-17T13:54:03Z",
+    "browsers": [
+      {
+        "name": "chrome",
+        "version": "148.0",
+        "runs": 2
+      },
+      {
+        "name": "firefox",
+        "version": "146.0",
+        "runs": 2
+      }
+    ],
+    "models": [
+      {
+        "kind": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "region": "global",
+        "runs": 2
+      },
+      {
+        "kind": "vertex-gemini",
+        "model": "gemini-3.5-flash-lite",
+        "region": "europe-west2",
+        "runs": 2
+      }
+    ],
+    "personas": [
+      {
+        "id": "ada-editor",
+        "role": "editor",
+        "devices": [
+          "desktop"
+        ],
+        "dimensions": [
+          "viewport 1400x1000"
+        ],
+        "runs": 1
+      },
+      {
+        "id": "lin-contributor",
+        "role": "contributor",
+        "devices": [
+          "tablet at 200 percent zoom"
+        ],
+        "dimensions": [
+          "viewport 410x590"
+        ],
+        "runs": 3
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "check-payment",
+        "title": "Check a payment status",
+        "runs": 2,
+        "goal_met": 1,
+        "goal_partly": 1,
+        "goal_not_met": 0,
+        "goal_unknown": 0
+      },
+      {
+        "id": "first-pitch",
+        "title": "Send a first pitch",
+        "runs": 1,
+        "goal_met": 1,
+        "goal_partly": 0,
+        "goal_not_met": 0,
+        "goal_unknown": 0
+      },
+      {
+        "id": "reassign-draft",
+        "title": "Reassign a stalled draft",
+        "runs": 1,
+        "goal_met": 0,
+        "goal_partly": 0,
+        "goal_not_met": 1,
+        "goal_unknown": 0
+      }
+    ],
+    "runs": {
+      "total": 4,
+      "completed": 3,
+      "blocked": 1,
+      "errored": 0,
+      "budget_exhausted": 0
+    },
+    "cost": {
+      "usd": 0.4792,
+      "unpriced_runs": 0,
+      "model_calls": 47,
+      "input_tokens": 339091,
+      "output_tokens": 22363
+    },
+    "routes_visited": [
+      "/drafts",
+      "/issues",
+      "/payments",
+      "/reviews"
+    ]
+  },
+  "coverage": {
+    "available": true,
+    "basis": "findings that no person has confirmed, so a demonstration of the method and not an estimate",
+    "observed": 2,
+    "total_at_least": null,
+    "unfound_at_least": null,
+    "sample_coverage": null,
+    "new_per_extra_run": 0.333,
+    "completed_runs": 3,
+    "label": "2 observed; Chao2 not estimable (Q1=1, Q2=0)",
+    "stopping_rule": "Stopped: none; not stopped: desktop (0 completed runs, need 4); tablet (3 completed runs, need 4)",
+    "routes_visited": 0,
+    "route_universe": 0,
+    "warnings": [
+      "Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate..",
+      "Identity reliability is not measured (no reviewer clusters): every problem count is conditional on the fingerprint rule.",
+      "T=3 completed runs: Chao recommends at least 5, so read the interval as decorative.",
+      "Stratum desktop has 0 completed runs; remaining-problem estimates need enough runs per stratum (at least 4).",
+      "Stratum tablet has 3 completed runs; remaining-problem estimates need enough runs per stratum (at least 4)."
+    ],
+    "detail": {
+      "report_version": 1,
+      "build": "a865ffd",
+      "basis": "unreviewed findings: a demonstration of the method, not an estimate",
+      "strata": "device",
+      "thresholds": {
+        "coverage": 0.9,
+        "min_runs": 4,
+        "no_new": 3,
+        "kappa": 0.6
+      },
+      "runs": {
+        "total": 4,
+        "completed": 3,
+        "blocked": 1,
+        "errored": 0,
+        "budget_exhausted": 0,
+        "harness_failure_rate": 0,
+        "not_fingerprinted": 0
+      },
+      "review": {
+        "confirmed": 3,
+        "rejected": 1,
+        "pending": 3,
+        "observations": 0,
+        "kappa": {
+          "value": null,
+          "pairs": 0,
+          "reviewers": 0,
+          "status": "not_measured"
+        }
+      },
+      "reach": {
+        "route_coverage": null,
+        "dimensions": {
+          "at": {
+            "used": 1,
+            "possible": 6,
+            "values": [
+              "none"
+            ]
+          },
+          "browser": {
+            "used": 2,
+            "possible": 2,
+            "values": [
+              "chrome",
+              "firefox"
+            ]
+          },
+          "connection": {
+            "used": 1,
+            "possible": 5,
+            "values": [
+              "unthrottled"
+            ]
+          },
+          "device": {
+            "used": 2,
+            "possible": 3,
+            "values": [
+              "desktop",
+              "tablet"
+            ]
+          },
+          "locale": {
+            "used": 0,
+            "possible": null,
+            "values": []
+          },
+          "model": {
+            "used": 2,
+            "possible": null,
+            "values": [
+              "claude-sonnet-5-5",
+              "gemini-3.5-flash-lite"
+            ]
+          },
+          "motion": {
+            "used": 0,
+            "possible": 2,
+            "values": []
+          },
+          "viewport": {
+            "used": 2,
+            "possible": null,
+            "values": [
+              "1400x1000",
+              "410x590"
+            ]
+          },
+          "zoom": {
+            "used": 2,
+            "possible": null,
+            "values": [
+              "1",
+              "2"
+            ]
+          }
+        },
+        "device_browser_pairs": {
+          "used": 3,
+          "possible": 6
+        }
+      },
+      "completeness": {
+        "s_obs": 2,
+        "t": 3,
+        "label": "2 observed; Chao2 not estimable (Q1=1, Q2=0)",
+        "identity_band": [
+          {
+            "operation": "fingerprint",
+            "s_obs": 2,
+            "chao2": {
+              "form": "not-estimable",
+              "at_least": 2,
+              "ci95": null,
+              "label": "2 observed; Chao2 not estimable (Q1=1, Q2=0)"
+            },
+            "coverage": null,
+            "coverage_label": "not estimable",
+            "new_per_extra_run": 0.333,
+            "q1": 1,
+            "q2": 0
+          }
+        ],
+        "jackknife2": 3,
+        "note": "The Chao2 figure is a lower bound on the number of distinct problems, never a count of how many remain."
+      },
+      "stopping": {
+        "stop": false,
+        "summary": "Stopped: none; not stopped: desktop (0 completed runs, need 4); tablet (3 completed runs, need 4)",
+        "strata": [
+          {
+            "stratum": "desktop",
+            "completed": 0,
+            "coverage": null,
+            "runs_since_new": 0,
+            "stopped": false,
+            "reason": "0 completed runs, need 4"
+          },
+          {
+            "stratum": "tablet",
+            "completed": 3,
+            "coverage": null,
+            "runs_since_new": 0,
+            "stopped": false,
+            "reason": "3 completed runs, need 4"
+          }
+        ]
+      },
+      "findings": [
+        {
+          "fingerprint": "933d06cb3cee90e4",
+          "route": "/payments",
+          "locus": "link:rates",
+          "symptom": "access-wrongly-allowed",
+          "title": "A contributor can open the rates table for all writers",
+          "band": "major",
+          "severity": "major",
+          "verdict": "confirmed",
+          "k": 1,
+          "n": 3,
+          "wilson95": [
+            0.06,
+            0.79
+          ],
+          "evidence": "code",
+          "unreplicated": true,
+          "state_conditional": false,
+          "display": "major (reviewer severity major); seen in 1 of 3 exposed runs; evidence code; unreplicated",
+          "runs": [
+            "2026-10-17-lin-contributor-008"
+          ]
+        },
+        {
+          "fingerprint": "1718b75300702f7b",
+          "route": "/payments",
+          "locus": "region:payment status",
+          "symptom": "unclear-label",
+          "title": "The payment status 'settled' is unclear to a contributor",
+          "band": "info",
+          "severity": "info",
+          "verdict": "confirmed",
+          "k": 3,
+          "n": 3,
+          "wilson95": [
+            0.44,
+            1
+          ],
+          "evidence": "inferred",
+          "unreplicated": false,
+          "state_conditional": false,
+          "display": "info (reviewer severity info); seen in 3 of 3 exposed runs; evidence inferred",
+          "runs": [
+            "2026-10-16-lin-contributor-002",
+            "2026-10-16-lin-contributor-004",
+            "2026-10-17-lin-contributor-008"
+          ]
+        }
+      ],
+      "warnings": [
+        "pending findings are counted. Remaining-problem estimates need reviewer-confirmed findings; read these numbers as a demonstration. Use --confirmed-only for the real figure",
+        "identity reliability is not measured (no reviewer clusters): every problem count is conditional on the fingerprint rule",
+        "T=3 completed runs: Chao recommends at least 5, so read the interval as decorative",
+        "stratum desktop has 0 completed runs; remaining-problem estimates need enough runs per stratum (at least 4)",
+        "stratum tablet has 3 completed runs; remaining-problem estimates need enough runs per stratum (at least 4)"
+      ]
+    }
+  },
+  "findings": [
+    {
+      "fingerprint": "933d06cb3cee90e4",
+      "title": "A contributor can open the rates table for all writers",
+      "severity": "major",
+      "kind": "permission",
+      "symptom": "access-wrongly-allowed",
+      "route": "/payments",
+      "locus": "link:rates",
+      "evidence": "code",
+      "status": "confirmed",
+      "reviewers": [
+        "Priya Shah"
+      ],
+      "reviewed_at": "2026-10-18T09:30:00Z",
+      "reason": "Reproduced on the preview with a contributor account.",
+      "personas": [
+        "lin-contributor"
+      ],
+      "runs": 1,
+      "of_runs": 4,
+      "reproduction": {
+        "run": "2026-10-17-lin-contributor-008",
+        "persona": "lin-contributor",
+        "role": "contributor",
+        "device": "tablet",
+        "zoom_percent": 200,
+        "browser": "firefox 146.0",
+        "steps": [
+          {
+            "n": 7,
+            "action": "look",
+            "route": "/payments",
+            "url": "https://pr-41.inkwell.example/payments"
+          }
+        ]
+      },
+      "screenshots": [
+        {
+          "run": "2026-10-17-lin-contributor-008",
+          "step": 7,
+          "path": "screens/008-07.png",
+          "alt": "Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /payments"
+        }
+      ],
+      "instances": [
+        {
+          "run": "2026-10-17-lin-contributor-008",
+          "finding_id": "contributor-sees-rates-table",
+          "persona": "lin-contributor",
+          "device": "tablet",
+          "browser": "firefox",
+          "steps": [
+            7
+          ],
+          "status": "confirmed"
+        }
+      ]
+    },
+    {
+      "fingerprint": "72be5e1e780d79bb",
+      "title": "Scheduling an issue for a past date returns a server error",
+      "severity": "major",
+      "kind": "bug",
+      "symptom": "error-shown",
+      "route": "/issues",
+      "locus": "button:schedule",
+      "evidence": "measured",
+      "status": "confirmed",
+      "personas": [
+        "ada-editor"
+      ],
+      "runs": 1,
+      "of_runs": 4,
+      "reproduction": {
+        "run": "2026-10-16-ada-editor-003",
+        "persona": "ada-editor",
+        "role": "editor",
+        "device": "desktop",
+        "zoom_percent": 100,
+        "browser": "chrome 148.0",
+        "steps": [
+          {
+            "n": 7,
+            "action": "fill",
+            "target": "Submit",
+            "route": "/issues",
+            "url": "https://pr-41.inkwell.example/issues"
+          }
+        ]
+      },
+      "instances": [
+        {
+          "run": "2026-10-16-ada-editor-003",
+          "finding_id": "schedule-500-on-past-date",
+          "persona": "ada-editor",
+          "device": "desktop",
+          "browser": "chrome",
+          "steps": [
+            7
+          ],
+          "status": "confirmed"
+        }
+      ]
+    },
+    {
+      "fingerprint": "64afd5191821762c",
+      "title": "The hint under the schedule field is too faint to read",
+      "severity": "minor",
+      "kind": "accessibility",
+      "symptom": "a11y:color-contrast",
+      "route": "/issues",
+      "locus": "region:schedule form",
+      "evidence": "measured",
+      "status": "not-reviewed",
+      "wcag": [
+        "1.4.3"
+      ],
+      "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
+      "personas": [
+        "ada-editor"
+      ],
+      "runs": 1,
+      "of_runs": 4,
+      "reproduction": {
+        "run": "2026-10-16-ada-editor-003",
+        "persona": "ada-editor",
+        "role": "editor",
+        "device": "desktop",
+        "zoom_percent": 100,
+        "browser": "chrome 148.0",
+        "steps": [
+          {
+            "n": 3,
+            "action": "visit",
+            "route": "/drafts",
+            "url": "https://pr-41.inkwell.example/drafts"
+          }
+        ]
+      },
+      "screenshots": [
+        {
+          "run": "2026-10-16-ada-editor-003",
+          "step": 3,
+          "path": "screens/003-03.png",
+          "alt": "Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts"
+        }
+      ],
+      "instances": [
+        {
+          "run": "2026-10-16-ada-editor-003",
+          "finding_id": "faint-hint",
+          "persona": "ada-editor",
+          "device": "desktop",
+          "browser": "chrome",
+          "steps": [
+            3
+          ],
+          "status": "not-reviewed"
+        }
+      ]
+    },
+    {
+      "fingerprint": "1718b75300702f7b",
+      "title": "The payment status 'settled' is unclear to a contributor",
+      "severity": "info",
+      "kind": "question",
+      "symptom": "unclear-label",
+      "route": "/payments",
+      "locus": "region:payment status",
+      "evidence": "inferred",
+      "status": "confirmed",
+      "personas": [
+        "lin-contributor"
+      ],
+      "runs": 3,
+      "of_runs": 4,
+      "reproduction": {
+        "run": "2026-10-17-lin-contributor-008",
+        "persona": "lin-contributor",
+        "role": "contributor",
+        "device": "tablet",
+        "zoom_percent": 200,
+        "browser": "firefox 146.0",
+        "steps": [
+          {
+            "n": 5,
+            "action": "look",
+            "route": "/payments",
+            "url": "https://pr-41.inkwell.example/payments"
+          }
+        ]
+      },
+      "screenshots": [
+        {
+          "run": "2026-10-17-lin-contributor-008",
+          "step": 5,
+          "path": "screens/008-05.png",
+          "alt": "Screenshot from run 2026-10-17-lin-contributor-008, step 5: look on /payments"
+        }
+      ],
+      "instances": [
+        {
+          "run": "2026-10-16-lin-contributor-002",
+          "finding_id": "payment-status-wording",
+          "persona": "lin-contributor",
+          "device": "tablet",
+          "browser": "chrome",
+          "steps": [
+            7
+          ],
+          "status": "confirmed"
+        },
+        {
+          "run": "2026-10-16-lin-contributor-004",
+          "finding_id": "payment-status-wording",
+          "persona": "lin-contributor",
+          "device": "tablet",
+          "browser": "firefox",
+          "steps": [
+            9
+          ],
+          "status": "not-reviewed"
+        },
+        {
+          "run": "2026-10-17-lin-contributor-008",
+          "finding_id": "payment-status-wording",
+          "persona": "lin-contributor",
+          "device": "tablet",
+          "browser": "firefox",
+          "steps": [
+            5
+          ],
+          "status": "not-reviewed"
+        }
+      ]
+    }
+  ],
+  "axe": {
+    "tool": "dummyrun a11y",
+    "browsers": [
+      "chrome 148.0.7778.97"
+    ],
+    "axe_version": "4.13.0",
+    "tags": [
+      "wcag21a",
+      "wcag21aa",
+      "wcag22aa",
+      "wcag2a",
+      "wcag2aa"
+    ],
+    "pages": 2,
+    "runs": 3,
+    "failing_elements": 2,
+    "allowed_elements": 1,
+    "page_errors": 1,
+    "rules": [
+      {
+        "fingerprint": "84b5ee8b6163156f",
+        "rule": "button-name",
+        "impact": "critical",
+        "wcag": [
+          "4.1.2"
+        ],
+        "help": "Buttons must have discernible text",
+        "help_url": "https://dequeuniversity.com/rules/axe/4.13/button-name",
+        "elements": 1,
+        "pages": [
+          {
+            "url": "https://pr-41.inkwell.example/issues",
+            "targets": [
+              "#menu-toggle"
+            ],
+            "settings": [
+              "chrome/desktop/light"
+            ]
+          }
+        ]
+      },
+      {
+        "fingerprint": "c5ffc81a448ffacf",
+        "rule": "color-contrast",
+        "impact": "serious",
+        "wcag": [
+          "1.4.3"
+        ],
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
+        "elements": 1,
+        "pages": [
+          {
+            "url": "https://pr-41.inkwell.example/issues",
+            "targets": [
+              ".hint"
+            ],
+            "settings": [
+              "chrome/desktop/light",
+              "chrome/phone/light"
+            ]
+          }
+        ]
+      }
+    ],
+    "needs_review": [
+      {
+        "fingerprint": "c5ffc81a448ffacf",
+        "rule": "color-contrast",
+        "impact": "serious",
+        "wcag": [
+          "1.4.3"
+        ],
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
+        "elements": 1,
+        "pages": [
+          {
+            "url": "https://pr-41.inkwell.example/issues",
+            "targets": [
+              ".banner"
+            ],
+            "settings": [
+              "chrome/desktop/light"
+            ]
+          }
+        ]
+      }
+    ],
+    "errors": [
+      {
+        "url": "https://pr-41.inkwell.example/payments",
+        "setting": "chrome/desktop/light",
+        "message": "the page did not load within 30 seconds"
+      }
+    ]
+  },
+  "limits": [
+    "This report is a sample. Personas played a set of scenarios on one build. A problem they did not meet is not in it.",
+    "It is not a WCAG conformance claim, a certificate or a statement about the law.",
+    "Automated checks find only some accessibility problems. The sweep covers the pages it lists and nothing else.",
+    "It does not replace testing with disabled people.",
+    "A finding marked not reviewed is a claim by a model that no person has checked.",
+    "Parts of the app that no run visited are not covered, whether or not the report has findings."
+  ],
+  "warnings": []
+}

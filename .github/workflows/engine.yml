@@ -66,6 +66,7 @@ jobs:
         run: |
           cmp internal/record/run-record.schema.json schema/run-record.schema.json
           cmp internal/record/run-record.v1.schema.json schema/run-record.v1.schema.json
+          cmp internal/report/report.schema.json schema/report.schema.json
       - name: go vet
         run: go vet ./...
       - name: go test with the race detector and coverage

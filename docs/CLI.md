@@ -16,10 +16,12 @@ Usage:
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
+  dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
+      [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -112,6 +114,39 @@ Usage of coverage:
     	what the stopping rule treats as separate groups: device or persona (default "device")
   -threshold value
     	policy number as name=value, repeatable: coverage (default 0.90), min-runs (4), no-new (3), kappa (0.6)
+```
+
+## dummyrun report
+
+Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md).
+
+```text
+Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--title TEXT] [--client TEXT]
+    [--format html|md|json|sarif|junit] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+
+Turns run records and accessibility sweep results into an audit report. The default is one self-contained
+HTML file. Only reviewer-confirmed findings appear. --include pending adds the others, marked not reviewed.
+Rejected findings never appear. The report is a sample. It is not a WCAG conformance claim.
+  -a11y value
+    	JSON file from dummyrun a11y --json; repeatable
+  -baseline string
+    	an earlier report in JSON form; each finding is marked new or still present, and fixed ones are listed
+  -build string
+    	commit or build hash to report on (at least 7 characters); default is every record given
+  -client string
+    	free text naming who the report is for
+  -date string
+    	report date as YYYY-MM-DD (default today)
+  -format string
+    	html, md, json, sarif or junit (default "html")
+  -include string
+    	"pending" also includes findings no reviewer has confirmed, marked not reviewed (default: confirmed only)
+  -out string
+    	write the report to this file instead of standard output
+  -runs value
+    	directory or file of run records; repeat the flag to read several (record paths may also follow the flags)
+  -title string
+    	report title (default "Accessibility and usability audit")
 ```
 
 ## dummyrun a11y
