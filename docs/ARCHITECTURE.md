@@ -50,7 +50,7 @@ carries one of four tags:
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them.
+High-severity findings wait for a person to confirm them. The page is untrusted input, so the engine fences its text, flags text that tries to instruct the persona and files a `security` finding for it. See [Threat model](THREAT-MODEL.md).
 
 ## Browsers
 

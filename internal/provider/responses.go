@@ -113,6 +113,9 @@ func fromResponse(r *responses.Response) (Response, error) {
 		CachedInputTokens: int(r.Usage.InputTokensDetails.CachedTokens)}}
 	if r.Status == responses.ResponseStatusIncomplete && r.IncompleteDetails.Reason != "" {
 		resp.FinishReason = "incomplete: " + r.IncompleteDetails.Reason
+		if isFilterReason(r.IncompleteDetails.Reason) {
+			return resp, filtered("responses API", "the response was cut off: "+r.IncompleteDetails.Reason, nil)
+		}
 	}
 	if r.Error.Message != "" {
 		return resp, fmt.Errorf("provider: the model reported an error: %s %s", r.Error.Code, r.Error.Message)
@@ -175,6 +178,9 @@ func callResponses(ctx context.Context, client *openai.Client, name string, para
 	out, err := client.Responses.New(ctx, params)
 	if err != nil {
 		var apiErr *openai.Error
+		if errors.As(err, &apiErr) && isFilterAPIError(apiErr.Code, apiErr.Message) {
+			return Response{}, filtered(name, apiErr.Message, err)
+		}
 		if errors.As(err, &apiErr) && apiErr.Message != "" {
 			return Response{}, fmt.Errorf("provider: %s: %d %s: %s (%w)", name, apiErr.StatusCode, apiErr.Code, apiErr.Message, err)
 		}

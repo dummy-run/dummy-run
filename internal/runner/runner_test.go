@@ -122,7 +122,7 @@ func TestRenderAndSummary(t *testing.T) {
 		t.Error("missing snapshot not explained")
 	}
 	sum := Summary(sampleStep(2, "visit", "timeout"))
-	if !strings.HasPrefix(sum, "step 2: visit @1 · now at https://t.test/ · Home · error: timeout") {
+	if !strings.HasPrefix(sum, `step 2: visit @1 · now at https://t.test/ · title "Home" · error: timeout`) {
 		t.Errorf("summary %q", sum)
 	}
 }

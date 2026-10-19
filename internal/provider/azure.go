@@ -82,6 +82,9 @@ func (a *Azure) Chat(ctx context.Context, req Request) (Response, error) {
 	completion, err := a.client.Chat.Completions.New(ctx, params)
 	if err != nil {
 		var apiErr *openai.Error
+		if errors.As(err, &apiErr) && isFilterAPIError(apiErr.Code, apiErr.Message) {
+			return Response{}, filtered("azure", apiErr.Message, err)
+		}
 		if errors.As(err, &apiErr) && apiErr.Message != "" {
 			return Response{}, fmt.Errorf("provider: azure: %d %s: %s (%w)", apiErr.StatusCode, apiErr.Code, apiErr.Message, err)
 		}
@@ -176,6 +179,9 @@ func fromCompletion(c *openai.ChatCompletion) (Response, error) {
 	}
 	choice := c.Choices[0]
 	resp.FinishReason = choice.FinishReason
+	if isFilterReason(choice.FinishReason) {
+		return resp, filtered("chat completions", "finish reason "+choice.FinishReason, nil)
+	}
 	resp.Text = choice.Message.Content
 	for _, tc := range choice.Message.ToolCalls {
 		if tc.Type != "function" && tc.Type != "" {

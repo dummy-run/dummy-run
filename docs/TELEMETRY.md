@@ -58,7 +58,7 @@ Root span attributes:
 | `dummyrun.cost.usd` | `usage.cost_usd`, when present |
 | `dummyrun.steps.count` | The number of entries in `steps` |
 
-The root span status is `ERROR` when the outcome is `errored` or `blocked`, and `OK` otherwise.
+The root span status is `ERROR` when the outcome is `errored`, `blocked` or `provider_filtered`, and `OK` otherwise. A record's `events` are not exported. The `security` kind appears as the value of `dummyrun.finding.kind`.
 
 Step span attributes are `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun.step.target`. When
 present they add `url.full`, `http.response.status_code`, `dummyrun.step.console_errors` and
