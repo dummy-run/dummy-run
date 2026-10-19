@@ -17,7 +17,7 @@ PERSONAS = [
     {"id": "ada-editor", "role": "editor", "device": "desktop"},
     {"id": "sam-author", "role": "author", "device": "phone"},
     {"id": "ravi-reviewer", "role": "reviewer", "device": "desktop"},
-    {"id": "lin-contributor", "role": "contributor", "device": "tablet"},
+    {"id": "lin-contributor", "role": "contributor", "device": "tablet", "zoom": 200},
 ]
 SCENARIOS = {
     "ada-editor": [("schedule-issue", "Schedule next week's issue"), ("reassign-draft", "Reassign a stalled draft")],

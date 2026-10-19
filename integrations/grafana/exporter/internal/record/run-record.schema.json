@@ -19,7 +19,8 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
         "role": { "type": "string", "description": "The app role the persona signs in with" },
-        "device": { "enum": ["desktop", "tablet", "phone"] }
+        "device": { "enum": ["desktop", "tablet", "phone"], "description": "The device the run used. A scenario can set its own, which replaces the persona's" },
+        "zoom": { "type": "integer", "minimum": 100, "maximum": 500, "description": "Page zoom in percent the run used. Left out means 100" }
       }
     },
     "scenario": {

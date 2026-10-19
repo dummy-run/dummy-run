@@ -52,6 +52,8 @@ type Persona struct {
 	ID     string `json:"id"`
 	Role   string `json:"role"`
 	Device string `json:"device"`
+	// Zoom is the page zoom in percent, or 0 when the record has none (100).
+	Zoom int `json:"zoom,omitempty"`
 }
 
 // Scenario is the job the persona tried to do.

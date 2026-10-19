@@ -35,6 +35,7 @@ Root span attributes:
 | `dummyrun.persona.id` | `persona.id` |
 | `dummyrun.persona.role` | `persona.role` |
 | `dummyrun.persona.device` | `persona.device` |
+| `dummyrun.persona.zoom` | `persona.zoom`, when present |
 | `dummyrun.scenario.id` | `scenario.id` |
 | `dummyrun.target.adapter` | `target.adapter` |
 | `dummyrun.target.environment` | `target.environment` |
