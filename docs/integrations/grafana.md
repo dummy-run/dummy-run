@@ -11,16 +11,22 @@ The code is in [integrations/grafana/](../../integrations/grafana/README.md).
 
 ### Five minutes, on your laptop
 
-1. Start the local stack in `integrations/grafana/stack/`. Its README has the command. It runs
-   Grafana with Tempo, Loki and Prometheus, and it listens for OTLP on port 4318. Grafana Cloud uses
-   Mimir in place of Prometheus; the queries are the same.
-2. Export a directory of run records with the exporter in `integrations/grafana/exporter/`. The
-   command is `dummyrun-otel`. It reads run records that match `schema/run-record.schema.json`, so you can try it
-   on `examples/runs/` before you have a run of your own. Point it at `http://localhost:4318`. The
-   exact flags are in the exporter README.
-3. Open Grafana at `http://localhost:3000`. The dashboards from `integrations/grafana/dashboards/`
-   are provisioned. Search
-   Tempo with `{ resource.service.name = "dummyrun" }` to see one trace per run.
+1. Start the local stack. It runs Grafana with Tempo, Loki and Prometheus, and listens for OTLP on
+   port 4318. Grafana Cloud uses Mimir in place of Prometheus; the queries are the same.
+
+   ```sh
+   cd integrations/grafana/stack && docker compose up -d
+   ```
+
+2. Install the exporter and send it the example runs. It reads run records that match
+   `schema/run-record.schema.json` and sends them to `http://localhost:4318` by default.
+
+   ```sh
+   go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest
+   dummyrun-otel export --logs-max-age 720h examples/runs
+   ```
+
+3. Open Grafana at `http://localhost:3000`. The dashboards are already loaded. Search Tempo with `{ resource.service.name = "dummyrun" }` to see one trace per run.
 
 ### Then Grafana Cloud
 
@@ -34,8 +40,12 @@ and the password is a Cloud Access Policy token with the `metrics:write`, `logs:
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp-gateway-prod-gb-south-1.grafana.net/otlp"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic $(printf '%s:%s' "$INSTANCE_ID" "$TOKEN" | base64)"
-dummyrun-otel ...   # flags: see the exporter README
+export GRAFANA_TOKEN="<service account token with the Editor role>"   # for run annotations
+dummyrun-otel export --grafana-url "https://<your-stack>.grafana.net" runs/
 ```
+
+`runs/` is the folder of run records. The [exporter README](../../integrations/grafana/exporter/README.md)
+lists every flag.
 
 Keep the token in your keychain or in CI secrets. The region slug in the endpoint decides where the
 data is stored. `prod-gb-south-1` is the UK and `prod-eu-west-2` is Germany; the full list is in

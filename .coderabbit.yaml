@@ -29,7 +29,8 @@ reviews:
         text, a label and colon in place of a sentence, staged contrasts ("not X, but Y"), signposts,
         bullets that argue, lists of three kept for rhythm, sentences with no fact in them, and bylines.
         Flag any claim that the repository does not support, and any detail that could identify a customer
-        or private deployment.
+        or private deployment. Flag project state in user-facing docs: pull request numbers, "in review",
+        "once it merges" or notes about what is not built yet beyond a single pre-release line.
     - path: ".github/workflows/**"
       instructions: >-
         Every action must be pinned to a full commit SHA with a version comment, and the version must be at
