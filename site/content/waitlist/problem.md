@@ -7,7 +7,7 @@ sitemap:
   disable: true
 ---
 
-Find the likely cause below and try again from the [start page](/start/).
+Find the likely cause below and try again from the [start page](../start.md).
 
 - The email address did not look right. Check it for typos.
 - The agreement box was not ticked. We need it to store your address.

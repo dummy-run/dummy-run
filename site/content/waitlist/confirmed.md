@@ -7,4 +7,4 @@ sitemap:
   disable: true
 ---
 
-You can unsubscribe at any time with the link in any email from us. Read [how we use your data](/privacy/).
+You can unsubscribe at any time with the link in any email from us. Read [how we use your data](../privacy.md).
