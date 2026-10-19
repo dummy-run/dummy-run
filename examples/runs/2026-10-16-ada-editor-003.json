@@ -146,7 +146,9 @@
       "locus": "button:schedule",
       "symptom": "error-shown",
       "taxonomy_version": 1,
-      "fingerprint": "72be5e1e780d79bb"
+      "fingerprint": "72be5e1e780d79bb",
+      "reviewer": "example-reviewer",
+      "reviewed_at": "2026-10-17T15:34:26Z"
     }
   ],
   "usage": {

@@ -16,10 +16,11 @@ Usage:
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
+  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID --reason TEXT]... [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun review -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -112,6 +113,28 @@ Usage of coverage:
     	what the stopping rule treats as separate groups: device or persona (default "device")
   -threshold value
     	policy number as name=value, repeatable: coverage (default 0.90), min-runs (4), no-new (3), kappa (0.6)
+```
+
+## dummyrun review
+
+Confirm or reject the pending findings in run records. Only confirmed findings reach a report. See [ENGINE.md](ENGINE.md).
+
+```text
+Usage of review:
+  -confirm value
+    	confirm the pending findings with this fingerprint, a fingerprint prefix (6 or more characters), run/finding or a finding ID; repeatable
+  -json
+    	with --list, print JSON instead of a table
+  -list
+    	list the problems and change nothing
+  -reason string
+    	why: required with --reject, optional with --confirm
+  -reject value
+    	reject the pending findings with this fingerprint, prefix, run/finding or finding ID; needs --reason; repeatable
+  -reviewer string
+    	who is reviewing (default: git config user.name)
+  -verdict string
+    	with --list, which findings to show: pending, confirmed, rejected or all (default "pending")
 ```
 
 ## dummyrun a11y

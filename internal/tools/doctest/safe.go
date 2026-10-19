@@ -75,6 +75,12 @@ func checkSafe(line string) error {
 			}
 		}
 		return nil
+	case words[0] == "dummyrun" && args[0] == "review":
+		// Only the read-only listing may run: a verdict would rewrite a record.
+		if !contains(args, "--list") || contains(args, "--confirm") || contains(args, "--reject") {
+			return fmt.Errorf("%q: review may only list in a doctest block", line)
+		}
+		return nil
 	case words[0] == "dummyrun" && args[0] == "a11y":
 		for _, a := range args[1:] {
 			if strings.HasPrefix(a, "http") && !localURL.MatchString(a) {
@@ -83,7 +89,7 @@ func checkSafe(line string) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("%q: only version, help, export --dry-run, coverage and a11y on a local site may run", line)
+	return fmt.Errorf("%q: only version, help, export --dry-run, coverage, review --list and a11y on a local site may run", line)
 }
 
 func contains(list []string, s string) bool {

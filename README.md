@@ -16,7 +16,7 @@
 > Pre-release, with no tagged version yet. The engine installs with
 > `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. It runs personas on six kinds of
 > model provider; [docs/ENGINE.md](docs/ENGINE.md) shows
-> how. The reviewer and the results board are not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
+> how. A person confirms findings with `dummyrun review`. The results board is not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
@@ -68,6 +68,7 @@ flowchart LR
 | [docs/PERSONAS.md](docs/PERSONAS.md) | The persona library in [casts/library](casts/library/README.md), and how to copy one into your cast |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
+| [docs/ENGINE.md#review](docs/ENGINE.md#review) | Confirming and rejecting findings with `dummyrun review` |
 | [docs/COVERAGE.md](docs/COVERAGE.md) | What `dummyrun coverage` measures and when to trust each number |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
 | [docs/integrations/grafana.md](docs/integrations/grafana.md) | Sending runs to Grafana, linking them to your app's traces, and alerts |

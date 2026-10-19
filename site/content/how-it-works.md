@@ -35,7 +35,7 @@ A finding is a claim plus evidence. The reviewer rejects a claim unless a step i
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them. The engine writes the run record today, and the reviewer and the board build on it. Nothing is posted for you. The board is static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
+Every finding waits for a person to confirm it. `dummyrun review` shows each pending finding with its steps and screenshots, and a person confirms or rejects it. The verdict goes into the run record with the reviewer's name, the time and the reason. A log line goes next to it. The board builds on the confirmed findings. Nothing is posted for you. The board is static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
 
 ## Words we use
 
