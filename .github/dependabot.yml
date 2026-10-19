@@ -27,3 +27,24 @@ updates:
     groups:
       opentelemetry:
         patterns: ["go.opentelemetry.io/*"]
+  - package-ecosystem: gomod
+    directory: /integrations/grafana/examples/propagation/inkwell
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      opentelemetry:
+        patterns: ["go.opentelemetry.io/*"]
+  - package-ecosystem: docker-compose
+    directory: /integrations/grafana/examples/propagation
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+  - package-ecosystem: docker
+    directory: /integrations/grafana/examples/propagation/inkwell
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
