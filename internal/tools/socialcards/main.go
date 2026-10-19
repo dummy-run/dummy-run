@@ -6,7 +6,7 @@
 // Each card is 1200 by 630 pixels: amber ground, the Viewfinder mark, the Dummy mascot, and the page
 // title and description in Space Grotesk. The shapes are the ones in brand/logo/mark.svg and
 // brand/mascot/dummy.svg. The check compares pixels, not file bytes, so a change in the PNG encoder
-// does not fail it.
+// does not fail it, and allows a small difference per channel for rounding between architectures.
 package main
 
 import (
@@ -105,10 +105,10 @@ func run(dir string, check bool) error {
 		if err := enc.Encode(&buf, img); err != nil {
 			return err
 		}
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
+		if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
 			return err
 		}
 	}
@@ -123,21 +123,34 @@ func sameAsFile(img *image.RGBA, path string) bool {
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	got, err := png.Decode(f)
 	if err != nil || got.Bounds() != img.Bounds() {
 		return false
 	}
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			r1, g1, b1, a1 := got.At(x, y).RGBA()
-			r2, g2, b2, a2 := img.At(x, y).RGBA()
-			if r1 != r2 || g1 != g2 || b1 != b2 || a1 != a2 {
+			if !nearly(got.At(x, y), img.At(x, y)) {
 				return false
 			}
 		}
 	}
 	return true
+}
+
+// nearly reports whether two pixels differ by at most a few levels in each channel. The rasteriser's
+// edge pixels can differ in the last bits between processor architectures.
+func nearly(a, b color.Color) bool {
+	r1, g1, b1, a1 := a.RGBA()
+	r2, g2, b2, a2 := b.RGBA()
+	const tol = 24 << 8
+	d := func(x, y uint32) bool {
+		if x > y {
+			return x-y <= tol
+		}
+		return y-x <= tol
+	}
+	return d(r1, r2) && d(g1, g2) && d(b1, b2) && d(a1, a2)
 }
 
 func draw1(c card, bold, medium *opentype.Font) (*image.RGBA, error) {
