@@ -41,7 +41,7 @@ A finding is a claim plus evidence. The reviewer rejects a claim unless a step i
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-Every finding waits for a person to confirm it. `dummyrun review` shows each pending finding with its steps and the paths of its screenshots (code: `cmd/dummyrun/review.go` and `internal/review/view.go`). A person confirms or rejects it, and the verdict goes into the run record with the reviewer's name and the time (code: `internal/record/record.go`). A reason is optional when you confirm and required when you reject (code: `cmd/dummyrun/review.go`). `dummyrun review` records verdicts and never creates tickets (code: `cmd/dummyrun/review.go`). The board will be static HTML plus JSON built from the run records, and a person decides what becomes a ticket (inferred: the board is planned and not built).
+Pending findings in schema version 2 records wait for a person to review them (code: `internal/review/store.go`). `dummyrun review` shows each pending finding with its steps and the paths of its screenshots (code: `cmd/dummyrun/review.go` and `internal/review/view.go`). A person confirms or rejects it, and the verdict goes into the run record with the reviewer's name and the time (code: `internal/record/record.go`). A reason is optional when you confirm and required when you reject (code: `cmd/dummyrun/review.go`). `dummyrun review` records verdicts and never creates tickets (code: `cmd/dummyrun/review.go`). The board will be static HTML plus JSON built from the run records, and a person decides what becomes a ticket (inferred: the board is planned and not built).
 
 ## Words we use
 
