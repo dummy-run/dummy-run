@@ -131,6 +131,7 @@ func runBlock(root, binDir string, b block) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	for _, c := range cmds {
+		// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 		cmd := exec.CommandContext(ctx, "sh", "-c", c) //nolint:gosec // checkSafe allowed this line
 		cmd.Dir = root
 		cmd.Env = append(os.Environ(), "PATH="+binDir+string(os.PathListSeparator)+os.Getenv("PATH"))

@@ -9,7 +9,7 @@ import (
 
 func TestReplaceBetween(t *testing.T) {
 	doc := "before\n" + providersBegin + "\nold\n" + providersEnd + "\nafter\n"
-	got, err := replaceBetween(doc, providersBegin, providersEnd, "new\n")
+	got, err := replaceBetween(doc, "new\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,14 +17,14 @@ func TestReplaceBetween(t *testing.T) {
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
-	again, _ := replaceBetween(got, providersBegin, providersEnd, "new\n")
+	again, _ := replaceBetween(got, "new\n")
 	if again != got {
 		t.Error("a second pass changed the text, so the check would never settle")
 	}
-	if _, err := replaceBetween("no markers", providersBegin, providersEnd, "x"); err == nil {
+	if _, err := replaceBetween("no markers", "x"); err == nil {
 		t.Error("missing markers were accepted")
 	}
-	if _, err := replaceBetween(providersEnd+providersBegin, providersBegin, providersEnd, "x"); err == nil {
+	if _, err := replaceBetween(providersEnd+providersBegin, "x"); err == nil {
 		t.Error("reversed markers were accepted")
 	}
 }

@@ -57,7 +57,7 @@ func run(check bool) error {
 	if err != nil {
 		return err
 	}
-	providersNew, err := replaceBetween(string(providers), providersBegin, providersEnd, renderProviderTable())
+	providersNew, err := replaceBetween(string(providers), renderProviderTable())
 	if err != nil {
 		return fmt.Errorf("docs/PROVIDERS.md: %w", err)
 	}

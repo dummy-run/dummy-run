@@ -3,6 +3,7 @@ package repo
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -46,7 +47,7 @@ func Build(root, dir string) (*Binaries, error) {
 		{filepath.Join(root, "integrations", "grafana", "exporter"), b.OTel, "./cmd/dummyrun-otel"},
 	}
 	for _, s := range steps {
-		cmd := exec.Command("go", "build", "-o", s.out, s.pkg) //nolint:gosec // fixed arguments
+		cmd := exec.CommandContext(context.Background(), "go", "build", "-o", s.out, s.pkg) //nolint:gosec // fixed arguments
 		cmd.Dir = s.dir
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return nil, fmt.Errorf("repo: go build %s: %w\n%s", s.pkg, err, out)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -18,8 +19,9 @@ const (
 
 func providerNames() []string { return provider.Names }
 
-// replaceBetween swaps the text between two marker lines for body, keeping the markers.
-func replaceBetween(doc, begin, end, body string) (string, error) {
+// replaceBetween swaps the text between the provider table markers for body, keeping the markers.
+func replaceBetween(doc, body string) (string, error) {
+	begin, end := providersBegin, providersEnd
 	b := strings.Index(doc, begin)
 	e := strings.Index(doc, end)
 	switch {
@@ -85,7 +87,8 @@ func renderProviderTable() string {
 // helpText runs a command with a help flag and returns what it prints. Help text goes to standard error
 // and the exit status is not zero for some commands, so both are read and the status is ignored.
 func helpText(dir, bin string, args ...string) (string, error) {
-	cmd := exec.Command(bin, args...) //nolint:gosec // a binary this tool just built
+	// nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
+	cmd := exec.CommandContext(context.Background(), bin, args...) //nolint:gosec // a binary this tool just built
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	var exit *exec.ExitError
