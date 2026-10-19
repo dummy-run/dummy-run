@@ -55,7 +55,8 @@ func (s *Server) signinPost(w http.ResponseWriter, r *http.Request, _ *User) {
 	for _, u := range s.users {
 		if u.Email == email && r.PostFormValue("password") == TestPassword {
 			s.startSession(w, u)
-			http.Redirect(w, r, next, http.StatusSeeOther)
+			// next went through safeNext, so it is a local path.
+			http.Redirect(w, r, next, http.StatusSeeOther) //nolint:gosec // next is a local path from safeNext // nosemgrep: go.lang.security.injection.open-redirect.open-redirect
 			return
 		}
 	}
@@ -72,7 +73,7 @@ func (s *Server) signout(w http.ResponseWriter, r *http.Request, _ *User) {
 	if c, err := r.Cookie("inkwell_session"); err == nil {
 		delete(s.sessions, c.Value)
 	}
-	http.SetCookie(w, &http.Cookie{Name: "inkwell_session", Value: "", Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "inkwell_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode}) //nolint:gosec // Inkwell is served over plain HTTP on localhost, so Secure would drop the cookie // nosemgrep: go.lang.security.audit.net.cookie-missing-secure.cookie-missing-secure
 	redirectMsg(w, r, "/", "You are signed out.")
 }
 
@@ -470,7 +471,7 @@ func (s *Server) paymentApprove(w http.ResponseWriter, r *http.Request, u *User)
 }
 
 func (s *Server) userList(w http.ResponseWriter, r *http.Request, u *User) {
-	if u.Role != Admin && !(u.Role == Editor && s.has("perm-editor-users")) {
+	if u.Role != Admin && (u.Role != Editor || !s.has("perm-editor-users")) {
 		s.forbidden(w, r, u, "Only an admin can manage users.")
 		return
 	}
@@ -498,7 +499,7 @@ func (s *Server) userRole(w http.ResponseWriter, r *http.Request, u *User) {
 }
 
 func (s *Server) settingsForm(w http.ResponseWriter, r *http.Request, u *User) {
-	if u.Role != Admin && !(u.Role == Editor && s.has("perm-editor-settings")) {
+	if u.Role != Admin && (u.Role != Editor || !s.has("perm-editor-settings")) {
 		s.forbidden(w, r, u, "Only an admin can change settings.")
 		return
 	}
@@ -506,7 +507,7 @@ func (s *Server) settingsForm(w http.ResponseWriter, r *http.Request, u *User) {
 }
 
 func (s *Server) settingsPost(w http.ResponseWriter, r *http.Request, u *User) {
-	if u.Role != Admin && !(u.Role == Editor && s.has("perm-editor-settings")) {
+	if u.Role != Admin && (u.Role != Editor || !s.has("perm-editor-settings")) {
 		s.forbidden(w, r, u, "Only an admin can change settings.")
 		return
 	}
@@ -523,14 +524,15 @@ func (s *Server) testLoginHandler(w http.ResponseWriter, r *http.Request, _ *Use
 	for _, u := range s.users {
 		if (who != "" && u.ID == who) || (who == "" && u.Role == role) {
 			s.startSession(w, u)
-			http.Redirect(w, r, safeNext(r.URL.Query().Get("next")), http.StatusSeeOther)
+			// safeNext only lets a local path through.
+			http.Redirect(w, r, safeNext(r.URL.Query().Get("next")), http.StatusSeeOther) //nolint:gosec // local path from safeNext // nosemgrep: go.lang.security.injection.open-redirect.open-redirect
 			return
 		}
 	}
 	http.Error(w, "no such test user", http.StatusNotFound)
 }
 
-func (s *Server) reset(w http.ResponseWriter, r *http.Request) {
+func (s *Server) reset(w http.ResponseWriter, _ *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.seed()

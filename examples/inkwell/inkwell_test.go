@@ -462,7 +462,7 @@ func TestTestLoginIsOffByDefault(t *testing.T) {
 	for _, p := range []string{"/test-login?as=admin", "/_reset"} {
 		resp, _ := http.Get(ts.URL + p)
 		resp.Body.Close()
-		if resp.StatusCode != 404 && resp.StatusCode != 405 {
+		if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusMethodNotAllowed {
 			t.Errorf("%s: %d", p, resp.StatusCode)
 		}
 	}

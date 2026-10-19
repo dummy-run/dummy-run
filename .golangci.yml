@@ -36,6 +36,11 @@ linters:
         - G304
   exclusions:
     rules:
+      # CSS property names keep their American spelling.
+      - path: examples/inkwell/(templates|inkwell_test)\.go
+        linters:
+          - misspell
+        text: '`color` is a misspelling'
       - path: _test\.go
         linters:
           - gosec

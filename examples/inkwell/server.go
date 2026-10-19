@@ -190,7 +190,7 @@ func (s *Server) startSession(w http.ResponseWriter, u *User) {
 	_, _ = rand.Read(b)
 	tok := hex.EncodeToString(b)
 	s.sessions[tok] = &session{userID: u.ID, created: s.now()}
-	http.SetCookie(w, &http.Cookie{Name: "inkwell_session", Value: tok, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode})
+	http.SetCookie(w, &http.Cookie{Name: "inkwell_session", Value: tok, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}) //nolint:gosec // Inkwell is served over plain HTTP on localhost, so Secure would drop the cookie // nosemgrep: go.lang.security.audit.net.cookie-missing-secure.cookie-missing-secure
 }
 
 func in(role string, roles ...string) bool {
@@ -303,7 +303,7 @@ func (s *Server) render(w http.ResponseWriter, status int, name string, p Page) 
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	_, _ = w.Write([]byte(sb.String()))
+	_, _ = w.Write([]byte(sb.String())) // nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter // html/template output
 }
 
 func (s *Server) forbidden(w http.ResponseWriter, r *http.Request, u *User, what string) {
@@ -311,7 +311,7 @@ func (s *Server) forbidden(w http.ResponseWriter, r *http.Request, u *User, what
 }
 
 func (s *Server) needSignIn(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/signin?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusSeeOther)
+	http.Redirect(w, r, "/signin?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusSeeOther) //nolint:gosec // fixed local path, the query is escaped // nosemgrep: go.lang.security.injection.open-redirect.open-redirect
 }
 
 func redirectMsg(w http.ResponseWriter, r *http.Request, to, msg string) {
@@ -341,7 +341,7 @@ func (s *Server) guard(needUser bool, h func(w http.ResponseWriter, r *http.Requ
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { fmt.Fprintln(w, "ok") })
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
 	mux.HandleFunc("GET /{$}", s.guard(false, s.home))
 	mux.HandleFunc("GET /help", s.guard(false, s.help))
 	mux.HandleFunc("GET /cover.svg", coverHandler)
