@@ -3,6 +3,14 @@ name: Dogfood
 # Every Monday the engine plays the dummyrun.dev cast against the live site. The run records go to
 # Grafana Cloud and to a workflow artifact. The site is public and the target is read-only.
 on:
+  # A change to the workflow, the cast or the target runs it straight away, so a broken run shows
+  # up on merge rather than on the next Monday.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/dogfood.yml"
+      - "casts/dummyrun-dev/**"
+      - "examples/targets/dummyrun-dev.json"
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
@@ -107,6 +115,29 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "failed=${failed}" >> "$GITHUB_OUTPUT"
           echo "records=${records}" >> "$GITHUB_OUTPUT"
+      - name: Summarise every run and finding
+        if: always() && steps.runs.outputs.records != '' && steps.runs.outputs.records != '0'
+        run: |
+          set -euo pipefail
+          {
+            echo
+            echo "| Persona | Scenario | Outcome | Steps | Findings | Tokens in / out | Cost (USD) |"
+            echo "|---|---|---|---|---|---|---|"
+            jq -rs 'sort_by(.persona.id, .scenario.id)[] |
+              "| \(.persona.id) | \(.scenario.title // .scenario.id) | \(.outcome) | \(.steps | length) | \(.findings | length) | \(.usage.input_tokens) / \(.usage.output_tokens) | \(.usage.cost_usd // "n/a") |"' \
+              "$RUNS_DIR"/*.json
+            echo
+            echo "Total cost (USD): $(jq -s '[.[].usage.cost_usd // 0] | add | . * 10000 | round / 10000' "$RUNS_DIR"/*.json)"
+            echo
+            echo "## Findings"
+            echo
+            echo "| Persona | Scenario | Severity | Kind | Finding | Evidence |"
+            echo "|---|---|---|---|---|---|"
+            jq -rs '[.[] | . as $r | .findings[] | {p: $r.persona.id, s: $r.scenario.id, f: .}] |
+              sort_by(.f.severity, .p)[] |
+              "| \(.p) | \(.s) | \(.f.severity) | \(.f.kind) | \(.f.title | gsub("\\|"; "/")) | \(.f.evidence) |"' \
+              "$RUNS_DIR"/*.json
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Export the run records to Grafana Cloud
         id: export
         if: always() && steps.runs.outputs.records != '' && steps.runs.outputs.records != '0'
