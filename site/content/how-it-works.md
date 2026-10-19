@@ -22,6 +22,8 @@ flowchart LR
 
 The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana. The reviewer and the results board are planned. Until they exist, a person reads the report and decides what matters.
 
+[Watch a real run](watch-a-run.md) of this website, step by step.
+
 ## Targets and models
 
 An adapter finds the preview for a pull request, creates a test user with the right role and loads test data. The only adapter today takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages are planned. The adapter also says which hosts a run may touch.
