@@ -97,7 +97,7 @@ func TestScreenshotsWithheldWhenTheToolIsDenied(t *testing.T) {
 	build := func(p *cast.Persona) []provider.Turn {
 		step := &Step{N: 1, PageChanged: true, Obs: page.Observation{Action: "visit", URL: "https://t.test/", Screenshot: []byte("png"), Snapshot: &page.Snapshot{}}}
 		r := &run{budget: 25, cfg: Config{Persona: p}, entries: []entry{{role: provider.RoleUser, text: "Begin.", step: step}}}
-		return r.turns()
+		return r.turns(provider.Capabilities{})
 	}
 	if got := build(&cast.Persona{}); len(got[0].Images) != 1 {
 		t.Error("a persona without limits lost its screenshot")

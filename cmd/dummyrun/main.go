@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/dummy-run/dummy-run/internal/cast"
@@ -58,13 +59,24 @@ func run(args []string) int {
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
-      --browser chrome|firefox --provider azure --model DEPLOYMENT --region REGION [--endpoint URL]
+      --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
+      [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
-The Azure endpoint comes from --endpoint or DUMMYRUN_AZURE_ENDPOINT. The engine authenticates with
-azidentity's DefaultAzureCredential (environment, workload identity, managed identity, then "az login")
-and never reads an API key.`)
+Providers:
+  azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
+                     DefaultAzureCredential source. --region is required.
+  openai-compatible  Any OpenAI-style service or local server. --endpoint is the base URL, such as
+                     https://api.openai.com/v1 or http://localhost:11434/v1. --api-key-env names the variable
+                     that holds the key (leave it out for a local server). --region is required (use "local").
+  anthropic          Anthropic Messages API. The key is read from ANTHROPIC_API_KEY or --api-key-env.
+  gemini             Gemini Developer API. The key is read from GEMINI_API_KEY or --api-key-env.
+  vertex             Gemini on Vertex AI with Application Default Credentials. --project (or
+                     GOOGLE_CLOUD_PROJECT) and --region are required.
+  bedrock            Amazon Bedrock Converse with the AWS default credential chain. --region defaults to eu-west-2.
+
+An API key is read from the environment when the run starts. It is never printed or written to a run record.`)
 }
 
 func runCmd(args []string) int {
@@ -75,10 +87,14 @@ func runCmd(args []string) int {
 	targetPath := fs.String("target", "", "target configuration (JSON)")
 	out := fs.String("out", "", "directory for run records")
 	browser := fs.String("browser", "chrome", "chrome or firefox")
-	prov := fs.String("provider", "azure", "model provider")
+	prov := fs.String("provider", "azure", "model provider: "+strings.Join(provider.Names, ", "))
 	model := fs.String("model", "", "deployment or model name")
-	region := fs.String("region", "", "region the model runs in, such as uksouth or global")
-	endpoint := fs.String("endpoint", os.Getenv("DUMMYRUN_AZURE_ENDPOINT"), "Azure OpenAI endpoint")
+	region := fs.String("region", "", "region the model runs in, such as uksouth or global (optional where the provider has a default)")
+	endpoint := fs.String("endpoint", "", "base URL of the provider (Azure endpoint, or the OpenAI-compatible base URL)")
+	apiKeyEnv := fs.String("api-key-env", "", "name of the environment variable that holds the API key")
+	effort := fs.String("reasoning-effort", "", "reasoning effort for OpenAI-style models: none, minimal, low, medium, high or xhigh")
+	apiKind := fs.String("openai-api", "", "OpenAI-style API: chat (default) or responses, for models that need it to call tools")
+	project := fs.String("project", "", "Google Cloud project for the vertex provider")
 	apiVersion := fs.String("api-version", "", "Azure OpenAI API version (default "+provider.DefaultAPIVersion+")")
 	steps := fs.Int("steps", 0, "step budget override (up to 40)")
 	tokens := fs.Int("tokens", 0, "token budget (input plus output)")
@@ -89,7 +105,7 @@ func runCmd(args []string) int {
 	}
 	missing := []string{}
 	for name, v := range map[string]string{"cast": *castDir, "persona": *personaID, "scenario": *scenarioID,
-		"target": *targetPath, "out": *out, "model": *model, "region": *region} {
+		"target": *targetPath, "out": *out, "model": *model} {
 		if v == "" {
 			missing = append(missing, "--"+name)
 		}
@@ -111,7 +127,11 @@ func runCmd(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	p, err := provider.New(provider.Config{Provider: *prov, Model: *model, Region: *region, Endpoint: *endpoint, APIVersion: *apiVersion})
+	if *endpoint == "" && *prov == provider.NameAzure {
+		*endpoint = os.Getenv("DUMMYRUN_AZURE_ENDPOINT")
+	}
+	p, err := provider.New(provider.Config{Provider: *prov, Model: *model, Region: *region, Endpoint: *endpoint,
+		APIVersion: *apiVersion, APIKeyEnv: *apiKeyEnv, Project: *project, ReasoningEffort: *effort, API: *apiKind})
 	if err != nil {
 		return fail(err)
 	}

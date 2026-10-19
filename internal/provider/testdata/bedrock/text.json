@@ -1,0 +1,1 @@
+{"output":{"message":{"role":"assistant","content":[{"text":"Hello there, friend."}]}},"stopReason":"end_turn","usage":{"inputTokens":31,"outputTokens":7,"totalTokens":38},"metrics":{"latencyMs":420}}
