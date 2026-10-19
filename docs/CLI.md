@@ -18,9 +18,10 @@ Usage:
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun doctor [--stop]
+  dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h", "dummyrun doctor -h" or "dummyrun mcp -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -147,6 +148,51 @@ List browsers and profile directories that an earlier run left behind, and stop 
 Usage of doctor:
   -stop
     	stop the browsers listed and remove their profile directories
+```
+
+## dummyrun mcp
+
+Serve Dummy Run to a coding agent over the Model Context Protocol. See [MCP.md](MCP.md).
+
+```text
+Usage:
+  dummyrun mcp [--allow-origin ORIGIN]... [--cast DIR]... [--out DIR] [--browser chrome|firefox] [flags]
+
+Serves four tools to a coding agent over standard input and output, using the Model Context Protocol:
+list_personas, a11y_sweep, run_persona and get_run. Standard output carries only the protocol.
+
+Sites:
+  --allow-origin ORIGIN   a site the tools may test, besides localhost, 127.0.0.1 and private-network hosts.
+                          A host, a wildcard such as *.example.com or an origin such as https://preview.example.com.
+                          Repeat the flag, or set DUMMYRUN_MCP_ALLOW_ORIGINS to a comma-separated list.
+
+Files:
+  --cast DIR              a folder of local personas. Repeat for more. The default is each folder in ./casts
+                          except library. The built-in library is always available.
+  --out DIR               where run records go, and the only place get_run reads (default
+                          ~/.local/share/dummyrun/runs/mcp)
+
+Limits:
+  --max-steps N           step cap for one run_persona call (default 25; a call asks for 10 unless it says more)
+  --max-tokens N          token cap for one run_persona call (default 400000)
+  --session-tokens N      total model tokens for the session (default 1000000)
+  --max-runs N            run_persona calls per session (default 10)
+  --max-sweeps N          a11y_sweep calls per session (default 40)
+
+Model provider, for run_persona only. Each flag also reads the variable shown:
+  --provider NAME         DUMMYRUN_PROVIDER (default azure)
+  --model NAME            DUMMYRUN_MODEL
+  --region NAME           DUMMYRUN_REGION
+  --endpoint URL          DUMMYRUN_ENDPOINT, and DUMMYRUN_AZURE_ENDPOINT for azure
+  --api-key-env NAME      DUMMYRUN_API_KEY_ENV
+  --project ID            DUMMYRUN_PROJECT
+  --reasoning-effort L    DUMMYRUN_REASONING_EFFORT
+  --openai-api KIND       DUMMYRUN_OPENAI_API
+  --api-version V         DUMMYRUN_API_VERSION
+
+Other:
+  --browser NAME          chrome or firefox (default chrome)
+  --verbose               write the engine's progress lines to standard error
 ```
 
 ## dummyrun-otel
