@@ -604,3 +604,41 @@ td code, th code { white-space: nowrap; }
 .record pre { margin: 0; background: none; padding: 0; font-size: var(--type-caption); line-height: 1.5; overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .prose .graphic, .prose .figure-block { margin: 0.75rem 0 1.5rem; }
+
+/* Watch a run. All steps read as a list. With JavaScript one step shows at a time. */
+.rp-facts { display: grid; gap: 0.5rem 1.5rem; grid-template-columns: 1fr; margin: 1rem 0 0; padding: 1.1rem 1.3rem; border-radius: var(--radius); background: var(--panel); border-top: 5px solid var(--amber); font-size: var(--type-small); }
+@media (min-width: 48em) { .rp-facts { grid-template-columns: 1fr 1fr; } }
+.rp-facts > div { display: grid; grid-template-columns: 6rem 1fr; gap: 0.75rem; }
+.rp-facts dt, .rp-detail dt { font-family: var(--font-heading); font-weight: 600; color: var(--ink-muted); }
+.rp-facts dd, .rp-detail dd { margin: 0; overflow-wrap: anywhere; }
+.rp-findings { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.75rem; }
+.prose .rp-findings > li { margin: 0; padding: 0.9rem 1.1rem; border-radius: var(--radius); background: var(--panel); border-left: 5px solid var(--adapter); }
+.rp-findings p { margin: 0; }
+.rp-finding-meta { font-size: var(--type-small); color: var(--ink-muted); }
+.rp-finding-title { font-family: var(--font-heading); font-weight: 600; margin: 0.2rem 0 !important; }
+.rp-finding-steps { font-size: var(--type-small); }
+.rp-jump { display: inline-block; min-width: 2.75rem; min-height: 2.75rem; line-height: 2.75rem; text-align: center; font-weight: 600; border: 1.5px solid var(--rule); border-radius: 999px; text-decoration: none; }
+.rp-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 1rem 0 0.5rem; }
+.rp-bar[hidden], .rp-index[hidden] { display: none; }
+.rp-pos { margin: 0; font-family: var(--font-heading); font-weight: 600; }
+.rp-btn { min-height: 2.75rem; padding: 0.3rem 1.2rem; border-radius: 999px; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); font-family: var(--font-heading); font-weight: 600; font-size: var(--type-small); cursor: pointer; }
+.rp-btn:hover:not(:disabled) { background: var(--amber); border-color: var(--amber); color: #1d1d1b; }
+.rp-btn:disabled { opacity: 0.5; cursor: default; }
+.rp-index ol { list-style: none; display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0 0 1rem; padding: 0; }
+.prose .rp-index li { margin: 0; padding: 0; }
+.rp-dot { min-width: 2.75rem; min-height: 2.75rem; border-radius: 50%; border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink); font-family: var(--font-heading); font-size: var(--type-small); cursor: pointer; }
+.rp-dot[aria-current="step"] { background: var(--amber); border-color: var(--amber); color: #1d1d1b; font-weight: 700; }
+.rp-steps { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 2rem; }
+.prose .rp-steps > li { margin: 0; padding: 0; }
+.rp-step[hidden] { display: none; }
+.rp-step-h { margin: 0 0 0.75rem; font-size: var(--type-subtitle); }
+.rp-target { font-family: var(--font-mono); font-size: 0.8em; font-weight: 400; color: var(--ink-muted); overflow-wrap: anywhere; }
+.rp-shot { margin: 0 0 1rem; }
+.rp-shot img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1.5px solid var(--rule); background: var(--panel); }
+.rp-detail { display: grid; gap: 0.6rem; margin: 0; font-size: var(--type-small); line-height: 1.5; }
+.rp-detail > div { display: grid; grid-template-columns: 7rem 1fr; gap: 0.75rem; }
+.rp-muted { display: block; color: var(--ink-muted); }
+.rp-outline { margin-top: 0.75rem; font-size: var(--type-small); }
+.rp-outline summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; font-family: var(--font-heading); font-weight: 600; }
+.rp-outline pre { margin: 0; padding: 0.85rem 1rem; max-height: 22rem; overflow: auto; border-radius: 10px; background: var(--panel); border: 1.5px solid var(--rule); font-size: var(--type-caption); line-height: 1.5; }
+@media (max-width: 30em) { .rp-facts > div, .rp-detail > div { grid-template-columns: 1fr; gap: 0.1rem; } }
