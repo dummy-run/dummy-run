@@ -168,6 +168,10 @@ func geminiParams(req Request) ([]*genai.Content, *genai.GenerateContentConfig) 
 	if req.MaxOutputTokens > 0 {
 		cfg.MaxOutputTokens = int32(min(req.MaxOutputTokens, 1<<30)) //nolint:gosec // bounded just above
 	}
+	if req.Seed != nil {
+		seed := int32(min(max(*req.Seed, 0), 1<<31-1)) //nolint:gosec // clamped to the int32 range just above
+		cfg.Seed = &seed
+	}
 	if len(req.Tools) > 0 {
 		decls := make([]*genai.FunctionDeclaration, 0, len(req.Tools))
 		for _, tool := range req.Tools {

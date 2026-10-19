@@ -12,11 +12,14 @@ Every command, and the model providers.
 Usage:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
-      [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses]
+      [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
+  dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
+      [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
-Run "dummyrun run -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -69,14 +72,46 @@ Usage of run:
     	reasoning effort for OpenAI-style models: none, minimal, low, medium, high or xhigh
   -region string
     	region the model runs in, such as uksouth or global (optional where the provider has a default)
+  -repeat-index int
+    	repeat count for this persona, scenario and model in the batch (default: counted from the records in --out) (default -1)
   -scenario string
     	scenario ID
+  -seed int
+    	sampling seed sent to the model API where the provider takes one (0 or more); recorded as seed, null where it is not sent (default -1)
   -steps int
     	step budget override (up to 40)
   -target string
     	target configuration (JSON)
   -tokens int
     	token budget (input plus output)
+  -universe string
+    	where the routes that exist come from, for route coverage: "sitemap" (base_url/sitemap.xml) or a sitemap URL
+```
+
+## dummyrun coverage
+
+Count what a set of run records covers and report it as numbers with their limits. See [COVERAGE.md](COVERAGE.md).
+
+```text
+Usage of coverage:
+  -build string
+    	commit or build hash to count (at least 7 characters); needed when the records come from more than one build
+  -clusters value
+    	a reviewer's grouping of findings into problems, JSON {"clusters": [["run/finding", ...]]}; give two files for kappa
+  -confirmed-only
+    	count only reviewer-confirmed findings; --confirmed-only=false also counts pending ones and labels the report a demonstration (default true)
+  -fail-unless-stopped
+    	exit 3 when the stopping rule is not satisfied, so a CI job can use it
+  -format string
+    	json or markdown (default "markdown")
+  -out string
+    	write the report to this file instead of standard output
+  -runs value
+    	directory or file of run records; repeat the flag to read several
+  -strata string
+    	what the stopping rule treats as separate groups: device or persona (default "device")
+  -threshold value
+    	policy number as name=value, repeatable: coverage (default 0.90), min-runs (4), no-new (3), kappa (0.6)
 ```
 
 ## dummyrun a11y

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/cast"
+	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/policy"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
@@ -41,7 +42,7 @@ func (s *scripted) Chat(_ context.Context, req provider.Request) (provider.Respo
 	resp := provider.Response{Usage: provider.Usage{InputTokens: 1000, OutputTokens: 50}, FinishReason: "tool_calls"}
 	if req.ForceTool == "finish" || n >= len(s.calls) {
 		resp.ToolCalls = []provider.ToolCall{{ID: fmt.Sprintf("call_%d", n), Name: "finish", Args: json.RawMessage(
-			`{"verdict":"friction","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","title":"The subscribe form cannot be used","steps":[4],"evidence":"measured"}]}`)}}
+			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}]}`)}}
 		return resp, nil
 	}
 	c := s.calls[n]
@@ -122,11 +123,32 @@ func TestRunEndToEnd(t *testing.T) {
 			res, err := runner.Run(ctx, runner.Config{
 				Persona: persona, Scenario: persona.Scenarios[0], Provider: prov, Browser: browser, Headless: true, OutDir: out,
 				Target: policy.Target{Adapter: "url", Environment: "local", BaseURL: srv.URL + "/", AllowedHosts: []string{"127.0.0.1"}, ReadOnly: true},
+				Seed:   func() *int64 { n := int64(5); return &n }(),
 			})
 			if err != nil {
 				t.Fatalf("run: %v", err)
 			}
 			rec := res.Record
+			// The version 2 fields the coverage estimators need.
+			f0 := rec.Findings[0]
+			wantFP, _ := identity.Fingerprint(f0.Route, f0.Locus, f0.Symptom)
+			if rec.SchemaVersion != 2 || rec.Batch == "" || rec.RepeatIndex != 0 || rec.Seed != nil || rec.Scenario.GoalMet != "partly" {
+				t.Errorf("version 2 header %+v", rec)
+			}
+			if f0.Fingerprint != wantFP || f0.Symptom != "not-operable" || f0.Class != "problem" || f0.Route == "" || !strings.Contains(f0.Locus, "subscribe") {
+				t.Errorf("finding identity %+v", f0)
+			}
+			for _, st := range rec.Steps {
+				if st.URL != "" && !strings.HasPrefix(st.Route, "/") {
+					t.Errorf("step %d has no route: %+v", st.N, st)
+				}
+			}
+			if len(rec.Target.Commit) != 12 || rec.Target.Commit != rec.Target.BuildHash {
+				t.Errorf("target %+v", rec.Target)
+			}
+			if rec.Usage.CostUSD != nil || rec.Persona.Dimensions == nil || rec.Persona.Dimensions.Viewport.Width != 1400 || *rec.Persona.Dimensions.AT != "none" {
+				t.Errorf("usage %+v dimensions %+v", rec.Usage, rec.Persona.Dimensions)
+			}
 			if rec.Outcome != record.OutcomeCompleted || res.Finish == nil || res.Finish.Verdict != "friction" {
 				t.Errorf("outcome %s finish %+v", rec.Outcome, res.Finish)
 			}

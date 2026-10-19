@@ -67,6 +67,14 @@ func checkSafe(line string) error {
 		return nil
 	case words[0] == "dummyrun-otel" && args[0] == "export" && contains(args, "--dry-run"):
 		return nil
+	case words[0] == "dummyrun" && args[0] == "coverage":
+		// Coverage only reads run records. --out would write a file, so it is not allowed here.
+		for _, a := range args[1:] {
+			if a == "--out" || a == "-out" || strings.HasPrefix(a, "--out=") || strings.HasPrefix(a, "-out=") {
+				return fmt.Errorf("%q: coverage may not write a file in a doctest block", line)
+			}
+		}
+		return nil
 	case words[0] == "dummyrun" && args[0] == "a11y":
 		for _, a := range args[1:] {
 			if strings.HasPrefix(a, "http") && !localURL.MatchString(a) {
@@ -75,7 +83,7 @@ func checkSafe(line string) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("%q: only version, help, export --dry-run and a11y on a local site may run", line)
+	return fmt.Errorf("%q: only version, help, export --dry-run, coverage and a11y on a local site may run", line)
 }
 
 func contains(list []string, s string) bool {

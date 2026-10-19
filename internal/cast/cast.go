@@ -213,6 +213,19 @@ func (p *Persona) Allows(tool string) bool {
 	return len(p.ToolsAllowed) == 0 || slices.Contains(p.ToolsAllowed, tool)
 }
 
+// AT is the assistive technology or modality the persona's tool limits emulate, as the run record's
+// persona.dimensions.at names it: keyboard-only when the persona cannot click, screen-reader-view when
+// it is not sent screenshots, otherwise none. Nothing else is emulated.
+func (p *Persona) AT() string {
+	switch {
+	case !p.Allows("click"):
+		return "keyboard-only"
+	case !p.Allows("screenshot"):
+		return "screen-reader-view"
+	}
+	return "none"
+}
+
 // Refused lists the tools from names that the persona may not use, in the order given.
 func (p *Persona) Refused(names []string) []string {
 	var out []string

@@ -20,20 +20,31 @@ import (
 )
 
 //go:generate cp ../../../../../schema/run-record.schema.json run-record.schema.json
+//go:generate cp ../../../../../schema/run-record.v1.schema.json run-record.v1.schema.json
 
-// SchemaJSON is the embedded copy of schema/run-record.schema.json.
+// SchemaJSON is the embedded copy of schema/run-record.schema.json, version 2.
 //
 //go:embed run-record.schema.json
 var SchemaJSON []byte
 
-// SchemaID is the $id of the run record schema.
-const SchemaID = "https://dummyrun.dev/schema/run-record/v1.json"
+// SchemaV1JSON is the embedded copy of schema/run-record.v1.schema.json. Version 1 records stay readable.
+//
+//go:embed run-record.v1.schema.json
+var SchemaV1JSON []byte
+
+// SchemaID is the $id of the current run record schema.
+const SchemaID = "https://dummyrun.dev/schema/run-record/v2.json"
+
+// SchemaIDV1 is the $id of the version 1 schema.
+const SchemaIDV1 = "https://dummyrun.dev/schema/run-record/v1.json"
 
 // Run is one persona working through one scenario against one preview.
 type Run struct {
 	SchemaVersion int       `json:"schema_version"`
 	ID            string    `json:"id"`
 	Batch         string    `json:"batch,omitempty"`
+	RepeatIndex   int       `json:"repeat_index,omitempty"`
+	Seed          *int64    `json:"seed,omitempty"`
 	StartedAt     time.Time `json:"started_at"`
 	EndedAt       time.Time `json:"ended_at"`
 	Persona       Persona   `json:"persona"`
@@ -54,12 +65,39 @@ type Persona struct {
 	Device string `json:"device"`
 	// Zoom is the page zoom in percent, or 0 when the record has none (100).
 	Zoom int `json:"zoom,omitempty"`
+	// Dimensions are set in version 2 records.
+	Dimensions *Dimensions `json:"dimensions,omitempty"`
+}
+
+// Dimensions are what varied between personas. A nil field is null in the record.
+type Dimensions struct {
+	Viewport   *Viewport `json:"viewport"`
+	Locale     *string   `json:"locale"`
+	AT         *string   `json:"at"`
+	Connection *string   `json:"connection"`
+	Zoom       *float64  `json:"zoom"`
+	Motion     *string   `json:"motion"`
+}
+
+// Viewport is the page size in CSS pixels.
+type Viewport struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
 }
 
 // Scenario is the job the persona tried to do.
 type Scenario struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
+	// GoalMet is yes, partly or no in version 2 records.
+	GoalMet   string `json:"goal_met,omitempty"`
+	BlockedBy string `json:"blocked_by,omitempty"`
+}
+
+// RouteUniverseEntry is a route that exists, and where it was learned.
+type RouteUniverseEntry struct {
+	Route  string `json:"route"`
+	Source string `json:"source"`
 }
 
 // Target is the preview the persona used.
@@ -68,6 +106,9 @@ type Target struct {
 	Environment string `json:"environment"`
 	BaseURL     string `json:"base_url"`
 	Commit      string `json:"commit,omitempty"`
+	BuildHash   string `json:"build_hash,omitempty"`
+	// RouteUniverse is set in version 2 records that state the routes that exist.
+	RouteUniverse []RouteUniverseEntry `json:"route_universe,omitempty"`
 }
 
 // Provider is the model that drove the persona.
@@ -90,6 +131,7 @@ type Step struct {
 	Action         string    `json:"action"`
 	Target         *string   `json:"target,omitempty"`
 	URL            *string   `json:"url,omitempty"`
+	Route          *string   `json:"route,omitempty"`
 	Status         *int      `json:"status,omitempty"`
 	DurationMS     int64     `json:"duration_ms"`
 	Screenshot     *string   `json:"screenshot,omitempty"`
@@ -107,14 +149,27 @@ type Finding struct {
 	Steps    []int  `json:"steps"`
 	Evidence string `json:"evidence"`
 	Verdict  string `json:"verdict"`
+	// The fields below are set in version 2 records.
+	Class           string   `json:"class,omitempty"`
+	Route           string   `json:"route,omitempty"`
+	State           string   `json:"state,omitempty"`
+	Locus           string   `json:"locus,omitempty"`
+	Symptom         string   `json:"symptom,omitempty"`
+	TaxonomyVersion int      `json:"taxonomy_version,omitempty"`
+	Fingerprint     string   `json:"fingerprint,omitempty"`
+	ClusterID       string   `json:"cluster_id,omitempty"`
+	SeededDefectID  string   `json:"seeded_defect_id,omitempty"`
+	ReviewedBy      []string `json:"reviewed_by,omitempty"`
 }
 
 // Usage is what the run cost in model calls, tokens and money.
 type Usage struct {
-	ModelCalls   int      `json:"model_calls"`
-	InputTokens  int64    `json:"input_tokens"`
-	OutputTokens int64    `json:"output_tokens"`
-	CostUSD      *float64 `json:"cost_usd,omitempty"`
+	ModelCalls   int   `json:"model_calls"`
+	InputTokens  int64 `json:"input_tokens"`
+	OutputTokens int64 `json:"output_tokens"`
+	// CachedInputTokens is the part of InputTokens the service served from its cache.
+	CachedInputTokens int64    `json:"cached_input_tokens,omitempty"`
+	CostUSD           *float64 `json:"cost_usd,omitempty"`
 }
 
 // MaxDurationMS is the longest step duration a span can represent: time.Duration counts nanoseconds
@@ -154,27 +209,34 @@ func (r *Run) ConfirmedFindings() int {
 	return n
 }
 
-// Validator checks run records against the embedded schema.
+// Validator checks run records against the embedded schemas, version 1 and version 2.
 type Validator struct {
-	schema *jsonschema.Schema
+	schemas map[int]*jsonschema.Schema
 }
 
-// NewValidator compiles the embedded schema.
+// NewValidator compiles the embedded schemas.
 func NewValidator() (*Validator, error) {
-	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(SchemaJSON))
-	if err != nil {
-		return nil, fmt.Errorf("parse embedded schema: %w", err)
+	v := &Validator{schemas: map[int]*jsonschema.Schema{}}
+	for version, src := range map[int]struct {
+		id   string
+		data []byte
+	}{1: {SchemaIDV1, SchemaV1JSON}, 2: {SchemaID, SchemaJSON}} {
+		doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(src.data))
+		if err != nil {
+			return nil, fmt.Errorf("parse embedded schema %d: %w", version, err)
+		}
+		c := jsonschema.NewCompiler()
+		c.AssertFormat()
+		if err := c.AddResource(src.id, doc); err != nil {
+			return nil, fmt.Errorf("add embedded schema %d: %w", version, err)
+		}
+		s, err := c.Compile(src.id)
+		if err != nil {
+			return nil, fmt.Errorf("compile embedded schema %d: %w", version, err)
+		}
+		v.schemas[version] = s
 	}
-	c := jsonschema.NewCompiler()
-	c.AssertFormat()
-	if err := c.AddResource(SchemaID, doc); err != nil {
-		return nil, fmt.Errorf("add embedded schema: %w", err)
-	}
-	s, err := c.Compile(SchemaID)
-	if err != nil {
-		return nil, fmt.Errorf("compile embedded schema: %w", err)
-	}
-	return &Validator{schema: s}, nil
+	return v, nil
 }
 
 // Parse validates JSON bytes against the schema and decodes them into a Run.
@@ -186,7 +248,22 @@ func (v *Validator) Parse(data []byte) (*Run, error) {
 	if err != nil {
 		return nil, fmt.Errorf("not JSON: %w", err)
 	}
-	if err := v.schema.Validate(doc); err != nil {
+	version := 0
+	if m, ok := doc.(map[string]any); ok {
+		switch n := m["schema_version"].(type) {
+		case json.Number:
+			if i, err := n.Int64(); err == nil {
+				version = int(i)
+			}
+		case float64:
+			version = int(n)
+		}
+	}
+	schema, ok := v.schemas[version]
+	if !ok {
+		return nil, fmt.Errorf("does not match the run record schema: schema_version must be 1 or 2")
+	}
+	if err := schema.Validate(doc); err != nil {
 		return nil, fmt.Errorf("does not match the run record schema: %w", err)
 	}
 	var run Run

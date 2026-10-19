@@ -16,6 +16,8 @@
       {{ $sub := index $schema.properties $key }}
       {{ partial "schema-table.html" (dict "name" $key "schema" $sub "id" $key) }}
     {{ end }}
+    {{ partial "schema-table.html" (dict "name" "persona.dimensions" "schema" $schema.properties.persona.properties.dimensions "id" "dimensions") }}
+    {{ partial "schema-table.html" (dict "name" "target.route_universe, each item" "schema" $schema.properties.target.properties.route_universe.items "id" "route-universe") }}
     {{ partial "schema-table.html" (dict "name" "steps, each item" "schema" $schema.properties.steps.items "id" "steps") }}
     {{ partial "schema-table.html" (dict "name" "findings, each item" "schema" $schema.properties.findings.items "id" "findings") }}
 
