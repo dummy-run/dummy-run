@@ -42,7 +42,7 @@ func FuzzParseRunRecord(f *testing.F) {
 			t.Fatal("Parse returned neither a run nor an error")
 		}
 		// The schema guarantees these, and the exporter relies on them.
-		if run.SchemaVersion != 1 || run.ID == "" || run.Persona.ID == "" || run.Scenario.ID == "" {
+		if (run.SchemaVersion != 1 && run.SchemaVersion != 2) || run.ID == "" || run.Persona.ID == "" || run.Scenario.ID == "" {
 			t.Fatalf("accepted a record missing required fields: %+v", run)
 		}
 		if run.EndedAt.Before(run.StartedAt) {

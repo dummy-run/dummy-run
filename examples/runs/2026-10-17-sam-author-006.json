@@ -1,27 +1,41 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "2026-10-17-sam-author-006",
   "batch": "2026-10-17-pr-44",
+  "repeat_index": 0,
+  "seed": null,
   "started_at": "2026-10-17T11:19:52.000Z",
   "ended_at": "2026-10-17T11:20:59.859Z",
   "persona": {
     "id": "sam-author",
     "role": "author",
-    "device": "phone"
+    "device": "phone",
+    "dimensions": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "locale": null,
+      "at": "none",
+      "connection": "unthrottled",
+      "zoom": 1.0,
+      "motion": null
+    }
   },
   "scenario": {
     "id": "reply-to-review",
-    "title": "Reply to review comments"
+    "title": "Reply to review comments",
+    "goal_met": "partly"
   },
   "target": {
     "adapter": "url",
     "environment": "pr-44",
     "base_url": "https://pr-44.inkwell.example",
-    "commit": "9076600"
+    "commit": "494927b"
   },
   "provider": {
     "kind": "vertex-gemini",
-    "model": "gemini-3.5-flash",
+    "model": "gemini-3.5-flash-lite",
     "region": "europe-west2"
   },
   "browser": {
@@ -38,7 +52,8 @@
       "url": "https://pr-44.inkwell.example/issues",
       "status": 200,
       "console_errors": 0,
-      "target": "Submit"
+      "target": "Submit",
+      "route": "/issues"
     },
     {
       "n": 2,
@@ -48,7 +63,8 @@
       "url": "https://pr-44.inkwell.example/payments",
       "status": 200,
       "console_errors": 0,
-      "target": "Title"
+      "target": "Title",
+      "route": "/payments"
     },
     {
       "n": 3,
@@ -58,7 +74,8 @@
       "url": "https://pr-44.inkwell.example/reviews",
       "status": 200,
       "console_errors": 0,
-      "target": "Comment"
+      "target": "Comment",
+      "route": "/reviews"
     },
     {
       "n": 4,
@@ -68,7 +85,8 @@
       "url": "https://pr-44.inkwell.example/drafts",
       "status": 200,
       "console_errors": 0,
-      "target": "Approve"
+      "target": "Approve",
+      "route": "/drafts"
     },
     {
       "n": 5,
@@ -78,7 +96,8 @@
       "url": "https://pr-44.inkwell.example/issues",
       "status": 200,
       "console_errors": 0,
-      "target": "Schedule"
+      "target": "Schedule",
+      "route": "/issues"
     },
     {
       "n": 6,
@@ -87,7 +106,8 @@
       "duration_ms": 3169,
       "url": "https://pr-44.inkwell.example/drafts",
       "status": 200,
-      "console_errors": 0
+      "console_errors": 0,
+      "route": "/drafts"
     },
     {
       "n": 7,
@@ -97,7 +117,8 @@
       "url": "https://pr-44.inkwell.example/payments",
       "status": 200,
       "console_errors": 0,
-      "target": "Comment"
+      "target": "Comment",
+      "route": "/payments"
     },
     {
       "n": 8,
@@ -107,7 +128,8 @@
       "url": "https://pr-44.inkwell.example/payments",
       "status": 200,
       "console_errors": 0,
-      "target": "Submit"
+      "target": "Submit",
+      "route": "/payments"
     },
     {
       "n": 9,
@@ -116,7 +138,8 @@
       "duration_ms": 3147,
       "url": "https://pr-44.inkwell.example/issues",
       "status": 200,
-      "console_errors": 0
+      "console_errors": 0,
+      "route": "/issues"
     },
     {
       "n": 10,
@@ -126,7 +149,8 @@
       "url": "https://pr-44.inkwell.example/drafts",
       "status": 200,
       "console_errors": 0,
-      "target": "Title"
+      "target": "Title",
+      "route": "/drafts"
     },
     {
       "n": 11,
@@ -135,7 +159,8 @@
       "duration_ms": 3426,
       "url": "https://pr-44.inkwell.example/payments",
       "status": 200,
-      "console_errors": 0
+      "console_errors": 0,
+      "route": "/payments"
     }
   ],
   "findings": [
@@ -148,7 +173,13 @@
         6
       ],
       "evidence": "measured",
-      "verdict": "confirmed"
+      "verdict": "confirmed",
+      "class": "problem",
+      "route": "/drafts",
+      "locus": "button:submit",
+      "symptom": "obscured",
+      "taxonomy_version": 1,
+      "fingerprint": "de415978251b1f7b"
     }
   ],
   "usage": {

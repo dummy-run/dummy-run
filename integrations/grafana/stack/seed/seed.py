@@ -98,8 +98,8 @@ def load_runs(paths: list[str]) -> list[dict]:
             files.append(p)
     runs = [json.loads(f.read_text()) for f in files]
     for run, f in zip(runs, files):
-        if run.get("schema_version") != 1:
-            raise ValueError(f"{f}: schema_version must be 1")
+        if run.get("schema_version") not in (1, 2):
+            raise ValueError(f"{f}: schema_version must be 1 or 2")
     runs.sort(key=lambda r: r["started_at"])
     return runs
 

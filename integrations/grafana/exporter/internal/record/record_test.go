@@ -2,6 +2,7 @@ package record
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -187,4 +188,56 @@ func record(fs []Finding, id string) Finding {
 		}
 	}
 	return Finding{}
+}
+
+func TestVersionOneRecordsStillLoad(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	// Turn the version 2 example into a version 1 record by removing what version 2 added.
+	m["schema_version"] = 1
+	delete(m, "repeat_index")
+	delete(m, "seed")
+	delete(m["persona"].(map[string]any), "dimensions")
+	delete(m["scenario"].(map[string]any), "goal_met")
+	delete(m["usage"].(map[string]any), "cost_usd")
+	for _, s := range m["steps"].([]any) {
+		delete(s.(map[string]any), "route")
+	}
+	for _, f := range m["findings"].([]any) {
+		for _, k := range []string{"class", "route", "locus", "symptom", "taxonomy_version", "fingerprint"} {
+			delete(f.(map[string]any), k)
+		}
+	}
+	v1, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := v.Parse(v1)
+	if err != nil {
+		t.Fatalf("version 1 record rejected: %v", err)
+	}
+	if run.SchemaVersion != 1 || run.Findings[0].Fingerprint != "" {
+		t.Errorf("%+v", run)
+	}
+	// A version 1 record must not carry version 2 fields, and an unknown version is refused.
+	m["repeat_index"] = 0
+	bad, _ := json.Marshal(m)
+	if _, err := v.Parse(bad); err == nil {
+		t.Error("version 1 record with repeat_index accepted")
+	}
+	m["schema_version"] = 3
+	bad, _ = json.Marshal(m)
+	if _, err := v.Parse(bad); err == nil {
+		t.Error("schema_version 3 accepted")
+	}
 }

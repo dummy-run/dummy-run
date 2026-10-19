@@ -1,28 +1,42 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "2026-10-16-lin-contributor-004",
   "batch": "2026-10-16-pr-41",
+  "repeat_index": 0,
+  "seed": null,
   "started_at": "2026-10-16T23:40:49.000Z",
   "ended_at": "2026-10-16T23:42:01.238Z",
   "persona": {
     "id": "lin-contributor",
     "role": "contributor",
     "device": "tablet",
-    "zoom": 200
+    "zoom": 200,
+    "dimensions": {
+      "viewport": {
+        "width": 410,
+        "height": 590
+      },
+      "locale": null,
+      "at": "none",
+      "connection": "unthrottled",
+      "zoom": 2.0,
+      "motion": null
+    }
   },
   "scenario": {
     "id": "check-payment",
-    "title": "Check a payment status"
+    "title": "Check a payment status",
+    "goal_met": "yes"
   },
   "target": {
     "adapter": "url",
     "environment": "pr-41",
     "base_url": "https://pr-41.inkwell.example",
-    "commit": "243725d"
+    "commit": "fc2958b"
   },
   "provider": {
     "kind": "vertex-gemini",
-    "model": "gemini-3.5-flash",
+    "model": "gemini-3.5-flash-lite",
     "region": "europe-west2"
   },
   "browser": {
@@ -39,7 +53,8 @@
       "url": "https://pr-41.inkwell.example/drafts",
       "status": 200,
       "console_errors": 0,
-      "target": "Comment"
+      "target": "Comment",
+      "route": "/drafts"
     },
     {
       "n": 2,
@@ -49,6 +64,7 @@
       "url": "https://pr-41.inkwell.example/drafts",
       "status": 200,
       "console_errors": 0,
+      "route": "/drafts",
       "screenshot": "screens/004-02.png"
     },
     {
@@ -59,7 +75,8 @@
       "url": "https://pr-41.inkwell.example/reviews",
       "status": 200,
       "console_errors": 0,
-      "target": "Submit"
+      "target": "Submit",
+      "route": "/reviews"
     },
     {
       "n": 4,
@@ -68,7 +85,8 @@
       "duration_ms": 1160,
       "url": "https://pr-41.inkwell.example/reviews",
       "status": 200,
-      "console_errors": 0
+      "console_errors": 0,
+      "route": "/reviews"
     },
     {
       "n": 5,
@@ -78,6 +96,7 @@
       "url": "https://pr-41.inkwell.example/payments",
       "status": 200,
       "console_errors": 0,
+      "route": "/payments",
       "a11y_violations": 0
     },
     {
@@ -88,6 +107,7 @@
       "url": "https://pr-41.inkwell.example/payments",
       "status": 200,
       "console_errors": 0,
+      "route": "/payments",
       "a11y_violations": 1
     },
     {
@@ -98,6 +118,7 @@
       "url": "https://pr-41.inkwell.example/drafts",
       "status": 200,
       "console_errors": 0,
+      "route": "/drafts",
       "screenshot": "screens/004-07.png"
     },
     {
@@ -108,7 +129,8 @@
       "url": "https://pr-41.inkwell.example/issues",
       "status": 200,
       "console_errors": 0,
-      "target": "Schedule"
+      "target": "Schedule",
+      "route": "/issues"
     },
     {
       "n": 9,
@@ -117,7 +139,8 @@
       "duration_ms": 3358,
       "url": "https://pr-41.inkwell.example/payments",
       "status": 200,
-      "console_errors": 0
+      "console_errors": 0,
+      "route": "/payments"
     },
     {
       "n": 10,
@@ -127,7 +150,8 @@
       "url": "https://pr-41.inkwell.example/payments",
       "status": 200,
       "console_errors": 0,
-      "target": "Submit"
+      "target": "Submit",
+      "route": "/payments"
     },
     {
       "n": 11,
@@ -136,7 +160,8 @@
       "duration_ms": 1307,
       "url": "https://pr-41.inkwell.example/drafts",
       "status": 200,
-      "console_errors": 0
+      "console_errors": 0,
+      "route": "/drafts"
     },
     {
       "n": 12,
@@ -145,7 +170,8 @@
       "duration_ms": 3503,
       "url": "https://pr-41.inkwell.example/issues",
       "status": 200,
-      "console_errors": 0
+      "console_errors": 0,
+      "route": "/issues"
     }
   ],
   "findings": [
@@ -158,7 +184,13 @@
         9
       ],
       "evidence": "inferred",
-      "verdict": "pending"
+      "verdict": "pending",
+      "class": "problem",
+      "route": "/payments",
+      "locus": "region:payment status",
+      "symptom": "unclear-label",
+      "taxonomy_version": 1,
+      "fingerprint": "1718b75300702f7b"
     }
   ],
   "usage": {
