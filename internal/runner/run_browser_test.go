@@ -42,7 +42,7 @@ func (s *scripted) Chat(_ context.Context, req provider.Request) (provider.Respo
 	resp := provider.Response{Usage: provider.Usage{InputTokens: 1000, OutputTokens: 50}, FinishReason: "tool_calls"}
 	if req.ForceTool == "finish" || n >= len(s.calls) {
 		resp.ToolCalls = []provider.ToolCall{{ID: fmt.Sprintf("call_%d", n), Name: "finish", Args: json.RawMessage(
-			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4],"evidence":"measured"}]}`)}}
+			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}]}`)}}
 		return resp, nil
 	}
 	c := s.calls[n]
