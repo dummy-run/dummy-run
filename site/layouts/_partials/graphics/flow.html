@@ -1,0 +1,63 @@
+{{- /* The whole flow from a cast to the outputs, in six steps. Pure CSS motion, switched on by site.js. With no JavaScript or with reduced motion it is a static, readable list. The list is the text equivalent. Pass compact=true for the short version. */ -}}
+{{- $compact := .compact | default false -}}
+<div class="flow{{ if $compact }} is-compact{{ end }}" role="group" aria-label="The whole flow, from a cast of personas to the report">
+  <p class="flow-controls"><button type="button" class="flow-toggle" aria-pressed="false" hidden><span class="flow-toggle-icon" aria-hidden="true"></span>Pause animation</button></p>
+  <ol class="flow-steps">
+    <li class="flow-step" style="--i:0">
+      <span class="flow-num" aria-hidden="true">1</span>
+      <span class="flow-name">Pick a cast</span>
+      <div class="flow-art is-cast" aria-hidden="true">
+        {{ partial "icons/mascot.html" (dict "class" "flow-mascot") }}
+        <span class="flow-chip" style="--d:0.1s">Screen reader</span><span class="flow-chip" style="--d:0.3s">Keyboard only</span><span class="flow-chip" style="--d:0.5s">Older adult</span><span class="flow-chip" style="--d:0.7s">Slow phone</span><span class="flow-chip" style="--d:0.9s">Viewer</span><span class="flow-chip" style="--d:1.1s">Admin</span>
+      </div>
+      <p class="flow-text">Personas from the library, such as a screen-reader user or an older adult.</p>
+    </li>
+    <li class="flow-step" style="--i:1">
+      <span class="flow-num" aria-hidden="true">2</span>
+      <span class="flow-name">Use the real app</span>
+      <div class="flow-art is-run" aria-hidden="true">
+        <div class="flow-browser"><span class="flow-url g-code">preview</span><span class="flow-line" style="--d:0.2s"></span><span class="flow-line" style="--d:1.5s"></span><span class="flow-line" style="--d:2.8s"></span></div>
+        <div class="flow-acts"><span class="flow-pill" style="--d:0.2s">Sees</span><span class="flow-pill" style="--d:1.5s">Thinks</span><span class="flow-pill" style="--d:2.8s">Acts</span></div>
+        <span class="flow-lock">{{ partial "icons/icon.html" (dict "name" "lock") }}Writes blocked</span>
+      </div>
+      <p class="flow-text">Chrome or Firefox, with writes blocked. Each step it sees, thinks with the model you choose and acts.</p>
+    </li>
+    <li class="flow-step" style="--i:2">
+      <span class="flow-num" aria-hidden="true">3</span>
+      <span class="flow-name">Find problems</span>
+      <div class="flow-art is-find" aria-hidden="true">
+        <span class="flow-claim">Submit is under the keyboard</span>
+        <span class="flow-evidence" style="--d:0.6s">Step 7</span><span class="flow-evidence" style="--d:1.4s">Screenshot</span>
+      </div>
+      <p class="flow-text">Every finding cites the steps and screenshots behind it.</p>
+    </li>
+    <li class="flow-step" style="--i:3">
+      <span class="flow-num" aria-hidden="true">4</span>
+      <span class="flow-name">A person reviews</span>
+      <div class="flow-art is-review" aria-hidden="true">
+        <span class="flow-verdict is-yes" style="--d:0.4s">{{ partial "icons/icon.html" (dict "name" "tick") }}Confirm</span>
+        <span class="flow-verdict is-no" style="--d:2s">{{ partial "icons/icon.html" (dict "name" "cross") }}Reject</span>
+      </div>
+      <p class="flow-text">A person confirms or rejects each finding.</p>
+    </li>
+    <li class="flow-step" style="--i:4">
+      <span class="flow-num" aria-hidden="true">5</span>
+      <span class="flow-name">Check coverage</span>
+      <div class="flow-art is-cover" aria-hidden="true">
+        <span class="flow-meter"><span class="flow-meter-fill"></span></span>
+        <span class="flow-count">At least 4 unfound</span>
+      </div>
+      <p class="flow-text">How much is covered, and at least how many problems are still unfound. Stop when new finds dry up.</p>
+    </li>
+    <li class="flow-step" style="--i:5">
+      <span class="flow-num" aria-hidden="true">6</span>
+      <span class="flow-name">Share the result</span>
+      <div class="flow-art is-out" aria-hidden="true">
+        <span class="flow-out" style="--d:0.2s">{{ partial "icons/icon.html" (dict "name" "report") }}Report</span>
+        <span class="flow-out" style="--d:0.8s">{{ partial "icons/icon.html" (dict "name" "chart") }}Grafana</span>
+        <span class="flow-out" style="--d:1.4s">{{ partial "icons/icon.html" (dict "name" "terminal") }}CI</span>
+      </div>
+      <p class="flow-text">A report, Grafana dashboards over OpenTelemetry and a CI check.</p>
+    </li>
+  </ol>
+</div>

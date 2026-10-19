@@ -13,6 +13,8 @@ A persona is a fictional user with a role, goals, habits and a device.
 
 A run signs one persona in to your app in Chrome or Firefox. The app is usually a preview built for one pull request. The persona tries to do its job and reports what broke, what confused it and what its role should not have seen. A reviewer checks each claim against screenshots, logs and code. Only claims with evidence reach the results board.
 
+{{< flow >}}
+
 ```mermaid
 flowchart LR
     A[Cast of personas] --> B[Run] --> C[Report] --> D[Reviewer] --> E[Results board]

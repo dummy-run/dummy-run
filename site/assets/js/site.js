@@ -89,3 +89,27 @@
     button.hidden = false;
   });
 })();
+
+// The flow animation. Without JavaScript, or when the visitor asks for reduced motion, it stays a still list.
+(function () {
+  var media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var flows = document.querySelectorAll(".flow");
+  Array.prototype.forEach.call(flows, function (flow) {
+    var button = flow.querySelector(".flow-toggle");
+    if (!button) {
+      return;
+    }
+    function sync() {
+      var still = media.matches;
+      flow.classList.toggle("is-live", !still);
+      button.hidden = still;
+    }
+    button.addEventListener("click", function () {
+      var paused = button.getAttribute("aria-pressed") !== "true";
+      button.setAttribute("aria-pressed", paused ? "true" : "false");
+      flow.classList.toggle("is-paused", paused);
+    });
+    media.addEventListener("change", sync);
+    sync();
+  });
+})();
