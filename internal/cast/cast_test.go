@@ -173,7 +173,7 @@ func TestToolLimits(t *testing.T) {
 	})
 	t.Run("mistakes are errors", func(t *testing.T) {
 		for profile, want := range map[string]string{
-			"tools-denied: smash\n":        `"smash" is not a tool`,
+			"tools-denied: smash\n":       `"smash" is not a tool`,
 			"tools-allowed: scroll tap\n": `"tap" is not a tool`,
 			"tools-denied: finish\n":      "finish cannot be denied",
 		} {
