@@ -25,7 +25,7 @@ The browser's own user agent comes first, so your site renders as it does for an
 
 ## Why it came
 
-A visit happens for one of two reasons. Someone asked the hosted free scan to check a public page. Or someone ran the open-source tool themselves.
+A visit comes from someone who ran the open-source tool themselves. Once it opens, it will also come from someone who asked the hosted free scan to check a public page.
 
 The hosted scan loads public pages only and sends only GET, HEAD and OPTIONS requests. It is rate limited and it honours robots.txt. [The free scan page](scan.md) has the detail.
 
@@ -33,14 +33,14 @@ Anyone can run the open-source engine with any user agent. The identifying strin
 
 ## Block it with robots.txt
 
-Add this to the robots.txt of your site. The hosted scan and our own runs then stay away.
+Add this to the robots.txt of your site. Runs that honour robots.txt then stay away. That includes the hosted scan and our own runs.
 
 ```text
 User-agent: DummyRun
 Disallow: /
 ```
 
-You can also disallow single paths. The open-source tool only honours robots.txt when its user turns on `--respect-robots`.
+You can also disallow single paths. The open-source tool honours robots.txt only when its user turns on `--respect-robots`, so a self-run visit can still happen. Object as below if one does.
 
 ## Object
 

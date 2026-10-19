@@ -15,7 +15,7 @@ The free scan is not open yet. To hear when it opens, [watch the releases on Git
 
 You give it the address of a public page. You pass a bot check and give an email address. Then it does three things.
 
-- It sweeps the public pages it finds, from the sitemap up to a page limit, with the axe-core accessibility rules for WCAG 2.2 A and AA in a real browser.
+- It sweeps the public pages it finds, up to a page limit. It takes them from the sitemap, the list of pages a site publishes for crawlers. It tests each page in a real browser with axe-core, an open-source accessibility checker. The rules are WCAG 2.2 levels A and AA. WCAG is the Web Content Accessibility Guidelines.
 - It sends at least one persona through the site. The persona reads, follows links and tries to do a first-time visitor's job.
 - It emails you a link to a short report. The report is private to the link.
 
@@ -40,6 +40,6 @@ A persona is a model. It finds likely problems and a person should check each on
 
 ## What happens to the data
 
-The text and screenshots of the pages it visits go to the model that plays the persona. The privacy page says what we keep and for how long. It covers the waitlist today. The free scan will get its own notice before it opens. [Read the privacy page](privacy.md).
+The text and screenshots of the pages it visits go to the model that plays the persona. The privacy page covers the waitlist only. [Read the privacy page](privacy.md).
 
 {{< waitlist >}}
