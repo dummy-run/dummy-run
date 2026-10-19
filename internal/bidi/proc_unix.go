@@ -44,11 +44,11 @@ func selfPID() int            { return os.Getpid() }
 // watchdogScript runs in a group of its own. When the engine process ($1)
 // disappears, for example after SIGKILL or a crash in another goroutine, it
 // stops the browser group ($2). It ends when either is gone.
-const watchdogScript = `while kill -0 "$1" 2>/dev/null && kill -0 -- "-$2" 2>/dev/null; do sleep 1; done
-if kill -0 -- "-$2" 2>/dev/null; then
-  kill -TERM -- "-$2" 2>/dev/null
+const watchdogScript = `while kill -s 0 "$1" 2>/dev/null && kill -s 0 -- "-$2" 2>/dev/null; do sleep 1; done
+if kill -s 0 -- "-$2" 2>/dev/null; then
+  kill -s TERM -- "-$2" 2>/dev/null
   sleep 2
-  kill -KILL -- "-$2" 2>/dev/null
+  kill -s KILL -- "-$2" 2>/dev/null
 fi`
 
 // startWatchdog starts the parent-death guard for the group led by cmd.
