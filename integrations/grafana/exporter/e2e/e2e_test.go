@@ -304,8 +304,8 @@ func TestEndToEnd(t *testing.T) {
 		if !strings.Contains(out, fmt.Sprintf("annotations: 0 created, %d already present", wantRuns)) {
 			t.Errorf("annotations were not idempotent: %s", out)
 		}
-		if !strings.Contains(out, fmt.Sprintf("all %d log records were already in Loki", wantLogs)) {
-			t.Errorf("the Loki check did not recognise the lines already there: %s", out)
+		if !strings.Contains(out, "sent 0 runs") || !strings.Contains(out, fmt.Sprintf("all %d runs were already in Loki", wantRuns)) {
+			t.Errorf("the second process should have recognised every run as already exported: %s", out)
 		}
 		// Counters start at zero in every process, so the same records add nothing to the totals.
 		time.Sleep(3 * time.Second)
@@ -316,43 +316,80 @@ func TestEndToEnd(t *testing.T) {
 		if got != float64(wantRuns) {
 			t.Errorf("sum(dummyrun_runs_total) = %v after a second export, want %d because each process restarts its counters", got, wantRuns)
 		}
-		t.Logf("second process: all %d log records recognised as already in Loki, annotations unchanged, dummyrun_runs_total still %d", wantLogs, wantRuns)
+		t.Logf("second process: all %d runs recognised as already in Loki and not sent again, annotations unchanged, dummyrun_runs_total still %d", wantRuns, wantRuns)
 	})
 
 	t.Run("third process exports an older batch", func(t *testing.T) {
-		// A set that ended five days ago is more than an hour behind the newest line in Loki's
-		// stream. Loki would drop every line while the collector answers 200, so with the Loki URL
-		// the exporter refuses the batch before sending anything.
+		// A set that ended five days ago is more than an hour behind the newest line of the first
+		// process. Each process has its own Loki stream, so a new process can still send it.
 		older := generateRuns(ctx, t, 6, 5, "-old")
 		olderFiles, err := validator.Load(older)
 		if err != nil {
 			t.Fatal(err)
 		}
-		code, out := runBinary("export", "--grafana-url", st.grafana, "--verify-loki", st.loki, older)
-		if code != 1 {
-			t.Fatalf("exit %d, want 1 because Loki would drop the lines: %s", code, out)
+		olderLogs := 0
+		for _, f := range olderFiles {
+			olderLogs += 1 + len(f.Run.Findings)
 		}
-		if !strings.Contains(out, "nothing sent: log lines start at") || !strings.Contains(out, "more than an hour before the newest line already sent") {
-			t.Errorf("output lacks the guard message:\n%s", out)
+		code, out := runBinary("export", "--verify-loki", st.loki, older)
+		if code != 0 || !strings.Contains(out, fmt.Sprintf("sent %d runs", len(olderFiles))) || !strings.Contains(out, fmt.Sprintf("every one of the %d log records is in Loki", olderLogs)) {
+			t.Fatalf("export of the older batch: exit %d: %s", code, out)
 		}
-		var anns []map[string]any
-		if err := st.getJSON(ctx, st.grafana+"/api/annotations?tags=dummyrun&limit=5000", &anns); err != nil {
-			t.Fatal(err)
+		countOld := func() int {
+			q := url.Values{}
+			q.Set("query", `{service_name="dummyrun"} | dummyrun_run_id=~".*-old"`)
+			q.Set("start", strconv.FormatInt(time.Now().Add(-10*24*time.Hour).UnixNano(), 10))
+			q.Set("end", strconv.FormatInt(time.Now().Add(time.Hour).UnixNano(), 10))
+			q.Set("limit", "5000")
+			var res struct {
+				Data struct {
+					Result []struct {
+						Values [][]string `json:"values"`
+					} `json:"result"`
+				} `json:"data"`
+			}
+			if err := st.getJSON(ctx, st.loki+"/loki/api/v1/query_range?"+q.Encode(), &res); err != nil {
+				t.Fatal(err)
+			}
+			n := 0
+			for _, r := range res.Data.Result {
+				n += len(r.Values)
+			}
+			return n
 		}
-		if len(anns) != wantRuns {
-			t.Errorf("%d annotations, want %d: the refused batch must not reach Grafana", len(anns), wantRuns)
+		if got := countOld(); got != olderLogs {
+			t.Errorf("%d lines for the older batch in Loki, want %d", got, olderLogs)
 		}
-		// Without the Loki URL the exporter cannot know the stream's newest line. It sends, the
-		// collector answers 200, and Loki drops the lines; the summary therefore reports success.
-		code, out = runBinary("export", older)
-		if code != 0 || !strings.Contains(out, fmt.Sprintf("sent %d runs", len(olderFiles))) {
-			t.Errorf("export without the Loki URL: exit %d: %s", code, out)
-		}
+		// A repeat with the Loki URL sends nothing.
 		code, out = runBinary("export", "--verify-loki", st.loki, older)
-		if code != 1 || !strings.Contains(out, "nothing sent") {
-			t.Errorf("the guard must still refuse the batch after a blind export: exit %d: %s", code, out)
+		if code != 0 || !strings.Contains(out, "sent 0 runs") || !strings.Contains(out, fmt.Sprintf("all %d runs were already in Loki", len(olderFiles))) {
+			t.Errorf("repeat with --verify-loki: exit %d: %s", code, out)
 		}
-		t.Logf("third process: the guard refused all %d older runs before sending; a blind export of them reported success while Loki dropped the lines", len(olderFiles))
+		if got := countOld(); got != olderLogs {
+			t.Errorf("%d lines after the checked repeat, want %d", got, olderLogs)
+		}
+		// A repeat without it duplicates every line, as the note says.
+		code, out = runBinary("export", older)
+		if code != 0 || !strings.Contains(out, "note: without --verify-loki a repeated export") {
+			t.Errorf("blind repeat: exit %d: %s", code, out)
+		}
+		eventually(t, 30*time.Second, func() error {
+			if got := countOld(); got != 2*olderLogs {
+				return fmt.Errorf("%d lines after the blind repeat, want %d", got, 2*olderLogs)
+			}
+			return nil
+		})
+		eventually(t, 30*time.Second, func() error {
+			got, err := st.promScalar(ctx, "sum(dummyrun_runs_total)")
+			if err != nil {
+				return err
+			}
+			if want := float64(wantRuns + 2*len(olderFiles)); got != want {
+				return fmt.Errorf("sum(dummyrun_runs_total) = %v, want %v: each process is its own instance", got, want)
+			}
+			return nil
+		})
+		t.Logf("third process: %d older runs accepted into their own stream; a checked repeat sent nothing; a blind repeat doubled their %d lines and counted the runs again", len(olderFiles), olderLogs)
 	})
 }
 

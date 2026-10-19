@@ -72,8 +72,9 @@ func ParseTemporality(s string) (Temporality, error) {
 	}
 }
 
-// Config selects transport and temporality. Endpoints, headers and TLS come from the OTEL_*
-// environment variables that the exporters read themselves.
+// Config selects transport and temporality. Headers and TLS come from the OTEL_* environment
+// variables that the exporters read themselves. Endpoints too, except that with none set every
+// signal goes to the local collector over plain HTTP.
 type Config struct {
 	Protocol    Protocol
 	Temporality Temporality
@@ -81,6 +82,33 @@ type Config struct {
 	Version string
 	// Stderr receives the SDK's error reports. nil means os.Stderr.
 	Stderr io.Writer
+	// Getenv reads the environment. nil means os.Getenv.
+	Getenv func(string) string
+}
+
+// Signal names the three OTLP signals, in the spelling of the OTEL_EXPORTER_OTLP_<SIGNAL>_ENDPOINT
+// variables.
+type Signal string
+
+// The three signals.
+const (
+	SignalTraces  Signal = "TRACES"
+	SignalMetrics Signal = "METRICS"
+	SignalLogs    Signal = "LOGS"
+)
+
+// DefaultEndpoint returns the URL a signal goes to when neither OTEL_EXPORTER_OTLP_ENDPOINT nor the
+// signal's own variable is set: http://localhost:4318/v1/<signal> for HTTP and localhost:4317 for
+// gRPC, both without TLS. It returns "" when the environment names an endpoint, so the SDK's own
+// parsing applies. The SDK would otherwise pick https for some signals and http for others.
+func DefaultEndpoint(getenv func(string) string, proto Protocol, sig Signal) string {
+	if getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" || getenv("OTEL_EXPORTER_OTLP_"+string(sig)+"_ENDPOINT") != "" {
+		return ""
+	}
+	if proto == ProtocolGRPC {
+		return "http://localhost:4317"
+	}
+	return "http://localhost:4318/v1/" + strings.ToLower(string(sig))
 }
 
 // Providers holds the three SDK providers and the error sink.
@@ -94,6 +122,10 @@ type Providers struct {
 // New builds the providers. Spans and logs are batched; metrics use a periodic reader whose
 // interval OTEL_METRIC_EXPORT_INTERVAL controls.
 func New(ctx context.Context, cfg Config) (*Providers, error) {
+	getenv := cfg.Getenv
+	if getenv == nil {
+		getenv = os.Getenv
+	}
 	res, err := Resource(ctx, cfg.Version)
 	if err != nil {
 		return nil, err
@@ -112,23 +144,47 @@ func New(ctx context.Context, cfg Config) (*Providers, error) {
 	tempo := temporalitySelector(cfg.Temporality)
 	switch cfg.Protocol {
 	case ProtocolGRPC:
-		if traceExp, err = otlptracegrpc.New(ctx); err != nil {
+		var topts []otlptracegrpc.Option
+		var mopts []otlpmetricgrpc.Option
+		var lopts []otlploggrpc.Option
+		if DefaultEndpoint(getenv, cfg.Protocol, SignalTraces) != "" {
+			topts = append(topts, otlptracegrpc.WithEndpointURL(DefaultEndpoint(getenv, cfg.Protocol, SignalTraces)))
+		}
+		if DefaultEndpoint(getenv, cfg.Protocol, SignalMetrics) != "" {
+			mopts = append(mopts, otlpmetricgrpc.WithEndpointURL(DefaultEndpoint(getenv, cfg.Protocol, SignalMetrics)))
+		}
+		if DefaultEndpoint(getenv, cfg.Protocol, SignalLogs) != "" {
+			lopts = append(lopts, otlploggrpc.WithEndpointURL(DefaultEndpoint(getenv, cfg.Protocol, SignalLogs)))
+		}
+		if traceExp, err = otlptracegrpc.New(ctx, topts...); err != nil {
 			return nil, fmt.Errorf("trace exporter: %w", err)
 		}
-		if metricExp, err = otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithTemporalitySelector(tempo)); err != nil {
+		if metricExp, err = otlpmetricgrpc.New(ctx, append(mopts, otlpmetricgrpc.WithTemporalitySelector(tempo))...); err != nil {
 			return nil, fmt.Errorf("metric exporter: %w", err)
 		}
-		if logExp, err = otlploggrpc.New(ctx); err != nil {
+		if logExp, err = otlploggrpc.New(ctx, lopts...); err != nil {
 			return nil, fmt.Errorf("log exporter: %w", err)
 		}
 	default:
-		if traceExp, err = otlptracehttp.New(ctx); err != nil {
+		var topts []otlptracehttp.Option
+		var mopts []otlpmetrichttp.Option
+		var lopts []otlploghttp.Option
+		if u := DefaultEndpoint(getenv, cfg.Protocol, SignalTraces); u != "" {
+			topts = append(topts, otlptracehttp.WithEndpointURL(u))
+		}
+		if u := DefaultEndpoint(getenv, cfg.Protocol, SignalMetrics); u != "" {
+			mopts = append(mopts, otlpmetrichttp.WithEndpointURL(u))
+		}
+		if u := DefaultEndpoint(getenv, cfg.Protocol, SignalLogs); u != "" {
+			lopts = append(lopts, otlploghttp.WithEndpointURL(u))
+		}
+		if traceExp, err = otlptracehttp.New(ctx, topts...); err != nil {
 			return nil, fmt.Errorf("trace exporter: %w", err)
 		}
-		if metricExp, err = otlpmetrichttp.New(ctx, otlpmetrichttp.WithTemporalitySelector(tempo)); err != nil {
+		if metricExp, err = otlpmetrichttp.New(ctx, append(mopts, otlpmetrichttp.WithTemporalitySelector(tempo))...); err != nil {
 			return nil, fmt.Errorf("metric exporter: %w", err)
 		}
-		if logExp, err = otlploghttp.New(ctx); err != nil {
+		if logExp, err = otlploghttp.New(ctx, lopts...); err != nil {
 			return nil, fmt.Errorf("log exporter: %w", err)
 		}
 	}
@@ -157,13 +213,27 @@ func Assemble(res *resource.Resource, traceExp sdktrace.SpanExporter, metricExp 
 	return &Providers{Tracer: tp, Meter: mp, Logger: lp, errs: sink}
 }
 
-// Resource is service.name=dummyrun and service.version, then whatever OTEL_RESOURCE_ATTRIBUTES
-// and OTEL_SERVICE_NAME add or override.
+// InstanceID identifies this process: host name, process ID and start time. Each process therefore
+// has its own Loki stream and its own Prometheus series, so two exporters running at once do not
+// interfere.
+func InstanceID() string {
+	host, err := os.Hostname()
+	if err != nil || host == "" {
+		host = "unknown-host"
+	}
+	return fmt.Sprintf("%s-%d-%d", host, os.Getpid(), processStart.Unix())
+}
+
+var processStart = time.Now()
+
+// Resource is service.name=dummyrun, service.version and a per-process service.instance.id, then
+// whatever OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME add or override.
 func Resource(ctx context.Context, version string) (*resource.Resource, error) {
 	base, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceName("dummyrun"),
 			semconv.ServiceVersion(version),
+			semconv.ServiceInstanceID(InstanceID()),
 		),
 		resource.WithTelemetrySDK(),
 	)

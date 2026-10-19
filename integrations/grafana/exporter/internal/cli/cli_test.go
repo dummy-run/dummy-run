@@ -89,22 +89,13 @@ func (f *fakeGrafana) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type fakeLoki struct {
 	mu     sync.Mutex
 	counts map[string]int
-	newest time.Time
 	// empty is how many instant queries to answer with no lines first, as if nothing had been sent yet.
 	empty int
 }
 
-func (f *fakeLoki) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (f *fakeLoki) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if r.URL.Path == "/loki/api/v1/query_range" {
-		var results []map[string]any
-		if !f.newest.IsZero() {
-			results = append(results, map[string]any{"stream": map[string]string{}, "values": [][]string{{strconv.FormatInt(f.newest.UnixNano(), 10), "run x"}}})
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"status": "success", "data": map[string]any{"resultType": "streams", "result": results}})
-		return
-	}
 	var results []map[string]any
 	if f.empty > 0 {
 		f.empty--
@@ -134,8 +125,11 @@ func TestExportVerifiesLogsInLoki(t *testing.T) {
 		t.Fatalf("exit %d, want %d; stderr %s", code, ExitFailure, stderr)
 	}
 	// The seven runs whose lines Loki already holds are not sent again; the eighth is, and stays missing.
-	if !strings.Contains(stderr, "2 log records, ") || !strings.Contains(stderr, "14 log records already in Loki") {
+	if !strings.Contains(stderr, "sent 1 runs: 14 spans, 2 log records") || !strings.Contains(stderr, "7 runs with 14 log records already in Loki, not sent again") {
 		t.Errorf("summary %q", stderr)
+	}
+	if otlp.count("/v1/traces") == 0 {
+		t.Error("the run that was not in Loki must still be sent")
 	}
 	if !strings.Contains(stderr, "run 2026-10-17-sam-author-007: 0 of 2 log lines in Loki") || !strings.Contains(stderr, "1 of 1 runs are missing log lines") {
 		t.Errorf("stderr %q", stderr)
@@ -143,9 +137,13 @@ func TestExportVerifiesLogsInLoki(t *testing.T) {
 	loki.mu.Lock()
 	loki.counts["2026-10-17-sam-author-007"] = 2
 	loki.mu.Unlock()
+	before := otlp.count("/v1/traces")
 	code, _, stderr = run(t, nil, "export", "--logs-max-age", "0", "--verify-loki", lsrv.URL, examples)
-	if code != ExitOK || !strings.Contains(stderr, "all 16 log records were already in Loki") {
+	if code != ExitOK || !strings.Contains(stderr, "sent 0 runs") || !strings.Contains(stderr, "all 8 runs were already in Loki") {
 		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+	if otlp.count("/v1/traces") != before {
+		t.Error("runs already in Loki must not be sent to Tempo again")
 	}
 	// With nothing in Loki yet, every line is sent and then found.
 	sent := &fakeLoki{empty: 1, counts: map[string]int{
@@ -161,27 +159,6 @@ func TestExportVerifiesLogsInLoki(t *testing.T) {
 	}
 	if code, _, stderr := run(t, map[string]string{"LOKI_BASIC_AUTH": "nocolon"}, "export", "--verify-loki", lsrv.URL, examples); code != ExitFailure || !strings.Contains(stderr, "LOKI_BASIC_AUTH") {
 		t.Errorf("bad LOKI_BASIC_AUTH: exit %d, stderr %q", code, stderr)
-	}
-}
-
-func TestExportRefusesLinesLokiWouldDrop(t *testing.T) {
-	otlp := newFakeOTLP(http.StatusOK)
-	srv := httptest.NewServer(otlp)
-	defer srv.Close()
-	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
-	// Loki already holds a line from the 19th; the examples start on the 15th.
-	loki := &fakeLoki{newest: time.Date(2026, 10, 19, 9, 0, 0, 0, time.UTC)}
-	lsrv := httptest.NewServer(loki)
-	defer lsrv.Close()
-	code, _, stderr := run(t, nil, "export", "--logs-max-age", "0", "--verify-loki", lsrv.URL, examples)
-	if code != ExitFailure {
-		t.Fatalf("exit %d, want %d; stderr %s", code, ExitFailure, stderr)
-	}
-	if !strings.Contains(stderr, "nothing sent") || !strings.Contains(stderr, "more than an hour before the newest line already sent (2026-10-19T09:00:00Z)") {
-		t.Errorf("stderr %q", stderr)
-	}
-	if otlp.count("/v1/traces")+otlp.count("/v1/logs")+otlp.count("/v1/metrics") != 0 {
-		t.Error("the export sent data although the guard refused it")
 	}
 }
 
@@ -204,7 +181,7 @@ func TestWatchRefusesAFileOlderThanTheStream(t *testing.T) {
 	done := make(chan int)
 	go func() {
 		done <- Main(context.Background(), []string{"watch", "--interval", "20ms", "--logs-max-age", "0", dir}, Env{
-			Stdout: &out, Stderr: &errb, Getenv: func(string) string { return "" }, Signals: sigs,
+			Stdout: &out, Stderr: &errb, Getenv: os.Getenv, Signals: sigs,
 		})
 	}()
 	time.Sleep(100 * time.Millisecond)
@@ -254,8 +231,13 @@ func run(t *testing.T, env map[string]string, args ...string) (int, string, stri
 	code := Main(context.Background(), args, Env{
 		Stdout: &out,
 		Stderr: &errb,
-		Getenv: func(k string) string { return env[k] },
-		Now:    func() time.Time { return time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC) },
+		Getenv: func(k string) string {
+			if v, ok := env[k]; ok {
+				return v
+			}
+			return os.Getenv(k)
+		},
+		Now: func() time.Time { return time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC) },
 	})
 	return code, out.String(), errb.String()
 }
@@ -341,6 +323,9 @@ func TestExportSendsAllSignalsAndAnnotations(t *testing.T) {
 	if !strings.Contains(stderr, "annotations: 8 created, 0 already present") {
 		t.Errorf("summary %q", stderr)
 	}
+	if !strings.Contains(stderr, "note: without --verify-loki a repeated export") {
+		t.Errorf("summary %q lacks the duplicate warning", stderr)
+	}
 	if len(grafana.store) != 8 {
 		t.Errorf("%d annotations stored", len(grafana.store))
 	}
@@ -407,7 +392,7 @@ func TestWatchSendsNewFiles(t *testing.T) {
 	done := make(chan int)
 	go func() {
 		done <- Main(context.Background(), []string{"watch", "--interval", "20ms", "--logs-max-age", "0", dir}, Env{
-			Stdout: &out, Stderr: &errb, Getenv: func(string) string { return "" }, Signals: sigs,
+			Stdout: &out, Stderr: &errb, Getenv: os.Getenv, Signals: sigs,
 		})
 	}()
 	time.Sleep(100 * time.Millisecond)

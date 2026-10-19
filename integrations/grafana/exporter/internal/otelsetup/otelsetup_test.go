@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -61,6 +63,53 @@ func TestResourceFollowsTheContractAndTheEnvironment(t *testing.T) {
 		if got[k] != want {
 			t.Errorf("%s = %q, want %q", k, got[k], want)
 		}
+	}
+	host, _ := os.Hostname()
+	if want := fmt.Sprintf("%s-%d-", host, os.Getpid()); !strings.HasPrefix(got["service.instance.id"], want) {
+		t.Errorf("service.instance.id = %q, want a prefix of %q", got["service.instance.id"], want)
+	}
+	if got["service.instance.id"] != InstanceID() {
+		t.Error("service.instance.id must be stable within the process")
+	}
+}
+
+func TestDefaultEndpointsArePlainHTTPOnLocalhost(t *testing.T) {
+	none := func(string) string { return "" }
+	want := map[Signal]string{
+		SignalTraces:  "http://localhost:4318/v1/traces",
+		SignalMetrics: "http://localhost:4318/v1/metrics",
+		SignalLogs:    "http://localhost:4318/v1/logs",
+	}
+	for sig, u := range want {
+		if got := DefaultEndpoint(none, ProtocolHTTP, sig); got != u {
+			t.Errorf("%s over HTTP: %q, want %q", sig, got, u)
+		}
+		if got := DefaultEndpoint(none, ProtocolGRPC, sig); got != "http://localhost:4317" {
+			t.Errorf("%s over gRPC: %q, want http://localhost:4317", sig, got)
+		}
+	}
+	generic := func(k string) string {
+		if k == "OTEL_EXPORTER_OTLP_ENDPOINT" {
+			return "https://otlp.example.net"
+		}
+		return ""
+	}
+	for _, sig := range []Signal{SignalTraces, SignalMetrics, SignalLogs} {
+		if got := DefaultEndpoint(generic, ProtocolHTTP, sig); got != "" {
+			t.Errorf("%s with OTEL_EXPORTER_OTLP_ENDPOINT set: %q, want the SDK's own parsing", sig, got)
+		}
+	}
+	logsOnly := func(k string) string {
+		if k == "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" {
+			return "http://loki:3100/otlp/v1/logs"
+		}
+		return ""
+	}
+	if got := DefaultEndpoint(logsOnly, ProtocolHTTP, SignalLogs); got != "" {
+		t.Errorf("logs with their own endpoint: %q, want the SDK's own parsing", got)
+	}
+	if got := DefaultEndpoint(logsOnly, ProtocolHTTP, SignalTraces); got != "http://localhost:4318/v1/traces" {
+		t.Errorf("traces with only the logs endpoint set: %q", got)
 	}
 }
 

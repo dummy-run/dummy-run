@@ -92,48 +92,6 @@ func (s Shortfall) String() string {
 	return fmt.Sprintf("run %s: %d of %d log lines in Loki", s.RunID, s.Got, s.Want)
 }
 
-// Newest returns the time of the newest line in the service's stream over the last 29 days, and
-// false when the stream is empty.
-func (l *Loki) Newest(ctx context.Context, serviceName string) (time.Time, bool, error) {
-	now := time.Now()
-	q := url.Values{}
-	q.Set("query", fmt.Sprintf(`{service_name=%q}`, serviceName))
-	q.Set("limit", "1")
-	q.Set("direction", "backward")
-	q.Set("start", strconv.FormatInt(now.Add(-29*24*time.Hour).UnixNano(), 10))
-	q.Set("end", strconv.FormatInt(now.Add(time.Hour).UnixNano(), 10))
-	data, err := l.get(ctx, "/loki/api/v1/query_range?"+q.Encode())
-	if err != nil {
-		return time.Time{}, false, err
-	}
-	var out struct {
-		Data struct {
-			Result []struct {
-				Values [][]string `json:"values"`
-			} `json:"result"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(data, &out); err != nil {
-		return time.Time{}, false, fmt.Errorf("loki query_range: bad JSON: %w", err)
-	}
-	var newest time.Time
-	for _, r := range out.Data.Result {
-		for _, v := range r.Values {
-			if len(v) < 1 {
-				continue
-			}
-			ns, err := strconv.ParseInt(v[0], 10, 64)
-			if err != nil {
-				continue
-			}
-			if t := time.Unix(0, ns); t.After(newest) {
-				newest = t
-			}
-		}
-	}
-	return newest, !newest.IsZero(), nil
-}
-
 // get performs an authenticated GET and returns the body of a 200 response.
 func (l *Loki) get(ctx context.Context, path string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, l.base+path, nil)

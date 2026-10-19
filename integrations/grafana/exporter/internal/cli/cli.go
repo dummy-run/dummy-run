@@ -120,8 +120,8 @@ type session struct {
 	// newestSent is the newest log line time sent to the stream so far, seeded from Loki when known.
 	newestSent time.Time
 	// counts for the summary line
-	runs, spans, logs, skippedLogs, presentLogs, metrics int
-	created, existing                                    int
+	runs, spans, logs, skippedLogs, presentLogs, presentRuns, metrics int
+	created, existing                                                 int
 }
 
 func newSession(ctx context.Context, opts options, env Env) (*session, error) {
@@ -146,7 +146,7 @@ func newSession(ctx context.Context, opts options, env Env) (*session, error) {
 			return nil, err
 		}
 	}
-	s.providers, err = otelsetup.New(ctx, otelsetup.Config{Protocol: proto, Temporality: temporality, Version: Version, Stderr: env.Stderr})
+	s.providers, err = otelsetup.New(ctx, otelsetup.Config{Protocol: proto, Temporality: temporality, Version: Version, Stderr: env.Stderr, Getenv: env.Getenv})
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,8 @@ func (s *session) prepare(run *record.Run) telemetry.Plan {
 const lokiWindow = time.Hour
 
 // guard refuses log lines that Loki would drop: lines more than an hour older than the newest line
-// already sent to the stream, by this process or, when --verify-loki is set, by any earlier one.
+// already sent to this process's stream. Each process has its own stream, because the resource carries
+// a per-process service.instance.id, so only this process's own lines count.
 func (s *session) guard(oldest time.Time) error {
 	if oldest.IsZero() || s.newestSent.IsZero() || !oldest.Before(s.newestSent.Add(-lokiWindow)) {
 		return nil
@@ -196,31 +197,21 @@ func (s *session) guard(oldest time.Time) error {
 		oldest.UTC().Format(time.RFC3339), s.newestSent.UTC().Format(time.RFC3339))
 }
 
-// seedNewestFromLoki asks Loki for the newest line in the stream, so the guard also covers lines sent
-// by earlier processes.
-func (s *session) seedNewestFromLoki(ctx context.Context) error {
+// dropRunsAlreadyInLoki asks Loki which of the plans' runs already have all their log lines and marks
+// those runs as exported, so a repeated export sends them again neither to Loki nor to Tempo. It
+// does nothing without --verify-loki, and it cannot see runs whose log records --logs-max-age removed.
+func (s *session) dropRunsAlreadyInLoki(ctx context.Context, plans []telemetry.Plan) (map[string]bool, error) {
+	done := map[string]bool{}
 	if s.loki == nil {
-		return nil
-	}
-	newest, ok, err := s.loki.Newest(ctx, "dummyrun")
-	if err != nil {
-		return fmt.Errorf("loki check: %w", err)
-	}
-	if ok && newest.After(s.newestSent) {
-		s.newestSent = newest
-	}
-	return nil
-}
-
-// dropLogsAlreadyInLoki asks Loki which of the plans' runs already have all their log lines and
-// removes those lines from the plans, so a repeated export sends nothing Loki would refuse as too
-// old. It does nothing without --verify-loki.
-func (s *session) dropLogsAlreadyInLoki(ctx context.Context, plans []telemetry.Plan) error {
-	if s.loki == nil {
-		return nil
+		return done, nil
 	}
 	var oldest, newest time.Time
+	ids := make([]string, 0, len(plans))
 	for _, p := range plans {
+		if len(p.Logs) == 0 {
+			continue
+		}
+		ids = append(ids, p.RunID)
 		for _, l := range p.Logs {
 			if oldest.IsZero() || l.Time.Before(oldest) {
 				oldest = l.Time
@@ -230,26 +221,21 @@ func (s *session) dropLogsAlreadyInLoki(ctx context.Context, plans []telemetry.P
 			}
 		}
 	}
-	if oldest.IsZero() {
-		return nil
-	}
-	ids := make([]string, 0, len(plans))
-	for _, p := range plans {
-		if len(p.Logs) > 0 {
-			ids = append(ids, p.RunID)
-		}
+	if len(ids) == 0 {
+		return done, nil
 	}
 	have, err := s.loki.Count(ctx, "dummyrun", ids, oldest, newest)
 	if err != nil {
-		return fmt.Errorf("loki check: %w", err)
+		return nil, fmt.Errorf("loki check: %w", err)
 	}
-	for i := range plans {
-		if n := len(plans[i].Logs); n > 0 && have[plans[i].RunID] >= n {
+	for _, p := range plans {
+		if n := len(p.Logs); n > 0 && have[p.RunID] >= n {
+			done[p.RunID] = true
+			s.presentRuns++
 			s.presentLogs += n
-			plans[i].Logs = nil
 		}
 	}
-	return nil
+	return done, nil
 }
 
 // sendPlan emits one run's trace and metrics, its logs when withLogs is set, and posts its annotation.
@@ -269,16 +255,22 @@ func (s *session) sendPlan(ctx context.Context, path string, p telemetry.Plan, w
 	if len(p.Logs) > 0 {
 		s.wants = append(s.wants, verify.Want{RunID: p.RunID, Lines: len(p.Logs)})
 	}
-	if s.grafana != nil {
-		res, err := s.grafana.Post(ctx, p.Annotation)
-		if err != nil {
-			return fmt.Errorf("%s: annotation: %w", path, err)
-		}
-		if res.Created {
-			s.created++
-		} else {
-			s.existing++
-		}
+	return s.annotate(ctx, path, p)
+}
+
+// annotate posts the run's annotation unless Grafana already has it.
+func (s *session) annotate(ctx context.Context, path string, p telemetry.Plan) error {
+	if s.grafana == nil {
+		return nil
+	}
+	res, err := s.grafana.Post(ctx, p.Annotation)
+	if err != nil {
+		return fmt.Errorf("%s: annotation: %w", path, err)
+	}
+	if res.Created {
+		s.created++
+	} else {
+		s.existing++
 	}
 	return nil
 }
@@ -325,8 +317,8 @@ func (s *session) summary() string {
 	if s.skippedLogs > 0 {
 		msg += fmt.Sprintf("; skipped %d log records older than %s (see --logs-max-age)", s.skippedLogs, s.opts.logsMaxAge)
 	}
-	if s.presentLogs > 0 {
-		msg += fmt.Sprintf("; %d log records already in Loki", s.presentLogs)
+	if s.presentRuns > 0 {
+		msg += fmt.Sprintf("; %d runs with %d log records already in Loki, not sent again", s.presentRuns, s.presentLogs)
 	}
 	if s.grafana != nil {
 		msg += fmt.Sprintf("; annotations: %d created, %d already present", s.created, s.existing)
@@ -382,15 +374,26 @@ func runExport(ctx context.Context, args []string, env Env) int {
 	for _, f := range files {
 		plans = append(plans, s.prepare(f.Run))
 	}
-	if err := s.seedNewestFromLoki(ctx); err != nil {
+	done, err := s.dropRunsAlreadyInLoki(ctx, plans)
+	if err != nil {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
 		return ExitFailure
 	}
-	if err := s.dropLogsAlreadyInLoki(ctx, plans); err != nil {
-		fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
-		return ExitFailure
+	fresh := make([]telemetry.Plan, 0, len(plans))
+	freshPaths := make([]string, 0, len(plans))
+	for i, p := range plans {
+		if done[p.RunID] {
+			// The annotation lookup is idempotent on its own, so it still runs for these.
+			if err := s.annotate(ctx, files[i].Path, p); err != nil {
+				fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
+				return ExitFailure
+			}
+			continue
+		}
+		fresh = append(fresh, p)
+		freshPaths = append(freshPaths, files[i].Path)
 	}
-	entries := sortedLogs(plans)
+	entries := sortedLogs(fresh)
 	if len(entries) > 0 {
 		if err := s.guard(entries[0].rec.Time); err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: nothing sent: %v\n", err)
@@ -398,8 +401,8 @@ func runExport(ctx context.Context, args []string, env Env) int {
 		}
 	}
 	code := ExitOK
-	for i, f := range files {
-		if err := s.sendPlan(ctx, f.Path, plans[i], false); err != nil {
+	for i, p := range fresh {
+		if err := s.sendPlan(ctx, freshPaths[i], p, false); err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
 			code = ExitFailure
 			break
@@ -415,6 +418,9 @@ func runExport(ctx context.Context, args []string, env Env) int {
 		code = ExitFailure
 	}
 	fmt.Fprintln(env.Stderr, s.summary())
+	if s.loki == nil && s.runs > 0 {
+		fmt.Fprintln(env.Stderr, "note: without --verify-loki a repeated export of these runs writes their spans, log lines and metric points again; Tempo and Loki keep the duplicates")
+	}
 	if code == ExitOK && s.loki != nil {
 		// The check gets its own deadline, so a slow flush does not eat into it.
 		verifyCtx, cancelVerify := context.WithTimeout(context.WithoutCancel(ctx), verifyWait+opts.timeout)
@@ -433,8 +439,8 @@ const verifyWait = 15 * time.Second
 // It returns false when lines are missing or Loki could not be queried.
 func (s *session) verifyLogs(ctx context.Context, wants []verify.Want, oldest, newest time.Time) bool {
 	if len(wants) == 0 {
-		if s.presentLogs > 0 {
-			fmt.Fprintf(s.env.Stderr, "loki check: all %d log records were already in Loki\n", s.presentLogs)
+		if s.presentRuns > 0 {
+			fmt.Fprintf(s.env.Stderr, "loki check: all %d runs were already in Loki, nothing to verify\n", s.presentRuns)
 		} else {
 			fmt.Fprintln(s.env.Stderr, "loki check: no log records were sent, nothing to verify")
 		}
@@ -508,10 +514,6 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 		}
 	}()
 
-	if err := s.seedNewestFromLoki(ctx); err != nil {
-		fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
-		return ExitFailure
-	}
 	failed := 0
 	fmt.Fprintf(env.Stderr, "watching %s every %s\n", dir, *interval)
 	poller := &watch.Poller{Dir: dir, Interval: *interval, IncludeExisting: *existing}
@@ -523,9 +525,19 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 			return
 		}
 		p := s.prepare(run)
-		if err := s.dropLogsAlreadyInLoki(ctx, []telemetry.Plan{p}); err != nil {
+		done, err := s.dropRunsAlreadyInLoki(ctx, []telemetry.Plan{p})
+		if err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: %s: %v\n", path, err)
 			failed++
+			return
+		}
+		if done[p.RunID] {
+			if err := s.annotate(ctx, path, p); err != nil {
+				fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
+				failed++
+				return
+			}
+			fmt.Fprintf(env.Stderr, "already in Loki, not sent again: %s\n", path)
 			return
 		}
 		if len(p.Logs) > 0 {

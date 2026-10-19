@@ -21,7 +21,8 @@ docker run --rm -p 4318:4318 -p 3000:3000 grafana/otel-lgtm:0.35.0
 dummyrun-otel export examples/runs
 ```
 
-With no `OTEL_EXPORTER_OTLP_ENDPOINT` set, the exporter sends to `http://localhost:4318`. Open
+With no `OTEL_EXPORTER_OTLP_ENDPOINT` set, the exporter sends all three signals to
+`http://localhost:4318` over plain HTTP. Open
 Grafana at `http://localhost:3000` (admin / admin), pick Explore and query Loki for
 `{service_name="dummyrun"}` over the last 7 days. Each line links to its trace. A TraceQL search such as
 `{ span.dummyrun.run.id = "2026-10-16-ada-editor-003" }` needs the Tempo setting described under
@@ -86,7 +87,7 @@ The exporter uses the OpenTelemetry Go SDK, so the standard variables apply.
 
 | Variable | What it does |
 |---|---|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Base URL of the OTLP receiver. Default `http://localhost:4318` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Base URL of the OTLP receiver. With neither it nor a per-signal variable set, traces, metrics and logs all go to `http://localhost:4318` over plain HTTP |
 | `OTEL_EXPORTER_OTLP_HEADERS` | Headers for every request, such as `Authorization=Basic ...` |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` or `grpc` |
 | `OTEL_EXPORTER_OTLP_TIMEOUT`, `OTEL_EXPORTER_OTLP_INSECURE` | Request timeout and plain HTTP |
@@ -96,7 +97,11 @@ The exporter uses the OpenTelemetry Go SDK, so the standard variables apply.
 | `GRAFANA_TOKEN` | Grafana service account token for annotations |
 | `LOKI_BASIC_AUTH` | `user:password` for `--verify-loki` against Grafana Cloud Loki |
 
-Set `service.namespace` in the resource attributes to group runs by the app under test:
+The resource carries `service.name=dummyrun`, `service.version` and a `service.instance.id` of the form
+`<host>-<pid>-<start time>`. Each process is therefore its own instance. It has its own Loki stream, so
+two exporters running at once do not trip Loki's ordering rule. It also has its own Prometheus series,
+so their counters do not collide. `OTEL_RESOURCE_ATTRIBUTES` can override any of these. Set `service.namespace`
+there to group runs by the app under test:
 
 ```sh
 export OTEL_RESOURCE_ATTRIBUTES=service.namespace=inkwell
@@ -128,17 +133,23 @@ Seven metrics, named in the contract. Prometheus renames them when it stores the
 
 The two histograms use explicit buckets: 15 s to 3600 s for runs and 100 ms to 60 s for steps.
 
-Each exporter process starts its counters at zero, and every data point carries the time it was sent.
-So `export` describes runs as they are exported, and two exports of the same records add nothing to
-the totals. For live charts run `dummyrun-otel watch` next to the runner. For history and totals query
-the log records, which keep the run's own times.
+Each exporter process is a separate instance that starts its counters at zero, and every data point
+carries the time it was sent. So `export` describes runs as they are exported, and a `sum` across
+instances counts every export of a run. For live charts run `dummyrun-otel watch` next to the runner.
+For history and totals query the log records, which keep the run's own times.
 
 One log record when a run ends and one per finding, each with the root span's trace and span IDs so
 Grafana can jump from the line to the trace.
 
 One region annotation per run from `started_at` to `ended_at`, with the tags the contract lists. Before
 posting, the exporter lists annotations with the same tags in the same time window. It skips the run
-when one already has the same `time` and `timeEnd`, so re-running an export is safe.
+when one already has the same `time` and `timeEnd`.
+
+Repeating an export is safe for annotations only. Tempo does not drop a span whose ID it already holds,
+Loki keeps a repeated line, and a new process counts the runs again in Prometheus. With `--verify-loki`
+the exporter first asks Loki which runs already have all their log lines and sends nothing for those
+runs. Without it, `export` ends with a warning: a repeat duplicates spans, lines and metric points. Runs
+whose log records fall outside `--logs-max-age` cannot be recognised and are sent again either way.
 
 ## Historical timestamps
 
@@ -169,19 +180,16 @@ HTTP 400 (sourced), so `--logs-max-age` skips those lines and says how many (cod
 `integrations/grafana/stack` raises the limit to 30 days, so pass `--logs-max-age 720h` there. Loki
 also keeps one stream for the exporter and drops a line more than `max_chunk_age / 2` (default 1 hour)
 older than the newest line in that stream (sourced, and measured: 14 of 41 lines survived an export in
-file name order). `export` therefore sorts every line by its own time and sends the oldest first (code).
-Before sending, it compares its oldest line with the newest line already sent to the stream. When the
-oldest line is more than an hour older, it exits 1 and sends nothing (code). Within one process that
-newest line is what the process has sent so far. With `--verify-loki` it is also the newest line Loki
-already holds, so a batch that ends more than an hour before an earlier export is refused rather than
-silently lost. Lines Loki already holds are left out first, so repeating an export is still safe.
+file name order). The stream is per process, because `service.instance.id` is a stream label (sourced:
+Loki's default OTLP label set). `export` sorts every line by its own time and sends the oldest first
+(code). Before sending, it compares its oldest line with the newest line this process has already sent
+to its stream. When the oldest line is more than an hour older, it exits 1 and sends nothing (code).
 `watch` applies the same check to each file, counts the file's lines back from Loki after sending, and
-reports the file when either step fails. Export runs
-in `ended_at` order, and never export a batch that ends more than an hour before one already sent. The
-collector in `grafana/otel-lgtm` answers 200 while Loki rejects (measured), so without the Loki URL the
-exporter cannot see a loss caused by an earlier process. `--verify-loki` also counts the lines back after
-the export and exits 1 naming the runs that are short. Or point `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` at
-Loki itself, such as `http://localhost:3100/otlp/v1/logs`, and its rejections become exporter errors.
+reports the file when either step fails. Within one process, export runs in `ended_at` order. The
+collector in `grafana/otel-lgtm` answers 200 while Loki rejects (measured), so the exporter cannot see
+a dropped line on its own. `--verify-loki` counts the lines back after the export and exits 1 naming the
+runs that are short. Or point `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` at Loki itself, such as
+`http://localhost:3100/otlp/v1/logs`, and its rejections become exporter errors.
 
 For charts over history, query Loki within its window or use the annotations. For charts of live
 activity, run `dummyrun-otel watch` next to the runner and query Prometheus.
@@ -208,9 +216,10 @@ go test -tags e2e -timeout 15m -v ./e2e/   # needs Docker and python3
 
 The end-to-end test starts `grafana/otel-lgtm` on random ports and exports a copy of `examples/runs`
 with its timestamps shifted to two days ago, plus a freshly generated set. It then searches Tempo by `dummyrun.run.id`, counts the lines in Loki and sums
-the counters in Prometheus. A second process then exports the same records again: the annotation count
-and the Prometheus total must not change, and `--verify-loki` must pass. A third process exports a set
-that ended days earlier, and `--verify-loki` must refuse it before sending anything.
+the counters in Prometheus. A second process then exports the same records again with `--verify-loki`:
+it must send nothing, and the annotation count and the Prometheus total must not change. A third
+process exports a set that ended days earlier without `--verify-loki`: its own stream accepts the lines,
+a repeat with `--verify-loki` sends nothing, and a blind repeat doubles the lines in Loki.
 
 `e2e/tempo-config.yaml` is the `grafana/otel-lgtm` Tempo configuration with the slack raised to 30 days
 and faster block flushing. `integrations/grafana/stack/config/tempo-config.yaml` carries the same
