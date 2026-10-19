@@ -269,7 +269,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		return res
 	}
 	var out axeOut
-	if err := conn.CallFunctionJSON(pctx, cx, axeRunJS, &out); err != nil {
+	if err := conn.CallFunctionJSON(pctx, cx, axeRunJS, &out, tagsArg()); err != nil {
 		res.Error = "axe.run: " + firstLine(err.Error())
 		return res
 	}
@@ -352,18 +352,20 @@ func (r *Report) summarise(cfg Config) {
 // parts of a selector that crosses an iframe or shadow root joined by " >> ".
 //
 //nolint:misspell // the CSS media feature name is prefers-color-scheme
-var axeRunJS = `() => {
+const axeRunJS = `(tagsJSON) => {
   const flat = (t) => (Array.isArray(t) ? t.map(flat).join(" >> ") : String(t));
   const rules = (rs) => rs.map((v) => ({ id: v.id, impact: v.impact || "", help: v.help, helpUrl: v.helpUrl, tags: v.tags, nodes: v.nodes.map((n) => flat(n.target)) }));
-  return window.axe.run(document, { runOnly: { type: "tag", values: ` + tagsJSON() + ` }, resultTypes: ["violations", "incomplete"] }).then((r) => ({
+  return window.axe.run(document, { runOnly: { type: "tag", values: JSON.parse(tagsJSON) }, resultTypes: ["violations", "incomplete"] }).then((r) => ({
     version: window.axe.version,
-    scheme: window.matchMedia("(prefers-" + "color-scheme: dark)").matches ? "dark" : "light",
+    scheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
     violations: rules(r.violations),
     incomplete: rules(r.incomplete),
   }));
 }`
 
-func tagsJSON() string {
+// tagsArg is the rule tags as a JSON string, passed to the page as an argument rather than spliced
+// into the script.
+func tagsArg() string {
 	b, _ := json.Marshal(Tags)
 	return string(b)
 }
