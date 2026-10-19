@@ -195,7 +195,7 @@ func (f *fakeApp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	page := func(status int, title, body string) {
 		w.WriteHeader(status)
-		_, _ = fmt.Fprintf(w, layout, title, head, body)
+		_, _ = fmt.Fprintf(w, layout, title, head, body) // nosemgrep: test app with fixed markup, no user input
 	}
 	switch {
 	case r.URL.Path == "/" && r.Method == http.MethodGet:
@@ -212,7 +212,7 @@ func (f *fakeApp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				tok := fmt.Sprintf("tok-%d-%s", f.next, role)
 				f.sessions[tok] = role
 				f.mu.Unlock()
-				http.SetCookie(w, &http.Cookie{Name: "fake_session", Value: tok, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}) //nolint:gosec // plain HTTP on localhost in a test
+				http.SetCookie(w, &http.Cookie{Name: "fake_session", Value: tok, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}) //nolint:gosec // plain HTTP on localhost in a test // nosemgrep: plain HTTP on localhost in a test
 				http.Redirect(w, r, "/drafts", http.StatusSeeOther)
 				return
 			}
@@ -264,7 +264,7 @@ func Inkwell(t testing.TB) *App {
 	}
 	addr := l.Addr().String()
 	_ = l.Close()
-	cmd := exec.CommandContext(context.Background(), bin, "-addr", addr) //nolint:gosec // the binary was built above
+	cmd := exec.CommandContext(context.Background(), bin, "-addr", addr) //nolint:gosec // the binary was built above // nosemgrep: the binary was built above
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
