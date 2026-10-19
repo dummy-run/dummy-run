@@ -98,9 +98,10 @@ The exporter uses the OpenTelemetry Go SDK, so the standard variables apply.
 | `LOKI_BASIC_AUTH` | `user:password` for `--verify-loki` against Grafana Cloud Loki |
 
 The resource carries `service.name=dummyrun`, `service.version` and a `service.instance.id` of the form
-`<host>-<pid>-<start time>`. Each process is therefore its own instance. It has its own Loki stream, so
-two exporters running at once do not trip Loki's ordering rule. It also has its own Prometheus series,
-so their counters do not collide. `OTEL_RESOURCE_ATTRIBUTES` can override any of these. Set `service.namespace`
+`<host>-<pid>-<start time>`. Each process is therefore its own instance, with its own Prometheus series, so the counters of two
+exporters do not collide. Whether that also gives each process its own Loki stream depends on the Loki
+configuration (measured: both outcomes in repeated runs of the same `grafana/otel-lgtm` image).
+Run one exporter at a time and pass `--verify-loki`, which exits 1 and names every run that Loki dropped. `OTEL_RESOURCE_ATTRIBUTES` can override any of these. Set `service.namespace`
 there to group runs by the app under test:
 
 ```sh
@@ -180,8 +181,7 @@ HTTP 400 (sourced), so `--logs-max-age` skips those lines and says how many (cod
 `integrations/grafana/stack` raises the limit to 30 days, so pass `--logs-max-age 720h` there. Loki
 also keeps one stream for the exporter and drops a line more than `max_chunk_age / 2` (default 1 hour)
 older than the newest line in that stream (sourced, and measured: 14 of 41 lines survived an export in
-file name order). The stream is per process, because `service.instance.id` is a stream label (sourced:
-Loki's default OTLP label set). `export` sorts every line by its own time and sends the oldest first
+file name order). `export` sorts every line by its own time and sends the oldest first
 (code). Before sending, it compares its oldest line with the newest line this process has already sent
 to its stream. When the oldest line is more than an hour older, it exits 1 and sends nothing (code).
 `watch` applies the same check to each file, counts the file's lines back from Loki after sending, and
@@ -218,8 +218,8 @@ The end-to-end test starts `grafana/otel-lgtm` on random ports and exports a cop
 with its timestamps shifted to two days ago, plus a freshly generated set. It then searches Tempo by `dummyrun.run.id`, counts the lines in Loki and sums
 the counters in Prometheus. A second process then exports the same records again with `--verify-loki`:
 it must send nothing, and the annotation count and the Prometheus total must not change. A third
-process exports a set that ended days earlier without `--verify-loki`: its own stream accepts the lines,
-a repeat with `--verify-loki` sends nothing, and a blind repeat doubles the lines in Loki.
+process exports a set that ended days earlier with `--verify-loki`: Loki drops its lines, and the
+exporter must exit 1 naming every run.
 
 `e2e/tempo-config.yaml` is the `grafana/otel-lgtm` Tempo configuration with the slack raised to 30 days
 and faster block flushing. `integrations/grafana/stack/config/tempo-config.yaml` carries the same
