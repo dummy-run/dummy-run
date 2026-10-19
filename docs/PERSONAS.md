@@ -49,6 +49,7 @@ has the full rules.
 |---|---|
 | `zoom: 200` | `low-vision-zoom` runs at 200 percent. A desktop window of 1400 pixels then gives the page 700 CSS pixels |
 | `tools-denied: click` | `keyboard-only-user` cannot click. The engine refuses the call and records a `blocked:` note |
+| Tool limits as a modality | The run record's `persona.dimensions.at` is `keyboard-only`. A persona that may not use `screenshot` records `screen-reader-view`. Other personas record `none` |
 | `tools-denied: screenshot` | `screen-reader-user` is not sent screenshots. They are still saved for the reviewer |
 | `Device:` in a scenario | Runs one persona on another device without a second copy of the persona |
 

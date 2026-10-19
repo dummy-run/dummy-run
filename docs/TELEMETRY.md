@@ -4,8 +4,11 @@ Dummy Run describes every run in OpenTelemetry. Any OpenTelemetry backend can st
 integration in `integrations/grafana/` uses Tempo, Loki and Prometheus or Mimir. This page is the contract
 between the runner, the exporter and the dashboards. Change it here first.
 
-The source of truth is the run record, defined by `schema/run-record.schema.json`. Synthetic examples
-are in `examples/runs/`.
+The source of truth is the run record, defined by `schema/run-record.schema.json` (schema version 2).
+Synthetic examples are in `examples/runs/`. The exporter also reads version 1 records, which have none of
+the version 2 fields, so the attributes marked "version 2" are left out for them.
+`dummyrun.cost.usd` is present when the model is in the price table, and the record has `cost_usd: null`
+otherwise.
 
 ## Resource
 
@@ -36,10 +39,14 @@ Root span attributes:
 | `dummyrun.persona.role` | `persona.role` |
 | `dummyrun.persona.device` | `persona.device` |
 | `dummyrun.persona.zoom` | `persona.zoom`, when present |
+| `dummyrun.persona.at` | `persona.dimensions.at`, when it is not null (version 2 records) |
 | `dummyrun.scenario.id` | `scenario.id` |
+| `dummyrun.scenario.goal_met` | `scenario.goal_met`, when present (version 2 records) |
+| `dummyrun.repeat_index` | `repeat_index` (version 2 records) |
 | `dummyrun.target.adapter` | `target.adapter` |
 | `dummyrun.target.environment` | `target.environment` |
 | `dummyrun.target.commit` | `target.commit`, when present |
+| `dummyrun.target.build_hash` | `target.build_hash`, when present |
 | `url.full` | `target.base_url` |
 | `gen_ai.system` | `provider.kind` |
 | `gen_ai.request.model` | `provider.model` |
@@ -55,7 +62,7 @@ The root span status is `ERROR` when the outcome is `errored` or `blocked`, and 
 
 Step span attributes are `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun.step.target`. When
 present they add `url.full`, `http.response.status_code`, `dummyrun.step.console_errors` and
-`dummyrun.step.a11y_violations`. A step with a status of 500 or more has status `ERROR`.
+`dummyrun.step.a11y_violations`. Version 2 records add `dummyrun.step.route`, the normalised route. A step with a status of 500 or more has status `ERROR`.
 
 Each finding is a span event named `dummyrun.finding` on the root span. The event time is the `at`
 time of the finding's first step.
@@ -69,6 +76,10 @@ time of the finding's first step.
 | `dummyrun.finding.evidence` | `evidence` |
 | `dummyrun.finding.verdict` | `verdict` |
 | `dummyrun.finding.steps` | `steps`, as an integer array |
+| `dummyrun.finding.class` | `class`, when present (version 2 records) |
+| `dummyrun.finding.route` | `route`, when present |
+| `dummyrun.finding.symptom` | `symptom`, when present |
+| `dummyrun.finding.fingerprint` | `fingerprint`, when present. The same problem has the same fingerprint in every run |
 
 ## Metrics
 

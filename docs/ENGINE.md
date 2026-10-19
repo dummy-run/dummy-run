@@ -42,7 +42,10 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--endpoint`, `--api-key-env`, `--project` | The provider's base URL, the name of the environment variable holding its API key, and the Google Cloud project for `vertex` |
 | `--reasoning-effort`, `--openai-api` | Reasoning effort, and `responses` to use the Responses API, for OpenAI-style models |
 | `--api-version V` | The Azure OpenAI API version. The default is `2025-04-01-preview` |
-| `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together |
+| `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together. The default is the date and the target's environment |
+| `--seed N` | A sampling seed, 0 or more. It is sent to providers that take one (see [PROVIDERS.md](PROVIDERS.md)) and recorded as `seed`. Where it is not sent the record has `seed: null` |
+| `--repeat-index N` | The run's `repeat_index`. The default counts the earlier records in `--out` with the same batch, persona, scenario and model |
+| `--universe sitemap` | Read the routes that exist from the target's `/sitemap.xml`, or from a sitemap URL, and write them to `target.route_universe` for route coverage |
 | `--steps N` | Step budget, up to 40. A scenario can also ask with a `Budget: 30 steps` line. The default is 25 |
 | `--tokens N` | Token budget for input plus output. The default is 1,500,000 |
 | `--headful` | Show the browser window |
@@ -72,7 +75,12 @@ same page (code: `internal/runner/patience.go`).
 | `press` | Press a key such as Enter, Escape or ArrowDown |
 | `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, wait up to 15 seconds |
 | `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. Only rule IDs and counts are recorded |
-| `finish` | End the run with a verdict, a report and findings that cite step numbers |
+| `finish` | End the run with a verdict, `goal_met`, a report and findings that cite step numbers |
+
+Each finding names a `symptom` from a closed list, and may name the control it is about by its `@12` number. The
+engine computes the finding's route, locus and fingerprint from the page. [COVERAGE.md](COVERAGE.md) explains
+the list and what the fingerprint is for. A symptom outside the list sends the model back to `finish` twice at
+most, and then the finding is dropped.
 
 ## Persona and scenario settings
 
@@ -161,7 +169,12 @@ The outline has a budget of 600 tokens (`page.TreeTokens`). The engine counts 3 
 the limit is 1,800 characters. When a page has more, the landmarks and the focused element stay. Headings come next, then
 interactive elements in page order. A last line says how many entries were left out.
 
-The run record matches `schema/run-record.schema.json` and is validated before it is written. Findings
+The run record matches `schema/run-record.schema.json` (schema version 2) and is validated before it is written.
+Version 1 records, written by earlier releases, stay readable by `dummyrun coverage` and the Grafana exporter.
+A version 2 record adds the fingerprint of each finding and the route of each step. It also adds the persona's
+dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
+`internal/price/prices.json`. The cost is null for a model that is not in the table. A target without a `commit` gets one from a hash of its
+home page, which the engine fetches with one GET request outside the browser. Findings
 start with the verdict `pending`; the reviewer is a later stage. Next to the record, `report.md` holds the
 persona's own report and `steps.jsonl` holds the full observation for each step, including page text the
 reviewer can check quotes against.

@@ -25,14 +25,14 @@ The table is written from the code by `go generate ./cmd/dummyrun`, so edit the 
 
 <!-- docgen:providers begin -->
 
-| Kind | Forced tool | Images in tool results | Reasoning effort | Responses API | Cached tokens reported | Region |
-|---|---|---|---|---|---|---|
-| `anthropic` | no | yes | no | no | yes | `global` unless declared |
-| `azure-foundry` | yes | no | yes | yes | yes | you declare it |
-| `bedrock` | no | no | no | no | yes | `--region` decides the endpoint, `eu-west-2` by default |
-| `gemini-api` | yes | no | no | no | yes | `global` unless declared |
-| `openai-compatible` | no | no | yes | yes | yes | you declare it |
-| `vertex-gemini` | yes | no | no | no | yes | `--region` decides the endpoint |
+| Kind | Forced tool | Images in tool results | Reasoning effort | Responses API | Cached tokens reported | Seed sent | Region |
+|---|---|---|---|---|---|---|---|
+| `anthropic` | no | yes | no | no | yes | no | `global` unless declared |
+| `azure-foundry` | yes | no | yes | yes | yes | yes | you declare it |
+| `bedrock` | no | no | no | no | yes | no | `--region` decides the endpoint, `eu-west-2` by default |
+| `gemini-api` | yes | no | no | no | yes | yes | `global` unless declared |
+| `openai-compatible` | no | no | yes | yes | yes | yes | you declare it |
+| `vertex-gemini` | yes | no | no | no | yes | yes | `--region` decides the endpoint |
 
 Every kind supports tool calling, images in user messages and structured output.
 
@@ -96,6 +96,13 @@ the tool call it belongs to, as OpenAI's guide asks for reasoning models.
 
 Check the model's own page for the setting it needs. A model that wants `none` for chat tool calls is a
 case for `--reasoning-effort none`. Azure uses the same API version setting as chat (`--api-version`).
+
+## Sampling seed
+
+`--seed N` is sent as the sampling seed to Azure OpenAI and OpenAI-compatible services over chat completions,
+and to Gemini on both the Developer API and Vertex AI. The Responses API, Anthropic and Bedrock do not take
+one, so the run record has `seed: null` there and the engine says so in its log. A seed makes sampling repeatable
+only as far as the vendor promises. Gemini takes seeds up to 2147483647 and the engine clamps larger ones.
 
 ## Cached input tokens
 

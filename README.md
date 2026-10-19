@@ -68,6 +68,7 @@ flowchart LR
 | [docs/PERSONAS.md](docs/PERSONAS.md) | The persona library in [casts/library](casts/library/README.md), and how to copy one into your cast |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
+| [docs/COVERAGE.md](docs/COVERAGE.md) | What `dummyrun coverage` measures and when to trust each number |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
 | [docs/integrations/grafana.md](docs/integrations/grafana.md) | Sending runs to Grafana, linking them to your app's traces, and alerts |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the automated checks, and the rules on evidence and privacy |
