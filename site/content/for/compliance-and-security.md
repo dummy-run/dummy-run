@@ -22,13 +22,13 @@ next:
 | Does exported telemetry carry screenshots? | No. It carries IDs, outcomes and the target environment. It adds page URLs, the model, its region and the cost. It adds each finding's title and verdict. |
 | Does a market profile cover exported telemetry? | No. The profile checks the adapters. Your OpenTelemetry backend is not one, so host it in the same market. |
 
-The provider and the backend both receive what the persona sees, so run against previews that hold synthetic data.
+The provider and the backend both receive what the persona sees, so run against previews that hold synthetic data. [Ethics and limits](../../../docs/ETHICS.md) covers provider retention.
 
 ## Permission findings
 
 {{< graphic name="finding-card" kind="permission" >}}
 
-A persona signs in with one role and the reviewer checks what that role could reach. This example is tagged code because the reviewer confirmed it in the source. Every blocker or major finding waits for a person before it counts.
+A persona signs in with one role and the reviewer checks what that role could reach. This example is tagged code because the reviewer confirmed it in the source. Every blocker or major finding waits for a person before it counts. The reviewer and the board are planned. The run record, the report and the screenshots work today.
 
 ## What the exporter sends {#export}
 

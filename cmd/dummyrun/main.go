@@ -20,6 +20,7 @@ import (
 	"syscall"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/policy"
@@ -30,7 +31,10 @@ import (
 )
 
 func main() {
-	os.Exit(run(os.Args[1:]))
+	code := run(os.Args[1:])
+	// A path that skipped its own cleanup must still leave no browser running.
+	bidi.CloseAll()
+	os.Exit(code)
 }
 
 func run(args []string) int {
@@ -45,6 +49,8 @@ func run(args []string) int {
 		return a11yCmd(args[1:])
 	case "coverage":
 		return coverageCmd(args[1:])
+	case "doctor":
+		return doctorCmd(args[1:])
 	case "audit":
 		if len(args) > 1 && args[1] == "a11y" {
 			return a11yCmd(args[2:])
@@ -73,9 +79,10 @@ func usage() {
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
+  dummyrun doctor [--stop]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
