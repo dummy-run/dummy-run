@@ -37,7 +37,7 @@ Consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and s
 ## Who else handles it
 
 - Cloudflare hosts this site and runs the sign-up service, its database and the Turnstile human check.
-- Postmark sends our emails. It is a US provider, so your address leaves the UK when we send you an email. Transfers rely on the safeguards the UK GDPR allows.
+- Resend sends our emails. It is a US company, so your address leaves the UK when we send you an email. Its data processing terms use standard contractual clauses with the UK addendum. Resend also says it follows the EU-US Data Privacy Framework and its UK Extension. These are safeguards the UK GDPR allows.
 
 ## Your rights
 
