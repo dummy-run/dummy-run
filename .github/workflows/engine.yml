@@ -82,6 +82,8 @@ jobs:
         run: go test -run='^$' -fuzz=FuzzDecode -fuzztime=30s ./internal/bidi/
       - name: Fuzz the run record writer for 30 seconds
         run: go test -run='^$' -fuzz=FuzzWrite -fuzztime=30s ./internal/record/
+      - name: Fuzz the provider response decoders for 30 seconds
+        run: go test -run='^$' -fuzz=FuzzDecodeResponses -fuzztime=30s ./internal/provider/
 
   conformance:
     name: BiDi conformance on Chrome and Firefox

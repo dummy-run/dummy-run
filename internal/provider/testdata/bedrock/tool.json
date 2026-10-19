@@ -1,0 +1,1 @@
+{"output":{"message":{"role":"assistant","content":[{"toolUse":{"toolUseId":"tooluse_fixture","name":"look","input":{}}}]}},"stopReason":"tool_use","usage":{"inputTokens":192,"outputTokens":30,"totalTokens":222},"metrics":{"latencyMs":900}}

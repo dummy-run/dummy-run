@@ -1,0 +1,1 @@
+{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"look","args":{}},"thoughtSignature":"c2lnbmF0dXJl"}]},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":192,"candidatesTokenCount":10,"thoughtsTokenCount":20,"totalTokenCount":222},"modelVersion":"gemini-test","responseId":"fixture-tool"}

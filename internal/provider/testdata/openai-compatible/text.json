@@ -1,0 +1,25 @@
+{
+    "id": "chatcmpl-604",
+    "object": "chat.completion",
+    "created": 1792430567,
+    "model": "llama3.2:3b",
+    "system_fingerprint": "fp_ollama",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "Hello, how are you?"
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 31,
+        "prompt_tokens_details": {
+            "cached_tokens": 15
+        },
+        "completion_tokens": 7,
+        "total_tokens": 38
+    }
+}

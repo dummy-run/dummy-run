@@ -106,10 +106,12 @@ type Finding struct {
 
 // Usage is the model usage for the run.
 type Usage struct {
-	ModelCalls   int      `json:"model_calls"`
-	InputTokens  int      `json:"input_tokens"`
-	OutputTokens int      `json:"output_tokens"`
-	CostUSD      *float64 `json:"cost_usd,omitempty"`
+	ModelCalls   int `json:"model_calls"`
+	InputTokens  int `json:"input_tokens"`
+	OutputTokens int `json:"output_tokens"`
+	// CachedInputTokens is the part of InputTokens served from the prompt cache.
+	CachedInputTokens int      `json:"cached_input_tokens,omitempty"`
+	CostUSD           *float64 `json:"cost_usd,omitempty"`
 }
 
 // Outcomes and other enumerations from the schema.

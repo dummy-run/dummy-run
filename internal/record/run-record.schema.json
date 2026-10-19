@@ -48,7 +48,7 @@
       "additionalProperties": false,
       "required": ["kind", "model", "region"],
       "properties": {
-        "kind": { "type": "string", "description": "vertex-gemini, anthropic, openai-compatible, azure-foundry" },
+        "kind": { "type": "string", "description": "vertex-gemini, gemini-api, anthropic, openai-compatible, azure-foundry, bedrock" },
         "model": { "type": "string" },
         "region": { "type": "string", "description": "Region the model ran in, or global" }
       }
@@ -112,6 +112,7 @@
         "model_calls": { "type": "integer", "minimum": 0 },
         "input_tokens": { "type": "integer", "minimum": 0 },
         "output_tokens": { "type": "integer", "minimum": 0 },
+        "cached_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens the service served from its prompt cache, where it reports that" },
         "cost_usd": { "type": "number", "minimum": 0 }
       }
     }
