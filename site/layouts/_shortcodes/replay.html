@@ -1,0 +1,69 @@
+{{- $r := hugo.Data.replay -}}
+{{- $total := len $r.steps -}}
+<div class="rp">
+  <h2 id="rp-facts-h">The run</h2>
+  <dl class="rp-facts">
+    <div><dt>Persona</dt><dd>{{ $r.persona }} ({{ $r.device }})</dd></div>
+    <div><dt>Scenario</dt><dd>{{ $r.scenario }}</dd></div>
+    <div><dt>Date</dt><dd><time datetime="{{ $r.date }}">{{ time.Format "2 January 2006" $r.date }}</time></dd></div>
+    <div><dt>Model</dt><dd>{{ $r.model }} ({{ $r.region }})</dd></div>
+    <div><dt>Browser</dt><dd>{{ $r.browser }}</dd></div>
+    <div><dt>Steps</dt><dd>{{ $total }}</dd></div>
+    <div><dt>Tokens</dt><dd>{{ lang.FormatNumber 0 $r.input_tokens }} in, {{ lang.FormatNumber 0 $r.output_tokens }} out ({{ $r.calls }} model calls)</dd></div>
+    <div><dt>Cost</dt><dd>Not recorded</dd></div>
+    <div><dt>Outcome</dt><dd>{{ $r.outcome }}, verdict pass</dd></div>
+    <div><dt>Run ID</dt><dd><code>{{ $r.run_id }}</code></dd></div>
+  </dl>
+
+  <h2 id="rp-findings-h">What it found</h2>
+  <p>The reviewer is not built yet. Every finding below is the persona's own claim and still pending.</p>
+  <ul class="rp-findings">
+  {{- range $r.findings }}
+    {{- $f := . }}
+    <li class="rp-finding">
+      <p class="rp-finding-meta">{{ .kind }} · {{ .severity }} · evidence {{ .evidence }} · {{ .verdict }}</p>
+      <p class="rp-finding-title">{{ .title }}</p>
+      <p class="rp-finding-steps">Cites {{ if gt (len .steps) 1 }}steps{{ else }}step{{ end }}
+        {{ range $i, $n := .steps }}{{ if $i }} {{ end }}<a class="rp-jump" href="#step-{{ $n }}" data-step="{{ $n }}">{{ $n }}</a>{{ end }}</p>
+    </li>
+  {{- end }}
+  </ul>
+
+  <h2 id="rp-steps-h">The steps</h2>
+  <div class="rp-bar" hidden>
+    <button type="button" class="rp-btn" data-rp="prev">Previous step</button>
+    <p class="rp-pos" role="status" aria-live="polite">Step 1 of {{ $total }}</p>
+    <button type="button" class="rp-btn" data-rp="next">Next step</button>
+  </div>
+  <nav class="rp-index" aria-label="Steps" hidden>
+    <ol>
+    {{- range $r.steps }}
+      <li><button type="button" class="rp-dot" data-step="{{ .n }}" aria-label="Step {{ .n }}, {{ .action }}">{{ .n }}</button></li>
+    {{- end }}
+    </ol>
+  </nav>
+  <ol class="rp-steps">
+  {{- range $r.steps }}
+    {{- $s := . }}
+    <li class="rp-step" id="step-{{ .n }}">
+      <h3 id="step-{{ .n }}-h" class="rp-step-h">Step {{ .n }}: {{ .action }}{{ with .target }} <span class="rp-target">{{ . }}</span>{{ end }}</h3>
+      <figure class="rp-shot">
+        <img src="/replay/{{ printf "%03d" (int .n) }}.webp" width="1000" height="714" loading="{{ if le .n 1 }}eager{{ else }}lazy{{ end }}" decoding="async" alt="What the persona saw at step {{ .n }}: the page titled {{ .title }}{{ with .headings }}, with the heading {{ index . 0 | strings.TrimRight "." }}{{ end }}.">
+      </figure>
+      <dl class="rp-detail">
+        <div><dt>Page</dt><dd>{{ .title }} <span class="rp-muted">{{ .url }} · {{ .status }} · {{ .ms }} ms</span></dd></div>
+        {{- with .said }}<div><dt>Persona said</dt><dd>{{ . }}</dd></div>{{ end }}
+        {{- with .note }}<div><dt>Persona said</dt><dd>{{ . }}</dd></div>{{ end }}
+        <div><dt>Action</dt><dd>{{ .action }}{{ with .target }}, target {{ . }}{{ end }}</dd></div>
+        {{- with .focus }}<div><dt>Focus</dt><dd>{{ . }}</dd></div>{{ end }}
+        {{- $cited := slice }}
+        {{- range $r.findings }}{{ if in .steps $s.n }}{{ $cited = $cited | append . }}{{ end }}{{ end }}
+        {{- if $cited }}<div><dt>Findings</dt><dd>{{ range $cited }}{{ .title }}<br>{{ end }}</dd></div>{{ end }}
+      </dl>
+      {{- with .outline }}
+      <details class="rp-outline"><summary>Accessibility outline the persona read</summary><pre tabindex="0">{{ . }}</pre></details>
+      {{- end }}
+    </li>
+  {{- end }}
+  </ol>
+</div>

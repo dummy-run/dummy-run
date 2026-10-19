@@ -89,3 +89,77 @@
     button.hidden = false;
   });
 })();
+
+// Watch a run. Without JavaScript every step shows as a list. With it, one step shows at a time.
+(function () {
+  var bar = document.querySelector(".rp-bar");
+  if (!bar) {
+    return;
+  }
+  var steps = Array.prototype.slice.call(document.querySelectorAll(".rp-step"));
+  var dots = Array.prototype.slice.call(document.querySelectorAll(".rp-dot"));
+  var index = document.querySelector(".rp-index");
+  var pos = bar.querySelector(".rp-pos");
+  var prev = bar.querySelector("[data-rp=prev]");
+  var next = bar.querySelector("[data-rp=next]");
+  var current = 1;
+
+  function show(n, move) {
+    n = Math.max(1, Math.min(steps.length, n));
+    current = n;
+    steps.forEach(function (li, i) {
+      li.hidden = i + 1 !== n;
+    });
+    dots.forEach(function (d, i) {
+      if (i + 1 === n) {
+        d.setAttribute("aria-current", "step");
+      } else {
+        d.removeAttribute("aria-current");
+      }
+    });
+    pos.textContent = "Step " + n + " of " + steps.length;
+    prev.disabled = n === 1;
+    next.disabled = n === steps.length;
+    if (move) {
+      var h = steps[n - 1].querySelector(".rp-step-h");
+      h.tabIndex = -1;
+      h.focus({ preventScroll: true });
+    }
+  }
+
+  function fromHash() {
+    var m = /^#step-(\d+)$/.exec(window.location.hash);
+    return m ? parseInt(m[1], 10) : 1;
+  }
+
+  prev.addEventListener("click", function () { show(current - 1, false); });
+  next.addEventListener("click", function () { show(current + 1, false); });
+  dots.forEach(function (d, i) {
+    d.addEventListener("click", function () { show(i + 1, true); });
+  });
+  document.querySelectorAll(".rp-jump").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      show(parseInt(a.getAttribute("data-step"), 10), true);
+      bar.scrollIntoView({ block: "start" });
+    });
+  });
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    var typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT");
+    if (typing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
+      return;
+    }
+    var inScrubber = t && t.closest && t.closest(".rp-bar, .rp-index");
+    if (!inScrubber) {
+      return;
+    }
+    if (e.key === "ArrowRight") { show(current + 1, false); e.preventDefault(); }
+    if (e.key === "ArrowLeft") { show(current - 1, false); e.preventDefault(); }
+  });
+  window.addEventListener("hashchange", function () { show(fromHash(), false); });
+
+  bar.hidden = false;
+  index.hidden = false;
+  show(fromHash(), false);
+})();
