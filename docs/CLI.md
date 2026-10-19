@@ -19,9 +19,10 @@ Usage:
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
+  dummyrun doctor [--stop]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -171,6 +172,16 @@ Flags:
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
 tested, 2 for a usage error.
+```
+
+## dummyrun doctor
+
+List browsers and profile directories that an earlier run left behind, and stop them with `--stop`.
+
+```text
+Usage of doctor:
+  -stop
+    	stop the browsers listed and remove their profile directories
 ```
 
 ## dummyrun-otel
