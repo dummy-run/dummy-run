@@ -101,8 +101,64 @@ func launch(t *testing.T, browser string) *bidi.Browser {
 	if err != nil {
 		t.Fatalf("launch %s: %v", browser, err)
 	}
+	// Cleanups run last in, first out, so this check runs after Close.
+	t.Cleanup(func() {
+		for _, d := range b.ProfileDirs() {
+			if _, err := os.Stat(d); err == nil {
+				t.Errorf("profile %s outlived its test", d)
+			}
+		}
+		if b.Alive() {
+			t.Errorf("%s still has a running process after Close", browser)
+		}
+	})
 	t.Cleanup(b.Close)
 	return b
+}
+
+func TestLaunchAndCloseLeaveNothingBehind(t *testing.T) {
+	for _, browser := range browsersUnderTest(t) {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatalf("launch %s: %v", browser, err)
+			}
+			dirs := b.ProfileDirs()
+			if len(dirs) == 0 || !b.Alive() {
+				t.Fatalf("expected a running browser with a profile, got alive=%v dirs=%v", b.Alive(), dirs)
+			}
+			before, err := bidi.FindLeftovers()
+			if err != nil {
+				t.Fatal(err)
+			}
+			b.Close()
+			if b.Alive() {
+				t.Error("a process is still running after Close")
+			}
+			for _, d := range dirs {
+				if _, err := os.Stat(d); !os.IsNotExist(err) {
+					t.Errorf("profile %s remains", d)
+				}
+			}
+			after, err := bidi.FindLeftovers()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Other browsers may be running for other work, so look only for this one's profile.
+			for _, p := range after.Processes {
+				for _, d := range dirs {
+					if strings.Contains(p.Args, d) {
+						t.Errorf("process %d still names %s", p.PID, d)
+					}
+				}
+			}
+			if len(before.Processes) == 0 {
+				t.Error("FindLeftovers did not see the running browser")
+			}
+		})
+	}
 }
 
 func evalString(t *testing.T, c *bidi.Conn, cx, expr string) string {
