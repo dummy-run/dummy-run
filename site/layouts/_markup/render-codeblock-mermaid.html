@@ -1,0 +1,8 @@
+{{- /* Mermaid blocks in the repository docs render on GitHub. The site has no script to draw them, so each known diagram is hand-built as HTML in _partials/diagrams/. Unknown diagrams show their source. */ -}}
+{{- $name := path.Base (strings.TrimSuffix "/" .Page.RelPermalink) -}}
+{{- $tpl := printf "diagrams/%s.html" $name -}}
+{{- if templates.Exists (printf "_partials/%s" $tpl) -}}
+{{ partial $tpl . }}
+{{- else -}}
+<pre class="diagram-source"><code>{{ .Inner }}</code></pre>
+{{- end -}}

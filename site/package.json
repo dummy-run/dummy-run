@@ -1,0 +1,16 @@
+{
+  "name": "dummyrun-site-checks",
+  "private": true,
+  "description": "Checks for the dummyrun.dev website. Hugo builds the site; these tools check the output.",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "html-validate": "11.16.1",
+    "pa11y-ci": "4.1.1"
+  },
+  "scripts": {
+    "build": "hugo --gc --minify --panicOnWarning",
+    "check:html": "html-validate 'public/**/*.html'",
+    "check:a11y": "pa11y-ci --config .pa11yci.cjs",
+    "serve": "python3 -m http.server 1313 -d public --bind 127.0.0.1"
+  }
+}

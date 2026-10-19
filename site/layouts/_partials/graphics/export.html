@@ -1,0 +1,6 @@
+<div class="graphic export" role="group" aria-label="What the telemetry exporter sends and what stays with you">
+  <div class="is-goes"><h3>{{ partial "icons/icon.html" (dict "name" "out") }}Goes to your OpenTelemetry backend</h3>
+    <ul><li>Run, batch, persona and scenario IDs</li><li>Outcome, target environment and commit</li><li>Page URLs and HTTP statuses</li><li>Model, region, tokens and cost</li><li>Finding title, kind, severity, evidence tag and verdict</li></ul></div>
+  <div class="is-stays"><h3>{{ partial "icons/icon.html" (dict "name" "lock") }}Stays with the run record</h3>
+    <ul><li>Screenshots</li><li>Page text</li><li>The persona's notes on each step</li><li>Console and network bodies</li><li>Test-user credentials and provider keys, which are never recorded</li></ul></div>
+</div>

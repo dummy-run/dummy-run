@@ -1,0 +1,20 @@
+{{ define "main" }}
+<div class="docs-layout">
+  <article class="prose">
+    <header class="page-header">
+      <h1 class="u-title">{{ .Title }}</h1>
+      {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
+    </header>
+    {{ .Content }}
+    <dl class="ref-list">
+      {{ range .RegularPages.ByWeight }}
+      <div class="ref-item">
+        <dt><a href="{{ .RelPermalink }}">{{ .Title }}</a></dt>
+        <dd>{{ .Summary | plainify }}</dd>
+      </div>
+      {{ end }}
+    </dl>
+  </article>
+  {{ partial "docs-nav.html" . }}
+</div>
+{{ end }}

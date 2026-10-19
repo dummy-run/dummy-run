@@ -1,0 +1,89 @@
+baseURL = "https://dummyrun.dev/"
+locale = "en-GB"
+title = "Dummy Run"
+enableRobotsTXT = true
+disableKinds = ["taxonomy", "term", "rss"]
+timeout = "120s"
+
+[params]
+  description = "AI plays your users and tries your app before your customers do."
+  repo = "https://github.com/dummy-run/dummy-run"
+
+[markup.goldmark.renderer]
+  unsafe = false
+
+[markup.goldmark.parser.attribute]
+  block = true
+
+[markup.highlight]
+  noClasses = false
+  lineNos = false
+
+[markup.tableOfContents]
+  startLevel = 2
+  endLevel = 2
+
+[sitemap]
+  changefreq = "weekly"
+
+[minify.tdewolff.html]
+  keepEndTags = true
+  keepQuotes = true
+  keepDocumentTags = true
+  keepComments = false
+
+[[module.mounts]]
+  source = "content"
+  target = "content"
+[[module.mounts]]
+  source = "static"
+  target = "static"
+[[module.mounts]]
+  source = "layouts"
+  target = "layouts"
+[[module.mounts]]
+  source = "assets"
+  target = "assets"
+[[module.mounts]]
+  source = "../docs"
+  target = "assets/repo/docs"
+  files = ["/*.md", "/integrations/*.md", "/images/**"]
+[[module.mounts]]
+  source = "../CONTRIBUTING.md"
+  target = "assets/repo/CONTRIBUTING.md"
+[[module.mounts]]
+  source = "../SECURITY.md"
+  target = "assets/repo/SECURITY.md"
+[[module.mounts]]
+  source = "../TRADEMARKS.md"
+  target = "assets/repo/TRADEMARKS.md"
+[[module.mounts]]
+  source = "../brand/README.md"
+  target = "assets/repo/brand/README.md"
+[[module.mounts]]
+  source = "../brand/logo"
+  target = "assets/brand/logo"
+[[module.mounts]]
+  source = "../brand/mascot"
+  target = "assets/brand/mascot"
+[[module.mounts]]
+  source = "../schema"
+  target = "assets/repo/schema"
+[[module.mounts]]
+  source = "../examples/runs"
+  target = "assets/repo/examples/runs"
+[[module.mounts]]
+  source = "../brand/logo/favicon.svg"
+  target = "static/favicon.svg"
+[[module.mounts]]
+  source = "../brand/logo/favicon-32.png"
+  target = "static/favicon-32.png"
+[[module.mounts]]
+  source = "../brand/logo/favicon-180.png"
+  target = "static/apple-touch-icon.png"
+[[module.mounts]]
+  source = "../brand/logo/favicon-512.png"
+  target = "static/icon-512.png"
+[[module.mounts]]
+  source = "../brand/logo/social-card.png"
+  target = "static/social-card.png"

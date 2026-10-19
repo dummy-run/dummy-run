@@ -1,0 +1,22 @@
+{{- $who := .who | default "sam-author" -}}
+<div class="graphic persona" role="group" aria-label="A persona card">
+  {{- if eq $who "lin-contributor" }}
+  <div class="persona-head">{{ partial "icons/mascot.html" (dict) }}<div class="persona-name">Lin<span class="g-code">lin-contributor</span></div></div>
+  <dl>
+    <dt>Role</dt><dd>Contributor</dd>
+    <dt>Device</dt><dd>Tablet, Firefox</dd>
+    <dt>Goals</dt><dd>Send a first pitch. Check a payment status</dd>
+    <dt>May</dt><dd><span class="g-tag">pitch</span><span class="g-tag">see own payments</span></dd>
+    <dt>May not</dt><dd><span class="g-tag is-off">see other writers' rates</span></dd>
+  </dl>
+  {{- else }}
+  <div class="persona-head">{{ partial "icons/mascot.html" (dict) }}<div class="persona-name">Sam<span class="g-code">sam-author</span></div></div>
+  <dl>
+    <dt>Role</dt><dd>Author</dd>
+    <dt>Device</dt><dd>Phone, 390 by 844</dd>
+    <dt>Goals</dt><dd>Submit a draft. Reply to review comments</dd>
+    <dt>May</dt><dd><span class="g-tag">write drafts</span><span class="g-tag">reply to reviews</span></dd>
+    <dt>May not</dt><dd><span class="g-tag is-off">approve</span><span class="g-tag is-off">schedule</span></dd>
+  </dl>
+  {{- end }}
+</div>

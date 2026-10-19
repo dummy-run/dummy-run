@@ -1,0 +1,16 @@
+<header class="masthead">
+  <a class="lockup" href="/" {{ if .IsHome }}aria-current="page"{{ end }}>
+    {{ partial "mark.html" (dict "class" "lockup-mark") }}
+    <span class="lockup-name">Dummy Run</span>
+  </a>
+  <nav class="masthead-nav" aria-label="Site">
+    <a href="/for/" {{ if eq .Section "for" }}aria-current="{{ if eq .RelPermalink "/for/" }}page{{ else }}true{{ end }}"{{ end }}>Who it is for</a>
+    <a href="/docs/" {{ if eq .Section "docs" }}aria-current="{{ if eq .RelPermalink "/docs/" }}page{{ else }}true{{ end }}"{{ end }}>Reference</a>
+    <a href="{{ .Site.Params.repo }}">GitHub</a>
+    <button class="theme-toggle" type="button" hidden>
+      <svg class="theme-toggle-icon theme-toggle-moon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14.5 2.5a9.5 9.5 0 1 0 7 16.3A8.5 8.5 0 0 1 14.5 2.5z"/></svg>
+      <svg class="theme-toggle-icon theme-toggle-sun" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      <span class="theme-toggle-text">Switch to dark theme</span>
+    </button>
+  </nav>
+</header>

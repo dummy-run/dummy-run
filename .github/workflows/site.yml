@@ -1,0 +1,118 @@
+name: Site
+
+on:
+  pull_request:
+    paths:
+      - "site/**"
+      - "docs/**"
+      - "brand/**"
+      - "schema/**"
+      - "examples/runs/**"
+      - "CONTRIBUTING.md"
+      - "SECURITY.md"
+      - "TRADEMARKS.md"
+      - ".github/workflows/site.yml"
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "docs/**"
+      - "brand/**"
+      - "schema/**"
+      - "examples/runs/**"
+      - "CONTRIBUTING.md"
+      - "SECURITY.md"
+      - "TRADEMARKS.md"
+      - ".github/workflows/site.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run before it, so an older build can never deploy after a newer one.
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Site builds and passes its checks
+    runs-on: ubuntu-latest
+    # Pull requests from forks are not built. They cannot reach the deploy job either.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install Hugo 0.165.0 extended
+        run: |
+          set -euo pipefail
+          curl -fsSLo hugo.tgz https://github.com/gohugoio/hugo/releases/download/v0.165.0/hugo_extended_0.165.0_linux-amd64.tar.gz
+          echo "f43494894cdf4a8630a201d5c828051c77f523cc66bb3938b30806835470ac20  hugo.tgz" | sha256sum -c -
+          tar -xzf hugo.tgz hugo
+          sudo mv hugo /usr/local/bin/hugo
+          hugo version
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Install the check tools
+        working-directory: site
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+        run: npm ci --no-audit --no-fund
+      - name: Build
+        working-directory: site
+        run: hugo --gc --minify --panicOnWarning --printPathWarnings --printUnusedTemplates
+      - name: HTML is valid
+        working-directory: site
+        run: npm run --silent check:html
+      - name: Internal links resolve
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --root-dir "${{ github.workspace }}/site/public" --include-fragments --no-progress 'site/public/**/*.html'
+          fail: true
+      - name: Serve the built site
+        working-directory: site
+        run: |
+          python3 -m http.server 1313 -d public --bind 127.0.0.1 &
+          sleep 1
+          curl -fsS -o /dev/null http://127.0.0.1:1313/
+      - name: Accessibility at 1280 and 375 pixels, light theme
+        working-directory: site
+        env:
+          THEME: light
+          CHROME_PATH: /usr/bin/google-chrome
+        run: npm run --silent check:a11y
+      - name: Accessibility at 1280 and 375 pixels, dark theme
+        working-directory: site
+        env:
+          THEME: dark
+          CHROME_PATH: /usr/bin/google-chrome
+        run: npm run --silent check:a11y
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: site
+          path: site/public
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://dummyrun.dev
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: site
+          path: site/public
+      - uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.146.0"
+          command: pages deploy site/public --project-name=dummyrun --branch=main
