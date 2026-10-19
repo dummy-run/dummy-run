@@ -20,7 +20,7 @@ flowchart LR
 
 ## What works today
 
-The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana. The model reviewer and the results board are planned. A person reviews findings with `dummyrun review`.
+The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana (code: `internal/runner/runner.go` and `integrations/grafana/exporter/internal/cli/cli.go`). The model reviewer and the results board are planned (sourced: `docs/PLAN.md`). A person reviews findings with `dummyrun review` (code: `cmd/dummyrun/review.go`).
 
 [Watch a real run](watch-a-run.md) of this website, step by step.
 
@@ -41,7 +41,7 @@ A finding is a claim plus evidence. The reviewer rejects a claim unless a step i
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-Every finding waits for a person to confirm it. `dummyrun review` shows each pending finding with its steps and the paths of its screenshots (code: `cmd/dummyrun/review.go` and `internal/review/view.go`). A person confirms or rejects it, and the verdict goes into the run record with the reviewer's name, the time and the reason (code: `internal/record/record.go`). Nothing is posted for you since no code path sends a finding anywhere (code: `cmd/dummyrun/review.go`). The board will be static HTML plus JSON built from the run records, and a person decides what becomes a ticket (inferred: the board is planned and not built).
+Every finding waits for a person to confirm it. `dummyrun review` shows each pending finding with its steps and the paths of its screenshots (code: `cmd/dummyrun/review.go` and `internal/review/view.go`). A person confirms or rejects it, and the verdict goes into the run record with the reviewer's name, the time and the reason (code: `internal/record/record.go`). `dummyrun review` records verdicts and never creates tickets (code: `cmd/dummyrun/review.go`). The board will be static HTML plus JSON built from the run records, and a person decides what becomes a ticket (inferred: the board is planned and not built).
 
 ## Words we use
 
