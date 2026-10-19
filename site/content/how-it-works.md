@@ -2,7 +2,7 @@
 title: How it works
 next:
   title: Try it
-  text: Install the exporter and look at the example run records in a local Grafana.
+  text: Install the command, run one persona read-only and look at the run in Grafana.
   label: Get started
   href: /start/
 lead: A persona signs in to a preview of your app, tries to do its job and reports back. A reviewer checks every claim before it reaches the board.

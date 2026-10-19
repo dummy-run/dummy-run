@@ -1,7 +1,7 @@
 ---
 title: Get started
-lead: Install the telemetry exporter, start a local Grafana and look at what a run produces.
-description: Get started with Dummy Run. An install command and a local Grafana you can run today, the example run records, and what the persona runner will add.
+lead: Install Dummy Run, run one persona against a site without changing anything, and look at the run in Grafana.
+description: Get started with Dummy Run. Install the dummyrun command, run one persona against a site in read-only mode, then export the run to a local Grafana.
 next:
   title: Pick personas to run
   text: The persona library holds ready-made personas for the users every site has.
@@ -9,53 +9,54 @@ next:
   href: /personas/
 ---
 
-Dummy Run is pre-release. You can install the exporter and read real run records today. The runner that plays a persona against your own app is not packaged yet, so this page uses the example records.
-
 ## What you need
 
 - Go 1.27.1 or later
+- Firefox, or Chrome with a matching chromedriver
+- An Azure OpenAI deployment, signed in with `az login`. It is the only model provider the engine supports so far
 - Docker, for the local Grafana
-- A clone of the repository, for the example records
+- A clone of the repository, for the example cast
 
 ```sh
 git clone https://github.com/dummy-run/dummy-run.git
 cd dummy-run
 ```
 
-## 1. Install the exporter {#install}
+## 1. Install the commands {#install}
 
-`dummyrun-otel` reads run records and sends them to any OpenTelemetry backend.
+`dummyrun` plays a persona. `dummyrun-otel` sends the run to an OpenTelemetry backend.
 
 ```sh
+go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest
 ```
 
-## 2. Start a local Grafana {#grafana}
+## 2. Run one persona {#run}
 
-This runs Grafana with Tempo, Loki and Prometheus in one container. It is for local use only, so the ports bind to your machine alone.
+The example cast visits dummyrun.dev. The target file sets `"read_only": true`, so the browser blocks every request that could change data and every request to another host.
+
+```sh
+export DUMMYRUN_AZURE_ENDPOINT=https://<resource>.openai.azure.com
+dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-the-quickstart \
+  --target examples/targets/dummyrun-dev.json --out ~/.local/share/dummyrun/runs/dummyrun-dev \
+  --browser firefox --provider azure --model <deployment> --region uksouth
+```
+
+The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`.
+
+## 3. Look at it in Grafana {#grafana}
 
 ```sh
 docker run --rm -p 127.0.0.1:4318:4318 -p 127.0.0.1:3000:3000 grafana/otel-lgtm:0.35.0
+dummyrun-otel export ~/.local/share/dummyrun/runs/dummyrun-dev
 ```
 
-## 3. Export the example runs {#export}
+Open `http://localhost:3000` and sign in as `admin` with the password `admin`. Pick Explore, choose Loki and query `{service_name="dummyrun"}` over the last 7 days. Each line links to its trace. To see Grafana without a model deployment, export the example records with `dummyrun-otel export examples/runs`.
 
-The eight records in `examples/runs/` come from Inkwell, a made-up publishing app.
+## 4. Read the record {#read}
 
-```sh
-dummyrun-otel export examples/runs
-```
-
-Open Grafana at `http://localhost:3000` and sign in as `admin` with the password `admin`. Pick Explore, choose Loki and query `{service_name="dummyrun"}` over the last 7 days. Each line links to its trace.
-
-## 4. Read a record {#read}
-
-Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The four Grafana dashboards are on the [Grafana page](docs/grafana.md), and the [Grafana guide](../../docs/integrations/grafana.md) covers the setup for each audience.
-
-## The persona runner
-
-The command that plays a persona is `dummyrun run`. It signs one persona in to a preview, works through one scenario and writes a run record. The [architecture](../../docs/ARCHITECTURE.md) describes the browsers, adapters and model providers it uses.
+Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The [Grafana guide](../../docs/integrations/grafana.md) covers the dashboards and alerts.
 
 ## Sources
 
-The install and run commands are in `integrations/grafana/exporter/README.md`, code. The example records are synthetic, measured.
+The install and run commands are in `docs/ENGINE.md`, code. The export commands are in `integrations/grafana/exporter/README.md`, code. The read-only behaviour is the engine's request interception, code.

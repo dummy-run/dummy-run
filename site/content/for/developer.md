@@ -5,7 +5,7 @@ icon: terminal
 lead_short: Your laptop or CI
 weight: 20
 lead: Your product used the way a customer uses it, on your laptop or in CI.
-description: What a developer gets from Dummy Run. An install command that works today and a real browser on your preview. One JSON run record per run, and headers that join your own telemetry.
+description: What a developer gets from Dummy Run. Two install commands, a real browser on your preview, a read-only mode and a JSON run record per run. One JSON run record per run, and headers that join your own telemetry.
 next:
   title: Run it
   text: Install the exporter, start a local Grafana and see the example runs in under ten minutes.
@@ -15,19 +15,20 @@ next:
 
 ## Install
 
-Go 1.27.1 or later builds the telemetry exporter. It reads run records and sends them to any OpenTelemetry backend.
+Go 1.27.1 or later builds both commands. `dummyrun` plays a persona and `dummyrun-otel` sends the run to any OpenTelemetry backend.
 
 ```sh
+go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest
 ```
 
-The [get started](../start.md) page runs it against the example records and a local Grafana.
+The [get started](../start.md) page runs one persona against a site and exports the run to a local Grafana.
 
 ## A real browser on your preview
 
 {{< graphic name="headers" >}}
 
-A run drives Chrome or Firefox through WebDriver BiDi. Every request to your hosts carries a `traceparent` and a `baggage` header, and the user agent ends with `DummyRun/<version>`. An app instrumented with OpenTelemetry joins the persona's trace.
+A run drives Chrome or Firefox through WebDriver BiDi. A target with `"read_only": true` blocks every request that could change data. Every request to your hosts carries a `traceparent` and a `baggage` header, and the user agent ends with `DummyRun/<version>`. An app instrumented with OpenTelemetry joins the persona's trace.
 
 ## One JSON record per run
 
@@ -41,4 +42,4 @@ An adapter finds the preview for a pull request, creates a test user with the ri
 
 ## Sources
 
-The headers are from [Telemetry](../../../docs/TELEMETRY.md) and the browsers and adapters from the [architecture](../../../docs/ARCHITECTURE.md), both sourced. The install command is in `integrations/grafana/exporter/README.md`, code. The record excerpt is a synthetic example, measured.
+The headers are from [Telemetry](../../../docs/TELEMETRY.md) and the browsers and adapters from the [architecture](../../../docs/ARCHITECTURE.md), both sourced. The install commands and the read-only policy are in `docs/ENGINE.md`, code. The record excerpt is a synthetic example, measured.
