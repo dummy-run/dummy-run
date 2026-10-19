@@ -21,8 +21,8 @@ permissions:
 env:
   # The same pinned Chrome for Testing as the Engine and Site workflows. Keep the three in step.
   CHROME_FOR_TESTING: 155.0.8059.12
-  # Azure OpenAI resource and deployment. Key auth is off, so the run signs in with Entra.
-  DUMMYRUN_AZURE_ENDPOINT: https://dummyrun-openai.openai.azure.com/
+  # Azure OpenAI deployment. Key auth is off, so the run signs in with Entra. The endpoint is the
+  # variable DUMMYRUN_AZURE_ENDPOINT of the production environment, not a value in this file.
   DUMMYRUN_MODEL: gpt-5-4-mini-global
   # Cost cap for each run. Ten scenarios at most, each with 20 steps and 300,000 tokens.
   DUMMYRUN_STEPS: "20"
@@ -85,8 +85,13 @@ jobs:
         id: runs
         env:
           BATCH: dogfood-${{ github.run_id }}
+          DUMMYRUN_AZURE_ENDPOINT: ${{ vars.DUMMYRUN_AZURE_ENDPOINT }}
         run: |
           set -uo pipefail
+          if [ -z "$DUMMYRUN_AZURE_ENDPOINT" ]; then
+            echo "::error::The production environment has no DUMMYRUN_AZURE_ENDPOINT variable"
+            exit 1
+          fi
           out="$RUNNER_TEMP/runs"
           mkdir -p "$out"
           echo "RUNS_DIR=$out" >> "$GITHUB_ENV"
