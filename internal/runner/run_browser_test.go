@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -216,6 +217,166 @@ func TestRunEndToEnd(t *testing.T) {
 			}
 			if !sawBudget {
 				t.Error("the model was never told its remaining budget")
+			}
+		})
+	}
+}
+
+// writePersonaCast writes a cast with one persona whose front matter and
+// scenario text the test chooses.
+func writePersonaCast(t *testing.T, extraFrontMatter, scenario string) string {
+	t.Helper()
+	root := t.TempDir()
+	dir := filepath.Join(root, "kit")
+	if err := os.MkdirAll(filepath.Join(dir, "scenarios"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"profile.md":                "---\nid: kit\nrole: visitor\ndevice: desktop\n" + extraFrontMatter + "---\n# Kit\n",
+		"prompt.md":                 "You are Kit.\n",
+		"scenarios/01-read-docs.md": "# Read the documentation\n\n" + scenario + "\n",
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
+}
+
+func plainServer(t *testing.T) (*httptest.Server, func(path string) int) {
+	t.Helper()
+	var mu sync.Mutex
+	hits := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		hits[r.URL.Path]++
+		mu.Unlock()
+		w.Header().Set("Content-Type", "text/html")
+		if r.URL.Path == "/docs" {
+			_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Docs</title><main><h1>Docs</h1></main></html>`)
+			return
+		}
+		_, _ = io.WriteString(w, sitePage)
+	}))
+	t.Cleanup(srv.Close)
+	return srv, func(path string) int { mu.Lock(); defer mu.Unlock(); return hits[path] }
+}
+
+func runScripted(t *testing.T, browser, castDir string, calls []provider.ToolCall, target string) (*runner.Result, *scripted) {
+	t.Helper()
+	persona, err := cast.Load(castDir, "kit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	prov := &scripted{calls: calls}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	res, err := runner.Run(ctx, runner.Config{
+		Persona: persona, Scenario: persona.Scenarios[0], Provider: prov, Browser: browser, Headless: true, OutDir: t.TempDir(),
+		Target: policy.Target{Adapter: "url", Environment: "local", BaseURL: target + "/", AllowedHosts: []string{"127.0.0.1"}, ReadOnly: true},
+	})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	return res, prov
+}
+
+// TestKeyboardPersonaCannotClick plays a persona with click denied. The click
+// is refused and recorded as a blocked step, the browser never follows the
+// link, and Tab then Enter still works with focus reported at each step.
+func TestKeyboardPersonaCannotClick(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the end-to-end test")
+	}
+	for _, browser := range strings.Split(browsers, ",") {
+		t.Run(browser, func(t *testing.T) {
+			srv, hits := plainServer(t)
+			castDir := writePersonaCast(t, "tools-denied: click\n", "Find the documentation.")
+			res, prov := runScripted(t, browser, castDir, []provider.ToolCall{
+				{Name: "click", Args: json.RawMessage(`{"target":"Documentation"}`)},
+				{Name: "press", Args: json.RawMessage(`{"key":"Tab"}`)},
+				{Name: "press", Args: json.RawMessage(`{"key":"Enter"}`)},
+			}, srv.URL)
+			rec := res.Record
+			if got := rec.Steps[1]; got.Action != "click" || !strings.HasPrefix(got.Note, "blocked: click is not one of the tools kit may use") {
+				t.Errorf("step 2 should be a blocked click: %+v", got)
+			}
+			if !strings.HasSuffix(rec.Steps[1].URL, "/") {
+				t.Errorf("the refused click changed the page to %s", rec.Steps[1].URL)
+			}
+			if !strings.HasSuffix(rec.Steps[3].URL, "/docs") || hits("/docs") != 1 {
+				t.Errorf("Tab then Enter should reach /docs once: step 4 %+v, %d hits", rec.Steps[3], hits("/docs"))
+			}
+			if rec.Persona.Zoom != 0 || rec.Persona.Device != "desktop" {
+				t.Errorf("persona block %+v", rec.Persona)
+			}
+			// The model was told, and saw focus after Tab.
+			if sys := prov.requests[0].System; !strings.Contains(sys, "You may not use these tools: click.") {
+				t.Errorf("system prompt does not list the refused tool")
+			}
+			var sawFocus bool
+			for _, turn := range prov.requests[len(prov.requests)-1].Turns {
+				sawFocus = sawFocus || strings.Contains(turn.Text, `focus: link "Documentation" @`)
+			}
+			if !sawFocus {
+				t.Error("the model never saw focus on the Documentation link after Tab")
+			}
+			var sawRefusal bool
+			for _, turn := range prov.requests[1].Turns {
+				sawRefusal = sawRefusal || strings.Contains(turn.Text, "REFUSED: click is not one of the tools kit may use")
+			}
+			if !sawRefusal {
+				t.Error("the model was not told the click was refused")
+			}
+			steps, err := os.ReadFile(filepath.Join(filepath.Dir(res.Path), rec.ID, "steps.jsonl"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(steps), `"refusal":"click is not one of the tools kit may use`) {
+				t.Error("steps.jsonl does not record the refusal")
+			}
+			if !strings.Contains(string(steps), `"focus":{"role":"link","name":"Documentation"`) {
+				t.Error("steps.jsonl does not record focus")
+			}
+		})
+	}
+}
+
+// TestScenarioDeviceAndZoom plays a persona with a zoom of 200 on a scenario
+// that sets its own device. The scenario's device wins, the page sees the
+// zoomed viewport, the screenshot has the window's pixel size and the record
+// says what was used.
+func TestScenarioDeviceAndZoom(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the end-to-end test")
+	}
+	for _, browser := range strings.Split(browsers, ",") {
+		t.Run(browser, func(t *testing.T) {
+			srv, _ := plainServer(t)
+			castDir := writePersonaCast(t, "zoom: 200\n", "Device: phone. Start at the home page.")
+			res, prov := runScripted(t, browser, castDir, []provider.ToolCall{{Name: "look", Args: json.RawMessage(`{}`)}}, srv.URL)
+			rec := res.Record
+			if rec.Persona.Device != "phone" || rec.Persona.Zoom != 200 {
+				t.Errorf("persona block %+v, want phone at 200", rec.Persona)
+			}
+			first := prov.requests[0].Turns[0].Text
+			if !strings.Contains(first, "zoom: 200% (the page lays out in 195 x 422 CSS px, device pixel ratio 2)") {
+				t.Errorf("the first observation does not show the zoom:\n%s", first)
+			}
+			shot, err := os.Open(filepath.Join(filepath.Dir(res.Path), rec.Steps[0].Screenshot))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = shot.Close() }()
+			cfg, err := png.DecodeConfig(shot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Width != 390 || cfg.Height != 844 {
+				t.Errorf("screenshot is %d by %d pixels, want the phone window 390 by 844", cfg.Width, cfg.Height)
 			}
 		})
 	}

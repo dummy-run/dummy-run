@@ -45,13 +45,14 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 
 A run visits the target's base URL, then lets the model call one tool per turn until it calls `finish` or
 the budget runs out (code: `internal/runner/runner.go`). After every action the model sees the page as text
-with numbered controls and, for the two newest steps, a screenshot. Older steps shrink to one line to keep
+with numbered controls. It also sees the focused element and an accessibility outline. The two newest steps
+come with a screenshot. Older steps shrink to one line to keep
 the context small. The run ends early when the persona gives up: three failed tries at the same thing on the
 same page (code: `internal/runner/patience.go`).
 
 | Tool | What it does |
 |---|---|
-| `look`, `screenshot` | Read the page again: title, headings, numbered controls and text, with a screenshot |
+| `look`, `screenshot` | Read the page again: title, headings, focus, outline, numbered controls and text, with a screenshot |
 | `visit` | Go to an address on the target. Addresses on other hosts are refused before the browser is involved |
 | `click` | Click `@12` from the last look, the control's text or `css:selector` |
 | `fill`, `type` | Put text into a field in one go, or key by key for fields that react as you type |
@@ -60,6 +61,93 @@ same page (code: `internal/runner/patience.go`).
 | `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, wait up to 15 seconds |
 | `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. Only rule IDs and counts are recorded |
 | `finish` | End the run with a verdict, a report and findings that cite step numbers |
+
+## Persona and scenario settings
+
+A persona's `profile.md` starts with a front matter block of `key: value` lines. These keys set how the
+browser behaves for that persona.
+
+| Key | Meaning |
+|---|---|
+| `device` | `desktop` (1400 x 1000), `tablet` (820 x 1180) or `phone` (390 x 844). The window size is in device pixels. This key is required. |
+| `zoom` | Page zoom in percent, from 100 to 500. `200` and `200%` both work. The default is 100 |
+| `tools-allowed` | The only tools the persona may use, separated by spaces or commas. `finish` is always allowed |
+| `tools-denied` | Tools the persona may not use. When both keys are set, a tool must be allowed and not denied |
+
+A scenario file can put `Device: phone` and `Zoom: 200%` on lines of their own. A scenario's setting replaces
+the persona's, so one persona can be run on several devices. The scenario files already start with a line such
+as `Device: desktop. Start at the home page.`, and the engine reads that line. A `Budget: 30 steps` line works
+the same way. A `Device:` line may carry other words after the device name. A `Zoom:` value has its line to
+itself. A run does not start with a device other than `desktop`, `tablet` or `phone`. It does not start with a
+zoom that is not a number from 100 to 500.
+
+### Tool limits
+
+The engine offers the persona every tool. When the persona calls one that its limits rule out, the engine does
+nothing in the browser. The step still counts against the budget. Its result says `REFUSED`, the run record
+gives the step a note beginning `blocked:`, and `steps.jsonl` has a `refusal` field. Three refusals of
+the same tool on the same page make the persona give up, as with any other failed try. The system prompt lists
+the tools the persona may not use, so a refusal is rarely a surprise.
+If a persona may not use `screenshot`, the model is not sent screenshots either. They are still saved for the
+reviewer. The engine's own opening visit is never refused.
+
+### Zoom
+
+A zoom above 100 percent behaves like browser zoom. The window keeps its device size, and the page lays out in
+fewer CSS pixels. At 200 percent a tablet window of 820 x 1180 gives the page 410 x 590 CSS pixels and a
+`devicePixelRatio` of 2. Media queries see the narrower viewport, text is twice its size, and screenshots stay
+820 x 1180 pixels. The engine sets this with `browsingContext.setViewport`, giving it the smaller viewport and
+the `devicePixelRatio` parameter ([WebDriver BiDi, setViewport](https://w3c.github.io/webdriver-bidi/#command-browsingContext-setViewport)).
+The setting is kept across navigations. CSS `zoom` set from a script would not survive a page load, would not
+change media queries and is not standard on Firefox. Observations show a `zoom:` line with the viewport and
+pixel ratio the page reports, so a screenshot and the page's own numbers can be compared. The run record
+holds the zoom in `persona.zoom`. It is left out at 100. The persona object does not allow other keys, so a
+reader that still has the earlier schema rejects a record that has `persona.zoom`. Update the reader's copy of
+`schema/run-record.schema.json` first. The Grafana exporter in this repository is already updated.
+
+This is the setting for WCAG 2.2 SC 1.4.4 (resize text) and SC 1.4.10 (reflow).
+
+### Device in the record
+
+`persona.device` in the run record is the device the run used. When a scenario sets its own, that is the
+scenario's device and not the one in `profile.md`.
+
+## Focus and the accessibility outline
+
+Every observation carries two extra parts, built in the page after each action
+(code: `internal/page/tree.js`).
+
+```
+focus: link "Pricing" @7
+accessibility tree (roles and names computed from the page; @n matches the controls):
+  banner
+    link "Home" @1
+  navigation "Main"
+    link "Docs" @2
+  main
+    heading 1 "Pricing"
+    link "Pricing" @7  <- focus
+    textbox (no name) @8 [required]
+```
+
+The focus line gives the role, accessible name and `@ref` of the element that has keyboard focus. It says
+`focus: nothing` when no element has it. The outline lists landmarks, headings and interactive elements in page
+order. Each line has a role and a name, and may have states. A state is `disabled`, `checked` or `required`. A field can be `invalid`.
+A link to the current page is `current`. A disclosure control shows `expanded` or `collapsed`. An element with no accessible name shows `(no name)`. Moving focus with Tab counts as a change on
+the page, so a persona that tabs through a page is not told that nothing happened. Both parts are also in
+`steps.jsonl` under `page.focus` and `page.tree`.
+
+WebDriver BiDi has no command that returns an accessibility tree. Its only accessibility feature is the
+`accessibility` locator for `browsingContext.locateNodes`, which finds nodes by role and name
+([WebDriver BiDi, locators](https://w3c.github.io/webdriver-bidi/#type-browsingContext-Locator)). The engine
+therefore runs a script with `script.callFunction` that reads the DOM and ARIA attributes. It follows HTML-AAM
+for implicit roles and Accessible Name and Description Computation 1.2 for names, in the common cases. The
+roles and names are an approximation of what each browser exposes, the same on Chrome and Firefox. Shadow DOM
+and cross-origin frames are only partly covered.
+
+The outline has a budget of 600 tokens (`page.TreeTokens`). The engine counts 3 characters to a token, so
+the limit is 1,800 characters. When a page has more, the landmarks and the focused element stay. Headings come next, then
+interactive elements in page order. A last line says how many entries were left out.
 
 The run record matches `schema/run-record.schema.json` and is validated before it is written. Findings
 start with the verdict `pending`; the reviewer is a later stage. Next to the record, `report.md` holds the
@@ -136,3 +224,5 @@ The site's own check is this command, run on Chrome and Firefox against the buil
 against a local test server. They cover the conformance suite (`internal/bidi`) and the tool suite
 (`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`) and the
 accessibility sweep (`internal/a11y`, on a fixture page with known violations). CI runs all of them on ubuntu-latest with pinned browsers.
+The conformance suite includes `browsingContext.setViewport` with `devicePixelRatio`, and the tool suite
+covers focus, the outline and zoom on both browsers.

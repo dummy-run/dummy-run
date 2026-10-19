@@ -117,3 +117,22 @@ func (c *Conn) SetUserAgentOverride(ctx context.Context, userAgent string, conte
 	}
 	return c.Call(ctx, "emulation.setUserAgentOverride", params, nil)
 }
+
+// SetViewportScaled sets the viewport to width by height CSS pixels and the
+// device pixel ratio to ratio. A ratio of 2 with a viewport half the window's
+// size is how a browser behaves at 200 percent page zoom: the page lays out in
+// fewer CSS pixels and each one covers more screen pixels. The command is
+// browsingContext.setViewport with its devicePixelRatio parameter; a ratio of
+// 0 resets the ratio to the browser's own.
+func (c *Conn) SetViewportScaled(ctx context.Context, context string, width, height int, ratio float64) error {
+	params := map[string]any{
+		"context":  context,
+		"viewport": map[string]any{"width": width, "height": height},
+	}
+	if ratio > 0 {
+		params["devicePixelRatio"] = ratio
+	} else {
+		params["devicePixelRatio"] = nil
+	}
+	return c.Call(ctx, "browsingContext.setViewport", params, nil)
+}

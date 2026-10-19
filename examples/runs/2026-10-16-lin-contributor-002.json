@@ -7,7 +7,8 @@
   "persona": {
     "id": "lin-contributor",
     "role": "contributor",
-    "device": "tablet"
+    "device": "tablet",
+    "zoom": 200
   },
   "scenario": {
     "id": "first-pitch",

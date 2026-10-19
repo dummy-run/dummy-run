@@ -58,6 +58,8 @@ func TestMarshalRejectsInvalidRecords(t *testing.T) {
 		"bad outcome":      func(r *Record) { r.Outcome = "done" },
 		"bad action":       func(r *Record) { r.Steps[0].Action = "hover" },
 		"bad device":       func(r *Record) { r.Persona.Device = "watch" },
+		"zoom below 100":   func(r *Record) { r.Persona.Zoom = 50 },
+		"zoom above 500":   func(r *Record) { r.Persona.Zoom = 600 },
 		"bad browser":      func(r *Record) { r.Browser.Name = "safari" },
 		"finding no steps": func(r *Record) { r.Findings[0].Steps = nil },
 		"bad verdict":      func(r *Record) { r.Findings[0].Verdict = "maybe" },
@@ -73,6 +75,25 @@ func TestMarshalRejectsInvalidRecords(t *testing.T) {
 				t.Errorf("expected ErrInvalid, got %v", err)
 			}
 		})
+	}
+}
+
+func TestZoomIsOptionalAndRecorded(t *testing.T) {
+	r := sample()
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte(`"zoom"`)) {
+		t.Error("a record without zoom wrote one")
+	}
+	r.Persona.Zoom = 200
+	data, err = Marshal(r)
+	if err != nil {
+		t.Fatalf("zoom 200 rejected: %v", err)
+	}
+	if !bytes.Contains(data, []byte(`"zoom": 200`)) {
+		t.Errorf("zoom missing from %s", data)
 	}
 }
 
