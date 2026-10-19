@@ -24,6 +24,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/price"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
+	"github.com/dummy-run/dummy-run/internal/signin"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
@@ -59,8 +60,12 @@ type Config struct {
 	Universe []record.RouteUniverseEntry
 	// HTTPClient fetches the home page to identify the build of a URL target. Nil uses a default client.
 	HTTPClient *http.Client
-	Log        io.Writer
-	Launch     bidi.LaunchOptions
+	// SessionFile, when set, signs in from a saved session file instead of the login form.
+	SessionFile string
+	// Getenv reads the credentials' environment variables. Nil uses os.Getenv.
+	Getenv func(string) string
+	Log    io.Writer
+	Launch bidi.LaunchOptions
 }
 
 // Result is what a run produced.
@@ -105,6 +110,9 @@ type run struct {
 	seedSent      *int64
 	build         string
 	buildErr      error
+	plan          *signin.Plan
+	gate          *policy.Gate
+	signin        *record.Signin
 }
 
 // maxFinishRetries is how many times the model is asked to fix a symptom before the finding is dropped.
@@ -139,6 +147,11 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 			fmt.Fprintf(r.log, "build: no commit and the home page could not be hashed (%v); the record has no commit\n", r.buildErr)
 		}
 	}
+	r.gate = policy.NewGate(cfg.Target)
+	var planErr error
+	if r.plan, planErr = r.signinPlan(); planErr != nil {
+		return nil, planErr
+	}
 	r.dir = filepath.Join(cfg.OutDir, r.id)
 	if err := os.MkdirAll(filepath.Join(r.dir, "screens"), 0o750); err != nil {
 		return nil, err
@@ -163,6 +176,10 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	disp := cfg.Persona.DisplayFor(cfg.Scenario)
 	r.display = disp
 	hook := func(req page.Request) page.Decision {
+		// The gate is open only while the engine signs in, and lets the declared sign-in request through.
+		if r.gate.Take(req.Method, req.URL) {
+			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
+		}
 		switch v := cfg.Target.Decide(req.Method, req.URL); v {
 		case policy.Allow:
 			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
@@ -179,6 +196,17 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	r.page = p
 	if err := p.SetUserAgent(ctx, telemetry.UserAgent(p.Browser().UserAgent)); err != nil {
 		return nil, nil, fmt.Errorf("set user agent: %w", err)
+	}
+
+	if r.plan != nil {
+		res, err := signin.Do(ctx, p, cfg.Target, r.plan, r.gate)
+		r.signin = res
+		fmt.Fprintf(r.log, "signin: %s as %s, %s in %d ms\n", r.plan.Method, r.plan.Role, okWord(res.OK), res.DurationMs)
+		if err != nil {
+			return nil, nil, err
+		}
+		// Whatever the sign-in tab logged is not the persona's doing.
+		p.DrainProblems()
 	}
 
 	// The opening visit is the harness's, not the persona's choice, so tool limits do not apply.
@@ -372,6 +400,44 @@ func firstOf(vs ...string) string {
 	return ""
 }
 
+func okWord(ok bool) string {
+	if ok {
+		return "ok"
+	}
+	return "failed"
+}
+
+// signinPlan decides whether and how to sign in, before any browser starts. A role asked for by
+// name must exist in the target file. A persona whose own role matches a credentials role signs in
+// as it without being asked. The credentials are read from the environment here, so a missing
+// variable stops the run before it costs anything.
+func (r *run) signinPlan() (*signin.Plan, error) {
+	cfg := r.cfg
+	role, explicit := cfg.Persona.SigninRole(cfg.Scenario)
+	if cfg.SessionFile != "" && role == "" && !explicit {
+		role = strings.ToLower(cfg.Persona.Role)
+	}
+	if role == "" {
+		return nil, nil
+	}
+	s := cfg.Target.Signin
+	if s == nil {
+		if explicit || cfg.SessionFile != "" {
+			return nil, fmt.Errorf("%s asks to sign in as %s, but the target file has no signin block", cfg.Persona.ID, role)
+		}
+		return nil, nil
+	}
+	if _, _, ok := s.Role(role); !ok && !explicit && cfg.SessionFile == "" {
+		fmt.Fprintf(r.log, "signin: the target has no credentials for the role %q, so %s runs signed out\n", role, cfg.Persona.ID)
+		return nil, nil
+	}
+	getenv := cfg.Getenv
+	if getenv == nil {
+		getenv = os.Getenv
+	}
+	return signin.Resolve(cfg.Target, role, cfg.SessionFile, getenv)
+}
+
 func errNote(err error) string {
 	if err == nil {
 		return ""
@@ -560,6 +626,9 @@ func (r *run) systemPrompt() string {
 	if t.ReadOnly {
 		b.WriteString("- This target is read-only. The browser refuses any request that could change it (POST, PUT, PATCH, DELETE), so a form, sign-up, log-in, search box that posts or chat widget will not work. Do not fill in or submit forms and do not type into chat widgets. If your scenario would need that, note it in the report and move on.\n")
 	}
+	if r.plan != nil {
+		fmt.Fprintf(&b, "- The harness has already signed you in as the %s role, before you began. Do not look for a sign-in form. Signing out is blocked.\n", r.plan.Role)
+	}
 	if d := r.display; d.Zoom > 100 {
 		fmt.Fprintf(&b, "- Your browser is at %d percent zoom on a %s-sized window, so pages lay out in %d x %d CSS pixels and text is %d percent of its normal size. Judge the site as you see it at this zoom.\n", d.Zoom, d.Device, d.CSSWidth, d.CSSHeight, d.Zoom)
 	}
@@ -592,7 +661,7 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 		Target:   r.target(),
 		Provider: record.Provider{Kind: cfg.Provider.Kind(), Model: cfg.Provider.Model(), Region: cfg.Provider.Region()},
 		Browser:  record.Browser{Name: cfg.Browser, Version: "unknown"},
-		Steps:    []record.Step{}, Findings: []record.Finding{}, Usage: r.usage,
+		Steps:    []record.Step{}, Findings: []record.Finding{}, Usage: r.usage, Signin: r.signin,
 	}
 	if r.display.Zoom > 100 {
 		rec.Persona.Zoom = r.display.Zoom

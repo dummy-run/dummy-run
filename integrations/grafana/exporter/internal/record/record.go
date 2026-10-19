@@ -52,6 +52,7 @@ type Run struct {
 	Target        Target    `json:"target"`
 	Provider      Provider  `json:"provider"`
 	Browser       Browser   `json:"browser"`
+	Signin        *Signin   `json:"signin,omitempty"`
 	Outcome       string    `json:"outcome"`
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
@@ -116,6 +117,23 @@ type Provider struct {
 	Kind   string `json:"kind"`
 	Model  string `json:"model"`
 	Region string `json:"region"`
+}
+
+// Signin is how the engine signed the persona in before the run. It holds no credential. The
+// exporter reads it so that a record with the block is accepted, and sends nothing from it.
+type Signin struct {
+	Method         string         `json:"method"`
+	Role           string         `json:"role"`
+	OK             bool           `json:"ok"`
+	AllowedRequest *SigninRequest `json:"allowed_request"`
+	DurationMS     int            `json:"duration_ms"`
+	Error          string         `json:"error,omitempty"`
+}
+
+// SigninRequest is the one request let through during sign-in.
+type SigninRequest struct {
+	Method string `json:"method"`
+	URL    string `json:"url"`
 }
 
 // Browser is the browser the persona used.

@@ -52,10 +52,12 @@ type Record struct {
 	Target    Target    `json:"target"`
 	Provider  Provider  `json:"provider"`
 	Browser   Browser   `json:"browser"`
-	Outcome   string    `json:"outcome"`
-	Steps     []Step    `json:"steps"`
-	Findings  []Finding `json:"findings"`
-	Usage     Usage     `json:"usage"`
+	// Signin says how the engine signed the persona in before the run. Nil when it did not.
+	Signin   *Signin   `json:"signin,omitempty"`
+	Outcome  string    `json:"outcome"`
+	Steps    []Step    `json:"steps"`
+	Findings []Finding `json:"findings"`
+	Usage    Usage     `json:"usage"`
 }
 
 // Persona identifies the persona and how it browsed in this run. Device and
@@ -124,6 +126,27 @@ type Provider struct {
 type Browser struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
+}
+
+// Signin records the sign-in the engine did before the persona started. It never holds a credential.
+type Signin struct {
+	// Method is form or session.
+	Method string `json:"method"`
+	// Role is the role name from the target file's credentials.
+	Role string `json:"role"`
+	OK   bool   `json:"ok"`
+	// AllowedRequest is the one request the read-only policy let through during sign-in. Nil when
+	// none was sent, as with a session file.
+	AllowedRequest *SigninRequest `json:"allowed_request"`
+	DurationMs     int            `json:"duration_ms"`
+	// Error says why the sign-in failed. Credentials are removed from it.
+	Error string `json:"error,omitempty"`
+}
+
+// SigninRequest is a request method and address, without the query.
+type SigninRequest struct {
+	Method string `json:"method"`
+	URL    string `json:"url"`
 }
 
 // Step is one action.
