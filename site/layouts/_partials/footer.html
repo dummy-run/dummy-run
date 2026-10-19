@@ -37,9 +37,10 @@
           <li><a href="/docs/licensing/">Apache-2.0 licence</a></li>
           <li><a href="/docs/trademarks/">Trademark policy</a></li>
           <li><a href="/docs/security/">Report a vulnerability</a></li>
+          <li><a href="/privacy/">Privacy</a></li>
         </ul>
       </div>
     </nav>
-    <p class="footer-note">This site sets no cookies and loads nothing from third parties. The typefaces are Space Grotesk and Atkinson Hyperlegible Next, both under the SIL Open Font License 1.1. The source is in <a href="{{ .Site.Params.repo }}/tree/main/site">site/</a>.</p>
+    <p class="footer-note">This site sets no cookies.{{ if site.Params.waitlist_enabled }} The sign-up form loads Cloudflare Turnstile, a human check. Nothing else loads from a third party.{{ else }} It loads nothing from third parties.{{ end }} The typefaces are Space Grotesk and Atkinson Hyperlegible Next, both under the SIL Open Font License 1.1. The source is in <a href="{{ .Site.Params.repo }}/tree/main/site">site/</a>.</p>
   </div>
 </footer>
