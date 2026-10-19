@@ -17,7 +17,7 @@ next:
 
 {{< graphic name="board" >}}
 
-Each row names the problem, its severity, the persona affected and the reviewer's verdict. A screenshot sits behind each one. The board is static files, so it can sit behind your own login.
+Each row names the problem, its severity, the persona affected and the reviewer's verdict. A screenshot sits behind each one. The board is static files, so it can sit behind your own login. The reviewer and the board are planned. The run record, the report and the screenshots work today.
 
 ## What a run costs
 

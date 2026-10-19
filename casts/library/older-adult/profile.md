@@ -5,6 +5,10 @@ role: visitor
 device: desktop
 tags: trust plain-language error-recovery confidence
 leans-on: look click back
+label: Older adult
+need: understanding
+summary: Reads every word, takes time over each screen and avoids surprises.
+finds: Small text, low contrast, time limits and controls that appear only on hover.
 ---
 # Margaret, older adult with lower confidence online
 

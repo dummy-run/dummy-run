@@ -5,6 +5,11 @@ role: visitor
 device: phone
 tags: mobile performance patience
 leans-on: look scroll wait
+label: Phone on a slow connection
+need: device
+summary: Works on a phone-sized screen with one thumb and little patience.
+finds: Small tap targets, close-packed buttons and long pages with no clear way to the part you need.
+limit: The network is not slowed. The page loads at full speed.
 ---
 # Eli, phone user on a slow connection
 

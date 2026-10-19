@@ -7,10 +7,10 @@ weight: 10
 lead: Exploratory testing by role on every pull request, with evidence behind each finding.
 description: What a QA lead gets from Dummy Run. Exploratory testing by role on every pull request, how it sits beside a scripted suite, which browsers it drives and the evidence behind every finding.
 next:
-  title: See what a run writes down
-  text: The run record is the contract between the runner, the reviewer and the board.
-  label: Read the run record format
-  href: /docs/run-record/
+  title: Run one persona
+  text: Install the command and run one persona against a site without changing anything.
+  label: Get started
+  href: /start/
 ---
 
 ## Beside your scripted suite {#scripted-suite}
@@ -37,7 +37,7 @@ A run signs one persona in to the preview built for a pull request and works thr
 
 {{< graphic name="finding-card" >}}
 
-A second model reads each claim and looks for a step in the run record that supports it. A claim with no screenshot, log line or code reference is dropped. Blockers and major findings wait for a person to confirm them.
+A second model reads each claim and looks for a step in the run record that supports it. A claim with no screenshot, log line or code reference is dropped. Blockers and major findings wait for a person to confirm them. The reviewer and the board are planned. The run record, the report and the screenshots work today.
 
 ## Same problem, one row
 
