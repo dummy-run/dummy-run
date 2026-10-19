@@ -41,6 +41,7 @@
     <noscript><p class="field-hint">Without JavaScript the form still works, and the human check may not show. If it does not, email privacy@dummyrun.dev.</p></noscript>
   </div>
   {{- with site.Params.waitlist_turnstile_sitekey }}
+  {{- /* nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare says not to pin Turnstile with SRI, because the script must update itself. */}}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   {{- end }}
 </section>
