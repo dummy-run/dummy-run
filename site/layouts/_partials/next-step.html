@@ -1,0 +1,26 @@
+{{- /* One next step at the foot of every page. A page names its own in front matter (next.title, next.text, next.label and next.href, or next.repo for a path in the repository). A reference page without one points at the page after it. */ -}}
+{{- $n := .Params.next -}}
+{{- $title := "" -}}{{- $text := "" -}}{{- $label := "" -}}{{- $href := "" -}}
+{{- if $n -}}
+  {{- $title = $n.title -}}{{- $text = $n.text -}}{{- $label = $n.label -}}
+  {{- with $n.href }}{{ $href = . }}{{ end -}}
+  {{- with $n.repo }}{{ $href = printf "%s/tree/main/%s" site.Params.repo . }}{{ end -}}
+{{- else if eq .Section "docs" -}}
+  {{- $all := (where .Site.RegularPages "Section" "docs").ByWeight -}}
+  {{- $next := false -}}
+  {{- range $i, $p := $all }}{{ if and (eq $p.RelPermalink $.RelPermalink) (lt (add $i 1) (len $all)) }}{{ $next = index $all (add $i 1) }}{{ end }}{{ end -}}
+  {{- with $next -}}
+    {{- $title = printf "Next in the docs: %s" .Title -}}{{- $text = .Summary | plainify -}}{{- $label = printf "Read %s" .Title -}}{{- $href = .RelPermalink -}}
+  {{- else -}}
+    {{- $title = "That is the last page" -}}{{- $text = "The docs index lists every page by topic." -}}{{- $label = "Back to the docs" -}}{{- $href = "/docs/" -}}
+  {{- end -}}
+{{- end -}}
+{{- with $href }}
+<aside class="next" aria-label="Next step">
+  <div>
+    <p class="next-title">{{ $title }}</p>
+    {{- with $text }}<p class="next-text">{{ . }}</p>{{ end }}
+  </div>
+  <a class="btn" href="{{ $href }}">{{ $label }}</a>
+</aside>
+{{- end }}

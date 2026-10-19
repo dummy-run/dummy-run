@@ -6,6 +6,20 @@ Markdown through mounts in `hugo.toml` and the content adapter in `content/docs/
 `docs/ARCHITECTURE.md` and the site's architecture page are one file. The audience pages and the home
 page live in `content/`.
 
+## Pages and navigation
+
+| Part | Where it lives |
+|---|---|
+| Top-level pages | `content/how-it-works.md`, `content/start.md` and `content/personas.md`. The header and footer link to them by path |
+| Audience pages | `content/for/`. A page sets `role`, `icon`, `lead_short` and `weight`, and the home page and the index build their cards from those |
+| Reference pages | `content/docs/`, and the adapter in `content/docs/_content.gotmpl` for pages rendered from the repository's Markdown. A page joins a group in `hugo.toml` with `group` |
+| Next step | Every page ends with one. Set `next` in the front matter with `title`, `text`, `label` and `href`, or `repo` for a path in the repository. A reference page without one points at the page after it |
+| Mock-ups | A graphic goes in through the `graphic` shortcode or `partials/example.html`, which adds the dashed frame and the Example label. Never place a graphic without it |
+| Persona library | The cards come from `library` in the front matter of `content/personas.md` |
+
+Links between pages never carry a `#fragment` to another page, because the offline link check cannot
+resolve one on a directory URL.
+
 ## Build and check locally
 
 ```sh

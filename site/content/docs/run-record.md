@@ -1,6 +1,7 @@
 ---
 title: Run record
-weight: 50
+weight: 11
+group: understand
 layout: run-record
 summary: The JSON a run writes, field by field, with an example
 lead: One persona working through one scenario against one preview. The runner writes it and the reviewer completes it.

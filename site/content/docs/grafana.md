@@ -1,6 +1,7 @@
 ---
-title: Grafana
-weight: 40
+title: Grafana dashboards
+group: integrate
+weight: 20
 summary: Four dashboards and a local stack for the telemetry a run emits
 lead: Every run is one trace, one annotation and a handful of metrics and log lines. Four dashboards read them.
 description: The Grafana integration for Dummy Run. Four dashboards read the traces, metrics and logs that runs emit. A local stack and an exporter feed them.
@@ -8,9 +9,11 @@ description: The Grafana integration for Dummy Run. Four dashboards read the tra
 
 The [telemetry](../../../docs/TELEMETRY.md) contract gives each run one OpenTelemetry trace with a span per step and an event per finding. It adds a log record per run and per finding. Counters and histograms cover runs and steps. Others cover findings and token spend. Any OpenTelemetry backend can store that. The Grafana integration in `integrations/grafana/` uses Tempo for traces, Loki for logs and Prometheus or Mimir for metrics.
 
-## Get started
+## Install and run
 
-`integrations/grafana/stack` starts Grafana, Tempo, Loki and Prometheus on your machine with one command. `dummyrun-otel` in `integrations/grafana/exporter` sends run records to it, or to Grafana Cloud. The [Grafana guide](../../../docs/integrations/grafana.md) walks through both, then shows how to link runs to your app's own traces and set up alerts. The screenshots below show the dashboards fed 300 synthetic runs against the fictional app Inkwell.
+`dummyrun-otel` reads run records and sends them to Grafana. A local stack in `integrations/grafana/stack/` starts Grafana, Tempo, Loki and Prometheus with one command. The [get started](../start.md) page walks through both. The [Grafana guide](../../../docs/integrations/grafana.md) has a section for each job, from running the local stack to filtering persona sessions out of Faro.
+
+The screenshots below show the dashboards fed with 300 synthetic runs against the fictional app Inkwell.
 
 ## The dashboards
 
