@@ -190,7 +190,7 @@ A version 2 record adds the fingerprint of each finding and the route of each st
 dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
 `internal/price/prices.json`. The cost is null for a model that is not in the table. A target without a `commit` gets one from a hash of its
 home page, which the engine fetches with one GET request outside the browser. Findings
-start with the verdict `pending`; the reviewer is a later stage. Next to the record, `report.md` holds the
+start with the verdict `pending`, and the Review section below shows how a person changes it. Next to the record, `report.md` holds the
 persona's own report and `steps.jsonl` holds the full observation for each step, including page text the
 reviewer can check quotes against.
 
@@ -198,6 +198,104 @@ Every request to the target carries a `baggage` header with the run and persona 
 `traceparent` header unless the page set one itself, in which case the page's header is kept. The trace ID
 and the step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md` describes
 (code: `internal/telemetry/telemetry.go`). The browser's user agent ends with `DummyRun/<version>`.
+
+## Review
+
+A paid report holds only findings that a person has confirmed. `dummyrun review` is where that person works. It reads a folder of run records, or the record files you name (code: `internal/review/store.go`). It lists the findings that are still `pending` and sets each one to `confirmed` or `rejected` (code: `Apply` in `internal/review/store.go`).
+
+List what is waiting. This changes nothing.
+
+<!-- doctest -->
+```sh
+dummyrun review examples/runs --list
+```
+
+Add `--json` for a script, or `--verdict all` to include findings that are already reviewed.
+
+### One finding at a time
+
+Run the command in a terminal with no other flag. It shows the problems one by one, most severe first. Each one lists the persona and the scenario. It also lists the title, the severity and the kind. The route, the symptom and the evidence tag follow. For every step the finding cites it shows the action, what the step saw, the element that had focus and the screenshot file. Open the screenshot yourself and then press a key and Enter.
+
+| Key | What it does |
+|---|---|
+| `c` | Confirm |
+| `r` | Reject. It asks for a short reason and does nothing if you leave it empty |
+| `e` | Change the severity or the title. The change is saved with your next `c` or `r` |
+| `s` | Skip. The finding stays `pending` |
+| `q` | Quit. Nothing is lost, because each decision is saved as you make it |
+
+A session looks like this. The screenshot path is shortened.
+
+```text
+2 problems to review, reviewer Pat Example. Type a key and press Enter.
+
+--- 1 of 2 ---
+minor  accessibility  evidence: measured  class: problem
+  The draft title field has no accessible name
+  fingerprint 87c7d46615a89adf  route /drafts  locus textbox:title  symptom a11y:label
+  persona sam-author (author)  scenario submit-draft  run 2026-10-15-sam-author-001
+  cited steps:
+    step 3  click Schedule
+      saw: status 200, route /drafts
+      focus: button "Schedule"
+      screenshot: runs/2026-10-15-sam-author-001/screens/003.png
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > e
+Severity (blocker major minor info, Enter keeps minor): major
+Title (Enter keeps it):
+The edit is applied with your next confirm or reject.
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > c
+confirmed: 1 finding in 1 run.
+
+--- 2 of 2 ---
+info  question  evidence: inferred  class: problem
+  The payment status 'settled' is unclear to a contributor
+  fingerprint 1718b75300702f7b  route /payments  locus region:payment status  symptom unclear-label
+  persona lin-contributor (contributor)  scenario check-payment  run 2026-10-16-lin-contributor-004
+  3 findings of this problem in all. One verdict covers the 2 still pending. The others:
+    2026-10-16-lin-contributor-002  persona lin-contributor  confirmed  payment-status-wording
+    2026-10-17-lin-contributor-008  persona lin-contributor  pending  payment-status-wording
+  cited steps:
+    step 9  visit
+      saw: status 200, route /payments
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > r
+Reason for rejecting (empty cancels): The wording matches the product glossary
+rejected: 2 findings in 2 runs.
+
+Confirmed 1, rejected 1, skipped 0. 3 findings changed.
+```
+
+### Without a terminal
+
+A script or a CI job names the findings in flags. A selector is a fingerprint or a prefix of at least six characters, in either case. It can also be `run-id/finding-id`, or a finding ID that only one problem uses. The command checks every selector before it writes anything. If one is wrong it exits 2 and changes nothing.
+
+```sh
+dummyrun review runs/ --confirm 87c7d4 --reviewer "Pat Example"
+dummyrun review runs/ --reject 1718b7 --reason "The wording matches the product glossary"
+```
+
+A rejection needs `--reason`. A confirmation may have one. Give `--reason` once. It goes with every verdict in the command. `--reviewer` defaults to `git config user.name`, and the command stops if neither is set. The exit code is 0 when it wrote the verdicts, 1 when a write failed and 2 when the command line was wrong.
+
+### One problem is judged once
+
+Findings with the same fingerprint are one problem seen in several runs. You decide it once. The verdict reaches every finding with that fingerprint that is still `pending`, and the command says how many it changed. A finding that someone has already confirmed or rejected is never changed. An edit to the severity or the title reaches the same pending findings.
+
+### What a decision writes
+
+For each finding it changes, the command sets `verdict` and adds three optional fields from schema version 2.
+
+| Field | Content |
+|---|---|
+| `reviewer` | The `--reviewer` value or `git config user.name` |
+| `reviewed_at` | The time of the decision in UTC |
+| `reason` | Why. Required for a rejection |
+
+Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. If another reviewer saves the record in between, the command reads it again and applies your verdict to what is still pending. Where the system has a lock, two reviewers in the same folder take turns. The command holds the lock while it rewrites a record (code: `internal/review/lock_unix.go` and `internal/review/lock_windows.go`). That covers Linux, macOS, the BSDs and Windows. Windows keeps a `.review.lock` file in the folder. Other systems have no lock. There the command reads the record again just before the rename and starts over if it changed. Two reviewers can still collide in the instant between that check and the rename (code: `internal/review/lock_other.go`). A failure while the record is checked or replaced leaves the old record in place (code: `editOnce` in `internal/review/store.go`). It then adds one line to `review-log.jsonl` in the folder of the record. If that write fails, the records have already changed and the command says so (code: `Apply` in `internal/review/store.go`). The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
+
+Version 1 records have no fingerprint and no review fields. The command skips them and says so.
+
+### Reports and exports
+
+`dummyrun coverage` counts only confirmed findings unless you pass `--confirmed-only=false`. Review before you export. `dummyrun-otel` sends `verdict` with each finding, and it reads reviewed records without change. It does not update what it sent earlier, so sending a record again after a review duplicates its spans and log lines. [TELEMETRY.md](TELEMETRY.md) explains what a repeat does.
 
 ## Read-only policy
 

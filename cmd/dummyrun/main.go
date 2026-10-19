@@ -45,6 +45,8 @@ func run(args []string) int {
 	switch args[0] {
 	case "run":
 		return runCmd(args[1:])
+	case "review":
+		return reviewCmd(args[1:])
 	case "a11y":
 		return a11yCmd(args[1:])
 	case "coverage":
@@ -78,11 +80,12 @@ func usage() {
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
+  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun doctor [--stop]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun review -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
