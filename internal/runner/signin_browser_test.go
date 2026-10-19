@@ -159,12 +159,13 @@ func TestSigninEndToEnd(t *testing.T) {
 					if !strings.Contains(string(reqJSON), "signed you in as the "+role) {
 						t.Errorf("%s: the prompt does not say the harness signed the persona in", role)
 					}
-					secrets := app.Secrets()
-					noSecrets(t, role+" model requests", reqJSON, secrets)
-					noSecrets(t, role+" output files", readAll(t, out), secrets)
-					noSecrets(t, role+" log", log.Bytes(), secrets)
+					// Pages may show a user name, so what holds page text is checked for passwords. The
+					// engine's own output, the record and the log, is checked for both.
+					noSecrets(t, role+" model requests", reqJSON, app.Passwords())
+					noSecrets(t, role+" output files", readAll(t, out), app.Passwords())
+					noSecrets(t, role+" log", log.Bytes(), app.Secrets())
 					raw, _ := json.Marshal(rec)
-					noSecrets(t, role+" record", raw, secrets)
+					noSecrets(t, role+" record", raw, app.Secrets())
 				}
 			})
 		}
@@ -310,7 +311,7 @@ func TestSigninSessionFile(t *testing.T) {
 				if err := json.Unmarshal(raw, &s); err != nil || len(s.Cookies) == 0 {
 					t.Fatalf("session file does not parse as storageState: %v", err)
 				}
-				noSecrets(t, "output files", readAll(t, out), append(app.Secrets(), s.Cookies[0].Value))
+				noSecrets(t, "output files", readAll(t, out), append(app.Passwords(), s.Cookies[0].Value))
 				noSecrets(t, "session file", raw, app.Secrets())
 			})
 		}

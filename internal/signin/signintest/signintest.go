@@ -115,6 +115,16 @@ func (a *App) Target(t testing.TB) policy.Target {
 	return tg
 }
 
+// Passwords lists every password of the app. A page may show a user name, such as an admin's user
+// list, so output that includes page text is checked for passwords only.
+func (a *App) Passwords() []string {
+	var out []string
+	for _, c := range a.Users {
+		out = append(out, c.Password)
+	}
+	return out
+}
+
 // Secrets lists every user name and password of the app.
 func (a *App) Secrets() []string {
 	var out []string
