@@ -10,7 +10,7 @@
     <div><dt>Browser</dt><dd>{{ $r.browser }}</dd></div>
     <div><dt>Steps</dt><dd>{{ $total }}</dd></div>
     <div><dt>Tokens</dt><dd>{{ lang.FormatNumber 0 $r.input_tokens }} in, {{ lang.FormatNumber 0 $r.output_tokens }} out ({{ $r.calls }} model calls)</dd></div>
-    <div><dt>Cost</dt><dd>Not recorded</dd></div>
+    <div><dt>Cost</dt><dd>${{ printf "%.2f" $r.cost_usd }} <span class="rp-muted">{{ $r.cost_note }}</span></dd></div>
     <div><dt>Outcome</dt><dd>{{ $r.outcome }}, verdict pass</dd></div>
     <div><dt>Run ID</dt><dd><code>{{ $r.run_id }}</code></dd></div>
   </dl>

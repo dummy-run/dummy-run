@@ -575,5 +575,7 @@
    "verdict": "pending",
    "route": "/docs/run-record"
   }
- ]
+ ],
+ "cost_usd": 0.152572,
+ "cost_note": "Worked out afterwards from the token counts and the engine's price table, because the record was written before this model was priced."
 }
