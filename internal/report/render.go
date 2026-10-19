@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	texttemplate "text/template"
+	texttemplate "text/template" // nosemgrep: go.lang.security.audit.xss.import-text-template.import-text-template -- the Markdown report is not HTML
 )
 
 //go:embed templates/report.html.tmpl templates/report.md.tmpl
@@ -162,6 +162,7 @@ func embedShot(s Screenshot) htmltemplate.URL {
 		return ""
 	}
 	// The type comes from a fixed list and the rest is base64, so nothing in the URL is markup.
+	// nosemgrep: go.lang.security.audit.xss.template-html-does-not-escape.unsafe-template-type, go.lang.security.audit.net.unescaped-data-in-url.unescaped-data-in-url
 	return htmltemplate.URL("data:" + typ + ";base64," + base64.StdEncoding.EncodeToString(data)) //nolint:gosec // see above
 }
 

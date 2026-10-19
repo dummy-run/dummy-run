@@ -118,7 +118,7 @@ Findings are sorted by severity, then by the number of runs that found them. Eac
 - WCAG 2.2 criterion: {{if $f.WCAG}}{{join $f.WCAG}}{{else}}not recorded for this finding{{end}}
 - Review: {{if eq $f.Status "confirmed"}}confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{$f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}not reviewed. No person has checked this finding{{end}}
 {{- if $f.HelpURL}}
-- Fix guidance: <{{$f.HelpURL}}>
+- Fix guidance: {{$f.HelpURL}}
 {{- end}}
 - Fingerprint: `{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}`
 
@@ -131,7 +131,7 @@ How to reproduce. Run {{$f.Reproduction.Run}}: persona {{$f.Reproduction.Persona
 Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.
 {{end}}
 {{- range $f.Screenshots}}
-![{{.Alt}}]({{.Path}})
+{{.Alt}}. The file is `{{.Path}}`, next to the run record.
 {{end}}
 {{end}}
 {{- if .Axe}}## Axe sweep
@@ -147,7 +147,7 @@ The sweep ran axe-core {{.Axe.AxeVersion}} on {{.Axe.Pages}} pages in {{.Axe.Run
 {{- end}}
 - WCAG 2.2 criterion: {{if .WCAG}}{{join .WCAG}}{{else}}not recorded for this rule{{end}}
 - Elements: {{.Elements}}
-- Fix guidance: {{if .HelpURL}}<{{.HelpURL}}>{{else}}none recorded{{end}}
+- Fix guidance: {{if .HelpURL}}{{.HelpURL}}{{else}}none recorded{{end}}
 
 | Page | Elements | Settings |
 |---|---|---|

@@ -105,7 +105,7 @@ How to reproduce. Run 2026-10-17-lin-contributor-008: persona lin-contributor si
 
 7. Look on /payments.
 
-![Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /payments](screens/008-07.png)
+Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /payments. The file is `screens/008-07.png`, next to the run record.
 
 ### Major: Scheduling an issue for a past date returns a server error
 
@@ -135,14 +135,14 @@ How to reproduce. Run 2026-10-16-ada-editor-003: persona ada-editor signed in as
 - Found by: ada-editor in 1 of 4 runs
 - WCAG 2.2 criterion: 1.4.3
 - Review: not reviewed. No person has checked this finding
-- Fix guidance: <https://dequeuniversity.com/rules/axe/4.13/color-contrast>
+- Fix guidance: https://dequeuniversity.com/rules/axe/4.13/color-contrast
 - Fingerprint: `64afd5191821762c`
 
 How to reproduce. Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.
 
 3. Visit on /drafts.
 
-![Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts](screens/003-03.png)
+Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts. The file is `screens/003-03.png`, next to the run record.
 
 ### Info: The payment status 'settled' is unclear to a contributor
 
@@ -163,7 +163,7 @@ How to reproduce. Run 2026-10-17-lin-contributor-008: persona lin-contributor si
 
 Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).
 
-![Screenshot from run 2026-10-17-lin-contributor-008, step 5: look on /payments](screens/008-05.png)
+Screenshot from run 2026-10-17-lin-contributor-008, step 5: look on /payments. The file is `screens/008-05.png`, next to the run record.
 
 ## Axe sweep
 
@@ -174,7 +174,7 @@ The sweep ran axe-core 4.13.0 on 2 pages in 3 settings (browser, viewport and co
 - Rule: `button-name`
 - WCAG 2.2 criterion: 4.1.2
 - Elements: 1
-- Fix guidance: <https://dequeuniversity.com/rules/axe/4.13/button-name>
+- Fix guidance: https://dequeuniversity.com/rules/axe/4.13/button-name
 
 | Page | Elements | Settings |
 |---|---|---|
@@ -185,7 +185,7 @@ The sweep ran axe-core 4.13.0 on 2 pages in 3 settings (browser, viewport and co
 - Rule: `color-contrast`
 - WCAG 2.2 criterion: 1.4.3
 - Elements: 1
-- Fix guidance: <https://dequeuniversity.com/rules/axe/4.13/color-contrast>
+- Fix guidance: https://dequeuniversity.com/rules/axe/4.13/color-contrast
 
 | Page | Elements | Settings |
 |---|---|---|
