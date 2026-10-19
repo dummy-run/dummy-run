@@ -13,6 +13,7 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/tools/**"
       - ".github/workflows/site.yml"
   push:
     branches: [main]
@@ -27,6 +28,7 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/tools/**"
       - ".github/workflows/site.yml"
 
 permissions:
@@ -110,6 +112,8 @@ jobs:
           curl -fsS -o /dev/null http://127.0.0.1:1313/
       - name: Build the sweep
         run: go build -o "$RUNNER_TEMP/dummyrun" ./cmd/dummyrun
+      - name: Documented commands that need the served site run
+        run: go run ./internal/tools/doctest -site
       - name: Accessibility, Chrome, 1280 and 375 pixels, light and dark
         run: >-
           "$RUNNER_TEMP/dummyrun" a11y --browser chrome

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -46,6 +47,9 @@ func a11yCmd(args []string) int {
 	rest := args
 	for {
 		if err := fs.Parse(rest); err != nil {
+			if errors.Is(err, flag.ErrHelp) {
+				return 0
+			}
 			return 2
 		}
 		if fs.NArg() == 0 {

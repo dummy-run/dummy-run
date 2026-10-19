@@ -41,9 +41,19 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
 | `--endpoint`, `--api-key-env`, `--project` | The provider's base URL, the name of the environment variable holding its API key, and the Google Cloud project for `vertex` |
 | `--reasoning-effort`, `--openai-api` | Reasoning effort, and `responses` to use the Responses API, for OpenAI-style models |
+| `--api-version V` | The Azure OpenAI API version. The default is `2025-04-01-preview` |
+| `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together |
 | `--steps N` | Step budget, up to 40. A scenario can also ask with a `Budget: 30 steps` line. The default is 25 |
 | `--tokens N` | Token budget for input plus output. The default is 1,500,000 |
 | `--headful` | Show the browser window |
+
+[CLI.md](CLI.md) holds the help text of every command, and the commands print it too.
+
+<!-- doctest -->
+```sh
+dummyrun --help
+dummyrun run -h
+```
 
 A run visits the target's base URL, then lets the model call one tool per turn until it calls `finish` or
 the budget runs out (code: `internal/runner/runner.go`). After every action the model sees the page as text
@@ -176,8 +186,9 @@ reaches the test server, on both browsers (measured on Firefox 158.0 and Chrome 
 `internal/provider` defines one interface. A request carries a system prompt and the turns so far. Each turn
 holds text and may hold images and tool calls. The request also lists the tools and may name one forced tool. The Azure OpenAI implementation uses `openai-go`'s `azure` package with
 `azidentity.DefaultAzureCredential`, which tries the environment, workload identity and managed identity
-before the Azure CLI sign-in (code: `internal/provider/azure.go`). The engine has no code path that reads an
-API key. Each call has a 120 second timeout and up to three retries. The API version defaults to `2025-04-01-preview` and `--api-version` overrides
+before the Azure CLI sign-in (code: `internal/provider/azure.go`). The Azure provider has no code path that
+reads an API key. The other providers read a key from the environment when the run starts, as
+[PROVIDERS.md](PROVIDERS.md) says. Each call has a 120 second timeout and up to three retries. The API version defaults to `2025-04-01-preview` and `--api-version` overrides
 it. Token usage from every call is summed into the record's `usage` block, and
 `--region` is recorded as `provider.region` because a deployment does not report where it runs.
 

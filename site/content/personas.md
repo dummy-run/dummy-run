@@ -10,16 +10,16 @@ next:
   repo: casts/library
 library:
   - name: Screen-reader user
-    does: Moves by headings, landmarks and link text and never looks at the picture.
+    does: Moves by headings, landmarks and link text and is not sent screenshots.
     finds: Controls with no name, headings out of order, and focus lost after a dialog closes.
   - name: Keyboard-only user
-    does: Uses only the keyboard, with no mouse and no touch.
+    does: Uses only the keyboard. The engine refuses every click.
     finds: Controls that Tab skips, focus you cannot see, and menus you cannot leave.
   - name: Phone on a slow connection
-    does: Works on a 390 pixel screen with touch and a slow network.
-    finds: Buttons under the keyboard, small tap targets and pages that time out.
+    does: Works on a 390 pixel screen with one thumb and little patience.
+    finds: Small tap targets, close-packed buttons and long pages with no clear way to the part you need.
   - name: 200 percent zoom
-    does: Browses a laptop screen at 200 percent browser zoom.
+    does: Browses a laptop-sized window with the zoom set to 200 percent.
     finds: Cut-off text, sideways scrolling, overlapping controls and sticky bars that cover the page.
   - name: First-time visitor
     does: Knows nothing about your product and gives it five minutes.
@@ -28,7 +28,7 @@ library:
     does: Reads English as a second language and translates long words.
     finds: Idioms, long sentences, unexplained terms and dates in a local format.
   - name: Older adult
-    does: Reads at a larger text size, takes time over each screen and avoids surprises.
+    does: Reads every word, takes time over each screen and avoids surprises.
     finds: Small text, low contrast, time limits and controls that appear only on hover.
   - name: Viewer, editor and admin
     does: Three personas on the same app, one for each permission level.
@@ -47,7 +47,7 @@ A cast is a folder of personas. Copy a persona into your own cast and write it a
 
 ## What it does not replace
 
-A persona is a model. The screen-reader persona is told to ignore the picture and work from the page's text and controls. It catches missing names and a broken reading order. It does not replace a session with a real screen reader and a person who uses one every day.
+A persona is a model. The screen-reader persona is not sent screenshots and works from the page's text, outline and controls. It catches missing names and a broken reading order. It does not replace a session with a real screen reader and a person who uses one every day. The phone persona uses a phone-sized window and gives up early on a heavy page. It does not slow the network.
 
 ## The permission pattern
 

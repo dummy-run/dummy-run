@@ -17,7 +17,7 @@ next:
 
 {{< graphic name="persona-card" who="lin-contributor" >}}
 
-A cast is a set of personas. The example cast has four. Two work on a desktop and the others on a phone and a tablet. Run the same cast against each client's preview, or give a client with its own roles its own personas. The [persona library](../personas.md) holds ready-made personas for the users every site has.
+A cast is a set of personas. The example cast has four. Three work on a desktop and one on a phone. Run the same cast against each client's preview, or give a client with its own roles its own personas. The [persona library](../personas.md) holds ready-made personas for the users every site has.
 
 ## Each client's data stays in its market
 

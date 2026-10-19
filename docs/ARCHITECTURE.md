@@ -27,8 +27,8 @@ flowchart TB
 
 | Adapter | Responsibility | First implementations |
 |---|---|---|
-| Target | Resolve a preview for a change (PR number, branch or URL); create a test user with a named role; seed fixtures; say which hosts a run may touch | Plain URL; then Vercel, Netlify, Cloudflare Pages, GitHub Deployments |
-| LLM provider | Play the persona; review claims. Separate models for the two jobs | Vertex AI (Gemini), Azure AI Foundry, Anthropic, OpenAI-compatible local |
+| Target | Resolve a preview for a change (PR number, branch or URL); create a test user with a named role; seed fixtures; say which hosts a run may touch | Plain URL, built; then Vercel, Netlify, Cloudflare Pages, GitHub Deployments |
+| LLM provider | Play the persona; review claims. Separate models for the two jobs | Azure OpenAI, Anthropic, Gemini on Vertex AI or the Developer API, Amazon Bedrock and any OpenAI-compatible service, all built. See [PROVIDERS.md](PROVIDERS.md) |
 | Runner host | Where the browser runs | Laptop; GitHub Actions; Kubernetes job (Helm); Cloud Run jobs; Azure Container Apps jobs |
 | Results store | Where run records and the board live | Local directory; object storage (GCS, Azure Blob, S3); the board is always static files on top |
 | Secrets | Test-user credentials and provider keys | OS keychain; CI secrets; Secret Manager; Key Vault |
@@ -54,13 +54,16 @@ High-severity findings wait for a person to confirm them.
 
 ## Browsers
 
-Chrome and Firefox are driven through WebDriver BiDi, so the same session code drives both. Mobile is a
-viewport and user-agent profile per persona. Real devices will come through an adapter for a hosted
-browser grid.
+Chrome and Firefox are driven through WebDriver BiDi, so the same session code drives both. A persona's
+device sets the window size (desktop, tablet or phone), and a persona or scenario may set page zoom. The
+user agent is the browser's own, with `DummyRun/<version>` added at the end. Real devices will come
+through an adapter for a hosted browser grid.
 
 ## Deployment
 
-- `deploy/compose` runs everything on one machine with one command.
-- `deploy/helm/dummyrun` is a Helm chart with jobs for the runner and the reviewer and a board
-  publisher. It has a values file per cloud (`values-gcp.yaml` and `values-azure.yaml`).
-- Every release runs the demo cast against the demo app on both clouds and compares the two boards.
+Packaging is planned and none of it is built yet.
+
+- `deploy/compose` will run everything on one machine with one command.
+- `deploy/helm/dummyrun` will be a Helm chart with jobs for the runner and the reviewer and a board
+  publisher. It will have a values file per cloud (`values-gcp.yaml` and `values-azure.yaml`).
+- Every release will run the demo cast against the demo app on both clouds and compare the two boards.

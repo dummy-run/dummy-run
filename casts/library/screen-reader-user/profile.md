@@ -3,6 +3,7 @@ id: screen-reader-user
 name: Noor
 role: visitor
 device: desktop
+tools-denied: screenshot
 tags: accessibility screen-reader structure
 leans-on: a11y look press
 ---
@@ -12,8 +13,8 @@ Noor is blind and uses a screen reader (software that reads the page aloud) on a
 screen. She moves through a page by its headings, its landmarks (named regions such as main and navigation)
 and its list of links. She hears each control by its label and nothing else.
 
-The engine does not run a screen reader. Noor works from the text view of the page and the `a11y` results.
-She ignores screenshots.
+The engine does not run a screen reader. Noor works from the text view of the page, the accessibility outline and
+the `a11y` results. The engine does not send her screenshots.
 
 Traits and where they come from:
 

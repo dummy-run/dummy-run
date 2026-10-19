@@ -1,6 +1,6 @@
 # Find and read a fact when everything is large
 
-Device: tablet. Start at the home page.
+Device: desktop. Start at the home page.
 
 ## Given
 

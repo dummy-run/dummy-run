@@ -40,6 +40,12 @@ reviews:
       instructions: >-
         Check error handling, context cancellation, resource cleanup and data races. Check that telemetry
         names and attributes match docs/TELEMETRY.md exactly. New behaviour needs tests.
+    - path: "site/**"
+      instructions: >-
+        Check every claim on the page against the code on this branch: commands, flags, providers, what
+        installs and how, browsers and devices, tool limits, zoom, and the contents of casts/library. Flag
+        anything the code does not do. Put a shell block that a reader will copy under test with a
+        <!-- doctest --> comment when its commands are safe to run.
     - path: "schema/**"
       instructions: >-
         Any change to the run-record schema must update docs/TELEMETRY.md, examples/generate-runs.py and the
@@ -56,6 +62,19 @@ reviews:
         instructions: >-
           Pass if the pull request changes no code, or if every new or changed behaviour in code has an
           automated test in the same pull request. Fail otherwise and name the untested behaviour.
+      - name: "Docs and site follow the code"
+        mode: warning
+        instructions: >-
+          Pass if the pull request changes nothing under cmd/, internal/, schema/ or integrations/, or if every
+          change there is invisible to a user (tests, comments, refactors, internal names). Otherwise a change
+          is user-visible when it adds, removes or alters a command, a flag, a provider, a tool, a persona
+          setting, a schema field, an exporter flag or a default, or what a page shows. For a user-visible
+          change, pass only if the same pull request also updates the pages that describe it: docs/*.md, a
+          README, CONTRIBUTING.md or the files under site/content/ or site/layouts/, and a CHANGELOG.md entry
+          under Unreleased. A change to a command or provider needs docs/CLI.md or docs/PROVIDERS.md to be
+          regenerated with go generate ./cmd/dummyrun. Fail otherwise, and name what is missing: the docs, the
+          changelog entry, the site content or the regenerated reference, and the user-visible change it
+          should cover.
       - name: "No customer data"
         mode: error
         instructions: >-
