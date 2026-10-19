@@ -181,6 +181,8 @@ Usage of dummyrun-otel export:
     	metric temporality: cumulative or delta (default "cumulative")
   -protocol string
     	OTLP transport: http/protobuf (default) or grpc
+  -signals string
+    	what to send, a comma separated list of traces, metrics, logs and annotations; use it to send only what an earlier export missed. Annotations also need --grafana-url (default "traces,metrics,logs,annotations")
   -timeout duration
     	how long to wait for the final flush (default 30s)
   -verify-loki string
@@ -207,6 +209,8 @@ Usage of dummyrun-otel watch:
     	metric temporality: cumulative or delta (default "cumulative")
   -protocol string
     	OTLP transport: http/protobuf (default) or grpc
+  -signals string
+    	what to send, a comma separated list of traces, metrics, logs and annotations; use it to send only what an earlier export missed. Annotations also need --grafana-url (default "traces,metrics,logs,annotations")
   -timeout duration
     	how long to wait for the final flush (default 30s)
   -verify-loki string
