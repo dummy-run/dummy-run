@@ -320,11 +320,12 @@ func TestEndToEnd(t *testing.T) {
 	})
 
 	t.Run("third process exports an older batch", func(t *testing.T) {
-		// A set that ended five days ago is more than an hour behind the newest line already in Loki.
+		// A set that ended three days ago is more than an hour behind the newest line already in Loki.
+		// Its first run is five days old, so every line stays inside the 168h log window at any time of day.
 		// Whether Loki keeps it depends on whether service.instance.id becomes a stream label in this
 		// Loki, which differs between environments. Either way the exporter must not lose lines
 		// silently: exit 0 means every line arrived, exit 1 means it names every run that is short.
-		older := generateRuns(ctx, t, 6, 5, "-old")
+		older := generateRuns(ctx, t, 6, 3, "-old")
 		olderFiles, err := validator.Load(older)
 		if err != nil {
 			t.Fatal(err)
