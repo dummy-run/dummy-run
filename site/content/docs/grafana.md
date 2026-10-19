@@ -10,7 +10,7 @@ The [telemetry](../../../docs/TELEMETRY.md) contract gives each run one OpenTele
 
 ## Get started
 
-`integrations/grafana/stack` starts Grafana, Tempo, Loki and Prometheus on your machine with one command. `dummyrun-otel` in `integrations/grafana/exporter` sends run records to it, or to Grafana Cloud. The [Grafana guide](../grafana-guide/) walks through both, then shows how to link runs to your app's own traces and set up alerts. The screenshots below show the dashboards fed 300 synthetic runs against the fictional app Inkwell.
+`integrations/grafana/stack` starts Grafana, Tempo, Loki and Prometheus on your machine with one command. `dummyrun-otel` in `integrations/grafana/exporter` sends run records to it, or to Grafana Cloud. The [Grafana guide](../../../docs/integrations/grafana.md) walks through both, then shows how to link runs to your app's own traces and set up alerts. The screenshots below show the dashboards fed 300 synthetic runs against the fictional app Inkwell.
 
 ## The dashboards
 
@@ -39,4 +39,4 @@ Prometheus renames OpenTelemetry metrics on the way in. `dummyrun.runs` becomes 
 
 ## Your app's own traces
 
-The runner adds a `traceparent` header and a `baggage` header to every request it sends to your hosts. An app instrumented with OpenTelemetry joins the persona's trace. The baggage carries `dummyrun.run.id` and `dummyrun.persona.id`, and a span processor in your SDK copies them onto your spans. The [Grafana guide](../grafana-guide/) names the processor for six SDKs and gives the TraceQL to find the spans afterwards.
+The runner adds a `traceparent` header and a `baggage` header to every request it sends to your hosts. An app instrumented with OpenTelemetry joins the persona's trace. The baggage carries `dummyrun.run.id` and `dummyrun.persona.id`, and a span processor in your SDK copies them onto your spans. The [Grafana guide](../../../docs/integrations/grafana.md) names the processor for six SDKs and gives the TraceQL to find the spans afterwards.
