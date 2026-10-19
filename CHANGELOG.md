@@ -22,3 +22,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - `bin/check-prose` enforces the plain-wording rules in `docs/STYLE.md`.
 - The docs cover the plan and the architecture. Others explain the licence, the name and the type scale.
 - `brand/` holds the Viewfinder logo, the Dummy mascot and the colour palette.
+
+### Fixed
+- A local Ollama model no longer fails on its third model call with "invalid message content type". The OpenAI-compatible provider now sends an empty string as the text of a turn that only calls tools.
