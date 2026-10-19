@@ -18,3 +18,12 @@ updates:
     groups:
       site-checks:
         patterns: ["*"]
+  - package-ecosystem: gomod
+    directory: /integrations/grafana/exporter
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      opentelemetry:
+        patterns: ["go.opentelemetry.io/*"]
