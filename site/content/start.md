@@ -50,7 +50,7 @@ Open Grafana at `http://localhost:3000` and sign in as `admin` with the password
 
 ## 4. Read a record {#read}
 
-Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The four Grafana dashboards are on the [Grafana page](docs/grafana.md), and the [Grafana guide](docs/grafana-guide.md) covers the setup for each audience.
+Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The four Grafana dashboards are on the [Grafana page](docs/grafana.md), and the [Grafana guide](../../docs/integrations/grafana.md) covers the setup for each audience.
 
 ## The persona runner
 
