@@ -95,8 +95,44 @@ Anthropic and Gemini are not implemented yet. The interface keeps room for them:
 that a provider may downgrade to automatic tool choice when it cannot honour it, and images travel as PNG
 bytes so each provider can encode them its own way.
 
+## The accessibility sweep
+
+`dummyrun a11y` checks pages for accessibility problems without calling a model. It runs the
+axe-core 4.13.0 copy that the `a11y` tool uses, over the same WebDriver BiDi connection. It checks every page
+you give it (code: `internal/a11y`, `cmd/dummyrun/a11y.go`). `dummyrun audit a11y` is the same command.
+
+```sh
+dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
+  --allow a11y-allow.txt --json report.json https://example.com/404.html
+```
+
+- **Pages.** Give URLs, a sitemap or both. A sitemap index is followed one level. `--rebase URL` moves
+  every sitemap address onto another origin, so a local copy of a site can be tested from its live sitemap.
+- **Rules.** The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA. Best-practice rules are not run.
+- **Sizes.** `--viewport` is `desktop` (1280 wide), `phone` (375 wide) or `both`.
+- **Colour scheme.** `--scheme` is `light`, `dark` or `both`. WebDriver BiDi has no command for
+  `prefers-color-scheme`, so the sweep sets it when it starts the browser (a Blink setting in Chrome, a
+  preference in Firefox) and starts one browser for each scheme. After each page loads it reads the scheme
+  the page actually got. A mismatch is reported as a page error, so a run can never quietly test the wrong theme.
+- **Needs review.** Where axe-core cannot decide, for example text that is partly hidden by a scrolling
+  container, the result is listed as "needs review" in the JSON and does not fail the run.
+- **Output.** A short summary on standard output, listing each failure once with the browser, size and
+  scheme where it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the impact. It also has the WCAG
+  criteria and the element selector. The help link is there too.
+- **Exit status.** 0 when nothing fails. 1 when any violation is not in the allow-list or a page cannot be
+  loaded. 2 for a usage error.
+
+The allow-list holds violations you have accepted. Each line is `rule | page | selector | reason`. The page
+is a URL path and the selector is matched against the element's selector. A `*` matches anything. The reason
+is required, so every exception is explained. A line that matches nothing in a run is reported, so stale
+exceptions can be removed.
+
+The site's own check is this command, run on Chrome and Firefox against the built site by
+`.github/workflows/site.yml`. Its allow-list is `site/a11y-allow.txt`.
+
 ## Tests
 
-`go test ./...` runs the unit tests. Set `DUMMYRUN_BROWSERS=chrome,firefox` to also run the conformance
-suite (`internal/bidi`), the tool suite (`internal/page`) and the end-to-end run with a scripted model
-(`internal/runner`) against a local test server. CI runs all of them on ubuntu-latest with pinned browsers.
+`go test ./...` runs the unit tests. Set `DUMMYRUN_BROWSERS=chrome,firefox` to also run the browser tests
+against a local test server. They cover the conformance suite (`internal/bidi`) and the tool suite
+(`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`) and the
+accessibility sweep (`internal/a11y`, on a fixture page with known violations). CI runs all of them on ubuntu-latest with pinned browsers.
