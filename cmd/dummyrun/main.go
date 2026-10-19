@@ -2,7 +2,11 @@
 //
 //	dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
 //	  --browser chrome|firefox --provider azure --model DEPLOYMENT --region REGION
+//
+// docs/CLI.md holds the help text of each command and is generated from it: run go generate ./cmd/dummyrun.
 package main
+
+//go:generate go run ../../internal/tools/docgen
 
 import (
 	"context"
@@ -64,6 +68,8 @@ func usage() {
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
+Run "dummyrun run -h" or "dummyrun a11y -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
                      DefaultAzureCredential source. --region is required.
@@ -101,6 +107,9 @@ func runCmd(args []string) int {
 	batch := fs.String("batch", "", "batch ID grouping runs started together")
 	headful := fs.Bool("headful", false, "show the browser window")
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
 		return 2
 	}
 	missing := []string{}

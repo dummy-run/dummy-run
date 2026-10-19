@@ -8,7 +8,7 @@ Ten fictional users that most websites have. Copy one into your own cast and ada
 | `screen-reader-user` | Noor, blind, works from headings, landmarks and labels | desktop | accessibility, screen-reader |
 | `keyboard-only-user` | Kit, no mouse, looks for tab order, focus marks and traps | desktop | accessibility, keyboard |
 | `phone-slow-connection` | Eli, one thumb, one bar of signal, little patience | phone | mobile, performance |
-| `low-vision-zoom` | Hana, text enlarged to 200 percent, needs reflow | tablet | accessibility, low-vision |
+| `low-vision-zoom` | Hana, text enlarged to 200 percent, needs reflow | desktop at 200 percent zoom | accessibility, low-vision |
 | `first-time-visitor` | Alex, no context, asks what it is, what it costs and how to start | desktop | general, comprehension |
 | `non-native-reader` | Zofia, reads English as a second language, stops at jargon and idioms | desktop | language, content |
 | `older-adult` | Margaret, careful and wary of scams, wants trust signals and kind errors | desktop | trust, error-recovery |
@@ -22,8 +22,10 @@ start a sign-up or contact journey and stop before the submit button, move aroun
 error. The last three need a sign-in and a target that allows changes, so run them on a test environment with
 test data.
 
-The front matter carries three extra keys the engine ignores. `tags` groups personas and `leans-on` names the
-engine tools the persona uses most. Both are space-separated lists.
+The front matter carries two extra keys the engine ignores. `tags` groups personas and `leans-on` names the
+engine tools the persona uses most. Both are space-separated lists. Three personas use settings the engine
+enforces. `low-vision-zoom` sets `zoom: 200`, `keyboard-only-user` sets `tools-denied: click` and
+`screen-reader-user` sets `tools-denied: screenshot`.
 
 Every trait is tagged `sourced` or `inferred` as [docs/STYLE.md](../../docs/STYLE.md) describes. A sourced
 trait names the page and quotes it. The sources are the WCAG 2.2 Understanding documents and the W3C WAI page

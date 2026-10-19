@@ -21,6 +21,13 @@ docker run --rm -p 4318:4318 -p 3000:3000 grafana/otel-lgtm:0.35.0
 dummyrun-otel export examples/runs
 ```
 
+To see what the exporter would send without a backend, use `--dry-run`. It prints every signal as JSON and sends nothing.
+
+<!-- doctest -->
+```sh
+dummyrun-otel export --dry-run examples/runs | head -n 20
+```
+
 With no `OTEL_EXPORTER_OTLP_ENDPOINT` set, the exporter sends all three signals to
 `http://localhost:4318` over plain HTTP. Open
 Grafana at `http://localhost:3000` (admin / admin), pick Explore and query Loki for

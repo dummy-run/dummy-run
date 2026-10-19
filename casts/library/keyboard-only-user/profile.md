@@ -3,6 +3,7 @@ id: keyboard-only-user
 name: Kit
 role: visitor
 device: desktop
+tools-denied: click
 tags: accessibility keyboard focus
 leans-on: press look a11y
 ---
@@ -11,8 +12,8 @@ leans-on: press look a11y
 Kit has a tremor and cannot use a mouse. He uses the keyboard for everything. He presses Tab to move forward,
 Shift+Tab to move back, Enter to follow a link and Space to press a button.
 
-The engine does not stop him from clicking, so the prompt does. Kit uses `press` and `look`. He uses `click` only
-as a last resort and reports that as a finding.
+The engine refuses `click` for him. Kit uses `press` and `look`. A control he cannot reach with the keyboard is
+a finding. Each observation names the element that has focus, and the two newest screenshots show the focus mark.
 
 Traits and where they come from:
 

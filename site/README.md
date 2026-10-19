@@ -32,6 +32,13 @@ npm run check:a11y
 lychee --offline --root-dir "$PWD/public" --include-fragments 'public/**/*.html'
 ```
 
+To check one page on its own, with `dummyrun` installed and the site served on port 1313:
+
+<!-- doctest site -->
+```sh
+dummyrun a11y --viewport desktop --scheme light --allow site/a11y-allow.txt http://127.0.0.1:1313/start/
+```
+
 `hugo server` serves a live preview on port 1313. The accessibility check is `dummyrun a11y`, the
 engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, and the 404 page, at
 1280 and 375 pixels wide in the light and dark colour schemes. It needs Go, Chrome with chromedriver

@@ -49,12 +49,12 @@ Every finding has a stable ID, so the same problem in three runs is one row on t
 
 | Browser | Driven through | Notes |
 |---|---|---|
-| Chrome | WebDriver BiDi | A persona has a desktop or a phone profile |
+| Chrome | WebDriver BiDi | A persona has a desktop, tablet or phone window, and may set page zoom |
 | Firefox | WebDriver BiDi | The same session code as Chrome |
 | Real phones and tablets | A hosted browser grid, through an adapter | Not available |
 | Safari | Not supported | Dummy Run does not drive it |
 
-A phone persona is a Chrome or Firefox window with a phone's screen size and user agent. Real devices would come through an adapter for a hosted browser grid.
+A phone persona is a Chrome or Firefox window with a phone's screen size. The user agent is the browser's own, with `DummyRun/<version>` added. Real devices would come through an adapter for a hosted browser grid.
 
 ## Sources
 

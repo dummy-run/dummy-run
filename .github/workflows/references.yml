@@ -1,0 +1,45 @@
+name: References
+
+# The command line reference and the provider table are written from the code, and the shell blocks
+# marked with a doctest comment run against a local build. Both fail the pull request that lets the
+# documentation drift. Locally: go generate ./cmd/dummyrun, then go run ./internal/tools/docgen -check
+# and go run ./internal/tools/doctest.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  generated:
+    name: Generated references are current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Tests for the documentation tools
+        run: go test ./internal/tools/...
+      - name: docs/CLI.md and docs/PROVIDERS.md match the code
+        run: go run ./internal/tools/docgen -check
+
+  doctest:
+    name: Documented commands run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Run every block marked with a doctest comment
+        run: go run ./internal/tools/doctest

@@ -13,7 +13,7 @@ next:
 
 - Go 1.27.1 or later
 - Firefox, or Chrome with a matching chromedriver
-- An Azure OpenAI deployment, signed in with `az login`. It is the only model provider the engine supports so far
+- A model provider. The steps below use an Azure OpenAI deployment signed in with `az login`. Other providers also work, and [the provider guide](../../docs/PROVIDERS.md) lists what each needs
 - Docker, for the local Grafana
 - A clone of the repository, for the example cast
 
@@ -31,6 +31,14 @@ go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest
 ```
 
+Check that both are on your path.
+
+<!-- doctest -->
+```sh
+dummyrun version
+dummyrun-otel version
+```
+
 ## 2. Run one persona {#run}
 
 The example cast visits dummyrun.dev. The target file sets `"read_only": true`, so the browser blocks every request that could change data and every request to another host.
@@ -42,7 +50,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
   --browser firefox --provider azure --model <deployment> --region uksouth
 ```
 
-The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`.
+The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`. To use another provider, change `--provider`, `--model` and the sign-in. The [command line reference](../../docs/CLI.md) lists every flag.
 
 ## 3. Look at it in Grafana {#grafana}
 

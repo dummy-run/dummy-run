@@ -38,5 +38,11 @@ commit-msg:
 
 pre-push:
   jobs:
+    - name: generated-docs
+      glob: "{cmd/**,internal/**,docs/CLI.md,docs/PROVIDERS.md,integrations/grafana/exporter/**}"
+      run: go run ./internal/tools/docgen -check
+    - name: doctest
+      glob: "{cmd/**,internal/**,docs/**,site/content/**,integrations/**/README.md,README.md,CONTRIBUTING.md}"
+      run: go run ./internal/tools/doctest
     - name: licence-metadata
       run: uvx --quiet reuse@6.2.0 lint --quiet

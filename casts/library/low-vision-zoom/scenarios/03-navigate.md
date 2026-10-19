@@ -1,6 +1,6 @@
 # Use the menu and footer at large size
 
-Device: tablet. Start at the home page.
+Device: desktop. Start at the home page.
 
 ## Given
 

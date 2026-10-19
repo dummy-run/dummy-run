@@ -22,7 +22,7 @@ flowchart LR
 
 An adapter finds the preview for a pull request, creates a test user with the right role and loads test data. The first adapter takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages follow. The adapter also says which hosts a run may touch.
 
-The persona and the reviewer are two separate model roles. Providers are Vertex AI, Azure AI Foundry, Anthropic and OpenAI-compatible local models. Choose one per market to keep runs inside a jurisdiction such as the UK or the EU.
+The persona and the reviewer are two separate model roles. Providers are Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service works too, including a local server. Choose one per market to keep runs inside a jurisdiction such as the UK or the EU.
 
 ## Evidence
 
@@ -35,7 +35,7 @@ A finding is a claim plus evidence. The reviewer rejects a claim unless a step i
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them. Nothing is posted for you. The board is static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
+High-severity findings wait for a person to confirm them. The engine writes the run record today, and the reviewer and the board build on it. Nothing is posted for you. The board is static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
 
 ## Words we use
 

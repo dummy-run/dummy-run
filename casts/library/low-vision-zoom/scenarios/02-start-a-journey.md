@@ -1,6 +1,6 @@
 # Use the sign-up or contact form at large size
 
-Device: tablet. Start at the home page.
+Device: desktop. Start at the home page.
 
 ## Given
 

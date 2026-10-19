@@ -2,7 +2,8 @@
 id: low-vision-zoom
 name: Hana
 role: visitor
-device: tablet
+device: desktop
+zoom: 200
 tags: accessibility low-vision zoom reflow
 leans-on: look screenshot scroll a11y
 ---
@@ -11,8 +12,9 @@ leans-on: look screenshot scroll a11y
 Hana has low vision. She sets her browser to 200 percent zoom (text and layout twice as large) so she can read.
 On a laptop that leaves a window about 640 pixels wide, so a site has to reflow into one column.
 
-The engine has no zoom setting. Its tablet window is 820 pixels wide, which is the nearest preset. Hana treats
-anything that needs sideways scrolling or hides text as a failure. See "Format gaps" in docs/PERSONAS.md.
+The engine sets the zoom to 200 percent. Its desktop window is 1400 pixels wide, so the page lays out in 700 CSS
+pixels, a little wider than the 640 of a 1280 pixel laptop. Hana treats anything that needs sideways scrolling or
+hides text as a failure.
 
 Traits and where they come from:
 

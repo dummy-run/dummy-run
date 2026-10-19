@@ -54,6 +54,16 @@ var capabilityTable = map[string]Capabilities{
 	"bedrock":           {ToolCalling: true, Images: true, StructuredOutput: true, CachedTokens: true, RegionSelectable: true, DefaultRegion: "eu-west-2"},
 }
 
+// Kinds lists the provider kinds in the capability table, sorted.
+func Kinds() []string {
+	kinds := make([]string, 0, len(capabilityTable))
+	for k := range capabilityTable {
+		kinds = append(kinds, k)
+	}
+	slices.Sort(kinds)
+	return kinds
+}
+
 // CapabilitiesFor returns the table entry for a provider kind.
 func CapabilitiesFor(kind string) (Capabilities, bool) {
 	c, ok := capabilityTable[kind]

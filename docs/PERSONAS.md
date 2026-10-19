@@ -40,20 +40,28 @@ four scenarios that try obvious things a curious user would try, such as an edit
 admin page for an editor. Run them only on a test environment with test data and test accounts. A finding where
 a role can do something it should not is usually the most useful one a run produces.
 
+## Settings a persona can use
+
+The engine reads these keys from `profile.md`, and `Device:` and `Zoom:` lines from a scenario. [ENGINE.md](ENGINE.md)
+has the full rules.
+
+| Setting | Use in the library |
+|---|---|
+| `zoom: 200` | `low-vision-zoom` runs at 200 percent. A desktop window of 1400 pixels then gives the page 700 CSS pixels |
+| `tools-denied: click` | `keyboard-only-user` cannot click. The engine refuses the call and records a `blocked:` note |
+| `tools-denied: screenshot` | `screen-reader-user` is not sent screenshots. They are still saved for the reviewer |
+| `Device:` in a scenario | Runs one persona on another device without a second copy of the persona |
+
 ## Format gaps
 
-The cast format is a folder with `profile.md`, `prompt.md` and scenarios, and the engine ignores front matter
-keys it does not know. These are the things the library needed that the format lacks. The library works around
-each one in the prompt, and the engine code is unchanged.
+The cast format is a folder with `profile.md`, `prompt.md` and scenarios. The engine ignores front matter
+keys it does not know. These are the things the library needs that the format still lacks. The library works
+around each one in the prompt, and the engine code is unchanged.
 
 | Gap | Effect in the library |
 |---|---|
-| No zoom setting. Devices are only desktop (1400 by 1000), tablet (820 by 1180) and phone (390 by 844) | `low-vision-zoom` uses the tablet window and cannot test true 200 percent zoom, which is about 640 pixels wide on a laptop |
 | No network throttling or latency | `phone-slow-connection` gives up early in the prompt. The page loads at full speed |
-| No per-persona tool limits | `keyboard-only-user` is told in the prompt not to click, and `screen-reader-user` is told to ignore screenshots. The engine does not enforce either |
-| The page observation does not say which element has focus | `keyboard-only-user` can judge focus only from the two newest screenshots, so its claims about focus marks are weak evidence |
-| No screen reader or accessibility-tree view | `screen-reader-user` works from the text view and `a11y` results, which only approximate speech output |
+| No screen reader | `screen-reader-user` works from the text view, the accessibility outline and `a11y` results. The outline is computed from the page and only approximates what a screen reader says |
 | No sign-in step, per-role credentials or secrets file | The permission trio assumes the scenario can sign in through the form. Test credentials have no safe place to live |
 | A read-only target blocks sign-in because sign-in is a POST | The permission trio needs a target that allows changes |
-| A scenario cannot set its own device | The `Device:` line in a scenario is prose. The loader uses the persona's device |
 | Front matter is flat `key: value` | `tags` and `leans-on` are space-separated strings and nothing reads them yet |

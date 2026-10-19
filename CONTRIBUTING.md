@@ -1,7 +1,8 @@
 # Contributing to Dummy Run
 
-Until the engine lands, contribute through issues. Propose a persona or a target adapter, or point out a
-problem with the [plan](docs/PLAN.md).
+Contribute through issues and pull requests. Propose a persona or a target adapter, fix a bug, or point out a
+problem with the [plan](docs/PLAN.md). The engine is in Go, and [docs/ENGINE.md](docs/ENGINE.md) shows how to
+build and run it.
 
 ## Rules
 
@@ -33,9 +34,48 @@ lefthook install
 | actionlint and zizmor | Broken or unsafe GitHub Actions workflows |
 | check-jsonschema | Example runs that do not match the run-record schema |
 | REUSE | Files without copyright and licence information |
+| Generated references | `docs/CLI.md` or the provider table in `docs/PROVIDERS.md` out of step with the code |
+| Doctests | A documented command that no longer runs |
 | Semgrep and CodeQL | Security problems in code (CI only) |
 | Dependency review | New dependencies with known vulnerabilities or barred licences (CI only) |
 | OpenSSF Scorecard | Weak project security practices, weekly on `main` |
+
+## Definition of done
+
+A change that a user would notice is done when it has all of these, in the same pull request.
+
+1. **Tests.** New behaviour has automated tests. A bug fix has a test that failed before the fix.
+2. **Docs.** The page that describes the behaviour says the new thing and no longer says the old thing. The
+   pages are in `docs/`, the README, `integrations/*/README.md` and `casts/*/README.md`.
+3. **Site content.** The pages in `site/content/` and the text in `site/layouts/` that mention the behaviour
+   match it. Check the Get started page, the questions on the home page and the page for each role.
+4. **Changelog.** `CHANGELOG.md` has an entry under Unreleased.
+5. **Examples.** `examples/`, the library in `casts/library` and the run records in `examples/runs/` still
+   work with the change, and a new feature has an example where one helps.
+
+Two generators and a doctest runner keep part of this honest. Run them before you push. The pre-push hook runs
+them as well.
+
+```sh
+go generate ./cmd/dummyrun
+go run ./internal/tools/docgen -check
+go run ./internal/tools/doctest
+```
+
+`go generate ./cmd/dummyrun` rewrites `docs/CLI.md` from each command's help text and the capability table in
+`docs/PROVIDERS.md` from `internal/provider/capabilities.go`. Change the code, then generate, and never edit
+the generated text by hand. `docgen -check` fails when a file is out of date, and it also fails when a provider
+or an engine tool has no entry in the page that describes it.
+
+The doctest runner builds `dummyrun` and `dummyrun-otel` from your tree and runs every shell block that has
+the line `<!-- doctest -->` before it, in `docs/`, `site/content/` and the other Markdown files. Only safe
+commands run: `version`, help, `dummyrun-otel export --dry-run` and `dummyrun a11y` on a site served on your
+machine. A block marked `<!-- doctest site -->` needs the built site on port 1313 and runs with
+`go run ./internal/tools/doctest -site`. Put the marker on a block that a reader will copy, so a command that
+stops working fails a check and not a reader.
+
+Review checks this as well. The pull request template has a "Docs and site" item. CodeRabbit warns when a
+user-visible change to the code or the schema leaves out the docs, the changelog or the site content.
 
 ## Pull requests
 

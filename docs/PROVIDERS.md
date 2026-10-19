@@ -21,17 +21,22 @@ The runner reads a capability table (`internal/provider/capabilities.go`) and ne
 provider name. Two entries matter at run time. Where a backend cannot force a tool, the last step of a run
 sends an instruction to call `finish` and asks again if the model answers in prose. Where a backend takes
 images in tool results, the screenshot travels inside the tool result. Elsewhere it follows as a user message.
+The table is written from the code by `go generate ./cmd/dummyrun`, so edit the code and not the table.
+
+<!-- docgen:providers begin -->
 
 | Kind | Forced tool | Images in tool results | Reasoning effort | Responses API | Cached tokens reported | Region |
 |---|---|---|---|---|---|---|
-| `azure-foundry` | yes | no | yes | yes | yes | you declare it |
-| `openai-compatible` | no | no | yes | yes | yes | you declare it |
 | `anthropic` | no | yes | no | no | yes | `global` unless declared |
-| `gemini-api` | yes | no | no | no | yes | `global` unless declared |
-| `vertex-gemini` | yes | no | no | no | yes | `--region` decides the endpoint |
+| `azure-foundry` | yes | no | yes | yes | yes | you declare it |
 | `bedrock` | no | no | no | no | yes | `--region` decides the endpoint, `eu-west-2` by default |
+| `gemini-api` | yes | no | no | no | yes | `global` unless declared |
+| `openai-compatible` | no | no | yes | yes | yes | you declare it |
+| `vertex-gemini` | yes | no | no | no | yes | `--region` decides the endpoint |
 
 Every kind supports tool calling, images in user messages and structured output.
+
+<!-- docgen:providers end -->
 
 ## OpenAI-compatible services
 
