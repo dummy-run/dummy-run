@@ -53,7 +53,7 @@
       <dl class="rp-detail">
         <div><dt>Page</dt><dd>{{ .title }} <span class="rp-muted">{{ .url }} · {{ .status }} · {{ .ms }} ms</span></dd></div>
         {{- with .said }}<div><dt>Persona said</dt><dd>{{ . }}</dd></div>{{ end }}
-        {{- with .note }}<div><dt>Persona said</dt><dd>{{ . }}</dd></div>{{ end }}
+        {{- with .note }}<div><dt>Note</dt><dd>{{ . }}</dd></div>{{ end }}
         <div><dt>Action</dt><dd>{{ .action }}{{ with .target }}, target {{ . }}{{ end }}</dd></div>
         {{- with .focus }}<div><dt>Focus</dt><dd>{{ . }}</dd></div>{{ end }}
         {{- $cited := slice }}

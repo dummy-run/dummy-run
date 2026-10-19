@@ -12,7 +12,7 @@ next:
 
 This is a real run of Dummy Run against dummyrun.dev. On 19 October 2026 the persona priya-qa-lead read this website in Firefox. The job was to work out what Dummy Run does and how a finding is checked. A model chose every action.
 
-The persona gave a pass verdict. It also said it could not find a plain statement of what happens to a claim with no evidence, or a list of supported browsers.
+The persona gave a pass verdict. It also said it found browser details in the schema and example, but no dedicated list of supported browsers.
 
 The data is a trimmed copy of one run record with the screenshots resized. The format is in the [run record reference](docs/run-record.md).
 

@@ -104,7 +104,7 @@
   var next = bar.querySelector("[data-rp=next]");
   var current = 1;
 
-  function show(n, move) {
+  function show(n, move, sync) {
     n = Math.max(1, Math.min(steps.length, n));
     current = n;
     steps.forEach(function (li, i) {
@@ -120,6 +120,9 @@
     pos.textContent = "Step " + n + " of " + steps.length;
     prev.disabled = n === 1;
     next.disabled = n === steps.length;
+    if (sync && window.location.hash !== "#step-" + n) {
+      window.history.pushState(null, "", "#step-" + n);
+    }
     if (move) {
       var h = steps[n - 1].querySelector(".rp-step-h");
       h.tabIndex = -1;
@@ -132,15 +135,15 @@
     return m ? parseInt(m[1], 10) : 1;
   }
 
-  prev.addEventListener("click", function () { show(current - 1, false); });
-  next.addEventListener("click", function () { show(current + 1, false); });
+  prev.addEventListener("click", function () { show(current - 1, false, true); });
+  next.addEventListener("click", function () { show(current + 1, false, true); });
   dots.forEach(function (d, i) {
-    d.addEventListener("click", function () { show(i + 1, true); });
+    d.addEventListener("click", function () { show(i + 1, true, true); });
   });
   document.querySelectorAll(".rp-jump").forEach(function (a) {
     a.addEventListener("click", function (e) {
       e.preventDefault();
-      show(parseInt(a.getAttribute("data-step"), 10), true);
+      show(parseInt(a.getAttribute("data-step"), 10), true, true);
       bar.scrollIntoView({ block: "start" });
     });
   });
@@ -150,14 +153,15 @@
     if (typing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
       return;
     }
-    var inScrubber = t && t.closest && t.closest(".rp-bar, .rp-index");
+    var inScrubber = t && t.closest && t.closest(".rp-bar, .rp-index, .rp-step");
     if (!inScrubber) {
       return;
     }
-    if (e.key === "ArrowRight") { show(current + 1, false); e.preventDefault(); }
-    if (e.key === "ArrowLeft") { show(current - 1, false); e.preventDefault(); }
+    if (e.key === "ArrowRight") { show(current + 1, false, true); e.preventDefault(); }
+    if (e.key === "ArrowLeft") { show(current - 1, false, true); e.preventDefault(); }
   });
   window.addEventListener("hashchange", function () { show(fromHash(), false); });
+  window.addEventListener("popstate", function () { show(fromHash(), false); });
 
   bar.hidden = false;
   index.hidden = false;
