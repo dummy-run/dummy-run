@@ -138,12 +138,6 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 	}
 	r := &run{cfg: cfg, id: id, trace: telemetry.NewTrace(id),
 		patience: NewPatience(), budget: budget, tokens: cfg.TokenBudget, started: now, log: cfg.Log}
-	if cfg.Target.Commit == "" {
-		r.build, r.buildErr = BuildHash(ctx, cfg.HTTPClient, cfg.Target.BaseURL)
-		if r.buildErr != nil {
-			fmt.Fprintf(r.log, "build: no commit and the home page could not be hashed (%v); the record has no commit\n", r.buildErr)
-		}
-	}
 	r.dir = filepath.Join(cfg.OutDir, r.id)
 	if err := os.MkdirAll(filepath.Join(r.dir, "screens"), 0o750); err != nil {
 		return nil, err
@@ -158,6 +152,12 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 		if start, perr := url.Parse(cfg.Target.BaseURL); perr == nil && !res.Rules.Allowed(start.RequestURI()) {
 			reason := "robots.txt disallows DummyRun from the start page (" + res.Status + "); the browser was not started"
 			return r.refuse(reason)
+		}
+	}
+	if cfg.Target.Commit == "" {
+		r.build, r.buildErr = BuildHash(ctx, cfg.HTTPClient, cfg.Target.BaseURL)
+		if r.buildErr != nil {
+			fmt.Fprintf(r.log, "build: no commit and the home page could not be hashed (%v); the record has no commit\n", r.buildErr)
 		}
 	}
 	fmt.Fprintf(r.log, "run %s: %s / %s on %s, %d steps, %s %s (%s)\n", r.id, cfg.Persona.ID, cfg.Scenario.ID,

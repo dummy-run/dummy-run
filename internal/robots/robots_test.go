@@ -146,3 +146,19 @@ func TestFetch(t *testing.T) {
 		t.Error("bad URL accepted")
 	}
 }
+
+func TestPercentEncodingIsNormalised(t *testing.T) {
+	r := Parse([]byte("User-agent: *\nDisallow: /日本\nDisallow: /a%62c\nDisallow: /x%2fy\n"), "DummyRun")
+	for p, want := range map[string]bool{
+		"/%E6%97%A5%E6%9C%AC": false, "/%e6%97%a5%e6%9c%ac/x": false, "/日本": false, "/abc": false, "/a%62c": false,
+		"/x%2Fy": false, "/x%2fy": false, "/x/y": true, "/本": true,
+	} {
+		if got := r.Allowed(p); got != want {
+			t.Errorf("Allowed(%q) = %v, want %v", p, got, want)
+		}
+	}
+	// A "%" that does not start an escape stays as it is, even at the end of the string.
+	if !Parse([]byte("User-agent: *\nDisallow: /50%\n"), "DummyRun").Allowed("/other") {
+		t.Error("lone percent sign")
+	}
+}

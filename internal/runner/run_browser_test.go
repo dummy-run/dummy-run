@@ -424,7 +424,7 @@ func TestRobotsDisallowStopsBeforeTheBrowser(t *testing.T) {
 	res, err := runner.Run(context.Background(), runner.Config{Persona: persona, Scenario: persona.Scenarios[0], Provider: &scripted{},
 		Browser: "chrome", Headless: true, OutDir: t.TempDir(),
 		Target: policy.Target{Adapter: "url", Environment: "local", BaseURL: srv.URL + "/", AllowedHosts: []string{"127.0.0.1"}, ReadOnly: true,
-			RespectRobots: true, Identify: true, Commit: "abcdef1"}})
+			RespectRobots: true, Identify: true}})
 	if !errors.Is(err, runner.ErrRobotsDisallow) || res == nil {
 		t.Fatalf("res %v err %v", res, err)
 	}
@@ -437,7 +437,8 @@ func TestRobotsDisallowStopsBeforeTheBrowser(t *testing.T) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if len(hits) != 1 || !strings.HasSuffix(hits[0], "(+https://dummyrun.dev/scanner/)") {
+	// With no commit the engine would hash the home page. It must not do that for a disallowed site.
+	if len(hits) != 1 || !strings.HasPrefix(hits[0], "/robots.txt ") || !strings.HasSuffix(hits[0], "(+https://dummyrun.dev/scanner/)") {
 		t.Errorf("requests %v", hits)
 	}
 }

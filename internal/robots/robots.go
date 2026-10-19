@@ -82,7 +82,7 @@ func Parse(data []byte, token string) *Rules {
 			if value == "" {
 				continue
 			}
-			r := rule{allow: key == "allow", pattern: value}
+			r := rule{allow: key == "allow", pattern: normalise(value)}
 			for _, a := range agents {
 				switch a {
 				case token:
@@ -110,6 +110,7 @@ func (r *Rules) Allowed(pathAndQuery string) bool {
 	if pathAndQuery == "" || pathAndQuery[0] != '/' {
 		pathAndQuery = "/" + pathAndQuery
 	}
+	pathAndQuery = normalise(pathAndQuery)
 	if pathAndQuery == "/robots.txt" {
 		return true
 	}
@@ -172,4 +173,51 @@ func matches(pattern, s string) bool {
 		return pos == len(s)
 	}
 	return true
+}
+
+// normalise puts a path or a pattern in the form RFC 9309 compares: bytes outside ASCII are percent-encoded,
+// percent-encoded unreserved characters are decoded, and the hex digits of other escapes are upper case.
+func normalise(s string) string {
+	const hex = "0123456789ABCDEF"
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '%' && i+2 < len(s) && isHex(s[i+1]) && isHex(s[i+2]):
+			v := unhex(s[i+1])<<4 | unhex(s[i+2])
+			if isUnreserved(v) {
+				b.WriteByte(v)
+			} else {
+				b.WriteByte('%')
+				b.WriteByte(hex[v>>4])
+				b.WriteByte(hex[v&15])
+			}
+			i += 2
+		case c >= 0x80:
+			b.WriteByte('%')
+			b.WriteByte(hex[c>>4])
+			b.WriteByte(hex[c&15])
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
+}
+
+func isHex(c byte) bool {
+	return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'
+}
+
+func unhex(c byte) byte {
+	switch {
+	case c >= 'a':
+		return c - 'a' + 10
+	case c >= 'A':
+		return c - 'A' + 10
+	}
+	return c - '0'
+}
+
+func isUnreserved(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '.' || c == '_' || c == '~'
 }

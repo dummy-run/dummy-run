@@ -116,6 +116,11 @@ func a11yCmd(args []string) int {
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
 		rep.WriteSummary(os.Stderr)
+		if *jsonPath != "" {
+			if werr := writeReport(rep, *jsonPath); werr != nil {
+				return fail(werr)
+			}
+		}
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return exitRobots
 	}

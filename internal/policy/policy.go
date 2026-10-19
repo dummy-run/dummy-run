@@ -125,10 +125,21 @@ func (t Target) Decide(method, rawURL string) Verdict {
 }
 
 // sameOrigin reports whether u has the scheme, host and port of the base URL, the origin robots.txt speaks for.
+// A trailing dot on the host and an explicit default port do not change the origin.
 func (t Target) sameOrigin(u *url.URL) bool {
 	base, err := url.Parse(t.BaseURL)
 	if err != nil {
 		return false
 	}
-	return strings.EqualFold(base.Scheme, u.Scheme) && strings.EqualFold(base.Host, u.Host)
+	return strings.EqualFold(base.Scheme, u.Scheme) && originHost(base) == originHost(u)
+}
+
+// originHost is the lower-case host without a trailing dot, with the port unless it is the scheme's default.
+func originHost(u *url.URL) string {
+	host := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+	port := u.Port()
+	if port == "" || (port == "443" && u.Scheme == "https") || (port == "80" && u.Scheme == "http") {
+		return host
+	}
+	return host + ":" + port
 }
