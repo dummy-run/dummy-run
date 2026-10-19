@@ -12,6 +12,7 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/openai/openai-go/v3 v3.71.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
+	golang.org/x/image v0.40.0
 	google.golang.org/genai v1.72.0
 )
 

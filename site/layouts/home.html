@@ -20,6 +20,14 @@
   </div>
 </section>
 
+<ul class="trust" aria-label="Facts about Dummy Run">
+  <li>Open source, Apache-2.0</li>
+  <li>Read-only mode</li>
+  <li>Chrome and Firefox</li>
+  <li>Any model, self-hosted too</li>
+  <li>OpenTelemetry</li>
+</ul>
+
 <section class="band" aria-labelledby="role-heading">
   <h2 id="role-heading" class="u-title-sm">Start with your job</h2>
   <p class="band-lede">Each page is written for one role and ends with the next thing to do.</p>
@@ -79,7 +87,8 @@
   <p class="band-lede">Install the command, point a persona at a site in read-only mode and read the run in Grafana.</p>
   <p class="actions">
     <a class="btn" href="/start/">Get started</a>
-    <a class="btn btn-quiet" href="{{ .Site.Params.repo }}">Open the repository</a>
+    <a class="btn btn-quiet" href="{{ .Site.Params.repo }}">Star it on GitHub</a>
   </p>
+  <p class="band-note">Star the repository to follow it. To hear about releases, choose Watch, then Custom, then Releases. <a href="{{ .Site.Params.repo }}/releases">Releases</a></p>
 </section>
 {{ end }}

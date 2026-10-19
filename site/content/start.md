@@ -9,6 +9,8 @@ next:
   href: /personas/
 ---
 
+{{< terminal >}}
+
 ## What you need
 
 - Go 1.27.1 or later

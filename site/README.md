@@ -45,6 +45,14 @@ engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, an
 (`DUMMYRUN_CHROME`, `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
 to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a reason.
 
+## Social cards and structured data
+
+Each main page has a 1200 by 630 link-preview card in `static/social/`, named for the page path with
+hyphens, such as `for-qa-lead.png`. A page without its own card uses its section's card, then
+`brand/logo/social-card.png`. `go run ./internal/tools/socialcards` draws the cards from the list in
+that program and `-check` fails when one is out of date. Add a card by adding a line to the list. The
+home page also carries JSON-LD that describes the software as free and open source.
+
 ## Typefaces
 
 Headings are Space Grotesk, the face of the wordmark. Body text is Atkinson Hyperlegible Next, which the

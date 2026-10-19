@@ -9,6 +9,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Browsers are no longer left running after runs and tests (#49). The engine starts the driver and the browser in their own process group. It closes the session and stops the group. It then waits for the exit and removes the temporary profile. This holds after an error or a panic. It also holds after a timeout, Ctrl-C and SIGTERM. A watchdog stops the browser if the engine is killed. Every test closes its browser, and CI fails when one is left behind. `docs/ENGINE.md` covers cleanup and troubleshooting.
 
 ### Added
+- The website has a link-preview card for each main page, drawn by `internal/tools/socialcards`, with per-page Open Graph and Twitter tags and JSON-LD on the home page. The start page opens with a terminal that plays real command output, code blocks have a copy button, and the home page has a one-line list of facts and a star link.
 - `docs/ETHICS.md`, on the website as Ethics and limits. It says what a persona can and cannot tell you, how the screen-reader persona works and what goes to the model provider.
 - The persona library page on the website shows a card for each persona with filters by need, what the persona does differently, what it looks for and the command to run it. It is built from the files in `casts/library`. Each persona gains five front matter keys that the page reads.
 - `dummyrun doctor` lists the browsers and profile directories that an earlier run left behind. `--stop` stops them and removes the directories.
