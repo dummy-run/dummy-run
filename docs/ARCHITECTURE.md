@@ -50,7 +50,7 @@ carries one of four tags:
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them. The page is untrusted input, so the engine fences its text, flags text that tries to instruct the persona and files a `security` finding for it. See [Threat model](THREAT-MODEL.md).
+High-severity findings wait for a person to confirm them. The page is untrusted input. The engine fences its text (code: `internal/inject/inject.go` and `internal/runner/observe.go`). It flags text that tries to instruct the persona (code: `internal/inject/inject.go` and `internal/runner/inspect.go`). It files a `security` finding for that text (code: `internal/runner/inspect.go`). See [Threat model](THREAT-MODEL.md).
 
 ## Browsers
 

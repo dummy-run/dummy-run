@@ -21,7 +21,7 @@ it out of this project's issues, discussions and example data.
 
 ## How Dummy Run treats hostile pages
 
-A page under test is untrusted input to the model. [Threat model](docs/THREAT-MODEL.md) lists the threats and the defences, and names the gaps.
+A page under test is untrusted input to the model (code: `internal/inject/inject.go` and `internal/runner/observe.go`). [Threat model](docs/THREAT-MODEL.md) lists the threats and the defences, and names the gaps.
 
 ## What this repository holds
 

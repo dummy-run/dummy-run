@@ -112,17 +112,24 @@ type run struct {
 	events  []record.Event
 	// eventKeys stops the same event being recorded again on every step.
 	eventKeys map[string]bool
+	// eventKinds counts the events kept for each kind.
+	eventKinds map[string]int
 }
 
-// maxEvents bounds the events in one record, so a hostile page cannot grow it without limit.
-const maxEvents = 100
+// maxEventsPerKind bounds each kind of event separately, so a hostile page cannot grow the record
+// without limit and cannot crowd one kind out with another.
+const maxEventsPerKind = 25
 
 // addEvent records an event once. key says what makes it the same event again.
 func (r *run) addEvent(key string, e record.Event) {
-	if r.eventKeys[key] || len(r.events) >= maxEvents {
+	if r.eventKinds == nil {
+		r.eventKinds = map[string]int{}
+	}
+	if r.eventKeys[key] || r.eventKinds[e.Kind] >= maxEventsPerKind {
 		return
 	}
 	r.eventKeys[key] = true
+	r.eventKinds[e.Kind]++
 	e.Detail = shorten(strings.Join(strings.Fields(inject.Strip(e.Detail)), " "), 300)
 	r.events = append(r.events, e)
 	fmt.Fprintf(r.log, "  event: %s%s\n", e.Kind, stepSuffix(e.Step))
@@ -342,7 +349,7 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 		if verr != nil {
 			obs = r.page.Look(ctx)
 			obs.Action, obs.Target, obs.Error = "visit", get("url"), verr.Error()
-			if strings.Contains(verr.Error(), "is outside this run's target") {
+			if errors.As(verr, new(offOriginError)) {
 				r.addEvent("visit:"+get("url"), record.Event{Kind: record.EventOffOriginBlocked, Step: len(r.steps) + 1,
 					Detail: "visit refused: " + verr.Error()})
 			}
@@ -445,6 +452,11 @@ func shorten(s string, n int) string {
 	return s[:n-3] + "..."
 }
 
+// offOriginError is the refusal of an address outside the target's allow list.
+type offOriginError struct{ msg string }
+
+func (e offOriginError) Error() string { return e.msg }
+
 // resolveURL turns the persona's address into an absolute URL on the target
 // and refuses hosts outside the allow list before the browser is involved.
 func (r *run) resolveURL(raw string) (string, error) {
@@ -461,7 +473,7 @@ func (r *run) resolveURL(raw string) (string, error) {
 		return "", fmt.Errorf("address %q is not a web address", raw)
 	}
 	if !r.cfg.Target.OriginAllowed(u.Scheme, u.Hostname(), u.Port()) {
-		return "", fmt.Errorf("%s is outside this run's target (%s); stay on the target site", u.Host, strings.Join(r.cfg.Target.AllowedHosts, ", "))
+		return "", offOriginError{fmt.Sprintf("%s is outside this run's target (%s); stay on the target site", u.Host, strings.Join(r.cfg.Target.AllowedHosts, ", "))}
 	}
 	return u.String(), nil
 }
@@ -573,7 +585,7 @@ func (r *run) turns(caps provider.Capabilities) []provider.Turn {
 
 func (r *run) observationText(e entry, full bool) string {
 	if !full {
-		return Summary(*e.step)
+		return SummaryFenced(*e.step, r.nonce)
 	}
 	text := RenderFenced(*e.step, r.nonce)
 	if e.role == provider.RoleUser {

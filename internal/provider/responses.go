@@ -124,6 +124,7 @@ func fromResponse(r *responses.Response) (Response, error) {
 		return resp, ErrNoChoice
 	}
 	var reasoning []json.RawMessage
+	refused := false
 	for _, item := range r.Output {
 		switch item.Type {
 		case "reasoning":
@@ -136,8 +137,11 @@ func fromResponse(r *responses.Response) (Response, error) {
 			}
 		case "message":
 			for _, c := range item.Content {
-				if c.Type == "output_text" {
+				switch c.Type {
+				case "output_text":
 					resp.Text += c.Text
+				case "refusal":
+					refused = true
 				}
 			}
 		case "function_call":
@@ -147,6 +151,9 @@ func fromResponse(r *responses.Response) (Response, error) {
 			}
 			resp.ToolCalls = append(resp.ToolCalls, ToolCall{ID: id, Name: item.Name, Args: normaliseArgs(item.Arguments.OfString)})
 		}
+	}
+	if refused && len(resp.ToolCalls) == 0 {
+		return resp, filtered("responses API", "the model refused to answer", nil)
 	}
 	if len(reasoning) > 0 && len(resp.ToolCalls) > 0 {
 		resp.ToolCalls[0].State = encodeArgs(reasoning)

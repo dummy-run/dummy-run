@@ -146,9 +146,6 @@ func fromBedrock(out *bedrockruntime.ConverseOutput) (Response, error) {
 		return Response{}, ErrNoChoice
 	}
 	resp := Response{FinishReason: string(out.StopReason)}
-	if isFilterReason(resp.FinishReason) {
-		return resp, filtered("bedrock", "stop reason "+resp.FinishReason, nil)
-	}
 	if u := out.Usage; u != nil {
 		if u.InputTokens != nil {
 			resp.Usage.InputTokens = int(*u.InputTokens)
@@ -159,6 +156,9 @@ func fromBedrock(out *bedrockruntime.ConverseOutput) (Response, error) {
 		if u.OutputTokens != nil {
 			resp.Usage.OutputTokens = int(*u.OutputTokens)
 		}
+	}
+	if isFilterReason(resp.FinishReason) {
+		return resp, filtered("bedrock", "stop reason "+resp.FinishReason, nil)
 	}
 	msg, ok := out.Output.(*types.ConverseOutputMemberMessage)
 	if !ok || msg == nil {

@@ -182,6 +182,9 @@ func fromCompletion(c *openai.ChatCompletion) (Response, error) {
 	if isFilterReason(choice.FinishReason) {
 		return resp, filtered("chat completions", "finish reason "+choice.FinishReason, nil)
 	}
+	if strings.TrimSpace(choice.Message.Refusal) != "" && len(choice.Message.ToolCalls) == 0 {
+		return resp, filtered("chat completions", "the model refused to answer", nil)
+	}
 	resp.Text = choice.Message.Content
 	for _, tc := range choice.Message.ToolCalls {
 		if tc.Type != "function" && tc.Type != "" {

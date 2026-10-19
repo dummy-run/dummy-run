@@ -223,9 +223,11 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
 - Everything the page supplies reaches the model between `<<<PAGE_CONTENT <id>` and `PAGE_CONTENT <id>>>>`
   markers. The id is random for each run, so the page cannot close the fence. The system prompt says that text
   inside the markers is data and never changes the task, the tools, the verdict or the findings.
-- Text a person cannot see is not sent. `internal/page/look.js` collects hidden and off-screen text and comments.
-  It collects the `aria-label`, `title`, `alt` and `placeholder` values too. They go in `page.hidden` in `steps.jsonl`,
-  for the scan and for the reviewer.
+- Text that the browser does not render is not sent. That covers `display: none` and `visibility: hidden`.
+  It also covers zero size, zero opacity and `aria-hidden`. Comments are not sent either. `internal/page/look.js` collects that text and the
+  `aria-label`, `title`, `alt` and `placeholder` values. They go in `page.hidden` in `steps.jsonl`, for the scan and
+  for the reviewer (code: `internal/page/look.js`). Text that CSS only moves off the screen is still page text. The
+  model can see it, and the scan flags it as hidden text (code: `internal/runner/canary_browser_test.go`).
 - A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such as
   "ignore previous instructions", "system prompt" and "you are now". It looks for chat template tokens. It looks for
   orders to report nothing or to call `finish`, and for claims that the site is fully accessible. It looks for
@@ -238,17 +240,21 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
 - A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
 
 The record's `events` array is optional. Each event has a `kind` and a short `detail`. It has a `step` where one applies. For `suspected_injection` it also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
-The `detail` of such an event is page text. Treat it as data. Events are not exported by `dummyrun-otel`.
+The `detail` of such an event is page text. Treat it as data. `dummyrun-otel` does not export events (code: `integrations/grafana/exporter/internal/record/record.go`).
 A reader built from an earlier copy of `schema/run-record.schema.json` rejects a record that has `events`, the
-outcome `provider_filtered` or a finding of kind `security`. The Grafana exporter in this repository is updated.
+outcome `provider_filtered` or a finding of kind `security` (code: `schema/run-record.schema.json`). `dummyrun-otel` reads these fields.
 
 ### When the provider refuses
 
 A model provider may refuse a call because its content filter objects to the page. The run stops. The record
 has the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding.
 `report.md` and the command's message say that the provider refused the call. The command exits with status 1.
-Every provider maps to this outcome. That includes Azure OpenAI and other OpenAI-compatible services. It includes the
-Responses API, Anthropic (`refusal`), Gemini (safety blocks) and Bedrock (guardrails).
+Every provider maps to this outcome through one error (code: `internal/provider/filter.go`). Azure OpenAI and the
+other OpenAI-compatible services report a content filter finish reason, a `refusal` message or an API error
+(code: `internal/provider/azure.go` and `internal/provider/openai_compat.go`). The Responses API reports a cut-off
+response or a `refusal` part (code: `internal/provider/responses.go`). Anthropic reports a `refusal` stop reason
+(code: `internal/provider/anthropic.go`). Gemini reports safety blocks (code: `internal/provider/gemini.go`).
+Bedrock reports a guardrail stop reason, and the call keeps its token counts (code: `internal/provider/bedrock.go`).
 
 ## Providers
 

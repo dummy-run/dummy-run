@@ -32,15 +32,19 @@ func Render(s Step) string { return RenderFenced(s, "") }
 func RenderFenced(s Step, nonce string) string {
 	o := s.Obs
 	var b strings.Builder
-	url := o.URL
-	if nonce != "" {
-		url = shorten(inject.Strip(url), 300)
-	}
 	fmt.Fprintf(&b, "step %d · %s", s.N, o.Action)
 	if o.Target != "" {
 		fmt.Fprintf(&b, " %s", o.Target)
 	}
-	fmt.Fprintf(&b, " · %d ms · %s\n", o.Duration.Milliseconds(), url)
+	fmt.Fprintf(&b, " · %d ms", o.Duration.Milliseconds())
+	// The address is set by the page, so with a fence it goes inside the fence.
+	body := ""
+	if nonce == "" {
+		fmt.Fprintf(&b, " · %s\n", o.URL)
+	} else {
+		b.WriteString("\n")
+		body = "url: " + shorten(inject.Strip(o.URL), 300) + "\n"
+	}
 	switch {
 	case s.Refusal != "":
 		fmt.Fprintf(&b, "REFUSED: %s\n", s.Refusal)
@@ -56,9 +60,12 @@ func RenderFenced(s Step, nonce string) string {
 	}
 	if o.Snapshot == nil {
 		b.WriteString("(the page could not be read)\n")
+		if nonce != "" {
+			b.WriteString(inject.Fence(nonce, body))
+		}
 		return b.String()
 	}
-	body := renderPage(s)
+	body += renderPage(s)
 	if nonce == "" {
 		return b.String() + body
 	}
@@ -189,12 +196,24 @@ func controlRows(controls []page.Control) string {
 }
 
 // Summary is the one-line form of an older step, so the history stays short.
-func Summary(s Step) string {
+func Summary(s Step) string { return SummaryFenced(s, "") }
+
+// SummaryFenced is Summary with the address and the title, which the page sets, inside a fence that
+// carries nonce. An empty nonce leaves the fence out.
+func SummaryFenced(s Step, nonce string) string {
 	o := s.Obs
-	parts := []string{fmt.Sprintf("step %d: %s %s", s.N, o.Action, o.Target), "now at " + shorten(inject.Strip(o.URL), 200)}
+	parts := []string{fmt.Sprintf("step %d: %s %s", s.N, o.Action, o.Target)}
+	var title string
 	if o.Snapshot != nil && o.Snapshot.Title != "" {
 		// The title is the page's own text, so it is quoted and cut short.
-		parts = append(parts, fmt.Sprintf("title %q", shorten(inject.Strip(o.Snapshot.Title), 60)))
+		title = fmt.Sprintf("title %q", shorten(inject.Strip(o.Snapshot.Title), 60))
+	}
+	where := "now at " + shorten(inject.Strip(o.URL), 200)
+	if nonce == "" {
+		parts = append(parts, where)
+		if title != "" {
+			parts = append(parts, title)
+		}
 	}
 	if o.Error != "" {
 		parts = append(parts, "error: "+o.Error)
@@ -202,7 +221,15 @@ func Summary(s Step) string {
 	if len(o.Blocked) > 0 {
 		parts = append(parts, fmt.Sprintf("%d request(s) blocked by policy", len(o.Blocked)))
 	}
-	return strings.Join(parts, " · ") + " (older step, details shortened)"
+	out := strings.Join(parts, " · ") + " (older step, details shortened)"
+	if nonce == "" {
+		return out
+	}
+	body := where
+	if title != "" {
+		body += "\n" + title
+	}
+	return out + "\n" + inject.Fence(nonce, body)
 }
 
 // Signature hashes what the persona can see, to tell whether an action changed anything.
