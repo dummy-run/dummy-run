@@ -251,18 +251,18 @@ Confirmed 1, rejected 1, skipped 0. 3 findings changed.
 
 ### Without a terminal
 
-A script or a CI job names the findings in flags. A selector is a fingerprint or its first six characters. It can also be `run-id/finding-id`, or a finding ID that only one problem uses. The command checks every selector before it writes anything. If one is wrong it exits 2 and changes nothing.
+A script or a CI job names the findings in flags. A selector is a fingerprint or a prefix of at least six characters, in either case. It can also be `run-id/finding-id`, or a finding ID that only one problem uses. The command checks every selector before it writes anything. If one is wrong it exits 2 and changes nothing.
 
 ```sh
 dummyrun review runs/ --confirm 87c7d4 --reviewer "Pat Example"
 dummyrun review runs/ --reject 1718b7 --reason "The wording matches the product glossary"
 ```
 
-A rejection needs `--reason`. A confirmation may have one. `--reviewer` defaults to `git config user.name`, and the command stops if neither is set. The exit code is 0 when it wrote the verdicts, 1 when a write failed and 2 when the command line was wrong.
+A rejection needs `--reason`. A confirmation may have one. Give `--reason` once. It goes with every verdict in the command. `--reviewer` defaults to `git config user.name`, and the command stops if neither is set. The exit code is 0 when it wrote the verdicts, 1 when a write failed and 2 when the command line was wrong.
 
 ### One problem is judged once
 
-Findings with the same fingerprint are one problem seen in several runs. You decide it once. The verdict reaches every finding with that fingerprint that is still `pending`, and the command says how many it changed. A finding that someone has already confirmed or rejected is never changed. An edit to the severity or the title also reaches every finding in the group.
+Findings with the same fingerprint are one problem seen in several runs. You decide it once. The verdict reaches every finding with that fingerprint that is still `pending`, and the command says how many it changed. A finding that someone has already confirmed or rejected is never changed. An edit to the severity or the title reaches the same pending findings.
 
 ### What a decision writes
 
@@ -274,7 +274,7 @@ For each finding it changes, the command sets `verdict` and adds three optional 
 | `reviewed_at` | The time of the decision in UTC |
 | `reason` | Why. Required for a rejection |
 
-Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. A failure at any point leaves the old record in place. It then adds one line to `review-log.jsonl` in the folder of the record. The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
+Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. If another reviewer saves the record in between, the command reads it again and applies your verdict to what is still pending. A failure at any point leaves the old record in place. It then adds one line to `review-log.jsonl` in the folder of the record. The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
 
 Version 1 records have no fingerprint and no review fields. The command skips them and says so.
 

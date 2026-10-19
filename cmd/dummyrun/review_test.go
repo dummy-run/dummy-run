@@ -133,6 +133,7 @@ func TestReviewRefusals(t *testing.T) {
 		"reject without reason":    {dir, "--reject", "87c7d4", "--reviewer", "P"},
 		"blank reason":             {dir, "--reject", "87c7d4", "--reason", " ", "--reviewer", "P"},
 		"reason alone":             {dir, "--reason", "x", "--list"},
+		"reason twice":             {dir, "--reject", "87c7d4", "--reason", "a", "--reason", "b", "--reviewer", "P"},
 		"list with confirm":        {dir, "--list", "--confirm", "87c7d4"},
 		"unknown selector":         {dir, "--confirm", "nonsense", "--reviewer", "P"},
 		"short prefix":             {dir, "--confirm", "87c7", "--reviewer", "P"},

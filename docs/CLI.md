@@ -16,7 +16,7 @@ Usage:
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
-  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID --reason TEXT]... [--reviewer NAME]
+  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun version
 
@@ -127,8 +127,8 @@ Usage of review:
     	with --list, print JSON instead of a table
   -list
     	list the problems and change nothing
-  -reason string
-    	why: required with --reject, optional with --confirm
+  -reason value
+    	why, given once for the whole command: required with --reject, optional with --confirm
   -reject value
     	reject the pending findings with this fingerprint, prefix, run/finding or finding ID; needs --reason; repeatable
   -reviewer string

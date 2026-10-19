@@ -8,6 +8,7 @@
 package review
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -331,20 +332,37 @@ func editFile(path, fingerprint string, d Decision) ([]Applied, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Another reviewer may save the same record between our read and our rename. Before the rename
+	// the file is read once more, and if it changed the edit starts again from the new text.
+	for attempt := 0; attempt < casAttempts; attempt++ {
+		applied, retry, err := editOnce(path, target, fingerprint, d)
+		if !retry {
+			return applied, err
+		}
+	}
+	return nil, errors.New("the record kept changing while it was being reviewed: try again")
+}
+
+// beforeSwap runs just before editOnce checks that the record is unchanged. A test uses it to change the record at that moment.
+var beforeSwap = func() {}
+
+// casAttempts is how many times editFile starts over when the record changes under it.
+const casAttempts = 5
+
+func editOnce(path, target, fingerprint string, d Decision) (applied []Applied, retry bool, err error) {
 	data, err := readLimited(target)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	doc, err := parseOrdered(data)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if v, _ := doc.get("schema_version"); fmt.Sprint(v) != "2" {
-		return nil, errors.New("only schema version 2 records can be reviewed")
+		return nil, false, errors.New("only schema version 2 records can be reviewed")
 	}
 	list, _ := doc.vals["findings"].([]any)
 	runID := doc.str("id")
-	var applied []Applied
 	for _, item := range list {
 		f, ok := item.(*omap)
 		if !ok || f.str("fingerprint") != fingerprint || f.str("verdict") != Pending {
@@ -366,19 +384,25 @@ func editFile(path, fingerprint string, d Decision) ([]Applied, error) {
 		}
 	}
 	if len(applied) == 0 {
-		return nil, nil
+		return nil, false, nil
 	}
 	out, err := formatOrdered(doc)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if err := record.ValidateJSON(out); err != nil {
-		return nil, err
+		return nil, false, err
+	}
+	beforeSwap()
+	if now, err := readLimited(target); err != nil {
+		return nil, false, err
+	} else if !bytes.Equal(now, data) {
+		return nil, true, nil
 	}
 	if err := writeAtomic(target, out); err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return applied, nil
+	return applied, false, nil
 }
 
 func readLimited(path string) ([]byte, error) {

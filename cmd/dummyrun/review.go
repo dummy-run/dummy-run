@@ -43,7 +43,8 @@ func reviewRun(args []string, stdin io.Reader, stdout, stderr io.Writer, tty boo
 	var confirm, reject listFlag
 	fs.Var(&confirm, "confirm", "confirm the pending findings with this fingerprint, a fingerprint prefix (6 or more characters), run/finding or a finding ID; repeatable")
 	fs.Var(&reject, "reject", "reject the pending findings with this fingerprint, prefix, run/finding or finding ID; needs --reason; repeatable")
-	reason := fs.String("reason", "", "why: required with --reject, optional with --confirm")
+	var reasons listFlag
+	fs.Var(&reasons, "reason", "why, given once for the whole command: required with --reject, optional with --confirm")
 	reviewer := fs.String("reviewer", "", "who is reviewing (default: git config user.name)")
 	list := fs.Bool("list", false, "list the problems and change nothing")
 	verdict := fs.String("verdict", "pending", "with --list, which findings to show: pending, confirmed, rejected or all")
@@ -71,6 +72,13 @@ func reviewRun(args []string, stdin io.Reader, stdout, stderr io.Writer, tty boo
 	}
 	if len(paths) == 0 {
 		return refuse("give a directory of run records or one or more record files")
+	}
+	if len(reasons) > 1 {
+		return refuse("--reason may be given once")
+	}
+	reason := new(string)
+	if len(reasons) == 1 {
+		*reason = reasons[0]
 	}
 	decisions := len(confirm) + len(reject)
 	if *list && decisions > 0 {

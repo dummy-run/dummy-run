@@ -391,6 +391,54 @@ func TestApplyKeepsChangesMadeSinceLoad(t *testing.T) {
 	}
 }
 
+func TestARecordChangedDuringTheEditIsEditedAgain(t *testing.T) {
+	dir := copyExamples(t)
+	g, _ := load(t, dir).Find(fpLone)
+	path := filepath.Join(dir, "2026-10-15-sam-author-001.json")
+	calls := 0
+	beforeSwap = func() {
+		calls++
+		if calls == 1 {
+			data := bytes.Replace(readFile(t, path), []byte(`"verdict": "pending"`), []byte(`"verdict": "pending",
+        "reviewed_by": ["someone-else"]`), 1)
+			if err := os.WriteFile(path, data, 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	t.Cleanup(func() { beforeSwap = func() {} })
+	applied, err := Apply(g, Decision{Verdict: Confirmed, Reviewer: "R", At: when})
+	if err != nil || len(applied) != 1 || calls != 2 {
+		t.Fatalf("applied %d, calls %d, error %v", len(applied), calls, err)
+	}
+	rec, err := record.Read(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f := rec.Findings[0]; f.Verdict != Confirmed || len(f.ReviewedBy) != 1 {
+		t.Errorf("the other reviewer's change or ours was lost: %+v", f)
+	}
+}
+
+func TestAFindingDecidedMeanwhileIsNotOverwritten(t *testing.T) {
+	dir := copyExamples(t)
+	g, _ := load(t, dir).Find(fpLone)
+	path := filepath.Join(dir, "2026-10-15-sam-author-001.json")
+	// Someone else rejected it after this session loaded the record.
+	other, _ := load(t, dir).Find(fpLone)
+	if _, err := Apply(other, Decision{Verdict: Rejected, Reason: "first", Reviewer: "Other", At: when}); err != nil {
+		t.Fatal(err)
+	}
+	applied, err := Apply(g, Decision{Verdict: Confirmed, Reviewer: "R", At: when})
+	if err != nil || len(applied) != 0 {
+		t.Fatalf("applied %d, error %v", len(applied), err)
+	}
+	rec, _ := record.Read(path)
+	if f := rec.Findings[0]; f.Verdict != Rejected || f.Reviewer != "Other" {
+		t.Errorf("%+v", f)
+	}
+}
+
 func TestLoadSkipsVersionOneAndRefusesDuplicates(t *testing.T) {
 	dir := copyExamples(t)
 	v1 := `{"schema_version":1,"id":"2026-10-01-old-run","started_at":"2026-10-01T10:00:00Z","ended_at":"2026-10-01T10:01:00Z",
