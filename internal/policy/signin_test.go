@@ -47,7 +47,9 @@ func TestSigninValidate(t *testing.T) {
 		"no success check":    func(s map[string]any) { delete(s, "success") },
 		"bad success pattern": func(s map[string]any) { s["success"] = map[string]any{"url_matches": "("} },
 		"no credentials":      func(s map[string]any) { s["credentials"] = map[string]any{} },
-		"value as env name":   func(s map[string]any) { s["credentials"] = map[string]any{"a": map[string]any{"username_env": "me@x.test", "password_env": "hunter2!"}} },
+		"value as env name": func(s map[string]any) {
+			s["credentials"] = map[string]any{"a": map[string]any{"username_env": "me@x.test", "password_env": "hunter2!"}}
+		},
 		"relative block path": func(s map[string]any) { s["block_paths"] = []string{"logout"} },
 	}
 	for name, edit := range bad {

@@ -241,3 +241,28 @@ func TestVersionOneRecordsStillLoad(t *testing.T) {
 		t.Error("schema_version 3 accepted")
 	}
 }
+
+func TestRecordWithSigninBlockLoads(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	m["signin"] = map[string]any{"method": "form", "role": "editor", "ok": true, "duration_ms": 700,
+		"allowed_request": map[string]any{"method": "POST", "url": "https://example.test/signin"}}
+	b, _ := json.Marshal(m)
+	run, err := v.Parse(b)
+	if err != nil {
+		t.Fatalf("a record with a sign-in block was rejected: %v", err)
+	}
+	if run.Signin == nil || run.Signin.Role != "editor" || run.Signin.AllowedRequest == nil {
+		t.Errorf("signin %+v", run.Signin)
+	}
+}

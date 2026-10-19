@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,7 +122,7 @@ func TestSigninEndToEnd(t *testing.T) {
 					if si == nil || !si.OK || si.Method != "form" || si.Role != role || si.Error != "" {
 						t.Fatalf("%s: signin block %+v", role, si)
 					}
-					if si.AllowedRequest == nil || si.AllowedRequest.Method != "POST" || !strings.HasSuffix(si.AllowedRequest.URL, "/signin") {
+					if si.AllowedRequest == nil || si.AllowedRequest.Method != http.MethodPost || !strings.HasSuffix(si.AllowedRequest.URL, "/signin") {
 						t.Errorf("%s: allowed request %+v", role, si.AllowedRequest)
 					}
 					// The role sees its own pages.
@@ -135,9 +136,9 @@ func TestSigninEndToEnd(t *testing.T) {
 					reqs := app.Requests()[before:]
 					posts := 0
 					for _, r := range reqs {
-						if r.Method != "GET" && r.Method != "HEAD" {
+						if r.Method != http.MethodGet && r.Method != http.MethodHead {
 							posts++
-							if r.Method != "POST" || r.Path != "/signin" {
+							if r.Method != http.MethodPost || r.Path != "/signin" {
 								t.Errorf("%s: unexpected %s %s reached the app", role, r.Method, r.Path)
 							}
 						}
