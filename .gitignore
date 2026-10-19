@@ -5,6 +5,7 @@
 *.webm
 !/examples/runs/
 !/brand/**/*.png
+!/docs/images/**/*.png
 # Secrets and local config
 .env
 .env.*

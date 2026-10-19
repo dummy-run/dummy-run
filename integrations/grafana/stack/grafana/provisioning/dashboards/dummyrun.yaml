@@ -1,0 +1,13 @@
+# Loads the generated dashboards from integrations/grafana/dashboards/json, mounted read only.
+apiVersion: 1
+
+providers:
+  - name: Dummy Run
+    folder: Dummy Run
+    type: file
+    disableDeletion: false
+    allowUiUpdates: false
+    updateIntervalSeconds: 10
+    options:
+      path: /otel-lgtm/dummyrun/dashboards
+      foldersFromFilesStructure: false
