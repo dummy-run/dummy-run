@@ -145,12 +145,11 @@ jobs:
           context: image-context
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: true
-          # No tag yet. The digest gets its tags after it is signed and attested.
+          # Push by digest with no tag. The digest gets its tags after it is signed and attested.
           # The attestations below replace BuildKit's own, which add manifests that some registries' tools mishandle.
           provenance: false
           sbom: false
-          outputs: type=image,rewrite-timestamp=true
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true,rewrite-timestamp=true
           build-args: |
             SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2

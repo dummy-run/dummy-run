@@ -51,13 +51,14 @@ section to `docs/INSTALL.md` when the tap is on.
 
 ## When a release fails
 
-A failed run before `publish` leaves a draft release. The image has no version tag until it is signed and
-attested, so a failure before that point leaves only an untagged digest. If the `image` job failed after it gave
-the digest its tags, check `ghcr.io/dummy-run/dummyrun` in the package settings and delete those tags before
-you retry. Fix the cause, then delete the draft release and the tag on GitHub and push the tag again on the
-fixed commit.
-Never move a tag that was published. A published release is final: ship a new patch version instead. Only
-`publish` makes a release public.
+A failed run leaves the release in draft, since only `publish` makes it public. The image gets its version, minor
+and `latest` tags once it is signed and attested. A failure before that leaves only an untagged digest. If the
+`image` job gave the digest its tags, or `publish` failed after it, delete those tags in the package settings of
+`ghcr.io/dummy-run/dummyrun` before you retry. Then fix the cause, delete the draft release and its tag on
+GitHub, and push the tag again on the fixed commit.
+
+This cleanup applies only to a release that was never published. Never move a published tag. A published
+release is final, so ship a new patch version instead.
 
 ## One-time setup
 
