@@ -16,7 +16,7 @@
 > Pre-release, with no tagged version yet. The engine installs with
 > `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. It runs personas on six kinds of
 > model provider; [docs/ENGINE.md](docs/ENGINE.md) shows
-> how. The reviewer and the results board are not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
+> how. [docs/INSTALL.md](docs/INSTALL.md) covers the release binaries and the container image. The reviewer and the results board are not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
@@ -57,11 +57,26 @@ flowchart LR
 | Compliance and security | What each role can see or do beyond its rights, verified before it is raised |
 | An executive | One board showing what is broken, who it affects and the evidence |
 
+## Install
+
+Download a binary from [GitHub Releases](https://github.com/dummy-run/dummy-run/releases), pull the container
+image, or build from source. The image has Chrome for Testing and Firefox in it.
+
+```sh
+docker run --rm ghcr.io/dummy-run/dummyrun:latest a11y https://example.com
+go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
+```
+
+Every release is signed with cosign and carries SLSA build provenance. [docs/INSTALL.md](docs/INSTALL.md) shows
+how to verify a download.
+
 ## Documentation
 
 | Document | What it covers |
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
+| [docs/INSTALL.md](docs/INSTALL.md) | Binaries, the container image, how to verify a release, and the image's variables and volumes |
+| [docs/RELEASING.md](docs/RELEASING.md) | The release manager's checklist and the one-time setup |
 | [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, focus, the read-only policy and the accessibility sweep |
 | [docs/CLI.md](docs/CLI.md) | The help text of each command, written from the code |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, their sign-in and what each can do |

@@ -1,5 +1,6 @@
 {{/* Build the reference pages from the repository's own Markdown, so there is one source of truth. */}}
 {{ $pages := slice
+  (dict "src" "repo/docs/INSTALL.md" "path" "install" "group" "use" "weight" 0 "summary" "Binaries, the container image, and how to verify a release")
   (dict "src" "repo/docs/ENGINE.md" "path" "engine" "group" "use" "weight" 1 "summary" "Install the engine, run a persona, the read-only policy and the accessibility sweep")
   (dict "src" "repo/docs/CLI.md" "path" "cli" "group" "use" "weight" 2 "summary" "Every command and flag, generated from the engine's own help text")
   (dict "src" "repo/docs/PROVIDERS.md" "path" "providers" "group" "use" "weight" 3 "summary" "The model providers, what each needs and where your data goes")
@@ -11,6 +12,7 @@
   (dict "src" "repo/docs/integrations/grafana.md" "path" "grafana-guide" "title" "Grafana guide" "group" "integrate" "weight" 21 "summary" "Wire runs into Grafana, Tempo, Loki and your own app's traces")
   (dict "src" "repo/docs/PLAN.md" "path" "plan" "group" "project" "weight" 30 "summary" "What ships, in what order")
   (dict "src" "repo/CONTRIBUTING.md" "path" "contributing" "group" "project" "weight" 31 "summary" "How to contribute, the automated checks, and the rules on evidence and privacy")
+  (dict "src" "repo/docs/RELEASING.md" "path" "releasing" "group" "project" "weight" 36 "summary" "The release manager's checklist and the one-time setup")
   (dict "src" "repo/docs/STYLE.md" "path" "style" "group" "project" "weight" 32 "summary" "How we write and cite")
   (dict "src" "repo/docs/TYPOGRAPHY.md" "path" "typography" "group" "project" "weight" 33 "summary" "Body text at 18px, nothing read below 16px and headings that scale with the viewport")
   (dict "src" "repo/brand/README.md" "path" "brand" "group" "project" "weight" 34 "summary" "The logo, mascot and colours")

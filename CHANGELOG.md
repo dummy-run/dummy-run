@@ -5,10 +5,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - unreleased
+
 ### Fixed
 - Browsers are no longer left running after runs and tests (#49). The engine starts the driver and the browser in their own process group. It closes the session and stops the group. It then waits for the exit and removes the temporary profile. This holds after an error or a panic. It also holds after a timeout, Ctrl-C and SIGTERM. A watchdog stops the browser if the engine is killed. Every test closes its browser, and CI fails when one is left behind. `docs/ENGINE.md` covers cleanup and troubleshooting.
 
 ### Added
+- A release pipeline. A `v*` tag builds `dummyrun` and `dummyrun-otel` for Linux, macOS and Windows on amd64 and arm64. Each release has checksums, SBOMs, keyless cosign signatures and SLSA build provenance. It also publishes a multi-arch image at `ghcr.io/dummy-run/dummyrun` with Chrome for Testing, chromedriver and Firefox. `docs/INSTALL.md` covers installing and verifying, and `docs/RELEASING.md` is the checklist.
+- `dummyrun version` and `dummyrun-otel version` print the commit as well as the version.
+- `DUMMYRUN_NO_SANDBOX` switches off the browsers' own sandboxes. The container image sets it.
 - `gpt-5-4-mini-global` is in the price table, from the Azure retail prices API, so runs on that deployment get a `cost_usd`.
 - A Watch a run page on the website. It replays one real run of the dummyrun.dev cast. Each step shows the screenshot, the action, the outline the persona read and the findings that cite it. The data is in `site/data/replay.json`, from run `2026-10-19-priya-qa-lead-does-it-replace-my-suite-31099a2c8c853e8f`.
 - `docs/ETHICS.md`, on the website as Ethics and limits. It says what a persona can and cannot tell you, how the screen-reader persona works and what goes to the model provider.

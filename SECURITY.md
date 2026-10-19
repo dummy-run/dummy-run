@@ -24,6 +24,13 @@ it out of this project's issues, discussions and example data.
 This repository holds no run results, screenshots, credentials or personas drawn from real customers.
 Run data stays with whoever runs Dummy Run.
 
+## Verifying a release
+
+Every release is built by the release workflow of this repository. The checksums file and the container image
+carry cosign signatures made with GitHub's OIDC identity, and GitHub holds SLSA build provenance for the
+archives and the image. A signature that names any other workflow or repository means the file did not come
+from us. [docs/INSTALL.md](docs/INSTALL.md) has the commands.
+
 ## Supported versions
 
 Only `main`, until the first release.

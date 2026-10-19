@@ -58,7 +58,7 @@ func run(args []string) int {
 		fmt.Fprintln(os.Stderr, "dummyrun audit: want \"a11y\"")
 		return 2
 	case "version":
-		fmt.Println("dummyrun", telemetry.Version)
+		fmt.Printf("dummyrun %s (commit %s)\n", telemetry.Version, telemetry.Commit)
 		return 0
 	case "-h", "--help", "help":
 		usage()
