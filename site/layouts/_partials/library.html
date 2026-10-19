@@ -1,18 +1,53 @@
-{{- /* The persona library cards, from the front matter of content/personas.md. Pass "short" for the home page teaser. */ -}}
-{{- $page := site.GetPage "/personas" -}}
-{{- if not $page }}{{ errorf "library.html: content/personas.md is missing" }}{{ end -}}
-{{- $lib := $page.Params.library -}}
+{{- /* The persona library, read from casts/library by library-data.html. Pass "short" for the home page teaser. */ -}}
+{{- $lib := partial "library-data.html" . -}}
 {{- if .short -}}
 <ul class="chips">
-  {{- range $lib }}<li>{{ .name }}</li>{{ end }}
+  {{- range $lib }}<li>{{ .label }}</li>{{ end }}
 </ul>
 {{- else -}}
-<ul class="cards cards-library">
+{{- $needs := slice -}}
+{{- range $lib }}{{ if not (in $needs .need) }}{{ $needs = $needs | append .need }}{{ end }}{{ end -}}
+<div class="lib-filter" role="group" aria-label="Show personas by need" hidden>
+  <button type="button" class="lib-chip" aria-pressed="true" data-need="all">All <span class="lib-count">{{ len $lib }}</span></button>
+  {{- range $needs }}
+  {{- $n := . }}
+  <button type="button" class="lib-chip" aria-pressed="false" data-need="{{ $n }}">{{ range first 1 (where $lib "need" $n) }}{{ .needLabel }}{{ end }} <span class="lib-count">{{ len (where $lib "need" $n) }}</span></button>
+  {{- end }}
+</div>
+<p class="lib-status" role="status" aria-live="polite" hidden></p>
+<ul class="lib-grid">
   {{- range $lib }}
-  <li class="card">
-    <h3 class="card-title">{{ .name }}</h3>
-    <p class="card-text">{{ .does }}</p>
-    <p class="card-text"><span class="card-label">Catches</span> {{ .finds }}</p>
+  {{- $p := . }}
+  {{- $scen := index .scenarios 0 }}
+  {{- $target := cond (eq .role "visitor") "examples/targets/dummyrun-dev.json" "<your-target.json>" }}
+  <li class="lib-card" data-need="{{ .need }}">
+    <article aria-labelledby="lib-{{ .id }}">
+      <header class="lib-head">
+        <span class="lib-icon">{{ partial "icons/icon.html" (dict "name" .need) }}</span>
+        <div>
+          <h3 id="lib-{{ .id }}" class="lib-title">{{ .label }}</h3>
+          <p class="lib-meta">{{ .name }}, {{ .needLabel | lower }}</p>
+        </div>
+      </header>
+      <p class="lib-summary">{{ .summary }}</p>
+      <dl class="lib-facts">
+        <div><dt>Device</dt><dd>{{ .device | title }}{{ with .zoom }}, zoom {{ . }} percent{{ end }}</dd></div>
+        {{- with .denied }}<div><dt>Refused</dt><dd>{{ if eq . "click" }}Clicks{{ else if eq . "screenshot" }}Screenshots{{ else }}{{ . }}{{ end }}</dd></div>{{ end }}
+        <div><dt>Looks for</dt><dd>{{ .finds }}</dd></div>
+        {{- with .limit }}<div><dt>Limit</dt><dd>{{ . }}</dd></div>{{ end }}
+      </dl>
+      <details class="lib-use">
+        <summary>Use {{ .name }}</summary>
+        <p class="lib-use-text">The command runs the first of {{ len .scenarios }} scenarios.</p>
+        <ol class="lib-scen">{{ range .scenarios }}<li>{{ .title }}</li>{{ end }}</ol>
+        <div class="lib-code">
+          <pre><code id="cmd-{{ .id }}">dummyrun run --cast casts/library --persona {{ .id }} --scenario {{ $scen.id }} \
+  --target {{ $target }} --out ~/.local/share/dummyrun/runs/library \
+  --browser firefox --provider azure --model &lt;deployment&gt; --region uksouth</code></pre>
+          <button type="button" class="lib-copy btn btn-sm btn-quiet" data-target="cmd-{{ .id }}" hidden>Copy command</button>
+        </div>
+      </details>
+    </article>
   </li>
   {{- end }}
 </ul>

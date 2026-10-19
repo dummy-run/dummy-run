@@ -18,9 +18,13 @@ flowchart LR
     A[Cast of personas] --> B[Run] --> C[Report] --> D[Reviewer] --> E[Results board]
 ```
 
+## What works today
+
+The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana. The reviewer and the results board are planned. Until they exist, a person reads the report and decides what matters.
+
 ## Targets and models
 
-An adapter finds the preview for a pull request, creates a test user with the right role and loads test data. The first adapter takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages follow. The adapter also says which hosts a run may touch.
+An adapter finds the preview for a pull request, creates a test user with the right role and loads test data. The only adapter today takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages are planned. The adapter also says which hosts a run may touch.
 
 The persona and the reviewer are two separate model roles. Providers are Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service works too, including a local server. Choose one per market to keep runs inside a jurisdiction such as the UK or the EU.
 
@@ -35,7 +39,7 @@ A finding is a claim plus evidence. The reviewer rejects a claim unless a step i
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them. The engine writes the run record today, and the reviewer and the board build on it. Nothing is posted for you. The board is static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
+High-severity findings wait for a person to confirm them. Nothing is posted for you. The board will be static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
 
 ## Words we use
 
