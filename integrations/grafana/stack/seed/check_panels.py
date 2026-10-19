@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--grafana", default="http://localhost:3000")
     ap.add_argument("--from", dest="time_from", default="now-14d")
     ap.add_argument("--to", dest="time_to", default="now")
-    ap.add_argument("--run", default="", help="run ID for the run dashboard. Default: the latest run in Loki")
+    ap.add_argument("--run", default="", help="run ID for the run dashboard. Default: the newest run in Loki that has a finding")
     ap.add_argument("--persona", default=".*", help="persona for the repeated rows. Default: match all")
     ap.add_argument("--uids", default=",".join(DASHBOARDS))
     ap.add_argument("--allow-empty", action="store_true", help="only fail on query errors")
@@ -138,9 +138,9 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def latest_run(grafana: str, time_from: str, time_to: str) -> str:
-    """Find the newest run ID through the Loki data source."""
+    """Find the newest run ID with a finding through the Loki data source, so every run panel has rows."""
     query = {
-        "queries": [{"refId": "A", "datasource": {"type": "loki", "uid": "loki"}, "expr": '{service_name="dummyrun"} | dummyrun_outcome != ""', "queryType": "range", "maxLines": 1}],
+        "queries": [{"refId": "A", "datasource": {"type": "loki", "uid": "loki"}, "expr": '{service_name="dummyrun"} | dummyrun_finding_id != ""', "queryType": "range", "maxLines": 1}],
         "from": time_from,
         "to": time_to,
     }
