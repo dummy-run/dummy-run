@@ -18,7 +18,7 @@ Dummy Run decides why and how your data is used, so it is the controller under U
 - The page you signed up on.
 - The time you confirmed your address.
 
-We also use your IP address to limit repeated sign-ups. We keep only a one-way hash of it, in a counter that expires within one hour. We do not store it with your entry.
+We also use your IP address to limit repeated sign-ups. We keep only a one-way hash of it, in a counter that counts for one hour and is deleted within a day. We do not store it with your entry.
 
 ## Why we use it
 
