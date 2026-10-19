@@ -51,6 +51,8 @@ func run(args []string) int {
 		return coverageCmd(args[1:])
 	case "doctor":
 		return doctorCmd(args[1:])
+	case "mcp":
+		return mcpCmd(args[1:])
 	case "audit":
 		if len(args) > 1 && args[1] == "a11y" {
 			return a11yCmd(args[2:])
@@ -80,9 +82,10 @@ func usage() {
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun doctor [--stop]
+  dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h", "dummyrun doctor -h" or "dummyrun mcp -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
