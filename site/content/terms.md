@@ -12,11 +12,11 @@ Dummy Run is the trading name of Joel Merrick, a sole trader in the United Kingd
 
 ## What these terms cover
 
-These terms cover dummyrun.dev, the waitlist, the free scan and the paid services on our [pricing page](/pricing/). They do not cover the open-source engine. The engine is under the Apache-2.0 licence and that licence covers your use of the code. Audits also follow their order form.
+These terms cover dummyrun.dev, the waitlist, the free scan and the paid services on our [pricing page](pricing.md). They do not cover the open-source engine. The engine is under the Apache-2.0 licence and that licence covers your use of the code. Audits also follow their order form.
 
 ## Paid services and Paddle
 
-Paid services are sold through Paddle.com as merchant of record. Paddle's buyer terms apply to the purchase. Paddle handles payment, tax and refunds. Our [refund policy](/refunds/) sets out when you can have a refund.
+Paid services are sold through Paddle.com as merchant of record. Paddle's buyer terms apply to the purchase. Paddle handles payment, tax and refunds. Our [refund policy](refunds.md) sets out when you can have a refund.
 
 ## The free scan
 

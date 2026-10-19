@@ -24,8 +24,8 @@ From £1,950. A scoped audit delivered by a person. Ask for one at hello@dummyru
 
 ## Open-source engine
 
-The engine is free under the Apache-2.0 licence. See the [licence page](/docs/licensing/).
+The engine is free under the Apache-2.0 licence. See the licence page under Licence and security in the footer.
 
 ## Questions
 
-Write to hello@dummyrun.dev. The [refund policy](/refunds/) and [terms](/terms/) apply to every purchase.
+Write to hello@dummyrun.dev. The [refund policy](refunds.md) and [terms](terms.md) apply to every purchase.
