@@ -18,9 +18,11 @@ next:
 | Question | Answer |
 |---|---|
 | Where do run records and screenshots live? | In the results store you choose, such as a local directory or your own object storage. |
-| Do screenshots reach the model provider? | Assume yes. The persona is a model that reads what the browser shows, so the provider you choose receives page text and screenshots. Keep previews on synthetic data. |
-| Does exported telemetry carry screenshots? | No. It carries IDs, outcomes and page URLs. It adds the model, its region and the cost. Finding titles come too. |
+| Do screenshots reach the model provider? | Yes. The persona is a model that reads what the browser shows, so the provider you choose receives page text and screenshots (inferred). |
+| Does exported telemetry carry screenshots? | No. It carries IDs, outcomes and the target environment. It adds page URLs, the model, its region and the cost. It adds each finding's title and verdict. |
 | Does a market profile cover exported telemetry? | No. The profile checks the adapters. Your OpenTelemetry backend is not one, so host it in the same market. |
+
+The provider and the backend both receive what the persona sees, so run against previews that hold synthetic data.
 
 ## Permission findings
 
@@ -38,7 +40,7 @@ The run record and its screenshots stay wherever you run Dummy Run. The exporter
 
 {{< graphic name="residency" >}}
 
-A market profile lists the regions that satisfy it. A run refuses to start if any adapter cannot satisfy it. There are five kinds:
+A market profile lists the regions that satisfy it. A run refuses to start if any adapter cannot satisfy it. The five kinds of adapter are:
 
 - Target
 - Model provider

@@ -11,9 +11,9 @@ page live in `content/`.
 | Part | Where it lives |
 |---|---|
 | Top-level pages | `content/how-it-works.md`, `content/start.md` and `content/personas.md`. The header and footer link to them by path |
-| Audience pages | `content/for/`. A page sets `role`, `icon`, `lead_short` and `weight`, and the home page and the index build their cards from those |
+| Audience pages | `content/for/`. A page sets `role`, `icon`, `lead_short` and `weight`. The home page and the index build their cards from those |
 | Reference pages | `content/docs/`, and the adapter in `content/docs/_content.gotmpl` for pages rendered from the repository's Markdown. A page joins a group in `hugo.toml` with `group` |
-| Next step | Every page ends with one. Set `next` in the front matter with `title`, `text`, `label` and `href`, or `repo` for a path in the repository. A reference page without one points at the page after it |
+| Next step | Set `next` in the front matter with `title`, `text`, `label` and `href`. Use `repo` for a path in the repository. A reference page without one points at the page after it. Any other page without one shows none, so give every new page one |
 | Mock-ups | A graphic goes in through the `graphic` shortcode or `partials/example.html`, which adds the dashed frame and the Example label. Never place a graphic without it |
 | Persona library | The cards come from `library` in the front matter of `content/personas.md` |
 

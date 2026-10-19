@@ -1,5 +1,7 @@
 {{- /* The persona library cards, from the front matter of content/personas.md. Pass "short" for the home page teaser. */ -}}
-{{- $lib := (site.GetPage "/personas").Params.library -}}
+{{- $page := site.GetPage "/personas" -}}
+{{- if not $page }}{{ errorf "library.html: content/personas.md is missing" }}{{ end -}}
+{{- $lib := $page.Params.library -}}
 {{- if .short -}}
 <ul class="chips">
   {{- range $lib }}<li>{{ .name }}</li>{{ end }}

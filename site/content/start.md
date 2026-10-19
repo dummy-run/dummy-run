@@ -13,7 +13,7 @@ Dummy Run is pre-release. You can install the exporter and read real run records
 
 ## What you need
 
-- Go 1.27 or later
+- Go 1.27.1 or later
 - Docker, for the local Grafana
 - A clone of the repository, for the example records
 
@@ -32,10 +32,10 @@ go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dumm
 
 ## 2. Start a local Grafana {#grafana}
 
-This runs Grafana with Tempo, Loki and Prometheus in one container. It is for local use only.
+This runs Grafana with Tempo, Loki and Prometheus in one container. It is for local use only, so the ports bind to your machine alone.
 
 ```sh
-docker run --rm -p 4318:4318 -p 3000:3000 grafana/otel-lgtm:0.35.0
+docker run --rm -p 127.0.0.1:4318:4318 -p 127.0.0.1:3000:3000 grafana/otel-lgtm:0.35.0
 ```
 
 ## 3. Export the example runs {#export}
@@ -54,7 +54,7 @@ Every record follows [the run record schema](docs/run-record.md). The page lists
 
 ## The persona runner
 
-The command that plays a persona is `dummyrun run`. It signs one persona in to a preview, works through one scenario and writes a run record. The [architecture](../../docs/ARCHITECTURE.md) describes the browsers, adapters and model providers it uses. The [plan](../../docs/PLAN.md) lists what comes with it.
+The command that plays a persona is `dummyrun run`. It signs one persona in to a preview, works through one scenario and writes a run record. The [architecture](../../docs/ARCHITECTURE.md) describes the browsers, adapters and model providers it uses.
 
 ## Sources
 

@@ -15,7 +15,7 @@ next:
 
 ## Install
 
-Go 1.27 or later builds the telemetry exporter. It reads run records and sends them to any OpenTelemetry backend.
+Go 1.27.1 or later builds the telemetry exporter. It reads run records and sends them to any OpenTelemetry backend.
 
 ```sh
 go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest

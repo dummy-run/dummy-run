@@ -17,7 +17,7 @@ next:
 
 {{< graphic name="finding-card" >}}
 
-Findings have five kinds. Friction, question and accessibility are about the experience. Bug and permission are about the code. This example is measured at step 6 of a run and confirmed by the reviewer.
+Findings have five kinds. Friction, question and accessibility are about the experience. Bug and permission are about the code. This example is measured at step 6 of run [`2026-10-17-sam-author-006`](../../../examples/runs/2026-10-17-sam-author-006.json) and confirmed by the reviewer.
 
 ## Personas have devices and habits
 

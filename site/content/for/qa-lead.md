@@ -22,7 +22,7 @@ Keep your suite. Dummy Run covers what a suite does not, which is the jobs, role
 | What it checks | The steps you wrote | A job a persona tries in its own way |
 | Same every run | Yes | No, so a reviewer checks every claim |
 | Who writes it | You, as code | You, as a persona and a scenario in Markdown |
-| What it costs | Upkeep when the page changes | Model tokens for each run |
+| What it costs | Upkeep when the page changes | Model tokens for each run, as `usage` in the run record shows |
 | Best for | Regressions you can state | Roles, devices and journeys nobody scripted |
 
 When a persona confirms a finding you want guarded for good, write the test for it. Nothing is filed for you.
@@ -31,7 +31,7 @@ When a persona confirms a finding you want guarded for good, write the test for 
 
 {{< graphic name="run-timeline" >}}
 
-A run signs one persona in to the preview built for a pull request and works through one scenario. This example run took 11 steps and ended with one confirmed finding at step 6.
+A run signs one persona in to the preview built for a pull request and works through one scenario. Run [`2026-10-17-sam-author-006`](../../../examples/runs/2026-10-17-sam-author-006.json) took 11 steps and ended with one confirmed finding at step 6.
 
 ## Evidence or nothing
 
@@ -51,9 +51,11 @@ Every finding has a stable ID, so the same problem in three runs is one row on t
 |---|---|---|
 | Chrome | WebDriver BiDi | A persona has a desktop or a phone profile |
 | Firefox | WebDriver BiDi | The same session code as Chrome |
-| Real phones and tablets | A hosted browser grid, through an adapter | Not available yet. A phone persona is a Chrome or Firefox window with a phone's screen size and user agent |
+| Real phones and tablets | A hosted browser grid, through an adapter | Not available |
 | Safari | Not supported | Dummy Run does not drive it |
+
+A phone persona is a Chrome or Firefox window with a phone's screen size and user agent. Real devices would come through an adapter for a hosted browser grid.
 
 ## Sources
 
-The run contract is the [run record](../docs/run-record.md). The evidence rule and the browser list are in the [architecture](../../../docs/ARCHITECTURE.md), sourced. The examples come from the synthetic records in `examples/runs/`, measured. The comparison with a scripted suite is our reasoning, inferred.
+The run contract is the [run record](../docs/run-record.md). The evidence rule and the browser list are in the [architecture](../../../docs/ARCHITECTURE.md), sourced. The examples come from `examples/runs/2026-10-17-sam-author-006.json` and the other synthetic records there, measured. The comparison with a scripted suite is our reasoning, inferred.

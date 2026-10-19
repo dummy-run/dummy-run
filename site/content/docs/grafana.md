@@ -13,7 +13,7 @@ The [telemetry](../../../docs/TELEMETRY.md) contract gives each run one OpenTele
 
 `dummyrun-otel` reads run records and sends them to Grafana. A local stack in `integrations/grafana/stack/` starts Grafana, Tempo, Loki and Prometheus with one command. The [get started](../start.md) page walks through both. The [Grafana guide](../../../docs/integrations/grafana.md) has a section for each job, from running the local stack to filtering persona sessions out of Faro.
 
-The screenshots below show the dashboards fed with 300 synthetic runs against the fictional app Inkwell.
+The screenshots below show the dashboards fed with 300 synthetic runs against the fictional app Inkwell. `examples/generate-runs.py` writes those runs, measured.
 
 ## The dashboards
 

@@ -2,7 +2,7 @@
 title: Persona library
 wide: true
 lead: Ready-made personas for the users every site has. Start from these, then add the personas that are specific to your app.
-description: The Dummy Run persona library. Eight ready-made personas for the users every site has, from a screen-reader user to the viewer, editor and admin pattern.
+description: The Dummy Run persona library. Ready-made personas for the users every site has, from a screen-reader user to the viewer, editor and admin pattern.
 next:
   title: Use them
   text: The library lives in the repository under casts/library, one folder for each persona.
@@ -37,7 +37,7 @@ library:
 
 Every site has screen-reader users, phone users and people who have never seen it before. The library gives you a persona for each, so a first run covers them without writing a cast from scratch.
 
-## The eight personas
+## The library
 
 {{< library >}}
 
