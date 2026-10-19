@@ -16,7 +16,7 @@ timeout = "120s"
 # The endpoint must match connect-src and form-action in site/static/_headers. Change both together.
   waitlist_enabled = false
   waitlist_endpoint = "https://api.dummyrun.dev/waitlist"
-  waitlist_turnstile_sitekey = ""
+  waitlist_turnstile_sitekey = "0x4AAAAAAFcGfkWTuKYNdB6G"
 
 # The reference pages fall into these groups, in this order. A page joins a group with `group` in its
 # front matter, or in the content adapter for pages rendered from the repository's Markdown.
