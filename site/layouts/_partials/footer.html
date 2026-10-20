@@ -45,6 +45,6 @@
         </ul>
       </div>
     </nav>
-    <p class="footer-note">Dummy Run (Joel Merrick, sole trader, United Kingdom). Contact <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>. Paid services are sold through Paddle, our merchant of record. This site uses Cloudflare Web Analytics, which sets no cookies and does not track individual visitors. It loads one script from Cloudflare. The typefaces are Space Grotesk and Atkinson Hyperlegible Next, both under the SIL Open Font License 1.1. The source is in <a href="{{ .Site.Params.repo }}/tree/main/site">site/</a>.</p>
+    <p class="footer-note">Dummy Run (Joel Merrick, sole trader, United Kingdom). Contact <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>. Paid services are sold through Paddle, our merchant of record. This site uses Cloudflare Web Analytics, which sets no cookies and does not track individual visitors. It loads one script from Cloudflare.{{ if site.Params.waitlist_enabled }} The sign-up form loads Cloudflare Turnstile, a human check.{{ end }} The typefaces are Space Grotesk and Atkinson Hyperlegible Next, both under the SIL Open Font License 1.1. The source is in <a href="{{ .Site.Params.repo }}/tree/main/site">site/</a>.</p>
   </div>
 </footer>
