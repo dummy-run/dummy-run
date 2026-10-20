@@ -40,8 +40,12 @@ User-agent: DummyRun
 Disallow: /
 ```
 
-You can also disallow single paths. The open-source tool honours robots.txt only when its user turns on `--respect-robots`, so a self-run visit can still happen. Object as below if one does.
+You can also disallow single paths. The open-source tool honours robots.txt only when its user turns on `--respect-robots`, so a self-run visit can still happen. If a self-run visit still occurs, email abuse@dummyrun.dev with the domain.
 
 ## Object
 
 Write to abuse@dummyrun.dev with your domain. We stop scans of that domain. Tell us the time of the visit if you can, and we will tell you what we find.
+
+## Sources
+
+The user agent string is built in `internal/telemetry/telemetry.go`, code. The robots.txt rules and the `--respect-robots` switch are in `internal/robots` and `docs/ENGINE.md`, code. The read-only methods are in `internal/policy/policy.go`, code. The origin of visits, the rate limits and the stop-on-request promise describe the intended hosted service, inferred.

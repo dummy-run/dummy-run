@@ -43,3 +43,7 @@ A persona is a model. It finds likely problems and a person should check each on
 The text and screenshots of the pages it visits go to the model that plays the persona. The privacy page covers the waitlist only. [Read the privacy page](privacy.md).
 
 {{< waitlist >}}
+
+## Sources
+
+Sitemap discovery is in `internal/a11y/sitemap.go`, code. The axe-core sweep and its WCAG 2.2 A and AA tags are in `internal/a11y/sweep.go`, code. The read-only rule is in `internal/policy/policy.go`, code. The user agent is built in `internal/telemetry/telemetry.go`, code. The robots.txt rules are read in `internal/robots`, code. The rate limits and the email report describe the intended hosted service, inferred. So do the bot check and the data flow, inferred. The personas are described in `docs/PERSONAS.md`, code.
