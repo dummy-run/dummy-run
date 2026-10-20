@@ -1,5 +1,6 @@
 {{- $items := slice
   (dict "label" "How it works" "href" "/how-it-works/")
+  (dict "label" "Get started" "href" "/start/")
   (dict "label" "Who it is for" "href" "/for/")
   (dict "label" "Persona library" "href" "/personas/")
   (dict "label" "Docs" "href" "/docs/")
@@ -22,7 +23,7 @@
     </ul>
   </nav>
   <div class="masthead-actions">
-    <a class="btn btn-sm" href="/start/"{{ if eq $here "/start/" }} aria-current="page"{{ end }}>Get started</a>
+    <a class="btn btn-sm" href="/scan/"{{ if eq $here "/scan/" }} aria-current="page"{{ end }}>Free scan</a>
     <button class="theme-toggle" type="button" hidden>
       <svg class="theme-toggle-icon theme-toggle-moon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14.5 2.5a9.5 9.5 0 1 0 7 16.3A8.5 8.5 0 0 1 14.5 2.5z"/></svg>
       <svg class="theme-toggle-icon theme-toggle-sun" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
