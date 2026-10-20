@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- The OpenAI-compatible provider now sends an empty string as the text of a turn that only calls tools. Before, it left the field out, and a local Ollama server answered "invalid message content type" (code: `internal/provider/openai_compat.go`).
 - The Grafana exporter retries annotations on HTTP 429 (#34). Annotation lookup also retries on 5xx. Annotation creation does not retry on 5xx. Grafana may have stored the annotation. The exporter waits for `Retry-After`, spaces its calls and spends at most ten minutes on annotations in one export. If an annotation still fails, the exporter still sends and flushes all the telemetry. It then lists the failed annotations and exits with code 3. Code 3 means some annotations failed after any selected telemetry arrived. `--signals traces,metrics,logs,annotations` chooses what to send, so a re-export can send only what is missing. The dogfood workflow treats code 3 as a warning.
 - Browsers are no longer left running after runs and tests (#49). The engine starts the driver and the browser in their own process group. It closes the session and stops the group. It then waits for the exit and removes the temporary profile. This holds after an error or a panic. It also holds after a timeout, Ctrl-C and SIGTERM. A watchdog stops the browser if the engine is killed. Every test closes its browser, and CI fails when one is left behind. `docs/ENGINE.md` covers cleanup and troubleshooting.
 
@@ -52,3 +53,4 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - `bin/check-prose` enforces the plain-wording rules in `docs/STYLE.md`.
 - The docs cover the plan and the architecture. Others explain the licence, the name and the type scale.
 - `brand/` holds the Viewfinder logo, the Dummy mascot and the colour palette.
+

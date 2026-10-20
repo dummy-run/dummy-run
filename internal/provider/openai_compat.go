@@ -94,6 +94,13 @@ func (o *OpenAICompatible) Chat(ctx context.Context, req Request) (Response, err
 		return callResponses(ctx, &o.client, "openai-compatible", responsesParams(o.model, req, "auto", o.effort))
 	}
 	params := chatParamsWith(o.model, req, "auto")
+	// A turn that only calls tools has no text. OpenAI accepts a missing content field for it,
+	// but Ollama answers 400 "invalid message content type: <nil>", so send an empty string.
+	for _, m := range params.Messages {
+		if a := m.OfAssistant; a != nil && !a.Content.OfString.Valid() && len(a.Content.OfArrayOfContentParts) == 0 {
+			a.Content.OfString = openai.String("")
+		}
+	}
 	if o.effort != "" {
 		params.ReasoningEffort = shared.ReasoningEffort(o.effort)
 	}
