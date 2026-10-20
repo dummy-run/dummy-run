@@ -32,10 +32,16 @@
   if (sw > vw) {
     out.pageScrollWidth = sw;
     out.viewportWidth = vw;
+    const hits = [];
     for (const el of document.body.querySelectorAll("*")) {
       if (!visible(el) || insideScroller(el)) continue;
       const r = el.getBoundingClientRect();
-      if (r.right > vw + 1 || r.left < -1) out.overflow.push(name(el) + " right=" + Math.round(r.right));
+      if (r.right > vw + 1 || r.left < -1) hits.push([el, name(el) + " right=" + Math.round(r.right)]);
+      else if (el.scrollWidth > vw + 1 && el.scrollWidth > el.clientWidth + 1) hits.push([el, name(el) + " content runs to " + el.scrollWidth]);
+    }
+    // Report the innermost elements: a parent of a faulty element is faulty only because of it.
+    for (const [el, text] of hits) {
+      if (!hits.some(([other]) => other !== el && el.contains(other))) out.overflow.push(text);
       if (out.overflow.length >= 8) break;
     }
   }

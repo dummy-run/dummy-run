@@ -111,7 +111,7 @@ func sweep(ctx context.Context, urls []string, scheme string, width, height, fon
 		return 0, err
 	}
 	prefs := map[string]any{"webkit": map[string]any{"webprefs": map[string]any{"default_font_size": font, "default_fixed_font_size": font * 13 / 16}}}
-	b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: "chrome", Headless: true, Args: args, ChromePrefs: prefs})
+	b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: "chrome", Headless: true, Args: append(args, "--hide-scrollbars"), ChromePrefs: prefs})
 	if err != nil {
 		return 0, err
 	}
