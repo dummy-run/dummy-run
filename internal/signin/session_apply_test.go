@@ -130,6 +130,7 @@ func TestSecureAddress(t *testing.T) {
 	for raw, want := range map[string]bool{
 		"https://app.test/login": true, "http://app.test/login": false,
 		"http://localhost:3000/": true, "http://127.0.0.1:3000/": true, "ftp://app.test": false,
+		"http://LOCALHOST/": true, "http://[::1]:3000/": true, "ftp://localhost/": false, "HTTPS://app.test/": true,
 	} {
 		if got := secureAddress(raw); got != want {
 			t.Errorf("secureAddress(%q) = %v, want %v", raw, got, want)

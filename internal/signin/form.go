@@ -32,6 +32,10 @@ func submitForm(ctx context.Context, p *page.Page, t policy.Target, c Creds, g *
 		field policy.Field
 		value string
 	}{{"username", s.Username, c.Username}, {"password", s.Password, c.Password}} {
+		// Check again before each field, in case the page moved after it loaded.
+		if err := requireSecurePage(ctx, p, cx); err != nil {
+			return err
+		}
 		var res string
 		if err := conn.CallFunctionJSON(ctx, cx, fillFieldJS, &res, f.field.Selector, f.field.Label, f.value); err != nil {
 			return fmt.Errorf("fill the %s field: %w", f.name, err)
@@ -69,17 +73,24 @@ func openLoginTab(ctx context.Context, p *page.Page, t policy.Target) (string, e
 		closeTab(p, cx)
 		return "", fmt.Errorf("load the login page %s: %w", t.LoginURL(), err)
 	}
-	// A redirect may have moved the page off https. The password is never typed into such a page.
-	var href string
-	if err := conn.CallFunctionJSON(ctx, cx, "() => location.href", &href); err != nil {
+	if err := requireSecurePage(ctx, p, cx); err != nil {
 		closeTab(p, cx)
-		return "", fmt.Errorf("read the login page address: %w", err)
-	}
-	if !secureAddress(href) {
-		closeTab(p, cx)
-		return "", fmt.Errorf("the login page ended up at %s, which is not https", hostOnly(href))
+		return "", err
 	}
 	return cx, nil
+}
+
+// requireSecurePage reads the tab's address and fails unless it is https or a local address. A redirect
+// may have moved the page off https, and the password is never typed into such a page.
+func requireSecurePage(ctx context.Context, p *page.Page, cx string) error {
+	var href string
+	if err := p.Conn().CallFunctionJSON(ctx, cx, "() => location.href", &href); err != nil {
+		return fmt.Errorf("read the login page address: %w", err)
+	}
+	if !secureAddress(href) {
+		return fmt.Errorf("the login page is at %s, which is not https", hostOnly(href))
+	}
+	return nil
 }
 
 // secureAddress reports whether an address uses https, or is a local address where http is accepted.
@@ -88,7 +99,16 @@ func secureAddress(raw string) bool {
 	if err != nil {
 		return false
 	}
-	return u.Scheme == "https" || u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"
+	switch strings.ToLower(u.Scheme) {
+	case "https":
+		return true
+	case "http":
+		switch strings.ToLower(u.Hostname()) {
+		case "localhost", "127.0.0.1", "::1":
+			return true
+		}
+	}
+	return false
 }
 
 // hostOnly returns scheme and host without the path or query, which can hold tokens.
