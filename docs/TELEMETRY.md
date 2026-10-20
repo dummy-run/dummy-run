@@ -10,6 +10,18 @@ the version 2 fields, so the attributes marked "version 2" are left out for them
 `dummyrun.cost.usd` is present when the model is in the price table, and the record has `cost_usd: null`
 otherwise.
 
+## What leaves the network
+
+Dummy Run sends data to up to three places. You choose the model provider and the Grafana address. The OpenTelemetry endpoint comes from your environment.
+
+- The model provider you pick with `--provider` receives screenshots and page text. The persona is a model that reads what the browser shows. [Ethics and limits](ETHICS.md) covers what providers keep.
+- The OpenTelemetry backend you configure receives the telemetry on this page. The exporter sends it to the endpoint in `OTEL_EXPORTER_OTLP_ENDPOINT`, or to a per-signal variable such as `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` when one is set. With neither set it uses the local collector address. It sends telemetry nowhere else (code: `integrations/grafana/exporter/internal/otelsetup/otelsetup.go`).
+- Grafana receives annotations at `--grafana-url`, through the Grafana HTTP API and not through OTLP, when you pass the flag (code: `integrations/grafana/exporter/internal/annotations/annotations.go`).
+
+Telemetry has no screenshots and no copy of the persona's report. Telemetry includes run IDs and outcomes. It includes each step's action, page URL and control label. It includes the model, its region, the token counts and the cost. It includes each finding's title and its evidence label. The label is one of measured, code, sourced or inferred. The persona writes the title of its own findings. The engine writes the title of a security finding. A title can quote a few words from the page. A URL can hold personal data if the app puts it there. The run record and its screenshots stay where you run Dummy Run.
+
+Where telemetry lives is wherever your own backend is. The market profile in [ARCHITECTURE.md](ARCHITECTURE.md) checks the adapters of a run. It does not check your backend, so host the backend in the market you need.
+
 ## Resource
 
 | Attribute | Value |
