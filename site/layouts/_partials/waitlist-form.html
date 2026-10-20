@@ -31,6 +31,6 @@
   <div class="cf-turnstile" data-sitekey="{{ . }}" data-theme="auto"></div>
   {{- end }}
   <button class="btn" type="submit">{{ .button | default "Join the list" }}</button>
-  <p id="{{ $p }}-status" class="{{ $p }}-status" role="status" aria-live="polite" tabindex="-1"></p>
+  <p id="{{ $p }}-status" class="waitlist-status" role="status" aria-live="polite" tabindex="-1"></p>
 </form>
 <noscript><p class="field-hint">Without JavaScript the form still works, and the human check may not show. If it does not, email hello@dummyrun.dev.</p></noscript>
