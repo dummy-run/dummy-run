@@ -101,8 +101,8 @@ func a11yCmd(args []string) int {
 		fmt.Fprintf(os.Stderr, "dummyrun a11y: --text-scale: %v\n", err)
 		return 2
 	}
-	if *shotDir != "" && !*layout && !slices.ContainsFunc(scales, func(n int) bool { return n > 100 }) {
-		fmt.Fprintln(os.Stderr, "dummyrun a11y: --screenshots needs --layout, or a --text-scale above 100, which run the checks that take them")
+	if err := checkScreenshotFlags(*shotDir, *layout, scales); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return 2
 	}
 	if *sitemap == "" && len(urls) == 0 {
@@ -179,6 +179,14 @@ func a11yCmd(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// checkScreenshotFlags refuses --screenshots when no layout checks will run, since nothing would be written.
+func checkScreenshotFlags(dir string, layout bool, scales []int) error {
+	if dir != "" && !layout && !slices.ContainsFunc(scales, func(n int) bool { return n > 100 }) {
+		return errors.New("--screenshots needs --layout, or a --text-scale above 100, which run the checks that take them")
+	}
+	return nil
 }
 
 // parseTextScales reads "200" or "100,200" into percentages. Empty gives none, which means 100.

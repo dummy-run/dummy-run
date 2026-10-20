@@ -37,6 +37,26 @@ func quiet(t *testing.T, args ...string) int {
 	return a11yCmd(args)
 }
 
+func TestCheckScreenshotFlags(t *testing.T) {
+	for name, c := range map[string]struct {
+		dir    string
+		layout bool
+		scales []int
+		ok     bool
+	}{
+		"no screenshots":                {"", false, nil, true},
+		"with layout":                   {"shots", true, nil, true},
+		"with a text scale of 200":      {"shots", false, []int{200}, true},
+		"with 100 and 200":              {"shots", false, []int{100, 200}, true},
+		"with no layout checks":         {"shots", false, nil, false},
+		"with a text scale of only 100": {"shots", false, []int{100}, false},
+	} {
+		if err := checkScreenshotFlags(c.dir, c.layout, c.scales); (err == nil) != c.ok {
+			t.Errorf("%s: err = %v, want ok %v", name, err, c.ok)
+		}
+	}
+}
+
 func TestA11yRefusesBadTextScaleAndScreenshotFlags(t *testing.T) {
 	for name, args := range map[string][]string{
 		"duplicate scales":                    {"--text-scale", "200,200", "http://127.0.0.1:1/"},
