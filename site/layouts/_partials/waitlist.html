@@ -5,40 +5,7 @@
   <div class="panel">
     <h2 id="waitlist-heading" class="u-title-sm">Get the free scan first</h2>
     <p class="band-lede">The free scan is a quick check of a public site that you own. Join the list and we send you one email when it opens. You can unsubscribe at any time.</p>
-    <form class="waitlist-form" method="post" action="{{ site.Params.waitlist_endpoint }}">
-      <div class="field">
-        <label for="waitlist-email">Email address</label>
-        <input id="waitlist-email" name="email" type="email" autocomplete="email" required aria-describedby="waitlist-status">
-      </div>
-      <div class="field">
-        <label for="waitlist-role">Your role <span class="field-hint">(optional)</span></label>
-        <select id="waitlist-role" name="role">
-          <option value="">Prefer not to say</option>
-          <option value="qa">QA or testing</option>
-          <option value="accessibility">Accessibility</option>
-          <option value="developer">Developer</option>
-          <option value="product">Product or design</option>
-          <option value="agency">Agency or consultancy</option>
-          <option value="other">Something else</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="waitlist-site">Site you would scan <span class="field-hint">(optional)</span></label>
-        <input id="waitlist-site" name="site_url" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com">
-      </div>
-      <div class="field field-check">
-        <input id="waitlist-consent" name="consent" type="checkbox" value="yes" required>
-        <label for="waitlist-consent">I agree that Dummy Run may store my email address and these answers to tell me when the free scan opens. I can withdraw this at any time. <a href="/privacy/">Read how we use your data</a>.</label>
-      </div>
-      <input type="hidden" name="consent_version" value="2026-10-19-v1">
-      <input type="hidden" name="source" value="{{ $source }}">
-      {{- with site.Params.waitlist_turnstile_sitekey }}
-      <div class="cf-turnstile" data-sitekey="{{ . }}" data-theme="auto"></div>
-      {{- end }}
-      <button class="btn" type="submit">Join the list</button>
-      <p id="waitlist-status" class="waitlist-status" role="status" aria-live="polite" tabindex="-1"></p>
-    </form>
-    <noscript><p class="field-hint">Without JavaScript the form still works, and the human check may not show. If it does not, email hello@dummyrun.dev.</p></noscript>
+    {{ partial "waitlist-form.html" (dict "source" $source "prefix" "waitlist") }}
   </div>
   {{- with site.Params.waitlist_turnstile_sitekey }}
   {{- /* nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare says not to pin Turnstile with SRI, because the script must update itself. */}}

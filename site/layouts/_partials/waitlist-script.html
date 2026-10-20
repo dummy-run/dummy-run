@@ -1,0 +1,5 @@
+{{- /* Loads Cloudflare Turnstile once for a page that holds waitlist forms. */ -}}
+{{- if and site.Params.waitlist_enabled site.Params.waitlist_turnstile_sitekey }}
+{{- /* nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare says not to pin Turnstile with SRI, because the script must update itself. */}}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{{- end }}
