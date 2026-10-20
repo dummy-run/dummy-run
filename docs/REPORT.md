@@ -19,7 +19,7 @@ The default format is one HTML file. It holds its own styles and screenshots and
 | `--runs DIR` | A directory or a file of run records. Repeat the flag to read several. Paths may also follow the flags |
 | `--a11y FILE` | A file from `dummyrun a11y --json`. Repeat the flag for several sweeps |
 | `--title`, `--client` | The title, and free text naming who the report is for |
-| `--format` | `html` (the default), `md`, `json`, `sarif` or `junit` |
+| `--format` | `html` (the default), `md`, `json`, `sarif`, `junit`, `badge` or `shields`. The last two are described in [BADGES.md](BADGES.md) |
 | `--include pending` | Also include findings no reviewer has confirmed. Without it only confirmed findings appear |
 | `--baseline FILE` | An earlier report in JSON form, to mark each finding new or still present |
 | `--build SHA` | Report on one commit or build hash. At least 7 characters |

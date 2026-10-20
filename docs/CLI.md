@@ -120,15 +120,17 @@ Usage of coverage:
 
 ## dummyrun report
 
-Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md).
+Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md) and [BADGES.md](BADGES.md).
 
 ```text
 Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--title TEXT] [--client TEXT]
-    [--format html|md|json|sarif|junit] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+    [--format html|md|json|sarif|junit|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
 
 Turns run records and accessibility sweep results into an audit report. The default is one self-contained
 HTML file. Only reviewer-confirmed findings appear. --include pending adds the others, marked not reviewed.
 Rejected findings never appear. The report is a sample. It is not a WCAG conformance claim.
+--format badge writes a small SVG badge and --format shields writes the shields.io endpoint JSON for it.
+Both say how many findings are open and the date of the newest run.
   -a11y value
     	JSON file from dummyrun a11y --json; repeatable
   -baseline string
@@ -140,7 +142,7 @@ Rejected findings never appear. The report is a sample. It is not a WCAG conform
   -date string
     	report date as YYYY-MM-DD (default today)
   -format string
-    	html, md, json, sarif or junit (default "html")
+    	html, md, json, sarif, junit, badge (SVG) or shields (shields.io endpoint JSON) (default "html")
   -include string
     	"pending" also includes findings no reviewer has confirmed, marked not reviewed (default: confirmed only)
   -out string

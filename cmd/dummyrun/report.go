@@ -14,11 +14,13 @@ import (
 )
 
 const reportHelp = `Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--title TEXT] [--client TEXT]
-    [--format html|md|json|sarif|junit] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+    [--format html|md|json|sarif|junit|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
 
 Turns run records and accessibility sweep results into an audit report. The default is one self-contained
 HTML file. Only reviewer-confirmed findings appear. --include pending adds the others, marked not reviewed.
-Rejected findings never appear. The report is a sample. It is not a WCAG conformance claim.`
+Rejected findings never appear. The report is a sample. It is not a WCAG conformance claim.
+--format badge writes a small SVG badge and --format shields writes the shields.io endpoint JSON for it.
+Both say how many findings are open and the date of the newest run.`
 
 func reportCmd(args []string) int {
 	fs := flag.NewFlagSet("report", flag.ContinueOnError)
@@ -28,7 +30,7 @@ func reportCmd(args []string) int {
 	fs.Var(&sweeps, "a11y", "JSON file from dummyrun a11y --json; repeatable")
 	title := fs.String("title", "", "report title (default \"Accessibility and usability audit\")")
 	client := fs.String("client", "", "free text naming who the report is for")
-	format := fs.String("format", "html", "html, md, json, sarif or junit")
+	format := fs.String("format", "html", "html, md, json, sarif, junit, badge (SVG) or shields (shields.io endpoint JSON)")
 	include := fs.String("include", "", "\"pending\" also includes findings no reviewer has confirmed, marked not reviewed (default: confirmed only)")
 	baseline := fs.String("baseline", "", "an earlier report in JSON form; each finding is marked new or still present, and fixed ones are listed")
 	build := fs.String("build", "", "commit or build hash to report on (at least 7 characters); default is every record given")

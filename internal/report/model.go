@@ -135,6 +135,9 @@ type Cost struct {
 	OutputTokens int     `json:"output_tokens"`
 }
 
+// BasisConfirmed is the basis of a report that counts only findings a person confirmed.
+const BasisConfirmed = "confirmed findings"
+
 // CoverageSection reuses the numbers of `dummyrun coverage`.
 type CoverageSection struct {
 	Available   bool   `json:"available"`
