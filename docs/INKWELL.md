@@ -1,7 +1,6 @@
 # Inkwell, the test app
 
-Inkwell is a small made-up publishing app in `examples/inkwell`. It is plain Go with no dependencies, so it starts
-in a second and keeps its data in memory. Use it to try a persona on something you are free to break, and to
+Inkwell is a small made-up publishing app in `examples/inkwell`. It is plain Go and imports only standard-library packages (code: the imports in `examples/inkwell/*.go`). It keeps its data in memory. Use it to try a persona on something you are free to break, and to
 check that Dummy Run finds what you expect it to find.
 
 ## Start it
@@ -44,8 +43,8 @@ The engine has no sign-in step yet, so a test build offers a cookie route. With 
 already signed in.
 
 `examples/targets/inkwell.json` signs in as an author. Copy it and change `as=` for the other roles. The route is
-off unless you pass `-test-login`, and it signs in without a password, so never turn it on for an app that holds
-real data. The target has `"read_only": false` because the personas for the roles create and change records.
+off unless you pass `-test-login`. It signs in without a password, so never turn it on for an app that holds
+real data. The app listens on `127.0.0.1:8080` by default. Do not pass `-addr 0.0.0.0:8080` with `-test-login`, because that lets other machines sign in as anyone. The target has `"read_only": false` because the personas for the roles create and change records.
 Reset the app between runs with `curl -X POST http://127.0.0.1:8080/_reset`.
 
 ```sh

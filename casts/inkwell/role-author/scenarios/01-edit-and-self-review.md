@@ -12,9 +12,9 @@ Sam is signed in with the author test account. The target allows changes. Use te
 
 ## Steps Sam would take
 
-1. Open the draft list and find a draft that belongs to another author.
+1. Open the draft list and find draft 2, "The harbour essay", which belongs to Lin.
 2. Look for Edit, and then visit that draft's edit address directly.
-3. Open one of his own drafts and submit it for review.
+3. Open draft 1, his own draft in draft status, and submit it for review.
 4. Look for a way to approve it, and try the review address directly.
 5. Finish.
 

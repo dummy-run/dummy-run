@@ -436,7 +436,7 @@ func TestSignInAndOut(t *testing.T) {
 }
 
 func TestOpenRedirectRefused(t *testing.T) {
-	for _, n := range []string{"//evil.example", "https://evil.example", `/\evil`} {
+	for _, n := range []string{"//evil.example", "https://evil.example", `/\evil`, "/\t/evil.example", "/\n/evil.example", "/a\x00b"} {
 		if got := safeNext(n); got != "/drafts" {
 			t.Errorf("safeNext(%q) = %q", n, got)
 		}
@@ -460,11 +460,22 @@ func TestTestLoginIsOffByDefault(t *testing.T) {
 	ts := httptest.NewServer(s.Handler())
 	defer ts.Close()
 	for _, p := range []string{"/test-login?as=admin", "/_reset"} {
-		resp, _ := http.Get(ts.URL + p)
-		resp.Body.Close()
-		if resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusMethodNotAllowed {
-			t.Errorf("%s: %d", p, resp.StatusCode)
+		resp, err := http.Get(ts.URL + p)
+		if err != nil {
+			t.Fatal(err)
 		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusNotFound {
+			t.Errorf("GET %s: %d, want 404", p, resp.StatusCode)
+		}
+	}
+	resp, err := http.Post(ts.URL+"/_reset", "text/plain", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("POST /_reset: %d, want 404", resp.StatusCode)
 	}
 }
 
@@ -520,6 +531,7 @@ func TestManifest(t *testing.T) {
 		"unknown field":  `{"version":1,"defects":[],"surprise":1}`,
 		"wrong version":  `{"version":2,"defects":[]}`,
 		"no id":          `{"version":1,"defects":[{"switch":"bug-dead-link"}]}`,
+		"trailing value": `{"version":1,"defects":[]} {"version":1,"defects":[]}`,
 	}
 	for name, raw := range bad {
 		if _, err := ParseManifest([]byte(raw)); err == nil {

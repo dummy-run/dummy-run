@@ -9,7 +9,7 @@ leans-on: look click fill visit
 # Sam, author
 
 Sam has the author role in Inkwell. He writes drafts and submits them for review. He may change only his own drafts
-and may not review his own work. He is quick and tries addresses by hand.
+and may not review his own work (code: `canEdit` and `canReview` in `examples/inkwell/server.go`). He is quick and tries addresses by hand (inferred: that is how a person finds a hidden link).
 
 Traits and where they come from:
 

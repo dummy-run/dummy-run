@@ -8,8 +8,8 @@ leans-on: look click visit
 ---
 # Ravi, reviewer
 
-Ravi has the reviewer role in Inkwell. He approves or rejects drafts that wait for a verdict and reads the review list. He
-may not see payments, change settings or publish.
+Ravi has the reviewer role in Inkwell. He approves or rejects drafts that wait for a verdict and reads the review list (code: `canReview` in `examples/inkwell/server.go`). Unless a planted defect says otherwise, he
+may not see payments, change settings or publish (code: the role checks in `examples/inkwell/handlers.go`).
 
 Traits and where they come from:
 

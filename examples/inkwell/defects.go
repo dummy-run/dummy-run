@@ -96,6 +96,10 @@ func ParseManifest(raw []byte) (*Manifest, error) {
 	if err := dec.Decode(&m); err != nil {
 		return nil, fmt.Errorf("manifest: %w", err)
 	}
+	// A second JSON value after the manifest would be dropped without a word, so it is an error.
+	if dec.More() {
+		return nil, fmt.Errorf("manifest: unexpected data after the manifest")
+	}
 	if m.Version != 1 {
 		return nil, fmt.Errorf("manifest: version must be 1, got %d", m.Version)
 	}

@@ -24,11 +24,21 @@ type signinData struct {
 	Email string
 }
 
+// safeNext returns n when it is a plain local path, and /drafts otherwise. A path with a control character,
+// a backslash, a scheme or a host is refused, because a browser can read some of them as another site.
 func safeNext(n string) string {
-	if strings.HasPrefix(n, "/") && !strings.HasPrefix(n, "//") && !strings.Contains(n, "\\") {
-		return n
+	if !strings.HasPrefix(n, "/") || strings.HasPrefix(n, "//") || strings.Contains(n, "\\") {
+		return "/drafts"
 	}
-	return "/drafts"
+	for _, r := range n {
+		if r < 0x20 || r == 0x7f {
+			return "/drafts"
+		}
+	}
+	if u, err := url.Parse(n); err != nil || u.Scheme != "" || u.Host != "" {
+		return "/drafts"
+	}
+	return n
 }
 
 func (s *Server) signinForm(w http.ResponseWriter, r *http.Request, u *User) {

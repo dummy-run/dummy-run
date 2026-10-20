@@ -6,7 +6,7 @@ test accounts.
 
 | Persona | Who | Device | Tags |
 |---|---|---|---|
-| `role-author` | Sam, writes drafts, probes other people's drafts and his own review | desktop | permissions |
-| `role-reviewer` | Ravi, reviews drafts, probes what a reviewer should not reach | desktop | permissions |
+| `role-author` | Sam writes drafts and probes other people's drafts and his own review (see the [profile](role-author/profile.md), inferred from the role rules) | desktop | permissions |
+| `role-reviewer` | Ravi reviews drafts and probes what a reviewer should not reach (see the [profile](role-reviewer/profile.md), inferred from the role rules) | desktop | permissions |
 
 Run one with the Inkwell target for its role, as [docs/INKWELL.md](../../docs/INKWELL.md) describes.
