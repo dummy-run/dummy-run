@@ -28,8 +28,9 @@ const (
 	ExitOK      = 0
 	ExitFailure = 1
 	ExitUsage   = 2
-	// ExitAnnotations means every trace, metric and log record was sent and flushed, but some
-	// Grafana annotations could not be created. A re-export with --signals annotations fills them in.
+	// ExitAnnotations means some Grafana annotations could not be created. Every trace, metric and
+	// log record that was selected was sent and flushed first. When annotations were the only
+	// selected signal, no telemetry was involved. A re-export with --signals annotations fills them in.
 	ExitAnnotations = 3
 )
 
@@ -387,7 +388,11 @@ func (s *session) reportAnnotations() {
 	if len(s.annotationFailures) == 0 {
 		return
 	}
-	fmt.Fprintf(s.env.Stderr, "dummyrun-otel: %d annotations could not be created. The telemetry was sent. Run the export again with --signals annotations to add them:\n", len(s.annotationFailures))
+	sent := ""
+	if s.sig.traces || s.sig.metrics || s.sig.logs {
+		sent = " The telemetry was sent."
+	}
+	fmt.Fprintf(s.env.Stderr, "dummyrun-otel: %d annotations could not be created.%s Run the export again with --signals annotations to add them:\n", len(s.annotationFailures), sent)
 	for _, f := range s.annotationFailures {
 		fmt.Fprintf(s.env.Stderr, "  %s\n", f)
 	}
