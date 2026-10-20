@@ -8,7 +8,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Changed
 - The user docs and the README are rewritten to read more plainly and to describe only what the product does today. Design reasoning and plans moved to `docs/DECISIONS.md` and `docs/PLAN.md`, and test-suite notes moved to `CONTRIBUTING.md`. The site no longer renders the plan or the naming notes. The style guide, type scale, brand and contributing pages sit under a Contributing group.
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-10-20
 
 ### Changed
 - The terminal on the Get started page now plays one real run. You see a persona run against dummyrun.dev, the steps it took, and the report command with its result. The commands type out, the output appears in chunks, and a button pauses it. With reduced motion, the whole transcript shows at once. The raw capture and its run ID are in `site/data/start-session.json`, and `bin/check-start-session` checks that each output line is in the capture, is a shortened captured line or is an ellipsis.
