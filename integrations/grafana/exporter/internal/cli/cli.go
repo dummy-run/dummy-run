@@ -99,9 +99,11 @@ type options struct {
 	temporality string
 	grafanaURL  string
 	signals     string
-	verifyLoki  string
-	logsMaxAge  time.Duration
-	timeout     time.Duration
+	// signalsSet is true when the user passed --signals, so the default is told apart from a choice.
+	signalsSet bool
+	verifyLoki string
+	logsMaxAge time.Duration
+	timeout    time.Duration
 }
 
 func (o *options) bind(fs *flag.FlagSet, env Env) {
@@ -146,7 +148,7 @@ func (o *options) check() (signalSet, error) {
 	if err != nil {
 		return sig, err
 	}
-	if sig == (signalSet{annotations: true}) && o.grafanaURL == "" {
+	if sig.annotations && o.grafanaURL == "" && (o.signalsSet || sig == (signalSet{annotations: true})) {
 		return sig, errors.New("--signals annotations needs --grafana-url")
 	}
 	if o.verifyLoki != "" && !sig.logs {
@@ -161,10 +163,12 @@ type session struct {
 	sig  signalSet
 	// annotationFailures holds one message for each annotation that could not be created.
 	annotationFailures []string
-	providers          *otelsetup.Providers
-	emitter            *telemetry.Emitter
-	grafana            *annotations.Client
-	loki               *verify.Loki
+	// annotateDeadline ends the time all annotation calls share. It is set at the first annotation.
+	annotateDeadline time.Time
+	providers        *otelsetup.Providers
+	emitter          *telemetry.Emitter
+	grafana          *annotations.Client
+	loki             *verify.Loki
 	// wants is what the Loki check expects per run, with the time span of the records sent.
 	wants          []verify.Want
 	oldest, newest time.Time
@@ -341,13 +345,30 @@ func (s *session) sendPlan(ctx context.Context, path string, p telemetry.Plan, w
 	return nil
 }
 
+// annotationBudget is the most time one export spends on annotation calls, waits included.
+// It is a variable so a test can shorten it.
+var annotationBudget = 10 * time.Minute
+
 // annotate posts the run's annotation unless Grafana already has it. A failure is printed and
 // kept for the report at the end, and the caller carries on.
 func (s *session) annotate(ctx context.Context, path string, p telemetry.Plan) {
 	if s.grafana == nil {
 		return
 	}
-	res, err := s.grafana.Post(ctx, p.Annotation)
+	// The annotations share one budget, apart from the telemetry, so a long run of refusals cannot
+	// hold up the traces, metrics and logs. The telemetry uses the caller's context and has no part in it.
+	if s.annotateDeadline.IsZero() {
+		s.annotateDeadline = time.Now().Add(annotationBudget)
+	}
+	actx, cancel := context.WithDeadline(ctx, s.annotateDeadline)
+	defer cancel()
+	var res annotations.Result
+	var err error
+	if time.Now().After(s.annotateDeadline) {
+		err = fmt.Errorf("the annotation time budget of %s is used up", annotationBudget)
+	} else {
+		res, err = s.grafana.Post(actx, p.Annotation)
+	}
 	if err != nil {
 		msg := fmt.Sprintf("%s: annotation: %v", path, err)
 		fmt.Fprintf(s.env.Stderr, "dummyrun-otel: %s\n", msg)
@@ -434,6 +455,11 @@ func runExport(ctx context.Context, args []string, env Env) int {
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
 	}
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "signals" {
+			opts.signalsSet = true
+		}
+	})
 	sig, err := opts.check()
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel export: %v\n", err)
@@ -579,6 +605,11 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
 	}
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "signals" {
+			opts.signalsSet = true
+		}
+	})
 	sig, err := opts.check()
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel watch: %v\n", err)
@@ -630,6 +661,8 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 	fmt.Fprintf(env.Stderr, "watching %s every %s\n", dir, *interval)
 	poller := &watch.Poller{Dir: dir, Interval: *interval, IncludeExisting: *existing}
 	_ = poller.Run(ctx, func(path string) {
+		// Each new run record gets a fresh annotation budget, so a long watch keeps annotating.
+		s.annotateDeadline = time.Time{}
 		run, err := validator.LoadFile(path)
 		if err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)

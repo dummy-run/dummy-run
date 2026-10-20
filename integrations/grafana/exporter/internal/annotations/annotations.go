@@ -22,7 +22,7 @@ import (
 const (
 	// DefaultMinInterval is the least time between two calls to the Grafana API.
 	DefaultMinInterval = 500 * time.Millisecond
-	// DefaultRetries is how many times a call is repeated after a 429 or a 5xx.
+	// DefaultRetries is how many times a call is repeated after a 429, or after a 5xx for a read.
 	DefaultRetries = 5
 	// DefaultBackoff is the first wait between retries when Grafana sends no Retry-After. It doubles.
 	DefaultBackoff = time.Second
@@ -38,7 +38,7 @@ type Client struct {
 
 	// MinInterval is the least time between two calls. Zero means no pause.
 	MinInterval time.Duration
-	// Retries is how many times a call is repeated after a 429 or a 5xx. Zero means none.
+	// Retries is how many times a call is repeated after a 429, or after a 5xx for a read. Zero means none.
 	Retries int
 	// Backoff is the first wait between retries. Each retry doubles it.
 	Backoff time.Duration
@@ -169,9 +169,14 @@ func sleep(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// retryable says whether a status is worth another try: too many requests or a server error.
-func retryable(status int) bool {
-	return status == http.StatusTooManyRequests || status >= 500
+// retryable says whether a call is worth another try. A 429 means Grafana did not act on the call, so
+// every method may repeat it. A 5xx may arrive after Grafana stored an annotation, so only a read
+// repeats on it. A repeated create could leave a duplicate.
+func retryable(method string, status int) bool {
+	if status == http.StatusTooManyRequests {
+		return true
+	}
+	return status >= 500 && method == http.MethodGet
 }
 
 // retryAfter reads a Retry-After header, which holds seconds or an HTTP date. It returns false when
@@ -190,7 +195,7 @@ func (c *Client) retryAfter(h string) (time.Duration, bool) {
 	return 0, false
 }
 
-// do sends a request. It spaces calls by MinInterval and repeats a call that gets a 429 or a 5xx,
+// do sends a request. It spaces calls by MinInterval and repeats a call that gets a 429 (or a 5xx for a read),
 // waiting for Retry-After when Grafana sends it and for a doubling backoff when it does not.
 func (c *Client) do(ctx context.Context, method, path string, body []byte, out any) error {
 	wait := c.Backoff
@@ -202,7 +207,7 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte, out a
 		}
 		status, header, err := c.once(ctx, method, path, body, out)
 		c.last = c.Now()
-		if err == nil || status == 0 || !retryable(status) || attempt >= c.Retries {
+		if err == nil || status == 0 || !retryable(method, status) || attempt >= c.Retries {
 			if err != nil && attempt > 0 {
 				err = fmt.Errorf("%w (after %d retries)", err, attempt)
 			}

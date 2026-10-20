@@ -184,7 +184,7 @@ jobs:
             {
               echo "## Some Grafana annotations failed"
               echo
-              echo "dummyrun-otel exited with 3. The traces, metrics and logs of every run arrived. Add the missing annotations with \`dummyrun-otel export --signals annotations\` on the run records in the dogfood-runs artifact."
+              echo "dummyrun-otel exited with 3. The traces, metrics and logs of every run arrived. Add the missing annotations by setting GRAFANA_TOKEN and running \`dummyrun-otel export --signals annotations --grafana-url <Grafana URL>\` on the run records in the dogfood-runs artifact."
               echo
               echo '```text'
               tail -n 40 "$RUNNER_TEMP/export.log"

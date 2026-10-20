@@ -147,7 +147,7 @@ annotations with the same tags and times. It skips the run if one exists. The te
 Dashboards for the app under test can show these annotations to mark when personas were active.
 
 Grafana can answer HTTP 429 when annotations come too fast. The exporter waits half a second between
-calls. It retries a call that gets a 429 or a 5xx error up to five times and honours `Retry-After`. If an
+calls. It retries a call that gets a 429 up to five times and honours `Retry-After`. A lookup also retries on a 5xx, but a create does not, because Grafana may have stored the annotation. One export spends at most ten minutes on annotations (code: `integrations/grafana/exporter/internal/cli/cli.go`). If an
 annotation still fails, the exporter goes on with the telemetry of every run and flushes it.
 It then lists the failed annotations and exits with code 3. Code 3 means the telemetry arrived and some
 annotations did not. Code 1 means the telemetry failed. `--signals annotations` sends only the

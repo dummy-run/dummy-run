@@ -3,6 +3,7 @@ package annotations
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -21,11 +22,16 @@ type fakeGrafana struct {
 	store []annotation
 	posts int
 	gets  int
+	// requests counts every call, including those the token check refuses.
+	requests int
 }
 
 func (f *fakeGrafana) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/annotations", func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		f.requests++
+		f.mu.Unlock()
 		if r.Header.Get("Authorization") != "Bearer "+f.token {
 			http.Error(w, `{"message":"invalid API key"}`, http.StatusUnauthorized)
 			return
@@ -189,6 +195,8 @@ func newFast(baseURL, token string, hc *http.Client) (*Client, error) {
 // flakyGrafana answers the first n POSTs with status and the headers, then behaves like fakeGrafana.
 type flakyGrafana struct {
 	fakeGrafana
+	// method is the HTTP method that gets refused. It defaults to POST.
+	method  string
 	status  int
 	header  map[string]string
 	refuse  int
@@ -198,7 +206,11 @@ type flakyGrafana struct {
 func (f *flakyGrafana) handler() http.Handler {
 	inner := f.fakeGrafana.handler()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost && (f.refuse < 0 || f.refused < f.refuse) {
+		m := f.method
+		if m == "" {
+			m = http.MethodPost
+		}
+		if r.Method == m && (f.refuse < 0 || f.refused < f.refuse) {
 			f.refused++
 			for k, v := range f.header {
 				w.Header().Set(k, v)
@@ -242,7 +254,7 @@ func TestPostRetriesAfter429AndHonoursRetryAfter(t *testing.T) {
 }
 
 func TestPostBacksOffOn5xxWithoutRetryAfter(t *testing.T) {
-	fake := &flakyGrafana{fakeGrafana: fakeGrafana{token: "glsa_test"}, status: http.StatusBadGateway, refuse: 3}
+	fake := &flakyGrafana{fakeGrafana: fakeGrafana{token: "glsa_test"}, method: http.MethodGet, status: http.StatusBadGateway, refuse: 3}
 	srv := httptest.NewServer(fake.handler())
 	defer srv.Close()
 	c, _ := New(srv.URL, "glsa_test", srv.Client())
@@ -281,9 +293,22 @@ func TestPostDoesNotRetryOtherClientErrors(t *testing.T) {
 	if _, err := c.Post(context.Background(), sample()); err == nil {
 		t.Fatal("want an error")
 	}
-	// One listing call, no retry.
-	if fake.gets+fake.posts != 0 {
-		t.Errorf("the handler counted %d calls past the token check", fake.gets+fake.posts)
+	// One listing call, refused by the token check and not repeated.
+	if fake.requests != 1 {
+		t.Errorf("the server saw %d requests, want 1", fake.requests)
+	}
+}
+
+func TestPostDoesNotRepeatACreateAfter5xx(t *testing.T) {
+	fake := &flakyGrafana{fakeGrafana: fakeGrafana{token: "glsa_test"}, status: http.StatusBadGateway, refuse: -1}
+	srv := httptest.NewServer(fake.handler())
+	defer srv.Close()
+	c, _ := newFast(srv.URL, "glsa_test", srv.Client())
+	if _, err := c.Post(context.Background(), sample()); err == nil || !strings.Contains(err.Error(), "HTTP 502") {
+		t.Fatalf("got %v, want an HTTP 502 error", err)
+	}
+	if fake.refused != 1 {
+		t.Errorf("%d create calls, want 1 because a repeat could duplicate the annotation", fake.refused)
 	}
 }
 
@@ -324,9 +349,15 @@ func TestRetryStopsWhenTheContextEnds(t *testing.T) {
 	srv := httptest.NewServer(fake.handler())
 	defer srv.Close()
 	c, _ := New(srv.URL, "glsa_test", srv.Client())
+	// Skip the spacing pause so the first wait is the retry backoff.
+	c.MinInterval = 0
 	ctx, cancel := context.WithCancel(context.Background())
-	c.Sleep = func(ctx context.Context, _ time.Duration) error { cancel(); return ctx.Err() }
-	if _, err := c.Post(ctx, sample()); err == nil {
-		t.Fatal("want an error")
+	var waits int
+	c.Sleep = func(ctx context.Context, _ time.Duration) error { waits++; cancel(); return ctx.Err() }
+	if _, err := c.Post(ctx, sample()); err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("got %v, want the context error", err)
+	}
+	if waits != 1 || fake.refused != 1 {
+		t.Errorf("%d waits and %d refusals, want the backoff wait to end the retries", waits, fake.refused)
 	}
 }

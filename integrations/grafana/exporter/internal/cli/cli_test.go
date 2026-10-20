@@ -491,6 +491,39 @@ func TestExportKeepsSendingTelemetryWhenAnnotationsAlwaysFail(t *testing.T) {
 	}
 }
 
+func TestExportStopsAnnotatingWhenTheBudgetIsUsedUp(t *testing.T) {
+	old := annotationBudget
+	annotationBudget = time.Nanosecond
+	defer func() { annotationBudget = old }()
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	grafana := &limitedGrafana{}
+	gsrv := httptest.NewServer(grafana)
+	defer gsrv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	code, _, stderr := run(t, map[string]string{"GRAFANA_TOKEN": "glsa_test"}, "export", "--grafana-url", gsrv.URL, "--logs-max-age", "0", examples)
+	if code != ExitAnnotations {
+		t.Fatalf("exit %d, want %d; stderr %s", code, ExitAnnotations, stderr)
+	}
+	if !strings.Contains(stderr, "time budget") || !strings.Contains(stderr, "sent 8 runs") {
+		t.Errorf("stderr %q lacks the budget note or the telemetry summary", stderr)
+	}
+	for _, p := range []string{"/v1/traces", "/v1/metrics", "/v1/logs"} {
+		if otlp.count(p) == 0 {
+			t.Errorf("nothing posted to %s", p)
+		}
+	}
+}
+
+func TestExportRejectsAnExplicitAnnotationsSignalWithoutAGrafanaURL(t *testing.T) {
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:1")
+	code, _, stderr := run(t, nil, "export", "--signals", "traces,annotations", examples)
+	if code != ExitUsage || !strings.Contains(stderr, "--grafana-url") {
+		t.Errorf("exit %d, stderr %q, want a usage error that names --grafana-url", code, stderr)
+	}
+}
+
 func TestExportTelemetryFailureBeatsAnnotationFailure(t *testing.T) {
 	srv := httptest.NewServer(newFakeOTLP(http.StatusBadRequest))
 	defer srv.Close()
