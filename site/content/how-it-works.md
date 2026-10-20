@@ -20,7 +20,7 @@ flowchart LR
 
 ## What works today
 
-The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana. The reviewer and the results board are planned. Until they exist, a person reads the report and decides what matters.
+The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana (code: `internal/runner/runner.go` and `integrations/grafana/exporter/internal/cli/cli.go`). The model reviewer and the results board are planned (sourced: `docs/PLAN.md`). A person reviews findings with `dummyrun review` (code: `cmd/dummyrun/review.go`).
 
 [Watch a real run](watch-a-run.md) of this website, step by step.
 
@@ -41,7 +41,7 @@ A finding is a claim plus evidence. The reviewer rejects a claim unless a step i
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them. Nothing is posted for you. The board will be static HTML plus JSON built from the run records, and a person decides what becomes a ticket.
+Pending findings in schema version 2 records wait for a person to review them (code: `internal/review/store.go`). `dummyrun review` shows each pending finding with its steps and the paths of its screenshots (code: `cmd/dummyrun/review.go` and `internal/review/view.go`). A person confirms or rejects it, and the verdict goes into the run record with the reviewer's name and the time (code: `internal/review/store.go` and `internal/record/record.go`). A reason is optional when you confirm and required when you reject (code: `cmd/dummyrun/review.go`). `dummyrun review` records verdicts and never creates tickets (code: `cmd/dummyrun/review.go`). The board will use static HTML plus JSON built from run records (sourced: `docs/PLAN.md` and `docs/ARCHITECTURE.md`). A person decides what becomes a ticket (sourced: `README.md`).
 
 ## Words we use
 

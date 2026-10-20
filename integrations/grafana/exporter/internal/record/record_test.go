@@ -44,6 +44,22 @@ func TestExamplesLoad(t *testing.T) {
 	}
 }
 
+// A record that dummyrun review has edited still loads, and the exporter reads the verdict the reviewer set.
+func TestReviewedFindingsLoad(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := v.LoadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := run.Findings[0]
+	if f.Verdict != "confirmed" || f.Reviewer == "" || f.ReviewedAt == nil || run.ConfirmedFindings() != 1 {
+		t.Errorf("reviewed finding: %+v", f)
+	}
+}
+
 func TestLoadNamesTheBadFile(t *testing.T) {
 	v, err := NewValidator()
 	if err != nil {
@@ -214,7 +230,7 @@ func TestVersionOneRecordsStillLoad(t *testing.T) {
 		delete(s.(map[string]any), "route")
 	}
 	for _, f := range m["findings"].([]any) {
-		for _, k := range []string{"class", "route", "locus", "symptom", "taxonomy_version", "fingerprint"} {
+		for _, k := range []string{"class", "route", "locus", "symptom", "taxonomy_version", "fingerprint", "reviewer", "reviewed_at"} {
 			delete(f.(map[string]any), k)
 		}
 	}

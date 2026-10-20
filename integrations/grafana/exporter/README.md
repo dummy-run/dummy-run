@@ -170,6 +170,8 @@ the exporter first asks Loki which runs already have all their log lines and sen
 runs. Without it, `export` ends with a warning: a repeat duplicates spans, lines and metric points. Runs
 whose log records fall outside `--logs-max-age` cannot be recognised and are sent again either way.
 
+The verdict on a finding is the one in the record when it is sent. Run `dummyrun review` on a folder of records before you export it. A record that has been reviewed loads as before. The exporter does not send `reviewer`, `reviewed_at` or `reason`. If you review a run that was already exported, sending it again adds a second copy, so panels that count confirmed findings are right only for runs exported after review.
+
 ## Historical timestamps
 
 Run records describe the past. The exporter keeps the record's own timestamps wherever the backend

@@ -81,6 +81,8 @@ time of the finding's first step.
 | `dummyrun.finding.symptom` | `symptom`, when present |
 | `dummyrun.finding.fingerprint` | `fingerprint`, when present. The same problem has the same fingerprint in every run |
 
+The verdict is the one the record holds at the moment of the export. `dummyrun review` changes it, so review first and export after. It adds `reviewer`, `reviewed_at` and `reason` to the record, and the exporter reads them without sending them. Sending a reviewed record again does not update what Grafana holds. It adds a second set of spans, lines and metric points, as the exporter guide says. Panels that count confirmed findings are then right only for runs exported after review.
+
 ## Metrics
 
 | Metric | Type | Unit | Attributes |
