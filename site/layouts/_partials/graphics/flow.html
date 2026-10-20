@@ -2,7 +2,7 @@
 {{- $compact := .compact | default false -}}
 <div class="flow{{ if $compact }} is-compact{{ end }}" role="group" aria-label="The whole flow, from a cast of personas to the report">
   <p class="flow-controls"><button type="button" class="flow-toggle" aria-pressed="false" hidden><span class="flow-toggle-icon" aria-hidden="true"></span>Pause animation<span class="flow-toggle-state" aria-hidden="true">Paused</span></button></p>
-  <ol class="flow-steps" role="list">
+  <ol class="flow-steps">
     <li class="flow-step">
       <span class="flow-num" aria-hidden="true">1</span>
       <span class="flow-name">Pick a cast</span>
