@@ -20,5 +20,6 @@ jobs:
           persist-credentials: false
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --no-progress --max-retries 3 --accept 200,429 --exclude-path CHANGELOG.md './**/*.md'
+          # The scanner page goes live when this change deploys, so its address cannot resolve before then.
+          args: --no-progress --max-retries 3 --retry-wait-time 10 --accept 200,429 --exclude '^https://dummyrun\.dev/scanner/$' --exclude-path CHANGELOG.md './**/*.md'
           fail: true
