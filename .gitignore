@@ -6,6 +6,7 @@
 !/examples/runs/
 !/brand/**/*.png
 !/docs/images/**/*.png
+!/site/static/social/*.png
 !/internal/report/testdata/**/*.png
 # Secrets and local config
 .env

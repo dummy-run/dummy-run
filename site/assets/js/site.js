@@ -90,6 +90,63 @@
   });
 })();
 
+// A copy button on every code block. Without JavaScript the code stays as plain text.
+(function () {
+  if (!navigator.clipboard || !window.isSecureContext) {
+    return;
+  }
+  var status = document.createElement("div");
+  status.className = "sr-only";
+  status.setAttribute("role", "status");
+  document.body.appendChild(status);
+
+  document.querySelectorAll("pre").forEach(function (pre) {
+    if (pre.classList.contains("diagram-source") || pre.closest(".record")) {
+      return;
+    }
+    var bar = pre.closest(".terminal") && pre.closest(".terminal").querySelector(".t-bar");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "copy-button";
+    button.textContent = "Copy";
+    button.setAttribute("aria-label", "Copy code");
+    button.addEventListener("click", function () {
+      var sel = pre.getAttribute("data-copy");
+      var text = pre.textContent;
+      if (sel) {
+        text = Array.prototype.map.call(pre.querySelectorAll(sel), function (n) {
+          return n.textContent;
+        }).join("\n");
+      }
+      navigator.clipboard.writeText(text.replace(/\n$/, "")).then(function () {
+        button.textContent = "Copied";
+        status.textContent = "Copied to the clipboard";
+        window.setTimeout(function () {
+          button.textContent = "Copy";
+          status.textContent = "";
+        }, 2000);
+      }, function () {
+        button.textContent = "Copy failed";
+        status.textContent = "Copy failed. Select the code and copy it.";
+        window.setTimeout(function () {
+          button.textContent = "Copy";
+          status.textContent = "";
+        }, 3000);
+      });
+    });
+    if (bar) {
+      bar.insertBefore(button, bar.querySelector(".t-pause"));
+      return;
+    }
+    var host = pre.closest(".highlight") || pre;
+    var wrap = document.createElement("div");
+    wrap.className = "code-wrap";
+    host.parentNode.insertBefore(wrap, host);
+    wrap.appendChild(host);
+    wrap.appendChild(button);
+  });
+})();
+
 // The flow animation. Without JavaScript, or when the visitor asks for reduced motion, it stays a still list.
 (function () {
   var media = window.matchMedia("(prefers-reduced-motion: reduce)");
