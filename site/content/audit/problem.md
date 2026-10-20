@@ -1,7 +1,7 @@
 ---
 title: That did not work
-lead: The audit request did not go through.
-description: The audit request did not go through.
+lead: Your audit request didn't go through.
+description: Your audit request didn't go through.
 layout: audit-result
 noindex: true
 sitemap:
@@ -11,17 +11,17 @@ back:
   href: /audit/
 codes:
   - code: invalid_request
-    text: The form was missing something or had a field that was too long. Check every field.
+    text: Something was missing from the form, or a field was too long. Check each field and try again.
   - code: invalid_email
-    text: The email address did not look right. Check it for typos.
+    text: The email address didn't look right. Check it for typos.
   - code: consent_required
-    text: The consent box was not ticked. We need it to reply to you.
+    text: The consent box wasn't ticked. We need it before we can reply to you.
   - code: turnstile
-    text: The human check did not pass. Reload the page and try again.
+    text: The human check didn't pass. Reload the page and try again.
   - code: rate_limited
     text: You or your network tried too many times. Wait an hour and try again.
   - code: unavailable
-    text: The form is not taking requests right now. Try again later.
+    text: The form isn't taking requests right now. Try again later.
 ---
 
-Find the likely cause below and try again from the [audit request page](_index.md). If it keeps failing, write to hello@dummyrun.dev with what you need.
+The likely cause is below. Fix it and try again from the [audit request page](_index.md). If it keeps failing, just email hello@dummyrun.dev and tell us what you need.

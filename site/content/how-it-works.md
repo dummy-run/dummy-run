@@ -2,74 +2,64 @@
 title: How it works
 next:
   title: Try it
-  text: Install the command, run one persona read-only and look at the run in Grafana.
+  text: Install the command, send one persona to a site in read-only mode and look at what it found.
   label: Get started
   href: /start/
-lead: A persona signs in to a preview of your app, tries to do its job and reports back. A reviewer checks every claim before it reaches the board.
-description: How a Dummy Run run works, from the cast of personas through the browser run, the report and the reviewer to the results board.
+lead: A persona signs in to a preview of your app, tries to get a job done and tells you where it got stuck. You check each finding against its screenshots before anyone acts on it.
+description: How a Dummy Run run works, from picking personas through the browser run and your review to a report you can share.
 ---
 
-A persona is a fictional user with a role, goals, habits and a device.
+A persona is a made-up user with a role, a goal, a few habits and a device. Sam is an author on a phone who wants to reply to an editor's comments. Noor is blind and moves through a page by its headings. Vik can read everything in your app and shouldn't be able to change anything.
 
-A run signs one persona in to your app in Chrome or Firefox. The app is usually a preview built for one pull request. The persona tries to do its job and reports what broke, what confused it and what its role should not have seen. A reviewer checks each claim against screenshots, logs and code. Only claims with evidence reach the results board.
+When you start a run, Dummy Run opens Chrome or Firefox, signs the persona in to your app and hands it a job, such as "submit a draft" or "reset your password". The app is usually a preview built for one pull request, though any address works. A model reads each page the way the persona would, decides what to do next and does it. When it finishes, you get a record of every step, a screenshot of each one and the persona's own account of what broke, what confused it and anything its role shouldn't have been able to see.
 
 {{< flow >}}
 
 ```mermaid
 flowchart LR
-    A[Cast of personas] --> B[Run] --> C[Report] --> D[Reviewer] --> E[Results board]
+    A[Cast of personas] --> B[Run] --> C[Findings] --> D[Your review] --> E[Report]
 ```
 
 {{< try-scan >}}
 
-## What works today
-
-The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana (code: `internal/runner/runner.go` and `integrations/grafana/exporter/internal/cli/cli.go`). The model reviewer and the results board are planned (sourced: `docs/PLAN.md`). A person reviews findings with `dummyrun review` (code: `cmd/dummyrun/review.go`).
-
-[Watch a real run](watch-a-run.md) of this website, step by step.
+[Watch a real run](watch-a-run.md) of this website to see what a persona sees and does at each step.
 
 ## Does it replace a scripted suite?
 
-No. Keep your suite. A script checks the steps you wrote, the same way every time. A persona explores like a user and can find what nobody wrote a script for (inferred: the model picks its own actions, see `internal/runner/runner.go`). When a persona finds a problem you want guarded for good, write the test for it. [Beside your scripted suite](for/qa-lead.md) compares the two.
+No, and it isn't meant to. A script checks the steps you wrote, the same way every time, which is exactly what you want for regressions. A persona chooses its own path, so it can wander into the journeys nobody wrote a script for. When it finds something you never want to see again, write a test for it. [Beside your scripted suite](for/qa-lead.md) compares the two side by side.
 
-## Targets and models
+## Your app, your model
 
-An adapter finds the preview for a pull request, creates a test user with the right role and loads test data. The only adapter today takes a plain URL. Adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages are planned. The adapter also says which hosts a run may touch.
+You point a run at a target file that says where the app lives, which hosts the persona may touch and whether it may change anything. With `"read_only": true` the browser blocks every request that could change data, so it's safe to run against a site you care about. If the app needs a sign-in, the engine logs in with a test account before the persona starts, and the persona never sees the password.
 
-The persona and the reviewer are two separate model roles. Providers are Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Gemini runs on Vertex AI or the Developer API. Any OpenAI-compatible service works too, including a local server (code: `internal/provider`). [The provider table](../../docs/PROVIDERS.md) shows what each one needs and can do. Vertex AI documents regional routing, so choose its region to keep runs inside a market (code: `docs/PROVIDERS.md`). The other providers have no market rule that the repository enforces.
+The persona runs on the model you choose. Azure OpenAI, Anthropic, Gemini (on Vertex AI or the Developer API) and Amazon Bedrock all work, and so does any OpenAI-compatible service, including a model on your own machine. You pick the region with `--region`, and every run record notes where the model ran. [The provider guide](../../docs/PROVIDERS.md) shows what each one needs.
 
-## Evidence
+## Checking the findings
 
-A finding is a claim plus evidence. The reviewer rejects a claim unless a step in the run record supports it. That support is a screenshot, a console or network line, or a code reference. Each finding carries one of four tags.
+A model can be wrong, so every finding starts as pending and points at the steps and screenshots behind it. You go through them with `dummyrun review`, which shows each finding with its evidence and asks you to confirm or reject it. Your name and the time go into the run record with your decision. A rejection needs a reason, so whoever reads the record later knows why.
 
-| Tag | Meaning |
-|---|---|
-| measured | Seen in a run |
-| code | Read in the source |
-| sourced | Stated in an issue or document |
-| inferred | Our reasoning, labelled as such |
+Nothing is filed for you. You decide which findings become tickets, either by copying them into your tracker or with a script that reads the run record JSON.
 
-Pending findings in schema version 2 records wait for a person to review them (code: `internal/review/store.go`). `dummyrun review` shows each pending finding with its steps and the paths of its screenshots (code: `cmd/dummyrun/review.go` and `internal/review/view.go`). A person confirms or rejects it, and the verdict goes into the run record with the reviewer's name and the time (code: `internal/review/store.go` and `internal/record/record.go`). A reason is optional when you confirm and required when you reject (code: `cmd/dummyrun/review.go`). `dummyrun review` records verdicts and never creates tickets (code: `cmd/dummyrun/review.go`). The board will use static HTML plus JSON built from run records (sourced: `docs/PLAN.md` and `docs/ARCHITECTURE.md`). A person decides what becomes a ticket (sourced: `README.md`).
+## Sharing what you found
 
-## After review
+`dummyrun report` turns a set of runs into one HTML file you can send to anyone or print to PDF. It lists what was tested, the confirmed findings by severity with their screenshots, and plainly what the report doesn't claim. The same command can write SARIF or JUnit for your CI, and a small badge for your README. Run `dummyrun coverage` to see how much of the app the personas reached and whether more runs are still turning up new problems.
 
-No ticket is created automatically. A person reads the findings and decides what becomes a ticket. You can copy a finding into your tracker by hand, or write a script that reads the run record JSON.
+You can also send runs to Grafana, or any OpenTelemetry backend, and follow a persona through your app next to your own traces.
 
-## What leaves the network
+## What leaves your network
 
-Screenshots and page text go to the model provider you choose. The persona is a model that reads what the browser shows. Telemetry carries step URLs, control labels and finding titles. It carries no screenshots (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). A title can quote a few words from the page. Telemetry goes only to the OpenTelemetry backend you configure. If you pass `--grafana-url`, Grafana also receives annotations. The telemetry lives wherever that backend lives. [Telemetry](../../docs/TELEMETRY.md) lists what it carries.
+The persona is a model looking at your pages, so the provider you choose receives the page text and screenshots. Use previews that hold test data. The telemetry you export carries no screenshots. It does carry page addresses, button labels and finding titles, and a title can quote a few words from the page. It goes only to the OpenTelemetry backend you configure. [Telemetry](../../docs/TELEMETRY.md) lists every field.
 
 ## Words we use
 
 | Word | Meaning |
 |---|---|
-| Persona | A fictional user with a role, goals, habits and a device |
-| Cast | A set of personas. The [persona library](personas.md) holds ready-made ones |
+| Persona | A made-up user with a role, goals, habits and a device |
+| Cast | A set of personas. The [persona library](personas.md) has ready-made ones |
 | Scenario | One job a persona tries to do |
-| Preview | A copy of an app built for one pull request |
-| Run | One persona working through one scenario against one preview |
+| Preview | A copy of your app built for one pull request |
+| Run | One persona working through one scenario |
 | Run record | The JSON file a run writes, with its screenshots |
-| Finding | A claim with evidence, confirmed or rejected by the reviewer |
-| Results board | Static HTML and JSON listing the confirmed findings |
+| Finding | Something the persona hit, with the steps and screenshots that show it |
 
-The crash-test theme calls the cast "dummies" and gives the project its [mascot](../../brand/README.md). The cautions about the name are in [How the name was chosen](../../docs/NAMING.md).
+The crash-test theme is where the name comes from, and why the cast are sometimes called dummies. Meet the [mascot](../../brand/README.md).

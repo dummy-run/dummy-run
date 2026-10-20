@@ -7,8 +7,8 @@ tags: permissions roles access-control
 leans-on: look click visit fill
 label: Viewer
 need: permissions
-summary: Can read and may not change. Probes what a viewer can still do.
-finds: A viewer who can edit, and controls that show and then refuse.
+summary: Can read everything and should change nothing, so it tries to change things anyway.
+finds: A viewer who can edit, and buttons that appear and then refuse to work.
 limit: Needs a sign-in and a target that allows changes. Use test data.
 ---
 # Vik, viewer

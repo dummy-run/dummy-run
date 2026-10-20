@@ -18,12 +18,12 @@
     </select>
   </div>
   <div class="field">
-    <label for="{{ $p }}-site">Site you would scan <span class="field-hint">(optional)</span></label>
+    <label for="{{ $p }}-site">Site you&rsquo;d like scanned <span class="field-hint">(optional)</span></label>
     <input id="{{ $p }}-site" name="site_url" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com">
   </div>
   <div class="field field-check">
     <input id="{{ $p }}-consent" name="consent" type="checkbox" value="yes" required>
-    <label for="{{ $p }}-consent">I agree that Dummy Run may store my email address and these answers to tell me when the free scan opens. I can withdraw this at any time. <a href="/privacy/">Read how we use your data</a>.</label>
+    <label for="{{ $p }}-consent">Dummy Run may keep my email address and these answers to tell me when the free scan opens. I can change my mind at any time. <a href="/privacy/">Read how we use your data</a>.</label>
   </div>
   <input type="hidden" name="consent_version" value="2026-10-19-v1">
   <input type="hidden" name="source" value="{{ .source }}">
@@ -33,4 +33,4 @@
   <button class="btn" type="submit">{{ .button | default "Join the list" }}</button>
   <p id="{{ $p }}-status" class="waitlist-status" role="status" aria-live="polite" tabindex="-1"></p>
 </form>
-<noscript><p class="field-hint">Without JavaScript the form still works, and the human check may not show. If it does not, email hello@dummyrun.dev.</p></noscript>
+<noscript><p class="field-hint">The form works without JavaScript, but the human check may not appear. If it doesn&rsquo;t, email hello@dummyrun.dev instead.</p></noscript>

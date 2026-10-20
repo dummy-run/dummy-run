@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- The website reads like a person wrote it. Every page a visitor reads is rewritten in a warmer voice with varied sentences, and none of them carries Sources sections, evidence tags or lists of what is planned. The style guide describes the new voice. `bin/check-prose` now only warns about long or comma-heavy sentences, fails on machine-copy words and em dashes, and has its own tests in `bin/check-prose-test`.
 - The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and the other listed audience phrases (code: `bin/check-prose` and `docs/STYLE.md`).
 
 ### Fixed

@@ -1,51 +1,47 @@
 ---
 title: Dummy Run visited my site
-lead: Who we are, what the visit was and how to stop it.
+lead: If you've spotted DummyRun in your logs, here's who we are, what the visit was and how to stop it.
 description: Dummy Run is an open-source tool that plays fictional users on a website. This page explains its user agent, how to block it with robots.txt and how to object.
 next:
   title: What does the free scan do?
-  text: The free scan checks the public pages of a site for accessibility problems, read-only.
+  text: The free scan reads the public pages of a site and checks them for accessibility problems. It never changes anything.
   label: About the free scan
   href: /scan/
 ---
 
 ## Who we are
 
-Dummy Run is an open-source tool that plays fictional users on a website. It tries to do their jobs and reports what got in the way. The [source is on GitHub](https://github.com/dummy-run/dummy-run).
+Dummy Run is an open-source tool that plays fictional users on a website. A persona tries to get something done, like finding the pricing or signing up, and reports what got in its way. Most people use it on their own sites before a release. The [source is on GitHub](https://github.com/dummy-run/dummy-run) if you'd like to see exactly what it does.
 
 ## What you saw
 
-The visit carried this at the end of the user agent.
+The visit ended its user agent with this.
 
 ```text
 DummyRun/<version> (+https://dummyrun.dev/scanner/)
 ```
 
-The browser's own user agent comes first, so your site renders as it does for any visitor of that browser.
+The browser's own user agent comes first, so your site renders just as it would for any other visitor using that browser.
 
 ## Why it came
 
-A visit comes from someone who ran the open-source tool themselves. Once it opens, it will also come from someone who asked the hosted free scan to check a public page.
+Someone ran the open-source tool against your site. When our hosted free scan opens, a visit may also mean someone asked it to check one of your public pages.
 
-The hosted scan loads public pages only and sends only GET, HEAD and OPTIONS requests. It is rate limited and it honours robots.txt. [The free scan page](scan.md) has the detail.
+The hosted scan only loads public pages, and it only sends GET, HEAD and OPTIONS requests, so it can't change anything. It's rate limited and it follows robots.txt. [The free scan page](scan.md) has the detail.
 
-Anyone can run the open-source engine with any user agent. The identifying string is a courtesy of the hosted service and of our own runs. It is not a guarantee about other people's copies.
+Because the engine is open source, anyone can run it, and they can change the user agent. The identifying string is a courtesy that our hosted scan and our own runs always keep. We can't promise the same for copies other people run.
 
 ## Block it with robots.txt
 
-Add this to the robots.txt of your site. Runs that honour robots.txt then stay away. That includes the hosted scan and our own runs.
+Add this to your site's robots.txt and our hosted scan and our own runs will stay away.
 
 ```text
 User-agent: DummyRun
 Disallow: /
 ```
 
-You can also disallow single paths. The open-source tool honours robots.txt only when its user turns on `--respect-robots`, so a self-run visit can still happen. If a self-run visit still occurs, email abuse@dummyrun.dev with the domain.
+You can disallow single paths instead. People running the tool themselves only follow robots.txt if they turn on `--respect-robots`, so a self-run visit can still happen. If one does, email abuse@dummyrun.dev with the domain and we'll help where we can.
 
-## Object
+## Ask us to stop
 
-Write to abuse@dummyrun.dev with your domain. We stop scans of that domain. Tell us the time of the visit if you can, and we will tell you what we find.
-
-## Sources
-
-The user agent string is built in `internal/telemetry/telemetry.go`, code. The robots.txt rules and the `--respect-robots` switch are in `internal/robots` and `docs/ENGINE.md`, code. The read-only methods are in `internal/policy/policy.go`, code. The origin of visits, the rate limits and the stop-on-request promise describe the intended hosted service, inferred.
+Write to abuse@dummyrun.dev with your domain and we'll stop scanning it. If you can tell us roughly when the visit happened, we'll also tell you what we find out about it.

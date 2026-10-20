@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Tests for bin/check-prose. Run: bin/check-prose-test
+
+Each case writes a small Markdown file, runs check-prose on it and checks the exit code and output.
+"""
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+CHECK = Path(__file__).resolve().parent / "check-prose"
+
+
+def run(text, name="page.md"):
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        r = subprocess.run([sys.executable, str(CHECK), str(path)], capture_output=True, text=True)
+        return r.returncode, r.stdout, r.stderr
+
+
+class Failures(unittest.TestCase):
+    def assertFails(self, text, needle):
+        code, out, _ = run(text)
+        self.assertEqual(code, 1, out)
+        self.assertIn(needle, out)
+
+    def test_signpost(self):
+        self.assertFails("It is worth noting that runs are slow.\n", "signpost")
+
+    def test_staged_contrast(self):
+        self.assertFails("It finds problems, not certificates.\n", "staged contrast")
+        self.assertFails("It is not a test suite, but a persona.\n", "staged contrast")
+
+    def test_machine_words(self):
+        for word in ("seamless", "leverage", "unlock", "empowers", "robust"):
+            with self.subTest(word=word):
+                self.assertFails(f"Dummy Run gives you a {word} way to test.\n", "machine-copy word")
+        self.assertFails("In today's world every site needs testing.\n", "machine-copy word")
+
+    def test_em_dash(self):
+        self.assertFails("A persona tries — and fails — to sign in.\n", "em dash")
+
+    def test_bold_in_prose(self):
+        self.assertFails("A persona finds **real problems** in your app.\n", "bold inside prose")
+        self.assertFails("**Result:** nine seconds.\n", "bold label with a colon")
+
+    def test_project_state(self):
+        self.assertFails("This works once PR #42 merges.\n", "project state")
+
+
+class Passes(unittest.TestCase):
+    def assertClean(self, text):
+        code, out, err = run(text)
+        self.assertEqual(code, 0, out + err)
+        return err
+
+    def test_varied_rhythm_passes(self):
+        text = (
+            "Sam is an author on a phone. When Sam tries to reply to an editor's comments, the keyboard "
+            "slides up, covers the Submit button and leaves no obvious way to send the reply, so a real "
+            "author would give up or go looking for a laptop. That's a finding.\n"
+        )
+        err = self.assertClean(text)
+        self.assertEqual(err, "")
+
+    def test_three_commas_is_not_a_failure(self):
+        self.assertClean("You pick the provider, the model, the region and the browser.\n")
+
+    def test_run_in_bold_head(self):
+        self.assertClean("- **Targets.** Give it a URL and it runs.\n")
+
+    def test_code_is_ignored(self):
+        self.assertClean("Run `dummyrun --robust --seamless`.\n\n```sh\necho not this, but that\n```\n")
+
+
+class Warnings(unittest.TestCase):
+    def test_many_commas_warn_but_pass(self):
+        code, out, err = run("It reads the page, the outline, the sweep, the console, the network, the title, the headers and the URL.\n")
+        self.assertEqual(code, 0, out)
+        self.assertIn("warning", err)
+        self.assertIn("commas", err)
+
+    def test_long_sentence_warns_but_passes(self):
+        sentence = " ".join(["word"] * 50) + ".\n"
+        code, out, err = run(sentence)
+        self.assertEqual(code, 0, out)
+        self.assertIn("words in one sentence", err)
+
+    def test_third_person_on_audience_page(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "site/content/for/qa-lead.md"
+            path.parent.mkdir(parents=True)
+            path.write_text("A QA lead wants their suite to pass.\n")
+            r = subprocess.run([sys.executable, str(CHECK), str(path)], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("\"their\" for the reader", r.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()

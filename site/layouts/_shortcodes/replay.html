@@ -16,12 +16,12 @@
   </dl>
 
   <h2 id="rp-findings-h">What it found</h2>
-  <p>The reviewer is not built yet. Every finding below is the persona's own claim and still pending.</p>
+  <p>Nobody has reviewed these yet, so each one is still the persona&rsquo;s own claim, waiting for a person to confirm or reject it.</p>
   <ul class="rp-findings">
   {{- range $r.findings }}
     {{- $f := . }}
     <li class="rp-finding">
-      <p class="rp-finding-meta">{{ .kind }} · {{ .severity }} · evidence {{ .evidence }} · {{ .verdict }}</p>
+      <p class="rp-finding-meta">{{ .kind }} · {{ .severity }} · {{ .verdict }}</p>
       <p class="rp-finding-title">{{ .title }}</p>
       <p class="rp-finding-steps">Cites {{ if gt (len .steps) 1 }}steps{{ else }}step{{ end }}
         {{ range $i, $n := .steps }}{{ if $i }} {{ end }}<a class="rp-jump" href="#step-{{ $n }}" data-step="{{ $n }}">{{ $n }}</a>{{ end }}</p>
