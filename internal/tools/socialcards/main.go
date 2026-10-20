@@ -344,35 +344,59 @@ func drawHead(img *image.RGBA, ox, oy, k float64) {
 	py := func(y float64) float64 { return oy + y*k }
 
 	// Ears, then the rounded face.
-	fillPath(img, circle(px(6.5), py(35), 4.5*k), amberDark)
-	fillPath(img, circle(px(57.5), py(35), 4.5*k), amberDark)
-	fillPath(img, rect(px(29), py(7), px(35), py(57)), amber)
-	fillPath(img, rect(px(7), py(29), px(57), py(35)), amber)
+	fillPath(img, union(circle(px(6.5), py(35), 4.5*k), circle(px(57.5), py(35), 4.5*k)), amberDark)
+	face := []shape{rect(px(29), py(7), px(35), py(57)), rect(px(7), py(29), px(57), py(35))}
 	for _, c := range [][2]float64{{29, 29}, {35, 29}, {29, 35}, {35, 35}} {
-		fillPath(img, circle(px(c[0]), py(c[1]), 22*k), amber)
+		face = append(face, circle(px(c[0]), py(c[1]), 22*k))
 	}
+	fillPath(img, union(face...), amber)
 
 	// The target on the temple: amber disc, dark ring, dark top left and bottom right quadrants.
 	tx, ty := px(19), py(21)
 	fillPath(img, circle(tx, ty, 7.8*k), dummy)
 	fillPath(img, circle(tx, ty, 5.2*k), amber)
-	fillPath(img, arcShape(tx, ty, 6.5*k, math.Pi, 1.5*math.Pi), dummy)
-	fillPath(img, arcShape(tx, ty, 6.5*k, 0, 0.5*math.Pi), dummy)
+	fillPath(img, union(arcShape(tx, ty, 6.5*k, math.Pi, 1.5*math.Pi), arcShape(tx, ty, 6.5*k, 0, 0.5*math.Pi)), dummy)
 
 	// Eyes with a highlight each.
-	for _, x := range []float64{25, 39} {
-		fillPath(img, ellipse(px(x), py(36), 3.6*k, 4.4*k), dummy)
-		fillPath(img, circle(px(x+1.2), py(34.3), 1.4*k), paper)
-	}
+	fillPath(img, union(ellipse(px(25), py(36), 3.6*k, 4.4*k), ellipse(px(39), py(36), 3.6*k, 4.4*k)), dummy)
+	fillPath(img, union(circle(px(26.2), py(34.3), 1.4*k), circle(px(40.2), py(34.3), 1.4*k)), paper)
 
-	// The smile: a quadratic curve from (27, 46) through (32, 50.5) to (37, 46), stroked 3 units wide.
-	const steps = 60
+	// The smile: a quadratic curve from (27, 46) through (32, 50.5) to (37, 46), stroked 3 units wide
+	// as one outline with a round cap at each end. One outline keeps the fill count low.
+	const steps = 24
+	var left, right [steps + 1][2]float64
 	for i := 0; i <= steps; i++ {
 		t := float64(i) / steps
 		x := (1-t)*(1-t)*27 + 2*(1-t)*t*32 + t*t*37
 		y := (1-t)*(1-t)*46 + 2*(1-t)*t*50.5 + t*t*46
-		fillPath(img, circle(px(x), py(y), 1.5*k), dummy)
+		dx := 2*(1-t)*(32-27) + 2*t*(37-32)
+		dy := 2*(1-t)*(50.5-46) + 2*t*(46-50.5)
+		n := math.Hypot(dx, dy)
+		nx, ny := -dy/n*1.5, dx/n*1.5
+		left[i] = [2]float64{px(x + nx), py(y + ny)}
+		right[i] = [2]float64{px(x - nx), py(y - ny)}
 	}
+	fillPath(img, shape{[]func(*vector.Rasterizer){func(r *vector.Rasterizer) {
+		r.MoveTo(float32(left[0][0]), float32(left[0][1]))
+		for i := 1; i <= steps; i++ {
+			r.LineTo(float32(left[i][0]), float32(left[i][1]))
+		}
+		for i := steps; i >= 0; i-- {
+			r.LineTo(float32(right[i][0]), float32(right[i][1]))
+		}
+		r.ClosePath()
+	}}}, dummy)
+	fillPath(img, union(circle(px(27), py(46), 1.5*k), circle(px(37), py(46), 1.5*k)), dummy)
+}
+
+// union joins shapes that share one fill, so the rasteriser runs once for them. Every shape is drawn in
+// the same direction, so overlaps stay filled.
+func union(shapes ...shape) shape {
+	var out shape
+	for _, s := range shapes {
+		out.segs = append(out.segs, s.segs...)
+	}
+	return out
 }
 
 func ellipse(cx, cy, rx, ry float64) shape {
