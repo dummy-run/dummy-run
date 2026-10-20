@@ -21,7 +21,7 @@ You give it the address of a public page. You pass a bot check and give an email
 
 ## Who it is for
 
-Anyone who wants a first look at a public site. That includes owners, developers, designers and testers. You do not need an account.
+You, if you want a first look at a public site. Owners, developers, designers and testers can all use it. You do not need an account.
 
 ## What it is not
 
