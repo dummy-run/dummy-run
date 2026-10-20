@@ -10,11 +10,11 @@ timeout = "120s"
   repo = "https://github.com/dummy-run/dummy-run"
 
 # The audit request form. It stays hidden, and nothing from the page reaches the API or Cloudflare
-# Turnstile, until the Worker at the endpoint is live. Then switch audit_form_enabled on. The form uses
+# Turnstile, when audit_form_enabled is off. The Worker at the endpoint is live, so it is on. The form uses
 # waitlist_turnstile_sitekey for the human check. For a local build, override with
 # HUGO_PARAMS_AUDIT_FORM_ENABLED=true. The endpoint must match connect-src and form-action in
 # site/static/_headers. Change both together.
-  audit_form_enabled = false
+  audit_form_enabled = true
   audit_endpoint = "https://api.dummyrun.dev/audit-request"
   waitlist_turnstile_sitekey = "0x4AAAAAAFcGfkWTuKYNdB6G"
 

@@ -7,6 +7,13 @@
       {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
     </header>
     {{ .Content }}
+    {{- with .Params.codes }}
+    <ul class="problem-codes">
+      {{- range . }}
+      <li data-code="{{ .code }}">{{ .text }}</li>
+      {{- end }}
+    </ul>
+    {{- end }}
     <p class="actions"><a class="btn btn-quiet" href="/pricing/">Back to pricing</a></p>
   </article>
 </div>

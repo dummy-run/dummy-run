@@ -746,3 +746,6 @@ td code, th code { white-space: nowrap; }
 .req-fallback .actions { margin: 1rem 0 0; }
 .stage a.btn:not(.btn-on-stage), .stage a.btn:not(.btn-on-stage):hover { color: #1d1d1b; text-decoration: none; }
 .stage a.btn-on-stage { text-decoration: none; }
+.prose .problem-codes { list-style: none; padding: 0; }
+.problem-codes li { margin: 0 0 0.6rem; padding: 0.6rem 1rem; border-left: 4px solid var(--rule); background: var(--panel); border-radius: 8px; }
+.problem-codes li.is-match { border-left-color: var(--amber); font-weight: 600; }

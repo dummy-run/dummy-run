@@ -3,7 +3,7 @@
 <form class="req-form" method="post" action="{{ site.Params.audit_endpoint }}" data-audit>
   <div class="field">
     <label for="audit-name">Your name</label>
-    <input id="audit-name" name="name" type="text" autocomplete="name" required>
+    <input id="audit-name" name="name" type="text" maxlength="100" autocomplete="name" required>
   </div>
   <div class="field">
     <label for="audit-email">Email address</label>
@@ -11,30 +11,30 @@
   </div>
   <div class="field">
     <label for="audit-organisation">Organisation <span class="field-hint">(optional)</span></label>
-    <input id="audit-organisation" name="organisation" type="text" autocomplete="organization">
+    <input id="audit-organisation" name="organisation" type="text" maxlength="150" autocomplete="organization">
   </div>
   <div class="field">
     <label for="audit-website">Website to audit</label>
-    <input id="audit-website" name="website" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com" required>
+    <input id="audit-website" name="site_url" type="text" inputmode="url" autocomplete="url" placeholder="example.com" required>
   </div>
   <div class="field">
     <label for="audit-needs">What do you need?</label>
-    <textarea id="audit-needs" name="needs" rows="6" required></textarea>
+    <textarea id="audit-needs" name="need" rows="6" maxlength="2000" required></textarea>
   </div>
   <div class="field">
     <label for="audit-timing">Preferred timing</label>
     <select id="audit-timing" name="timing" required>
       <option value="asap">As soon as possible</option>
-      <option value="month">Within a month</option>
+      <option value="within_month">Within a month</option>
       <option value="later">Later</option>
     </select>
   </div>
   <div class="field">
     <label for="audit-heard">How did you hear about us? <span class="field-hint">(optional)</span></label>
-    <input id="audit-heard" name="heard" type="text">
+    <input id="audit-heard" name="heard_from" type="text" maxlength="200">
   </div>
   <div class="field field-check">
-    <input id="audit-consent" name="consent" type="checkbox" value="yes" required>
+    <input id="audit-consent" name="consent" type="checkbox" value="on" required>
     <label for="audit-consent">Contact me about this request</label>
   </div>
   {{- with site.Params.waitlist_turnstile_sitekey }}
@@ -43,6 +43,7 @@
   <button class="btn" type="submit">Send the request</button>
   <p id="audit-status" class="form-status" role="status" aria-live="polite"></p>
 </form>
+<noscript><p class="field-hint">Without JavaScript the human check may not show. If it does not, email <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p></noscript>
 <p class="field-hint">This form loads Cloudflare Turnstile, a human check. You can also write to <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p>
 {{- with site.Params.waitlist_turnstile_sitekey }}
 {{- /* nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare says not to pin Turnstile with SRI, because the script must update itself. */}}

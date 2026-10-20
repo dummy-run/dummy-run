@@ -177,7 +177,7 @@
   var status = form.querySelector(".form-status");
   var messages = {
     invalid_email: "That email address does not look right. Check it and try again.",
-    invalid_website: "That website address does not look right. Check it and try again.",
+    invalid_request: "Something in the form is missing or too long. Check it and try again.",
     consent_required: "Tick the box so we can contact you, then try again.",
     turnstile: "The human check did not pass. Try again.",
     rate_limited: "Too many tries. Wait a little and try again.",
@@ -226,4 +226,20 @@
       }
     });
   });
+})();
+
+// On the audit problem page, mark the cause named in the address.
+(function () {
+  var list = document.querySelector(".problem-codes");
+  if (!list || !window.URLSearchParams) {
+    return;
+  }
+  var code = new URLSearchParams(window.location.search).get("code");
+  var items = list.querySelectorAll("li");
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].getAttribute("data-code") === code) {
+      items[i].className = "is-match";
+      items[i].setAttribute("aria-current", "true");
+    }
+  }
 })();
