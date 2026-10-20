@@ -179,7 +179,9 @@
       "locus": "region:payment status",
       "symptom": "unclear-label",
       "taxonomy_version": 1,
-      "fingerprint": "1718b75300702f7b"
+      "fingerprint": "1718b75300702f7b",
+      "reviewer": "example-reviewer",
+      "reviewed_at": "2026-10-17T11:43:24Z"
     }
   ],
   "usage": {

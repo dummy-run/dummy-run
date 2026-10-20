@@ -1,0 +1,176 @@
+{
+  "schema_version": 2,
+  "id": "2026-10-16-ada-editor-003",
+  "batch": "2026-10-16-pr-41",
+  "repeat_index": 0,
+  "seed": null,
+  "started_at": "2026-10-16T19:33:44.000Z",
+  "ended_at": "2026-10-16T19:34:26.535Z",
+  "persona": {
+    "id": "ada-editor",
+    "role": "editor",
+    "device": "desktop",
+    "dimensions": {
+      "viewport": {
+        "width": 1400,
+        "height": 1000
+      },
+      "locale": null,
+      "at": "none",
+      "connection": "unthrottled",
+      "zoom": 1.0,
+      "motion": null
+    }
+  },
+  "scenario": {
+    "id": "reassign-draft",
+    "title": "Reassign a stalled draft",
+    "goal_met": "no"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-41",
+    "base_url": "https://pr-41.inkwell.example",
+    "commit": "a865ffd"
+  },
+  "provider": {
+    "kind": "vertex-gemini",
+    "model": "gemini-3.5-flash-lite",
+    "region": "europe-west2"
+  },
+  "browser": {
+    "name": "chrome",
+    "version": "148.0"
+  },
+  "outcome": "blocked",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-16T19:33:44.000Z",
+      "action": "click",
+      "duration_ms": 1085,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment",
+      "route": "/payments"
+    },
+    {
+      "n": 2,
+      "at": "2026-10-16T19:33:48.482Z",
+      "action": "type",
+      "duration_ms": 557,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Title",
+      "route": "/issues"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-16T19:33:54.181Z",
+      "action": "visit",
+      "duration_ms": 2354,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "route": "/drafts",
+      "screenshot": "screens/003-03.png"
+    },
+    {
+      "n": 4,
+      "at": "2026-10-16T19:33:59.904Z",
+      "action": "scroll",
+      "duration_ms": 3247,
+      "url": "https://pr-41.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "route": "/reviews"
+    },
+    {
+      "n": 5,
+      "at": "2026-10-16T19:34:08.116Z",
+      "action": "click",
+      "duration_ms": 339,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit",
+      "route": "/issues"
+    },
+    {
+      "n": 6,
+      "at": "2026-10-16T19:34:13.106Z",
+      "action": "select",
+      "duration_ms": 1612,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Approve",
+      "route": "/drafts"
+    },
+    {
+      "n": 7,
+      "at": "2026-10-16T19:34:16.937Z",
+      "action": "fill",
+      "duration_ms": 1134,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 500,
+      "console_errors": 2,
+      "target": "Submit",
+      "route": "/issues"
+    },
+    {
+      "n": 8,
+      "at": "2026-10-16T19:34:21.059Z",
+      "action": "finish",
+      "duration_ms": 2196,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "route": "/drafts"
+    }
+  ],
+  "findings": [
+    {
+      "id": "schedule-500-on-past-date",
+      "kind": "bug",
+      "severity": "major",
+      "title": "Scheduling an issue for a past date returns a server error",
+      "steps": [
+        7
+      ],
+      "evidence": "measured",
+      "verdict": "confirmed",
+      "class": "problem",
+      "route": "/issues",
+      "locus": "button:schedule",
+      "symptom": "error-shown",
+      "taxonomy_version": 1,
+      "fingerprint": "72be5e1e780d79bb"
+    },
+    {
+      "id": "faint-hint",
+      "kind": "accessibility",
+      "severity": "minor",
+      "title": "The hint under the schedule field is too faint to read",
+      "steps": [
+        3
+      ],
+      "evidence": "measured",
+      "verdict": "pending",
+      "class": "problem",
+      "route": "/issues",
+      "locus": "region:schedule form",
+      "symptom": "a11y:color-contrast",
+      "taxonomy_version": 1,
+      "fingerprint": "64afd5191821762c"
+    }
+  ],
+  "usage": {
+    "model_calls": 11,
+    "input_tokens": 64570,
+    "output_tokens": 6600,
+    "cost_usd": 0.0359
+  }
+}

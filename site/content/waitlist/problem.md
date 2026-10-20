@@ -16,4 +16,4 @@ Find the likely cause below and try again from the [start page](../start.md).
 - The confirmation link expired or was already used. Links last 48 hours. Sign up again for a new one.
 - The list is not taking sign-ups right now. Try again later.
 
-If it keeps failing, write to privacy@dummyrun.dev.
+If it keeps failing, write to hello@dummyrun.dev.

@@ -52,10 +52,34 @@ type Record struct {
 	Target    Target    `json:"target"`
 	Provider  Provider  `json:"provider"`
 	Browser   Browser   `json:"browser"`
-	Outcome   string    `json:"outcome"`
-	Steps     []Step    `json:"steps"`
-	Findings  []Finding `json:"findings"`
-	Usage     Usage     `json:"usage"`
+	// Signin says how the engine signed the persona in before the run. Nil when it did not.
+	Signin  *Signin `json:"signin,omitempty"`
+	Outcome string  `json:"outcome"`
+	// OutcomeReason says why a run was blocked before it started, such as a robots.txt disallow.
+	OutcomeReason string    `json:"outcome_reason,omitempty"`
+	Steps         []Step    `json:"steps"`
+	Findings      []Finding `json:"findings"`
+	Usage         Usage     `json:"usage"`
+	// Events are things the engine saw that a reviewer should know about. Left out when there are none.
+	Events []Event `json:"events,omitempty"`
+}
+
+// Event kinds.
+const (
+	EventSuspectedInjection = "suspected_injection"
+	EventOffOriginBlocked   = "off_origin_blocked"
+	EventUncitedFinding     = "uncited_finding"
+	EventProviderFiltered   = "provider_filtered"
+)
+
+// Event is one thing the engine noticed. For a suspected injection Detail is text from the page, so a
+// reader that passes it to a model must treat it as data.
+type Event struct {
+	Kind    string `json:"kind"`
+	Step    int    `json:"step,omitempty"`
+	Source  string `json:"source,omitempty"`
+	Pattern string `json:"pattern,omitempty"`
+	Detail  string `json:"detail"`
 }
 
 // Persona identifies the persona and how it browsed in this run. Device and
@@ -111,6 +135,10 @@ type Target struct {
 	// BuildHash identifies the deployed build when there is no commit.
 	BuildHash     string               `json:"build_hash,omitempty"`
 	RouteUniverse []RouteUniverseEntry `json:"route_universe,omitempty"`
+	// Identify is true when the user agent named the scanner page.
+	Identify bool `json:"identify,omitempty"`
+	// RespectRobots is true when the run honoured the target's robots.txt.
+	RespectRobots bool `json:"respect_robots,omitempty"`
 }
 
 // Provider describes the model that played the persona.
@@ -124,6 +152,27 @@ type Provider struct {
 type Browser struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
+}
+
+// Signin records the sign-in the engine did before the persona started. It never holds a credential.
+type Signin struct {
+	// Method is form or session.
+	Method string `json:"method"`
+	// Role is the role name from the target file's credentials.
+	Role string `json:"role"`
+	OK   bool   `json:"ok"`
+	// AllowedRequest is the one request the read-only policy let through during sign-in. Nil when
+	// none was sent, as with a session file.
+	AllowedRequest *SigninRequest `json:"allowed_request"`
+	DurationMs     int            `json:"duration_ms"`
+	// Error says why the sign-in failed. Credentials are removed from it.
+	Error string `json:"error,omitempty"`
+}
+
+// SigninRequest is a request method and address, without the query.
+type SigninRequest struct {
+	Method string `json:"method"`
+	URL    string `json:"url"`
 }
 
 // Step is one action.
@@ -167,6 +216,10 @@ type Finding struct {
 	ClusterID      string   `json:"cluster_id,omitempty"`
 	SeededDefectID string   `json:"seeded_defect_id,omitempty"`
 	ReviewedBy     []string `json:"reviewed_by,omitempty"`
+	// Reviewer, ReviewedAt and Reason are set by dummyrun review when a person confirms or rejects the finding.
+	Reviewer   string     `json:"reviewer,omitempty"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	Reason     string     `json:"reason,omitempty"`
 }
 
 // Usage is the model usage for the run.
@@ -182,20 +235,21 @@ type Usage struct {
 
 // Outcomes and other enumerations from the schema.
 const (
-	OutcomeCompleted       = "completed"
-	OutcomeBlocked         = "blocked"
-	OutcomeErrored         = "errored"
-	OutcomeBudgetExhausted = "budget_exhausted"
-	VerdictPending         = "pending"
-	ClassProblem           = "problem"
-	ClassObservation       = "observation"
+	OutcomeCompleted        = "completed"
+	OutcomeBlocked          = "blocked"
+	OutcomeErrored          = "errored"
+	OutcomeBudgetExhausted  = "budget_exhausted"
+	OutcomeProviderFiltered = "provider_filtered"
+	VerdictPending          = "pending"
+	ClassProblem            = "problem"
+	ClassObservation        = "observation"
 )
 
 // Actions lists the thirteen step actions.
 var Actions = []string{"look", "visit", "click", "fill", "type", "select", "press", "back", "scroll", "wait", "a11y", "screenshot", "finish"}
 
 // Kinds lists the finding kinds.
-var Kinds = []string{"bug", "permission", "friction", "accessibility", "question"}
+var Kinds = []string{"bug", "permission", "friction", "accessibility", "question", "security"}
 
 // Severities lists the finding severities.
 var Severities = []string{"blocker", "major", "minor", "info"}

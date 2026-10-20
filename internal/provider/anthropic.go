@@ -72,7 +72,11 @@ func (a *Anthropic) Chat(ctx context.Context, req Request) (Response, error) {
 		}
 		return Response{}, fmt.Errorf("provider: anthropic: %w", err)
 	}
-	return fromAnthropic(msg), nil
+	resp := fromAnthropic(msg)
+	if isFilterReason(resp.FinishReason) {
+		return resp, filtered("anthropic", "stop reason "+resp.FinishReason, nil)
+	}
+	return resp, nil
 }
 
 // anthropicParams maps a Request onto the Messages API. ForceTool is ignored

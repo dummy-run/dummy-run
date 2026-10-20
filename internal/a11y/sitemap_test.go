@@ -2,10 +2,12 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -51,11 +53,38 @@ func TestFetchSitemapIndex(t *testing.T) {
 	})
 	srv = httptest.NewServer(mux)
 	defer srv.Close()
-	got, err := FetchSitemap(context.Background(), nil, srv.URL+"/index.xml")
+	got, err := FetchSitemap(context.Background(), nil, srv.URL+"/index.xml", nil)
 	if err != nil || !reflect.DeepEqual(got, []string{"https://x/a", "https://x/b", "https://x/c"}) {
 		t.Fatalf("%v %v", got, err)
 	}
-	if _, err := FetchSitemap(context.Background(), nil, srv.URL+"/missing.xml"); err == nil {
+	if _, err := FetchSitemap(context.Background(), nil, srv.URL+"/missing.xml", nil); err == nil {
 		t.Fatal("a missing sitemap must be an error")
+	}
+}
+
+func TestFetchSitemapChecksRedirectTargets(t *testing.T) {
+	var hits []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits = append(hits, r.URL.Path)
+		if r.URL.Path == "/start.xml" {
+			http.Redirect(w, r, "/private.xml", http.StatusFound)
+			return
+		}
+		_, _ = w.Write([]byte(`<urlset><url><loc>https://x.test/</loc></url></urlset>`))
+	}))
+	defer srv.Close()
+	deny := func(_ context.Context, loc string) error {
+		if strings.HasSuffix(loc, "/private.xml") {
+			return errors.New("not allowed")
+		}
+		return nil
+	}
+	if _, err := FetchSitemap(context.Background(), srv.Client(), srv.URL+"/start.xml", deny); err == nil {
+		t.Fatal("a redirect to a refused address was followed")
+	}
+	for _, h := range hits {
+		if h == "/private.xml" {
+			t.Error("the refused address was requested")
+		}
 	}
 }

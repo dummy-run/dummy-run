@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,6 +28,10 @@ const (
 	ExitOK      = 0
 	ExitFailure = 1
 	ExitUsage   = 2
+	// ExitAnnotations means some Grafana annotations could not be created. Every trace, metric and
+	// log record that was selected was sent and flushed first. When annotations were the only
+	// selected signal, no telemetry was involved. A re-export with --signals annotations fills them in.
+	ExitAnnotations = 3
 )
 
 // Version is set by the build with -ldflags "-X ...cli.Version=v1.2.3".
@@ -39,6 +44,8 @@ type Env struct {
 	Getenv func(string) string
 	// Now exists so tests can fix the clock the log age check uses.
 	Now func() time.Time
+	// Sleep, when set, replaces the waits between annotation calls and retries. Tests use it.
+	Sleep func(context.Context, time.Duration) error
 	// Signals, when nil, means watch stops on SIGINT or SIGTERM.
 	Signals <-chan os.Signal
 }
@@ -92,9 +99,12 @@ type options struct {
 	protocol    string
 	temporality string
 	grafanaURL  string
-	verifyLoki  string
-	logsMaxAge  time.Duration
-	timeout     time.Duration
+	signals     string
+	// signalsSet is true when the user passed --signals, so the default is told apart from a choice.
+	signalsSet bool
+	verifyLoki string
+	logsMaxAge time.Duration
+	timeout    time.Duration
 }
 
 func (o *options) bind(fs *flag.FlagSet, env Env) {
@@ -102,18 +112,64 @@ func (o *options) bind(fs *flag.FlagSet, env Env) {
 	fs.StringVar(&o.protocol, "protocol", env.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL"), "OTLP transport: http/protobuf (default) or grpc")
 	fs.StringVar(&o.temporality, "metrics-temporality", "cumulative", "metric temporality: cumulative or delta")
 	fs.StringVar(&o.grafanaURL, "grafana-url", "", "Grafana base URL for annotations; the token comes from GRAFANA_TOKEN")
+	fs.StringVar(&o.signals, "signals", "traces,metrics,logs,annotations", "what to send, a comma separated list of traces, metrics, logs and annotations; use it to send only what an earlier export missed. Annotations also need --grafana-url")
 	fs.StringVar(&o.verifyLoki, "verify-loki", "", "Loki base URL; after the export, count the log lines back per run and fail when any are missing. Basic auth comes from LOKI_BASIC_AUTH as user:password")
 	fs.DurationVar(&o.logsMaxAge, "logs-max-age", 168*time.Hour, "skip log records older than this, because Loki rejects them by default; 0 sends every record")
 	fs.DurationVar(&o.timeout, "timeout", otelsetup.Timeout, "how long to wait for the final flush")
 }
 
+// signalSet is the signals an export sends.
+type signalSet struct {
+	traces, metrics, logs, annotations bool
+}
+
+// parseSignals reads the --signals value.
+func parseSignals(v string) (signalSet, error) {
+	var set signalSet
+	for _, name := range strings.Split(v, ",") {
+		switch strings.TrimSpace(name) {
+		case "traces":
+			set.traces = true
+		case "metrics":
+			set.metrics = true
+		case "logs":
+			set.logs = true
+		case "annotations":
+			set.annotations = true
+		default:
+			return signalSet{}, fmt.Errorf("--signals: unknown signal %q; use traces, metrics, logs and annotations", name)
+		}
+	}
+	return set, nil
+}
+
+// check validates flag combinations that the flag package cannot.
+func (o *options) check() (signalSet, error) {
+	sig, err := parseSignals(o.signals)
+	if err != nil {
+		return sig, err
+	}
+	if sig.annotations && o.grafanaURL == "" && (o.signalsSet || sig == (signalSet{annotations: true})) {
+		return sig, errors.New("--signals annotations needs --grafana-url")
+	}
+	if o.verifyLoki != "" && !sig.logs {
+		return sig, errors.New("--verify-loki checks log lines, so --signals must include logs")
+	}
+	return sig, nil
+}
+
 type session struct {
-	env       Env
-	opts      options
-	providers *otelsetup.Providers
-	emitter   *telemetry.Emitter
-	grafana   *annotations.Client
-	loki      *verify.Loki
+	env  Env
+	opts options
+	sig  signalSet
+	// annotationFailures holds one message for each annotation that could not be created.
+	annotationFailures []string
+	// annotateDeadline ends the time all annotation calls share. It is set at the first annotation.
+	annotateDeadline time.Time
+	providers        *otelsetup.Providers
+	emitter          *telemetry.Emitter
+	grafana          *annotations.Client
+	loki             *verify.Loki
 	// wants is what the Loki check expects per run, with the time span of the records sent.
 	wants          []verify.Want
 	oldest, newest time.Time
@@ -124,7 +180,7 @@ type session struct {
 	created, existing                                                 int
 }
 
-func newSession(ctx context.Context, opts options, env Env) (*session, error) {
+func newSession(ctx context.Context, opts options, sig signalSet, env Env) (*session, error) {
 	proto, err := otelsetup.ParseProtocol(opts.protocol)
 	if err != nil {
 		return nil, err
@@ -133,11 +189,14 @@ func newSession(ctx context.Context, opts options, env Env) (*session, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &session{env: env, opts: opts}
-	if opts.grafanaURL != "" {
+	s := &session{env: env, opts: opts, sig: sig}
+	if opts.grafanaURL != "" && sig.annotations {
 		s.grafana, err = annotations.New(opts.grafanaURL, env.Getenv("GRAFANA_TOKEN"), nil)
 		if err != nil {
 			return nil, err
+		}
+		if env.Sleep != nil {
+			s.grafana.Sleep = env.Sleep
 		}
 	}
 	if opts.verifyLoki != "" {
@@ -145,6 +204,10 @@ func newSession(ctx context.Context, opts options, env Env) (*session, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	if !sig.traces && !sig.metrics && !sig.logs {
+		// Annotations only: no OTLP connection, so nothing else is sent, not even an empty batch.
+		return s, nil
 	}
 	s.providers, err = otelsetup.New(ctx, otelsetup.Config{Protocol: proto, Temporality: temporality, Version: Version, Stderr: env.Stderr, Getenv: env.Getenv})
 	if err != nil {
@@ -155,6 +218,22 @@ func newSession(ctx context.Context, opts options, env Env) (*session, error) {
 		return nil, err
 	}
 	return s, nil
+}
+
+// shutdown flushes and releases the OTLP providers, if the session has any.
+func (s *session) shutdown(ctx context.Context) error {
+	if s.providers == nil {
+		return nil
+	}
+	return s.providers.Shutdown(ctx)
+}
+
+// flush pushes what is queued, if the session has OTLP providers.
+func (s *session) flush(ctx context.Context) error {
+	if s.providers == nil {
+		return nil
+	}
+	return s.providers.Flush(ctx)
 }
 
 // logEntry is one log record with the run it belongs to.
@@ -240,39 +319,83 @@ func (s *session) dropRunsAlreadyInLoki(ctx context.Context, plans []telemetry.P
 
 // sendPlan emits one run's trace and metrics, its logs when withLogs is set, and posts its annotation.
 func (s *session) sendPlan(ctx context.Context, path string, p telemetry.Plan, withLogs bool) error {
-	s.emitter.EmitTrace(ctx, p)
-	if err := s.emitter.EmitMetrics(ctx, p); err != nil {
-		return fmt.Errorf("%s: %w", path, err)
-	}
-	if withLogs {
-		s.emitter.EmitLogs(ctx, p.RunID, p.Logs)
-		s.noteSent(p.Logs)
-	}
+	// The annotation goes first, so a metrics error does not skip it. A failed annotation is only
+	// noted, and it never stops the telemetry.
+	s.annotate(ctx, path, p)
 	s.runs++
-	s.spans += 1 + len(p.Steps)
-	s.logs += len(p.Logs)
-	s.metrics += len(p.Metrics)
-	if len(p.Logs) > 0 {
-		s.wants = append(s.wants, verify.Want{RunID: p.RunID, Lines: len(p.Logs)})
+	if s.sig.traces {
+		s.emitter.EmitTrace(ctx, p)
+		s.spans += 1 + len(p.Steps)
 	}
-	return s.annotate(ctx, path, p)
+	if s.sig.logs {
+		if withLogs {
+			s.emitter.EmitLogs(ctx, p.RunID, p.Logs)
+			s.noteSent(p.Logs)
+		}
+		s.logs += len(p.Logs)
+		if len(p.Logs) > 0 {
+			s.wants = append(s.wants, verify.Want{RunID: p.RunID, Lines: len(p.Logs)})
+		}
+	}
+	if s.sig.metrics {
+		if err := s.emitter.EmitMetrics(ctx, p); err != nil {
+			return fmt.Errorf("%s: %w", path, err)
+		}
+		s.metrics += len(p.Metrics)
+	}
+	return nil
 }
 
-// annotate posts the run's annotation unless Grafana already has it.
-func (s *session) annotate(ctx context.Context, path string, p telemetry.Plan) error {
+// annotationBudget is the most time one export spends on annotation calls, waits included.
+// It is a variable so a test can shorten it.
+var annotationBudget = 10 * time.Minute
+
+// annotate posts the run's annotation unless Grafana already has it. A failure is printed and
+// kept for the report at the end, and the caller carries on.
+func (s *session) annotate(ctx context.Context, path string, p telemetry.Plan) {
 	if s.grafana == nil {
-		return nil
+		return
 	}
-	res, err := s.grafana.Post(ctx, p.Annotation)
+	// The annotations share one budget, apart from the telemetry, so a long run of refusals cannot
+	// hold up the traces, metrics and logs. The telemetry uses the caller's context and has no part in it.
+	if s.annotateDeadline.IsZero() {
+		s.annotateDeadline = time.Now().Add(annotationBudget)
+	}
+	actx, cancel := context.WithDeadline(ctx, s.annotateDeadline)
+	defer cancel()
+	var res annotations.Result
+	var err error
+	if time.Now().After(s.annotateDeadline) {
+		err = fmt.Errorf("the annotation time budget of %s is used up", annotationBudget)
+	} else {
+		res, err = s.grafana.Post(actx, p.Annotation)
+	}
 	if err != nil {
-		return fmt.Errorf("%s: annotation: %w", path, err)
+		msg := fmt.Sprintf("%s: annotation: %v", path, err)
+		fmt.Fprintf(s.env.Stderr, "dummyrun-otel: %s\n", msg)
+		s.annotationFailures = append(s.annotationFailures, msg)
+		return
 	}
 	if res.Created {
 		s.created++
 	} else {
 		s.existing++
 	}
-	return nil
+}
+
+// reportAnnotations lists the annotations that failed. It prints nothing when none did.
+func (s *session) reportAnnotations() {
+	if len(s.annotationFailures) == 0 {
+		return
+	}
+	sent := ""
+	if s.sig.traces || s.sig.metrics || s.sig.logs {
+		sent = " The telemetry was sent."
+	}
+	fmt.Fprintf(s.env.Stderr, "dummyrun-otel: %d annotations could not be created.%s Run the export again with --signals annotations to add them:\n", len(s.annotationFailures), sent)
+	for _, f := range s.annotationFailures {
+		fmt.Fprintf(s.env.Stderr, "  %s\n", f)
+	}
 }
 
 // noteSent records the time span of log records sent, for the guard and the Loki check.
@@ -322,6 +445,9 @@ func (s *session) summary() string {
 	}
 	if s.grafana != nil {
 		msg += fmt.Sprintf("; annotations: %d created, %d already present", s.created, s.existing)
+		if n := len(s.annotationFailures); n > 0 {
+			msg += fmt.Sprintf(", %d failed", n)
+		}
 	}
 	return msg
 }
@@ -332,6 +458,16 @@ func runExport(ctx context.Context, args []string, env Env) int {
 	var opts options
 	opts.bind(fs, env)
 	if err := fs.Parse(args); err != nil {
+		return ExitUsage
+	}
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "signals" {
+			opts.signalsSet = true
+		}
+	})
+	sig, err := opts.check()
+	if err != nil {
+		fmt.Fprintf(env.Stderr, "dummyrun-otel export: %v\n", err)
 		return ExitUsage
 	}
 	if fs.NArg() == 0 {
@@ -365,7 +501,7 @@ func runExport(ctx context.Context, args []string, env Env) int {
 		return ExitOK
 	}
 
-	s, err := newSession(ctx, opts, env)
+	s, err := newSession(ctx, opts, sig, env)
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
 		return ExitFailure
@@ -384,16 +520,16 @@ func runExport(ctx context.Context, args []string, env Env) int {
 	for i, p := range plans {
 		if done[p.RunID] {
 			// The annotation lookup is idempotent on its own, so it still runs for these.
-			if err := s.annotate(ctx, files[i].Path, p); err != nil {
-				fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
-				return ExitFailure
-			}
+			s.annotate(ctx, files[i].Path, p)
 			continue
 		}
 		fresh = append(fresh, p)
 		freshPaths = append(freshPaths, files[i].Path)
 	}
-	entries := sortedLogs(fresh)
+	var entries []logEntry
+	if sig.logs {
+		entries = sortedLogs(fresh)
+	}
 	if len(entries) > 0 {
 		if err := s.guard(entries[0].rec.Time); err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: nothing sent: %v\n", err)
@@ -405,20 +541,19 @@ func runExport(ctx context.Context, args []string, env Env) int {
 		if err := s.sendPlan(ctx, freshPaths[i], p, false); err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
 			code = ExitFailure
-			break
 		}
 	}
-	if code == ExitOK {
-		s.emitLogs(ctx, entries)
-	}
+	// The logs and the final flush happen whatever went wrong before.
+	s.emitLogs(ctx, entries)
 	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), opts.timeout)
 	defer cancel()
-	if err := s.providers.Shutdown(shutdownCtx); err != nil {
+	if err := s.shutdown(shutdownCtx); err != nil {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel: export failed: %v\n", err)
 		code = ExitFailure
 	}
 	fmt.Fprintln(env.Stderr, s.summary())
-	if s.loki == nil && s.runs > 0 {
+	s.reportAnnotations()
+	if s.loki == nil && s.runs > 0 && sig.logs {
 		fmt.Fprintln(env.Stderr, "note: without --verify-loki a repeated export of these runs writes their spans, log lines and metric points again; Tempo and Loki keep the duplicates")
 	}
 	if code == ExitOK && s.loki != nil {
@@ -428,6 +563,9 @@ func runExport(ctx context.Context, args []string, env Env) int {
 		if !s.verifyLogs(verifyCtx, s.wants, s.oldest, s.newest) {
 			code = ExitFailure
 		}
+	}
+	if code == ExitOK && len(s.annotationFailures) > 0 {
+		code = ExitAnnotations
 	}
 	return code
 }
@@ -472,6 +610,16 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
 	}
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "signals" {
+			opts.signalsSet = true
+		}
+	})
+	sig, err := opts.check()
+	if err != nil {
+		fmt.Fprintf(env.Stderr, "dummyrun-otel watch: %v\n", err)
+		return ExitUsage
+	}
 	if fs.NArg() != 1 {
 		fmt.Fprintln(env.Stderr, "dummyrun-otel watch: give exactly one directory")
 		return ExitUsage
@@ -491,7 +639,7 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
 		return ExitFailure
 	}
-	s, err := newSession(ctx, opts, env)
+	s, err := newSession(ctx, opts, sig, env)
 	if err != nil {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
 		return ExitFailure
@@ -518,6 +666,8 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 	fmt.Fprintf(env.Stderr, "watching %s every %s\n", dir, *interval)
 	poller := &watch.Poller{Dir: dir, Interval: *interval, IncludeExisting: *existing}
 	_ = poller.Run(ctx, func(path string) {
+		// Each new run record gets a fresh annotation budget, so a long watch keeps annotating.
+		s.annotateDeadline = time.Time{}
 		run, err := validator.LoadFile(path)
 		if err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
@@ -532,15 +682,11 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 			return
 		}
 		if done[p.RunID] {
-			if err := s.annotate(ctx, path, p); err != nil {
-				fmt.Fprintf(env.Stderr, "dummyrun-otel: %v\n", err)
-				failed++
-				return
-			}
+			s.annotate(ctx, path, p)
 			fmt.Fprintf(env.Stderr, "already in Loki, not sent again: %s\n", path)
 			return
 		}
-		if len(p.Logs) > 0 {
+		if sig.logs && len(p.Logs) > 0 {
 			if err := s.guard(p.Logs[0].Time); err != nil {
 				fmt.Fprintf(env.Stderr, "dummyrun-otel: %s: not sent: %v\n", path, err)
 				failed++
@@ -554,12 +700,12 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 		}
 		flushCtx, cancel := context.WithTimeout(ctx, opts.timeout)
 		defer cancel()
-		if err := s.providers.Flush(flushCtx); err != nil {
+		if err := s.flush(flushCtx); err != nil {
 			fmt.Fprintf(env.Stderr, "dummyrun-otel: %s: export failed: %v\n", path, err)
 			failed++
 			return
 		}
-		if s.loki != nil && len(p.Logs) > 0 {
+		if s.loki != nil && sig.logs && len(p.Logs) > 0 {
 			verifyCtx, cancelVerify := context.WithTimeout(ctx, verifyWait+opts.timeout)
 			defer cancelVerify()
 			if !s.verifyLogs(verifyCtx, []verify.Want{{RunID: p.RunID, Lines: len(p.Logs)}}, p.Logs[0].Time, p.Logs[len(p.Logs)-1].Time) {
@@ -574,7 +720,7 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), opts.timeout)
 	defer cancel()
 	code := ExitOK
-	if err := s.providers.Shutdown(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) {
+	if err := s.shutdown(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Fprintf(env.Stderr, "dummyrun-otel: export failed: %v\n", err)
 		code = ExitFailure
 	}
@@ -583,5 +729,9 @@ func runWatch(ctx context.Context, args []string, env Env) int {
 		code = ExitFailure
 	}
 	fmt.Fprintln(env.Stderr, s.summary())
+	s.reportAnnotations()
+	if code == ExitOK && len(s.annotationFailures) > 0 {
+		code = ExitAnnotations
+	}
 	return code
 }
