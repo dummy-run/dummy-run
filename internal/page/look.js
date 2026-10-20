@@ -137,8 +137,17 @@
     for (const n of added) n.remove();
   }
   const strip = (t) => t.split(open).join("").split(shut).join("");
-  const cut = new RegExp(open + "[\\s\\S]*?" + shut, "g");
-  const clean = (t) => strip(t.replace(cut, " . "));
+  const cut = (t) => {
+    let out = "";
+    for (;;) {
+      const i = t.indexOf(open);
+      const j = i < 0 ? -1 : t.indexOf(shut, i + open.length);
+      if (j < 0) return out + t;
+      out += t.slice(0, i) + " . ";
+      t = t.slice(j + shut.length);
+    }
+  };
+  const clean = (t) => strip(cut(t));
   const scanText = [clean(body).slice(0, textLimit), ...headings.map(clean), ...alerts.map(clean)].join("\n");
   body = strip(body);
   headings = headings.map(strip);
