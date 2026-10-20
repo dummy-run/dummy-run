@@ -126,7 +126,12 @@
           status.textContent = "";
         }, 2000);
       }, function () {
+        button.textContent = "Copy failed";
         status.textContent = "Copy failed. Select the code and copy it.";
+        window.setTimeout(function () {
+          button.textContent = "Copy";
+          status.textContent = "";
+        }, 3000);
       });
     });
     if (bar) {

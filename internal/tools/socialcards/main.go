@@ -6,7 +6,8 @@
 // Each card is 1200 by 630 pixels: amber ground, the Viewfinder mark, the Dummy mascot, and the page
 // title and description in Space Grotesk. The shapes are the ones in brand/logo/mark.svg and
 // brand/mascot/dummy.svg. The check compares pixels, not file bytes, so a change in the PNG encoder
-// does not fail it, and allows a small difference per channel for rounding between architectures.
+// does not fail it, and allows a small difference per channel on at most two percent of the pixels for
+// rounding between architectures.
 package main
 
 import (
@@ -128,14 +129,27 @@ func sameAsFile(img *image.RGBA, path string) bool {
 	if err != nil || got.Bounds() != img.Bounds() {
 		return false
 	}
+	// Rasteriser edge pixels may differ a little between architectures, but a flat area may not. A
+	// brand colour change moves most of the card, so the number of pixels that differ at all is capped.
+	differing := 0
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			if !nearly(got.At(x, y), img.At(x, y)) {
+			g, w := got.At(x, y), img.At(x, y)
+			if !nearly(g, w) {
 				return false
+			}
+			if !exact(g, w) {
+				differing++
 			}
 		}
 	}
-	return true
+	return differing <= width*height/50
+}
+
+func exact(a, b color.Color) bool {
+	r1, g1, b1, a1 := a.RGBA()
+	r2, g2, b2, a2 := b.RGBA()
+	return r1 == r2 && g1 == g2 && b1 == b2 && a1 == a2
 }
 
 // nearly reports whether two pixels differ by at most a few levels in each channel. The rasteriser's
