@@ -1,0 +1,21 @@
+{
+  "adapter": "url",
+  "environment": "staging",
+  "base_url": "https://staging.example.test/",
+  "allowed_hosts": ["staging.example.test"],
+  "read_only": true,
+  "signin": {
+    "login_url": "/signin",
+    "username": { "selector": "#email" },
+    "password": { "label": "Password" },
+    "submit": { "selector": "form[action='/signin'] button[type=submit]" },
+    "allow_request": { "method": "POST", "url": "/signin" },
+    "success": { "selector": "form[action='/signout']" },
+    "block_paths": ["/logout"],
+    "credentials": {
+      "viewer": { "username_env": "STAGING_VIEWER_USER", "password_env": "STAGING_VIEWER_PASS" },
+      "editor": { "username_env": "STAGING_EDITOR_USER", "password_env": "STAGING_EDITOR_PASS" },
+      "admin": { "username_env": "STAGING_ADMIN_USER", "password_env": "STAGING_ADMIN_PASS" }
+    }
+  }
+}

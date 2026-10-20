@@ -229,7 +229,7 @@ func TestGeminiDecodeKeepsSignatureAndSkipsThoughts(t *testing.T) {
 	}
 	var blocked genai.GenerateContentResponse
 	must(t, json.Unmarshal([]byte(`{"promptFeedback":{"blockReason":"SAFETY"}}`), &blocked))
-	if _, err := fromGemini(&blocked); !errors.Is(err, ErrNoChoice) || !strings.Contains(err.Error(), "SAFETY") {
+	if _, err := fromGemini(&blocked); !errors.Is(err, ErrContentFiltered) || !strings.Contains(err.Error(), "SAFETY") {
 		t.Errorf("blocked prompt gave %v", err)
 	}
 }
