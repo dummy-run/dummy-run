@@ -347,7 +347,7 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
 - Code you can see on the page does not count. The scan skips visible `code` and `pre` text, keys and sample
   output (`kbd` and `samp`), and quotes (`blockquote` and `q`). A docs page that quotes an example attack is not flagged.
   Quoted text that is hidden, off screen, transparent or inside `aria-hidden` is still scanned. So are `aria-label`,
-  `title`, `alt` and comments (code: `quoted` in `internal/page/look.js`). A lone "system prompt" or "call `finish`" in
+  `title`, `alt` and comments (code: `scan_text` in `internal/page/look.js`). A lone "system prompt" or "call `finish`" in
   visible prose is a weak match. It becomes an event with `low confidence:` in its detail. It does not warn
   the persona and it does not file a finding.
 - A strong match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,

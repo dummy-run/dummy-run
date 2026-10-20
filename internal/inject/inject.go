@@ -91,16 +91,10 @@ func (s Scanner) Scan(source, text string) []Hit {
 			add(r.name, around(text, loc))
 		}
 	}
-	// A visible phrase such as "system prompt" or "call finish" is how a page about prompts reads. On its
-	// own it is a weak sign. Hidden and label text, and any stronger match, keep full weight.
-	if source == SourceVisible && len(hits) > 0 {
-		weak := true
-		for _, h := range hits {
-			weak = weak && (h.Pattern == "system-prompt" || h.Pattern == "steer-finish")
-		}
-		for i := range hits {
-			hits[i].Low = weak
-		}
+	// Text a person cannot see that talks to a model and gives an order is the strongest sign. Hidden
+	// text of that shape is reported even when no fixed phrase matched.
+	if source == SourceHidden && len(hits) == 0 && aiWordRE.MatchString(text) && hiddenRE.MatchString(text) {
+		add("hidden-instruction", text)
 	}
 	if s.HostAllowed != nil {
 		for _, m := range navRE.FindAllStringSubmatchIndex(text, 4) {
@@ -111,10 +105,16 @@ func (s Scanner) Scan(source, text string) []Hit {
 			}
 		}
 	}
-	// Text a person cannot see that talks to a model and gives an order is the strongest sign. Hidden
-	// text of that shape is reported even when no fixed phrase matched.
-	if source == SourceHidden && len(hits) == 0 && aiWordRE.MatchString(text) && hiddenRE.MatchString(text) {
-		add("hidden-instruction", text)
+	// A visible phrase such as "system prompt" or "call finish" is how a page about prompts reads. On its
+	// own it is a weak sign. Hidden and label text, and any stronger match, keep full weight.
+	if source == SourceVisible && len(hits) > 0 {
+		weak := true
+		for _, h := range hits {
+			weak = weak && (h.Pattern == "system-prompt" || h.Pattern == "steer-finish")
+		}
+		for i := range hits {
+			hits[i].Low = weak
+		}
 	}
 	return hits
 }

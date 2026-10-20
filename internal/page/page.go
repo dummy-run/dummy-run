@@ -105,10 +105,10 @@ type Snapshot struct {
 	// Hidden is text and attribute values a person does not see: hidden or off-screen text, comments,
 	// aria-label, title and alt values. The model is not sent it. The engine scans it for injection.
 	Hidden []string `json:"hidden,omitempty"`
-	// Quoted is the text of visible code, preformatted, key, sample, block quote and quote elements in the normal
-	// flow of the page. It is part of Text. The injection scan leaves it out, because a page that shows an
-	// example of an attack is not making one.
-	Quoted []string `json:"quoted,omitempty"`
+	// ScanText is the page text, headings and alerts with each visible code or quote element cut out where it
+	// stands. The injection scan reads it in place of Text, because a page that shows an example of an attack
+	// is not making one. It is empty when the page has no text.
+	ScanText string `json:"scan_text,omitempty"`
 	// DevicePixelRatio is window.devicePixelRatio as the page sees it.
 	DevicePixelRatio float64 `json:"device_pixel_ratio,omitempty"`
 	// Zoom is the page zoom in percent the run set, 100 when none.

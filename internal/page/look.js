@@ -91,41 +91,64 @@
   // Quoted examples: code, preformatted text, keys, sample output, block quotes and short quotes that a
   // person can see in the normal flow of the page. A docs page that shows an example of an attack in a
   // code block is content, so the injection scan leaves these out. Anything hidden, off screen or
-  // transparent does not count, nor does a quote inside such an element.
+  // transparent does not count, nor does a quote inside such an element. The scan text is the page text
+  // with each such quote cut out where it stands, so the same words in ordinary prose still show.
   const quotedSel = "code, pre, kbd, samp, blockquote, q";
   const inFlow = (el) => {
     for (let e = el; e && e !== document.body; e = e.parentElement) {
       const s = getComputedStyle(e);
-      if (unseen(e) || s.position === "absolute" || s.position === "fixed" || parseFloat(s.fontSize) < 4 || /rgba\(.*,\s*0\)$/.test(s.color) || s.color === "transparent" || s.clipPath !== "none" || parseFloat(s.textIndent) < -100) return false;
+      const r = e.getBoundingClientRect();
+      if (unseen(e) || r.bottom + scrollY <= 0 || s.position === "absolute" || s.position === "fixed" || parseFloat(s.fontSize) < 4 || /rgba\(.*,\s*0\)$/.test(s.color) || s.color === "transparent" || s.clipPath !== "none" || parseFloat(s.textIndent) < -100) return false;
     }
     return true;
   };
-  const quoted = [];
-  let quotedChars = 0;
-  for (const el of document.body.querySelectorAll(quotedSel)) {
-    if (quoted.length >= 200 || quotedChars > 60000) break;
-    if (el.parentElement && el.parentElement.closest(quotedSel)) continue;
-    if (!inFlow(el)) continue;
-    const t = (el.innerText || "").trim().slice(0, 20000);
-    if (t) {
-      quoted.push(t);
-      quotedChars += t.length;
-    }
-  }
   const main = document.querySelector("main") || document.body;
-  const body = (main.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
+  // The markers carry a random value for this look, so a page cannot forge or close one.
+  const mark = String(Math.random()).slice(2) + String(Math.random()).slice(2);
+  const open = "\uE000" + mark + "\uE001";
+  const shut = "\uE002" + mark + "\uE003";
+  const added = [];
+  let quotes = 0;
+  for (const el of document.body.querySelectorAll(quotedSel)) {
+    if (quotes >= 500) break;
+    if (el.parentElement && el.parentElement.closest(quotedSel)) continue;
+    if (!inFlow(el) || !el.parentNode) continue;
+    quotes++;
+    const before = document.createTextNode(open);
+    const after = document.createTextNode(shut);
+    el.parentNode.insertBefore(before, el);
+    el.parentNode.insertBefore(after, el.nextSibling);
+    added.push(before, after);
+  }
+  let body = "";
+  let headings = [];
+  let alerts = [];
+  try {
+    body = (main.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
+    headings = texts("h1, h2").slice(0, 10);
+    alerts = texts("[role=alert], [role=status], [aria-live]").slice(0, 5);
+  } finally {
+    for (const n of added) n.remove();
+  }
+  const strip = (t) => t.split(open).join("").split(shut).join("");
+  const cut = new RegExp(open + "[\\s\\S]*?" + shut, "g");
+  const clean = (t) => strip(t.replace(cut, " . "));
+  const scanText = [clean(body).slice(0, textLimit), ...headings.map(clean), ...alerts.map(clean)].join("\n");
+  body = strip(body);
+  headings = headings.map(strip);
+  alerts = alerts.map(strip);
   return {
     url: location.href,
     title: document.title,
     viewport: [innerWidth, innerHeight],
     device_pixel_ratio: devicePixelRatio,
     scroll: [Math.round(scrollY), Math.round(document.documentElement.scrollHeight)],
-    headings: texts("h1, h2").slice(0, 10),
-    alerts: texts("[role=alert], [role=status], [aria-live]").slice(0, 5),
+    headings,
+    alerts,
     text: body.slice(0, textLimit),
     log_text: body.slice(0, logLimit),
     controls,
     hidden: [...hidden],
-    quoted,
+    scan_text: scanText,
   };
 }

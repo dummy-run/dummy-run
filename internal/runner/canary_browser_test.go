@@ -314,6 +314,8 @@ func TestDocsPageAboutInjection(t *testing.T) {
 		{"comment", `<!-- ` + attack + ` -->`, true},
 		{"code in a hidden block", `<div style="display:none"><code>` + attack + `</code></div>`, true},
 		{"code moved off screen", `<pre style="position:absolute;left:-9999px">` + attack + `</pre>`, true},
+		{"code moved above the page", `<pre style="position:relative;top:-9999px">` + attack + `</pre>`, true},
+		{"same words in code and in prose", `<pre>` + attack + `</pre><p>` + attack + `</p>`, true},
 		{"code at zero opacity", `<pre style="opacity:0">` + attack + `</pre>`, true},
 		{"code under aria-hidden", `<div aria-hidden="true"><pre>` + attack + `</pre></div>`, true},
 		{"plain prose", `<p>` + attack + `</p>`, true},
