@@ -519,6 +519,10 @@ td code, th code { white-space: nowrap; }
 /* the hero scene: the phone with the finding appearing beside it */
 .scene { position: relative; display: flex; justify-content: flex-end; padding: 0.25rem 0.5rem 5rem 0; }
 .scene .phone { max-width: 15.5rem; margin: 0; }
+.scene.is-real::after { content: none; }
+.scene-shot { display: block; width: 100%; height: auto; border-radius: var(--radius); border: 1.5px solid var(--rule); }
+.scene.is-real { display: block; padding: 0 0 4.5rem; }
+.hero-caption { margin: 0.75rem 0 0; color: var(--ink-muted); font-size: var(--type-small); }
 .scene-finding { position: absolute; left: 0; bottom: 0; width: min(18rem, 82%); filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.18)); }
 @media (min-width: 64em) { .scene-finding { left: -2rem; } }
 .scene-cursor { position: absolute; display: none; width: 14px; height: 14px; border-radius: 50%; background: var(--amber); border: 2px solid #1d1d1b; box-shadow: 0 0 0 4px rgba(251, 173, 24, 0.35); }
@@ -678,47 +682,36 @@ td code, th code { white-space: nowrap; }
 .terminal .copy-button:hover { background: var(--stage-rule); border-color: var(--stage-ink); }
 .terminal .copy-button:focus-visible { outline-color: var(--amber); }
 
-/* Terminal on the start page. Pure CSS: lines appear one after another, commands type out. */
+/* Terminal on the start page. The whole transcript is text in the page. site.js plays it as typing and chunks of output, and adds a pause button. Without the script, or with reduced motion, it is all shown at once. */
 .terminal { position: relative; margin: 2rem 0 2.5rem; border-radius: var(--radius); background: var(--stage); color: var(--stage-ink); overflow: hidden; }
 .terminal .code-wrap { margin: 0; }
-.t-pause-input { position: absolute; top: 0.6rem; right: 0.75rem; z-index: 2; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--amber); cursor: pointer; }
-.t-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 3.25rem 0.6rem 1rem; border-bottom: 1px solid var(--stage-rule); font-family: var(--font-heading); font-size: var(--type-caption); color: var(--stage-muted); }
+.t-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; border-bottom: 1px solid var(--stage-rule); font-family: var(--font-heading); font-size: var(--type-caption); color: var(--stage-muted); }
 .t-dots { display: inline-flex; gap: 0.35rem; }
 .t-dots i { width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--stage-rule); }
 .t-dots i:first-child { background: var(--amber); }
 .t-title { flex: 1; }
-.t-pause { cursor: pointer; }
-.t-pause-input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.t-pause { min-height: 2.75rem; margin: -0.6rem 0; padding: 0.25rem 0.75rem; border: 1px solid var(--stage-muted); border-radius: 999px; background: var(--stage); color: var(--stage-ink); font-family: var(--font-heading); font-weight: 500; font-size: var(--type-small); line-height: 1.2; cursor: pointer; }
+.t-pause[hidden] { display: none; }
+.t-pause:hover { background: var(--stage-rule); border-color: var(--stage-ink); }
+.t-pause:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .t-window { overflow-x: auto; }
 .t-window:focus-visible { outline: 3px solid var(--amber); outline-offset: -3px; }
-.terminal pre.t-body { margin: 0; padding: 1rem 1.15rem 1.15rem; background: none; border-radius: 0; color: inherit; font-size: var(--type-small); line-height: 1.7; white-space: pre; overflow: visible; min-width: max-content; }
+.terminal pre.t-body { margin: 0; padding: 1rem 1.15rem 1.15rem; background: none; border-radius: 0; color: inherit; font-size: var(--type-small); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
 .terminal pre.t-body code { display: block; }
 .t-line { display: block; }
-.t-cmd { width: fit-content; color: var(--stage-ink); }
+.t-cmd { display: flex; white-space: pre; color: var(--stage-ink); }
+.t-cmd:not(:first-child) { margin-top: 0.6rem; }
 .t-prompt { color: var(--amber); user-select: none; -webkit-user-select: none; }
-.t-out { color: var(--stage-muted); }
+.t-out { padding-left: 2ch; text-indent: -2ch; color: var(--stage-muted); }
+.t-out.t-wide { padding-left: 0; text-indent: 0; white-space: pre; overflow-wrap: normal; }
 .t-bar { flex-wrap: wrap; row-gap: 0.4rem; }
 .t-title { min-width: 0; }
 .terminal .copy-button { flex: none; white-space: nowrap; }
 .t-note { padding: 0.6rem 1rem 0.75rem; border-top: 1px solid var(--stage-rule); font-size: var(--type-caption); color: var(--stage-muted); }
-
-@media (prefers-reduced-motion: no-preference) {
-  .t-line { animation: t-show 0.01s steps(1, end) backwards; }
-  .t-cmd { animation: t-type 1.1s steps(28, end) backwards; }
-  .t-line:nth-child(1) { animation-delay: 0.5s; }
-  .t-line:nth-child(2) { animation-delay: 2.2s; }
-  .t-line:nth-child(3) { animation-delay: 3.2s; }
-  .t-line:nth-child(4) { animation-delay: 3.9s; }
-  .t-line:nth-child(5) { animation-delay: 5.2s; }
-  .t-line:nth-child(6) { animation-delay: 5.45s; }
-  .t-line:nth-child(7) { animation-delay: 5.7s; }
-  .t-line:nth-child(8) { animation-delay: 5.95s; }
-  .t-line:nth-child(9) { animation-delay: 6.2s; }
-  .t-line:nth-child(10) { animation-delay: 6.45s; }
-  .t-pause-input:checked ~ .t-window .t-line { animation-play-state: paused; }
-}
-@keyframes t-show { from { opacity: 0; } to { opacity: 1; } }
-@keyframes t-type { from { clip-path: inset(0 100% 0 0); opacity: 1; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+.t-note a { color: var(--stage-ink); }
+/* Set by site.js while the transcript plays. The text stays in the page and stays selectable. */
+.t-wait { opacity: 0; }
+.t-caret::after { content: ""; display: inline-block; width: 0.6ch; height: 1.1em; margin-left: 1px; vertical-align: text-bottom; background: var(--stage-ink); }
 
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 

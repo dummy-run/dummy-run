@@ -19,10 +19,11 @@ next:
 |---|---|
 | Where do run records and screenshots live? | In the results store you choose, such as a local directory or your own object storage. |
 | Do screenshots reach the model provider? | Yes. The persona is a model that reads what the browser shows, so the provider you choose receives page text and screenshots (inferred). |
-| Does exported telemetry carry screenshots? | No. It carries IDs, outcomes and the target environment. It adds page URLs, the model, its region and the cost. It adds each finding's title and verdict. |
+| Does exported telemetry carry screenshots or page text? | It carries no screenshots and no page snapshots. It carries IDs, outcomes and the target environment (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). It adds page URLs, the model, its region and the cost. It adds each finding's title and verdict. A title is a sentence the persona wrote and can quote a few words of the page. |
+| Where does telemetry reside? | Wherever your own OpenTelemetry backend is. Dummy Run sends it nowhere else. |
 | Does a market profile cover exported telemetry? | No. The profile checks the adapters. Your OpenTelemetry backend is not one, so host it in the same market. |
 
-The provider and the backend both receive what the persona sees, so run against previews that hold synthetic data. [Ethics and limits](../../../docs/ETHICS.md) covers provider retention.
+The provider receives what the persona sees. The backend receives the telemetry only. Run against previews that hold synthetic data. [Ethics and limits](../../../docs/ETHICS.md) covers provider retention.
 
 ## Permission findings
 
