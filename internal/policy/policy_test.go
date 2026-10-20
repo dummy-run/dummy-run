@@ -58,6 +58,11 @@ func TestDecide(t *testing.T) {
 		{"case insensitive host", ro, "GET", "https://WWW.Example.TEST/", Allow},
 		{"data url", ro, "GET", "data:text/plain,hi", Allow},
 		{"garbage url", ro, "GET", "::not a url", BlockHost},
+		{"default https port", ro, "GET", "https://www.example.test:443/", Allow},
+		{"other port on an allowed host", ro, "GET", "https://www.example.test:8443/", BlockHost},
+		{"plain http default port", ro, "GET", "http://www.example.test/", Allow},
+		{"websocket on another port", ro, "GET", "wss://www.example.test:9000/socket", BlockHost},
+		{"file url", ro, "GET", "file:///etc/passwd", BlockHost},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -91,7 +96,7 @@ func TestDecideRobots(t *testing.T) {
 		{"other allowed host is not covered", "GET", "https://example.test/admin", Allow},
 		{"trailing dot on the host", "GET", "https://www.example.test./admin", BlockRobots},
 		{"explicit default port", "GET", "https://www.example.test:443/admin", BlockRobots},
-		{"other port is not covered", "GET", "https://www.example.test:8443/admin", Allow},
+		{"other port is a different origin and is blocked as a host", "GET", "https://www.example.test:8443/admin", BlockHost},
 		{"other scheme is not covered", "GET", "http://www.example.test/admin", Allow},
 		{"host block comes first", "GET", "https://cdn.other.test/admin", BlockHost},
 		{"write to a disallowed path reports robots", "POST", "https://www.example.test/admin", BlockRobots},
@@ -107,5 +112,29 @@ func TestDecideRobots(t *testing.T) {
 	tg.Robots = nil
 	if tg.Decide("GET", "https://www.example.test/admin") != Allow {
 		t.Error("no rules should allow")
+	}
+}
+
+func TestOriginAllowedPorts(t *testing.T) {
+	tg := Target{Adapter: "url", Environment: "local", BaseURL: "http://127.0.0.1:8080/",
+		AllowedHosts: []string{"127.0.0.1", "api.local:4000", "other.local"}}
+	if err := tg.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	for url, want := range map[string]Verdict{
+		"http://127.0.0.1:8080/x":    Allow,
+		"http://127.0.0.1:9090/x":    BlockHost,
+		"http://127.0.0.1/x":         Allow,
+		"http://api.local:4000/x":    Allow,
+		"http://api.local:4001/x":    BlockHost,
+		"http://api.local/x":         BlockHost,
+		"http://other.local:8080/x":  BlockHost,
+		"https://other.local/x":      Allow,
+		"https://evil.example/x":     BlockHost,
+		"http://127.0.0.1.evil.test": BlockHost,
+	} {
+		if got := tg.Decide("GET", url); got != want {
+			t.Errorf("Decide(GET %s) = %s, want %s", url, got, want)
+		}
 	}
 }

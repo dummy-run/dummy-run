@@ -20,7 +20,7 @@ The engine does not run a screen reader. The screen-reader persona reads the pag
 
 The persona is a model that reads what the browser shows. The provider you choose receives page text and screenshots. You choose the provider with `--provider`. [Providers](PROVIDERS.md) lists what each one needs.
 
-Some providers keep prompts and responses for abuse monitoring. Azure OpenAI can keep them for up to 30 days unless the customer has an approved opt-out. Check the terms of your provider before you point a run at anything sensitive. Run against previews that hold synthetic data. Exported telemetry carries no screenshots, and [Telemetry](TELEMETRY.md) lists what it does carry.
+Some providers keep prompts and responses for abuse monitoring. Azure OpenAI can keep them for up to 30 days unless the customer has an approved opt-out (sourced: Microsoft's Azure OpenAI data, privacy and security documentation). Check the terms of your provider before you point a run at anything sensitive. Run against previews that hold synthetic data. A page can also try to instruct the model. [Threat model](THREAT-MODEL.md) says how the engine treats that. Exported telemetry carries no screenshots (code: `integrations/grafana/exporter/internal/telemetry/plan.go`), and [Telemetry](TELEMETRY.md) lists what it does carry.
 
 ## Read-only by policy
 
@@ -29,3 +29,7 @@ A target with `"read_only": true` blocks every request that could change data an
 ## Findings about apps you do not own
 
 Do not run Dummy Run against a site you have no right to test. [Security](../SECURITY.md) explains how to report a problem in a site you do not own.
+
+## If Dummy Run visited your site
+
+If someone ran Dummy Run against your site and you did not agree to it, email [abuse@dummyrun.dev](mailto:abuse@dummyrun.dev). Say which site and when.

@@ -75,6 +75,8 @@ type Finish struct {
 	GoalMet  string          `json:"goal_met"`
 	Report   string          `json:"report"`
 	Findings []FinishFinding `json:"findings"`
+	// Uncited holds the titles of findings that ParseFinish dropped because they cited no step in the run.
+	Uncited []string `json:"-"`
 }
 
 // FinishFinding is one finding as the persona reported it.
@@ -160,6 +162,10 @@ func ParseFinish(args json.RawMessage, maxStep int) (Finish, error) {
 			}
 		}
 		if len(steps) == 0 || strings.TrimSpace(ff.Title) == "" {
+			// A finding with no step to point at is not evidence. Say so, so a reviewer can see it was claimed.
+			if t := strings.TrimSpace(ff.Title); t != "" {
+				f.Uncited = append(f.Uncited, t)
+			}
 			continue
 		}
 		ff.Steps = steps
