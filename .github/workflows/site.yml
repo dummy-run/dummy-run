@@ -72,6 +72,8 @@ jobs:
       - name: Install the check tools
         working-directory: site
         run: npm ci --no-audit --no-fund
+      - name: Social cards are up to date
+        run: go run ./internal/tools/socialcards -check
       - name: Build
         working-directory: site
         run: hugo --gc --minify --panicOnWarning --printPathWarnings --printUnusedTemplates

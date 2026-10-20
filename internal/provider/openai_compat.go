@@ -104,6 +104,9 @@ func (o *OpenAICompatible) Chat(ctx context.Context, req Request) (Response, err
 	completion, err := o.client.Chat.Completions.New(ctx, params)
 	if err != nil {
 		var apiErr *openai.Error
+		if errors.As(err, &apiErr) && isFilterAPIError(apiErr.Code, apiErr.Message) {
+			return Response{}, filtered("openai-compatible", apiErr.Message, err)
+		}
 		if errors.As(err, &apiErr) && apiErr.Message != "" {
 			return Response{}, fmt.Errorf("provider: openai-compatible: %d %s: %s (%w)", apiErr.StatusCode, apiErr.Code, apiErr.Message, err)
 		}

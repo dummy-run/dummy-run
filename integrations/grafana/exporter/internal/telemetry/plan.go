@@ -151,7 +151,7 @@ func Build(run *record.Run) Plan {
 }
 
 func runStatus(outcome string) codes.Code {
-	if outcome == "errored" || outcome == "blocked" {
+	if outcome == "errored" || outcome == "blocked" || outcome == "provider_filtered" {
 		return codes.Error
 	}
 	return codes.Ok
