@@ -2,9 +2,22 @@
 title: Terms of service
 lead: The rules for using dummyrun.dev, the free scan and the paid services.
 description: The Dummy Run terms of service. What the service is, what we expect from you and what we are liable for.
+layout: legal
+updated: 2026-10-20
+short:
+  - Dummy Run is the trading name of Joel Merrick, a sole trader in the United Kingdom.
+  - Paid services are sold through Paddle as merchant of record. Paddle's buyer terms apply to the purchase.
+  - The free scan only reads public pages. Its results are not an audit or a certification.
+  - If you own a site and do not want it scanned, write to abuse@dummyrun.dev and we stop.
+  - The law of England and Wales governs these terms. Your rights as a consumer are not limited.
+contact:
+  - label: General questions
+    email: hello@dummyrun.dev
+  - label: Personal data
+    email: privacy@dummyrun.dev
+  - label: Report abuse or ask us to stop scanning your site
+    email: abuse@dummyrun.dev
 ---
-
-Last updated: 20 October 2026.
 
 ## Who we are
 

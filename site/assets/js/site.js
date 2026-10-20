@@ -167,3 +167,79 @@
   index.hidden = false;
   show(fromHash(), false);
 })();
+
+// The audit request form. Without JavaScript the form posts to the API and the API redirects to a result page.
+(function () {
+  var form = document.querySelector("form[data-audit]");
+  if (!form || !window.fetch) {
+    return;
+  }
+  var status = form.querySelector(".form-status");
+  var messages = {
+    invalid_email: "That email address does not look right. Check it and try again.",
+    invalid_request: "Something in the form is missing or too long. Check it and try again.",
+    consent_required: "Tick the box so we can contact you, then try again.",
+    turnstile: "The human check did not pass. Try again.",
+    rate_limited: "Too many tries. Wait a little and try again.",
+    unavailable: "The form is not taking requests right now. Email hello@dummyrun.dev instead."
+  };
+  var prefixes = { error: "Problem: ", ok: "Done: " };
+
+  function show(kind, text) {
+    status.className = "form-status is-" + kind;
+    status.textContent = prefixes[kind] + text;
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var body = {};
+    new FormData(form).forEach(function (value, key) {
+      body[key] = value;
+    });
+    var button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 15000);
+    fetch(form.action, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (response) {
+      return response.json().then(function (parsed) {
+        return { ok: response.ok && !!parsed && parsed.ok === true, error: parsed && parsed.error };
+      }).catch(function () { return { ok: false, error: response.status === 429 ? "rate_limited" : "unavailable" }; });
+    }).then(function (result) {
+      if (result.ok) {
+        form.reset();
+        show("ok", "Thank you. We will reply to the email address you gave.");
+      } else {
+        show("error", Object.prototype.hasOwnProperty.call(messages, result.error) ? messages[result.error] : messages.unavailable);
+      }
+    }).catch(function () {
+      show("error", messages.unavailable);
+    }).then(function () {
+      clearTimeout(timer);
+      button.disabled = false;
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+    });
+  });
+})();
+
+// On the audit problem page, mark the cause named in the address.
+(function () {
+  var list = document.querySelector(".problem-codes");
+  if (!list || !window.URLSearchParams) {
+    return;
+  }
+  var code = new URLSearchParams(window.location.search).get("code");
+  var items = list.querySelectorAll("li");
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].getAttribute("data-code") === code) {
+      items[i].className = "is-match";
+      items[i].setAttribute("aria-current", "true");
+    }
+  }
+})();
