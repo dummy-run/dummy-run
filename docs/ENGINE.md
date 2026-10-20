@@ -80,7 +80,7 @@ times and fails each time, it gives up and the run ends.
 | Tool | What it does |
 |---|---|
 | `look`, `screenshot` | Read the page again: title, headings, focus, outline, numbered controls and text, with a screenshot |
-| `visit` | Go to an address on the target. An address on another host is refused before the browser sees it |
+| `visit` | Go to an address on the target. An address on a host outside `allowed_hosts` is refused before the browser sees it |
 | `click` | Click `@12` from the last look, a control's text or `css:selector` |
 | `fill`, `type` | Put text into a field in one go, or key by key for fields that react as you type |
 | `select` | Choose an option in a select by its text |
@@ -364,11 +364,14 @@ lines. [TELEMETRY.md](TELEMETRY.md) explains what a repeat does.
 
 ## Read-only policy
 
-Set `"read_only": true` in the target file and a run can't change anything in your app. The engine intercepts
+Set `"read_only": true` in the target file to stop a run sending anything but reads. The engine intercepts
 every request the browser makes. A request to an allowed host with any method other than GET, HEAD or OPTIONS
 fails as a network error before it leaves the browser. The step that caused it gets a note such as
 `blocked: POST https://example.test/subscribe (read-only target)`. A request to a host outside `allowed_hosts`
 fails the same way. The only exception is the sign-in request, described under [Sign in](#sign-in).
+
+The engine judges a request by its method, so a GET that changes state in your app still goes through. If
+signing out is a GET link, list its path in `signin.block_paths`.
 
 The persona's prompt mentions the policy too, but it's the interception that enforces it. The engine's own
 browser tests check this with a form whose POST never reaches the test server, on both browsers.

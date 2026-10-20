@@ -41,7 +41,7 @@ A target file can name test accounts, so the engine signs in before a persona st
 
 - Use accounts made for testing, with no multi-factor step and no access to real data. Never use a person's account.
 - The target file holds the names of environment variables, never the values. Put the values in your CI secret store or your shell, and don't commit them.
-- The engine reads the values when the run starts and types them into the login form. The model never sees them. They stay out of the run record, the log, the screenshots and the telemetry. Errors are scrubbed of both.
+- The engine reads the values when the run starts and types them into the login form. The model never sees them. The engine keeps them out of the run record, the log, the screenshots and the telemetry. It also scrubs them from errors. That holds unless your app shows a credential on a page after sign-in, so don't let a test account's page display its password or token.
 - The engine takes no screenshot while it signs in, so the password field is never captured.
 - A saved session file holds live session cookies and is as sensitive as a password. The engine writes it with mode 0600. Keep it out of version control and rotate it as you would a token.
 - A page can show the signed-in user's own name or email, and the engine doesn't edit what a site displays. The model may see those details and repeat them in a report, so give test users fake ones.

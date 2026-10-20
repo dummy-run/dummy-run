@@ -13,15 +13,15 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> Dummy Run is pre-release. To try it, [install](#install) a release or build the newest commit on `main`
-> with `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. Then follow
+> Dummy Run is pre-release, and the first release isn't published yet. Until it is, build the newest commit
+> on `main` with `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. Then follow
 > [docs/ENGINE.md](docs/ENGINE.md) to run your first persona. The website is [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
 A persona is a made-up user. It has a role and permissions, plus goals, habits and a device. You point one at your
-app, usually a preview built for a pull request, and it signs in and tries to get its job done in Chrome or
-Firefox.
+app, usually a preview built for a pull request, and it tries to get its job done in Chrome or Firefox. If you give it a
+test account, it signs in first.
 
 When it's finished, you get a run record. It holds every step with a screenshot, what broke, what
 confused the persona and anything its role shouldn't have been able to see. You then go through the
@@ -66,7 +66,7 @@ for good, write a test for it.
 The persona is a model reading what the browser shows, so screenshots and page text go to the model
 provider you choose. Telemetry is optional and holds no screenshots. It carries step URLs, step targets
 and finding titles, which can quote a few words from the page. It goes only to the OpenTelemetry
-backend you configure. [docs/TELEMETRY.md](docs/TELEMETRY.md) lists every field.
+backend you configure, plus Grafana annotations if you ask for them. [docs/TELEMETRY.md](docs/TELEMETRY.md) lists every field.
 
 ## Who it's for
 
@@ -81,8 +81,9 @@ backend you configure. [docs/TELEMETRY.md](docs/TELEMETRY.md) lists every field.
 
 ## Install
 
-Download a binary from [GitHub Releases](https://github.com/dummy-run/dummy-run/releases), or pull the
-container image, which comes with Chrome for Testing and Firefox. You can also build from source.
+Once the first release is out, you can download a binary from
+[GitHub Releases](https://github.com/dummy-run/dummy-run/releases). Or pull the container image, which comes with
+Chrome for Testing and Firefox, or build from source.
 
 ```sh
 docker run --rm ghcr.io/dummy-run/dummyrun:VERSION a11y https://example.com
