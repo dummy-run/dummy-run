@@ -75,6 +75,8 @@ func checkSafe(line string) error {
 			}
 		}
 		return nil
+	case words[0] == "dummyrun" && args[0] == "review":
+		return checkReview(line, args[1:])
 	case words[0] == "dummyrun" && args[0] == "a11y":
 		for _, a := range args[1:] {
 			if strings.HasPrefix(a, "http") && !localURL.MatchString(a) {
@@ -83,7 +85,32 @@ func checkSafe(line string) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("%q: only version, help, export --dry-run, coverage and a11y on a local site may run", line)
+	return fmt.Errorf("%q: only version, help, export --dry-run, coverage, review --list and a11y on a local site may run", line)
+}
+
+// checkReview allows only the read-only listing of dummyrun review: paths, a bare --list, --json and
+// --verdict with one of its four values. Any other flag, such as a verdict to write, is refused,
+// and so is a listing that --list does not switch on.
+func checkReview(line string, args []string) error {
+	listing := false
+	for i := 0; i < len(args); i++ {
+		switch a := args[i]; {
+		case a == "--list":
+			listing = true
+		case a == "--json":
+		case a == "--verdict":
+			if i+1 >= len(args) || !contains([]string{"pending", "confirmed", "rejected", "all"}, args[i+1]) {
+				return fmt.Errorf("%q: --verdict wants pending, confirmed, rejected or all", line)
+			}
+			i++
+		case strings.HasPrefix(a, "-"):
+			return fmt.Errorf("%q: review may only list in a doctest block, so %s is not allowed", line, a)
+		}
+	}
+	if !listing {
+		return fmt.Errorf("%q: review may only list in a doctest block", line)
+	}
+	return nil
 }
 
 func contains(list []string, s string) bool {

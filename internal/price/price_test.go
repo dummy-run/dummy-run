@@ -52,3 +52,12 @@ func TestParseRejectsBadEntries(t *testing.T) {
 		}
 	}
 }
+
+func TestGlobalMiniDeploymentIsPriced(t *testing.T) {
+	// The tokens of the run shown on the Watch a run page: 242949 in, 52224 of them cached, 1247 out.
+	got := Cost("gpt-5-4-mini-global", 242_949, 52_224, 1_247)
+	want := (190_725*0.75 + 52_224*0.075 + 1_247*4.5) / 1e6
+	if got == nil || math.Abs(*got-want) > 1e-9 {
+		t.Fatalf("cost %v, want %v", got, want)
+	}
+}

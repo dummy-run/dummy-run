@@ -5,6 +5,9 @@
 <title>{{ $title }}</title>
 {{- $desc := .Description | default .Params.lead | default .Summary | default .Site.Params.description | plainify -}}
 <meta name="description" content="{{ $desc }}">
+{{- if .Params.noindex }}
+<meta name="robots" content="noindex">
+{{- end }}
 <meta name="color-scheme" content="light dark">
 <link rel="canonical" href="{{ .Permalink }}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -25,3 +28,7 @@
 <script src="{{ $theme.RelPermalink }}" integrity="{{ $theme.Data.Integrity }}"></script>
 {{- $css := resources.Get "css/site.css" | minify | fingerprint }}
 <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
+{{- if eq .RelPermalink "/about/" }}
+{{- $org := dict "@context" "https://schema.org" "@type" "Organization" "name" .Site.Title "url" .Site.Home.Permalink "logo" ("apple-touch-icon.png" | absURL) "founder" (dict "@type" "Person" "name" "Joel Merrick" "url" "https://joelmerrick.co.uk") "sameAs" (slice "https://github.com/dummy-run") }}
+<script type="application/ld+json">{{ $org | jsonify | safeJS }}</script>
+{{- end }}

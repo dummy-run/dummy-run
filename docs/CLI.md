@@ -18,11 +18,12 @@ Usage:
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
   dummyrun doctor [--stop]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -152,6 +153,28 @@ Both say how many findings are open and the date of the newest run.
     	report title (default "Accessibility and usability audit")
 ```
 
+## dummyrun review
+
+Confirm or reject the pending findings in run records. Only confirmed findings reach a report. See [ENGINE.md](ENGINE.md).
+
+```text
+Usage of review:
+  -confirm value
+    	confirm the pending findings with this fingerprint, a fingerprint prefix (6 or more characters), run/finding or a finding ID; repeatable
+  -json
+    	with --list, print JSON instead of a table
+  -list
+    	list the problems and change nothing
+  -reason value
+    	why, given once for the whole command: required with --reject, optional with --confirm
+  -reject value
+    	reject the pending findings with this fingerprint, prefix, run/finding or finding ID; needs --reason; repeatable
+  -reviewer string
+    	who is reviewing (default: git config user.name)
+  -verdict string
+    	with --list, which findings to show: pending, confirmed, rejected or all (default "pending")
+```
+
 ## dummyrun a11y
 
 Check pages for WCAG 2.2 A and AA failures with no model. `dummyrun audit a11y` is the same command.
@@ -218,6 +241,8 @@ Usage of dummyrun-otel export:
     	metric temporality: cumulative or delta (default "cumulative")
   -protocol string
     	OTLP transport: http/protobuf (default) or grpc
+  -signals string
+    	what to send, a comma separated list of traces, metrics, logs and annotations; use it to send only what an earlier export missed. Annotations also need --grafana-url (default "traces,metrics,logs,annotations")
   -timeout duration
     	how long to wait for the final flush (default 30s)
   -verify-loki string
@@ -244,6 +269,8 @@ Usage of dummyrun-otel watch:
     	metric temporality: cumulative or delta (default "cumulative")
   -protocol string
     	OTLP transport: http/protobuf (default) or grpc
+  -signals string
+    	what to send, a comma separated list of traces, metrics, logs and annotations; use it to send only what an earlier export missed. Annotations also need --grafana-url (default "traces,metrics,logs,annotations")
   -timeout duration
     	how long to wait for the final flush (default 30s)
   -verify-loki string

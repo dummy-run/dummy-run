@@ -7,8 +7,8 @@ cloud adapters follow.
 
 1. **Scaffold.** Community files, CI checks and docs. Done.
 2. **Engine.** The harness and reviewer, plus the results board. The engine is written in Go and drives
-   Chrome and Firefox over WebDriver BiDi. The `dummyrun` command offers `run` and `a11y` today, and the
-   harness is built. The reviewer and the board are next. The board is static HTML plus JSON.
+   Chrome and Firefox over WebDriver BiDi. The `dummyrun` command offers four commands today: `run`, `coverage`, `review` and `a11y`. The
+   harness is built. A person reviews findings with `dummyrun review`. The model reviewer and the board are next. The board is static HTML plus JSON.
 3. **Demo.** A small open-source app with real roles, such as editor, author and reviewer. A cast of five
    or six personas runs against it and ends on a board with real findings.
 4. **Packaging.** A Helm chart in `deploy/helm/dummyrun` and a compose file in `deploy/compose`, with a

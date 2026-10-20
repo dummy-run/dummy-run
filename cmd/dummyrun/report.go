@@ -99,7 +99,9 @@ func reportCmd(args []string) int {
 		return fail(err)
 	}
 	if *out == "" {
-		_, _ = os.Stdout.Write(buf.Bytes())
+		if _, err := os.Stdout.Write(buf.Bytes()); err != nil {
+			return fail(err)
+		}
 		return 0
 	}
 	if err := os.WriteFile(*out, buf.Bytes(), 0o644); err != nil { //nolint:gosec // a report is meant to be read

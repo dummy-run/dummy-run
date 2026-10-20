@@ -7,7 +7,12 @@
   {{- end -}}
 {{- end -}}
 {{- if $res -}}
+{{- /* Hugo cannot read the size of an SVG, so a vector image gets no width and height here. */ -}}
+{{- if eq $res.MediaType.SubType "svg" -}}
+<img src="{{ $res.RelPermalink }}" alt="{{ .PlainText }}" loading="lazy">
+{{- else -}}
 <img src="{{ $res.RelPermalink }}" alt="{{ .PlainText }}" width="{{ $res.Width }}" height="{{ $res.Height }}" loading="lazy">
+{{- end -}}
 {{- else -}}
 <img src="{{ $src | safeURL }}" alt="{{ .PlainText }}"{{ with .Title }} title="{{ . }}"{{ end }}>
 {{- end -}}

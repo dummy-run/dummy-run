@@ -1,6 +1,7 @@
 package report
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -118,7 +119,10 @@ func loadRun(path string) (*Run, error) {
 // in this build lists those fields.
 func splitReviews(data []byte) (map[string]Review, []byte, error) {
 	var doc map[string]any
-	if err := json.Unmarshal(data, &doc); err != nil {
+	// UseNumber keeps every integer exact when the record is written back, such as a seed above 2^53.
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	if err := dec.Decode(&doc); err != nil {
 		return nil, nil, err
 	}
 	reviews := map[string]Review{}

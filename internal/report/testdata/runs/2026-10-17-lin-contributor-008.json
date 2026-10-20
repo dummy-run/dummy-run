@@ -188,7 +188,7 @@
       "symptom": "access-wrongly-allowed",
       "taxonomy_version": 1,
       "fingerprint": "933d06cb3cee90e4",
-      "reviewer": "Priya Shah",
+      "reviewer": "example-reviewer",
       "reviewed_at": "2026-10-18T09:30:00Z",
       "reason": "Reproduced on the preview with a contributor account."
     },

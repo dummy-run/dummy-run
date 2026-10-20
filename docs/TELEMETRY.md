@@ -58,7 +58,7 @@ Root span attributes:
 | `dummyrun.cost.usd` | `usage.cost_usd`, when present |
 | `dummyrun.steps.count` | The number of entries in `steps` |
 
-The root span status is `ERROR` when the outcome is `errored` or `blocked`, and `OK` otherwise.
+The root span status is `ERROR` when the outcome is `errored`, `blocked` or `provider_filtered`, and `OK` otherwise (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). A record's `events` are not exported, because the exporter's record type has no `events` field (code: `integrations/grafana/exporter/internal/record/record.go`). The `security` kind appears as the value of `dummyrun.finding.kind` (code: `integrations/grafana/exporter/internal/telemetry/plan.go`).
 
 Step span attributes are `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun.step.target`. When
 present they add `url.full`, `http.response.status_code`, `dummyrun.step.console_errors` and
@@ -80,6 +80,8 @@ time of the finding's first step.
 | `dummyrun.finding.route` | `route`, when present |
 | `dummyrun.finding.symptom` | `symptom`, when present |
 | `dummyrun.finding.fingerprint` | `fingerprint`, when present. The same problem has the same fingerprint in every run |
+
+The verdict is the one the record holds at the moment of the export. `dummyrun review` changes it, so review first and export after. It adds `reviewer`, `reviewed_at` and `reason` to the record, and the exporter reads them without sending them. Sending a reviewed record again does not update what Grafana holds. It adds a second set of spans, lines and metric points, as the exporter guide says. Panels that count confirmed findings are then right only for runs exported after review.
 
 ## Metrics
 
@@ -143,6 +145,13 @@ annotations with the same tags and times. It skips the run if one exists. The te
 - `findings` when the run has at least one confirmed finding
 
 Dashboards for the app under test can show these annotations to mark when personas were active.
+
+Grafana can answer HTTP 429 when annotations come too fast. The exporter waits at least half a second between
+calls. It retries a call that gets a 429 up to five times and honours `Retry-After`. A lookup also retries on a 5xx, but a create does not, because Grafana may have stored the annotation. One export spends at most ten minutes on annotations (code: `integrations/grafana/exporter/internal/cli/cli.go`). If an
+annotation still fails, the exporter goes on with the telemetry of every run and flushes it.
+It then lists the failed annotations and exits with code 3. Code 3 means that some
+annotations could not be created. Any selected telemetry was sent first, and with `--signals annotations` there is none. Code 1 means the telemetry failed. `--signals annotations` sends only the
+annotations, so a second export fills the gaps without repeating spans, metrics or logs.
 
 ## Linking to the app's own telemetry
 

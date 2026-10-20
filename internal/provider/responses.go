@@ -113,6 +113,9 @@ func fromResponse(r *responses.Response) (Response, error) {
 		CachedInputTokens: int(r.Usage.InputTokensDetails.CachedTokens)}}
 	if r.Status == responses.ResponseStatusIncomplete && r.IncompleteDetails.Reason != "" {
 		resp.FinishReason = "incomplete: " + r.IncompleteDetails.Reason
+		if isFilterReason(r.IncompleteDetails.Reason) {
+			return resp, filtered("responses API", "the response was cut off: "+r.IncompleteDetails.Reason, nil)
+		}
 	}
 	if r.Error.Message != "" {
 		return resp, fmt.Errorf("provider: the model reported an error: %s %s", r.Error.Code, r.Error.Message)
@@ -121,6 +124,7 @@ func fromResponse(r *responses.Response) (Response, error) {
 		return resp, ErrNoChoice
 	}
 	var reasoning []json.RawMessage
+	refused := false
 	for _, item := range r.Output {
 		switch item.Type {
 		case "reasoning":
@@ -133,8 +137,11 @@ func fromResponse(r *responses.Response) (Response, error) {
 			}
 		case "message":
 			for _, c := range item.Content {
-				if c.Type == "output_text" {
+				switch c.Type {
+				case "output_text":
 					resp.Text += c.Text
+				case "refusal":
+					refused = true
 				}
 			}
 		case "function_call":
@@ -144,6 +151,9 @@ func fromResponse(r *responses.Response) (Response, error) {
 			}
 			resp.ToolCalls = append(resp.ToolCalls, ToolCall{ID: id, Name: item.Name, Args: normaliseArgs(item.Arguments.OfString)})
 		}
+	}
+	if refused && len(resp.ToolCalls) == 0 {
+		return resp, filtered("responses API", "the model refused to answer", nil)
 	}
 	if len(reasoning) > 0 && len(resp.ToolCalls) > 0 {
 		resp.ToolCalls[0].State = encodeArgs(reasoning)
@@ -175,6 +185,9 @@ func callResponses(ctx context.Context, client *openai.Client, name string, para
 	out, err := client.Responses.New(ctx, params)
 	if err != nil {
 		var apiErr *openai.Error
+		if errors.As(err, &apiErr) && isFilterAPIError(apiErr.Code, apiErr.Message) {
+			return Response{}, filtered(name, apiErr.Message, err)
+		}
 		if errors.As(err, &apiErr) && apiErr.Message != "" {
 			return Response{}, fmt.Errorf("provider: %s: %d %s: %s (%w)", name, apiErr.StatusCode, apiErr.Code, apiErr.Message, err)
 		}
