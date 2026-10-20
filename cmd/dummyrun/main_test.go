@@ -2,9 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/dummy-run/dummy-run/internal/telemetry"
@@ -88,6 +92,54 @@ func TestParseThresholds(t *testing.T) {
 	}
 }
 
+// denyAllSite serves a robots.txt that keeps DummyRun out and records every request's user agent.
+func denyAllSite(t *testing.T) (*httptest.Server, func() []string) {
+	t.Helper()
+	var mu sync.Mutex
+	var seen []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen = append(seen, r.URL.Path+" "+r.Header.Get("User-Agent"))
+		mu.Unlock()
+		if r.URL.Path == "/robots.txt" {
+			fmt.Fprint(w, "User-agent: DummyRun\nDisallow: /\n")
+			return
+		}
+		fmt.Fprint(w, "<html><title>hi</title></html>")
+	}))
+	t.Cleanup(srv.Close)
+	return srv, func() []string { mu.Lock(); defer mu.Unlock(); return append([]string(nil), seen...) }
+}
+
+func TestRobotsDisallowExitsThree(t *testing.T) {
+	srv, seen := denyAllSite(t)
+	jsonOut := filepath.Join(t.TempDir(), "report.json")
+	if got := run([]string{"a11y", "--respect-robots", "--identify", "--json", jsonOut, srv.URL + "/page"}); got != 3 {
+		t.Errorf("a11y exited %d, want 3", got)
+	}
+	data, err := os.ReadFile(jsonOut)
+	if err != nil || !strings.Contains(string(data), `"skipped"`) {
+		t.Errorf("the JSON report should list the skipped page: %v %s", err, data)
+	}
+
+	target := filepath.Join(t.TempDir(), "target.json")
+	cfg := fmt.Sprintf(`{"environment":"test","base_url":%q,"allowed_hosts":["127.0.0.1"],"read_only":true,"commit":"abcdef1"}`, srv.URL+"/")
+	if err := os.WriteFile(target, []byte(cfg), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	if got := run([]string{"run", "--cast", "../../casts/dummyrun-dev", "--persona", "tom-developer", "--scenario", "find-the-quickstart",
+		"--target", target, "--out", out, "--provider", "openai-compatible", "--endpoint", "http://127.0.0.1:1/v1", "--region", "local",
+		"--model", "none", "--respect-robots"}); got != 3 {
+		t.Errorf("run exited %d, want 3", got)
+	}
+	for _, line := range seen() {
+		if strings.HasPrefix(line, "/page") || strings.HasPrefix(line, "/ ") {
+			t.Errorf("a disallowed page was requested: %s", line)
+		}
+	}
+}
+
 func TestLoadTargetWithSignin(t *testing.T) {
 	tg, err := loadTarget("../../examples/targets/signin.json")
 	if err != nil {
@@ -99,6 +151,41 @@ func TestLoadTargetWithSignin(t *testing.T) {
 	for _, f := range []string{"../../examples/targets/local.json", "../../examples/targets/dummyrun-dev.json"} {
 		if got, err := loadTarget(f); err != nil || got.Signin != nil {
 			t.Errorf("%s: %v %v", f, got.Signin, err)
+		}
+	}
+}
+
+func TestRequestClientUserAgent(t *testing.T) {
+	var mu sync.Mutex
+	var agents []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		agents = append(agents, r.Header.Get("User-Agent"))
+		mu.Unlock()
+		if r.URL.Path == "/start" {
+			http.Redirect(w, r, "/end", http.StatusFound)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	for _, identify := range []bool{true, false} {
+		mu.Lock()
+		agents = nil
+		mu.Unlock()
+		resp, err := requestClient(identify).Get(srv.URL + "/start")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		mu.Lock()
+		seen := append([]string(nil), agents...)
+		mu.Unlock()
+		if len(seen) != 2 {
+			t.Fatalf("identify=%v: %d requests, want 2 (a redirect)", identify, len(seen))
+		}
+		for _, ua := range seen {
+			if got := strings.Contains(ua, "(+https://dummyrun.dev/scanner/)"); got != identify {
+				t.Errorf("identify=%v: user agent %q", identify, ua)
+			}
 		}
 	}
 }

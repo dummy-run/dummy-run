@@ -18,6 +18,8 @@ otherwise.
 | `service.version` | The Dummy Run version |
 | `service.namespace` | Optional. Set it to the target app's name to group runs by app |
 
+The exporter does not map the optional record fields `target.identify`, `target.respect_robots` and `outcome_reason`. Records that leave them out stay valid, because they are optional in schema version 2.
+
 ## Traces
 
 Each run is one trace. The root span is named `dummyrun.run` and lasts from `started_at` to `ended_at`.
@@ -158,8 +160,8 @@ annotations, so a second export fills the gaps without repeating spans, metrics 
 The runner adds two things to every request it sends to the target's hosts. The first is a W3C `baggage`
 header carrying `dummyrun.run.id` and `dummyrun.persona.id`. The second is a `traceparent` header for
 the step span. An app instrumented with OpenTelemetry then joins the persona's trace, and its spans
-carry the baggage. The browser's user agent also ends with `DummyRun/<version>`, so frontend tools such
-as Grafana Faro can filter persona sessions.
+carry the baggage. The browser's user agent also carries `DummyRun/<version>`, so frontend tools such
+as Grafana Faro can filter persona sessions. Filters should match the `DummyRun/<version>` token and not require it to be last: with `--identify` the user agent ends with `DummyRun/<version> (+https://dummyrun.dev/scanner/)`.
 
 The page's own instrumentation may already set a `traceparent`, for example Faro or OpenTelemetry JS
 on a `fetch` call. The runner then keeps that header and adds only the baggage. Faro's client span stays

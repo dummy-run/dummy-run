@@ -25,6 +25,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/price"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
+	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
@@ -38,6 +39,10 @@ const (
 	keepShots       = 2
 	maxOutputTokens = 8192
 )
+
+// ErrRobotsDisallow is returned, with the run record, when the target's robots.txt disallows Dummy Run from the
+// start page. The browser is never started.
+var ErrRobotsDisallow = errors.New("robots.txt disallows DummyRun from the start page")
 
 // Config is everything one run needs.
 type Config struct {
@@ -59,7 +64,7 @@ type Config struct {
 	RepeatIndex *int
 	// Universe is the list of routes that exist, written to the record as target.route_universe.
 	Universe []record.RouteUniverseEntry
-	// HTTPClient fetches the home page to identify the build of a URL target. Nil uses a default client.
+	// HTTPClient fetches robots.txt and the home page to identify the build of a URL target. Nil uses a default client.
 	HTTPClient *http.Client
 	// SessionFile, when set, signs in from a saved session file instead of the login form.
 	SessionFile string
@@ -178,6 +183,22 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 		patience: NewPatience(), budget: budget, tokens: cfg.TokenBudget, started: now, log: cfg.Log,
 		nonce: inject.NewNonce(), eventKeys: map[string]bool{},
 		scanner: inject.Scanner{HostAllowed: cfg.Target.HostAllowed}}
+	r.dir = filepath.Join(cfg.OutDir, r.id)
+	if err := os.MkdirAll(filepath.Join(r.dir, "screens"), 0o750); err != nil {
+		return nil, err
+	}
+	if cfg.Target.RespectRobots {
+		res, rerr := robots.Fetch(ctx, cfg.HTTPClient, cfg.Target.BaseURL, telemetry.RobotsToken, telemetry.RequestUserAgent(cfg.Target.Identify))
+		if rerr != nil {
+			return nil, fmt.Errorf("robots.txt: %w", rerr)
+		}
+		fmt.Fprintf(r.log, "robots: %s: %s\n", res.Origin, res.Status)
+		r.cfg.Target.Robots = res.Rules
+		if start, perr := url.Parse(cfg.Target.BaseURL); perr == nil && !res.Rules.Allowed(start.RequestURI()) {
+			reason := "robots.txt disallows DummyRun from the start page (" + res.Status + "); the browser was not started"
+			return r.refuse(reason)
+		}
+	}
 	if cfg.Target.Commit == "" {
 		r.build, r.buildErr = BuildHash(ctx, cfg.HTTPClient, cfg.Target.BaseURL)
 		if r.buildErr != nil {
@@ -188,10 +209,6 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 	var planErr error
 	if r.plan, planErr = r.signinPlan(); planErr != nil {
 		return nil, planErr
-	}
-	r.dir = filepath.Join(cfg.OutDir, r.id)
-	if err := os.MkdirAll(filepath.Join(r.dir, "screens"), 0o750); err != nil {
-		return nil, err
 	}
 	fmt.Fprintf(r.log, "run %s: %s / %s on %s, %d steps, %s %s (%s)\n", r.id, cfg.Persona.ID, cfg.Scenario.ID,
 		cfg.Browser, budget, cfg.Provider.Kind(), cfg.Provider.Model(), cfg.Provider.Region())
@@ -208,16 +225,30 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 	return &Result{Record: rec, Path: path, Finish: finish, GaveUp: gaveUp}, runErr
 }
 
+// refuse writes a record for a run that was not started because robots.txt forbids it.
+func (r *run) refuse(reason string) (*Result, error) {
+	r.display = r.cfg.Persona.DisplayFor(r.cfg.Scenario)
+	rec := r.record(nil, nil)
+	rec.Outcome = record.OutcomeBlocked
+	rec.OutcomeReason = reason
+	path, err := record.Write(r.cfg.OutDir, rec)
+	if err != nil {
+		return nil, fmt.Errorf("write run record: %w", err)
+	}
+	_ = os.WriteFile(filepath.Join(r.dir, "report.md"), []byte("## Verdict\n\nblocked\n\nThe run did not start: "+reason+".\n"), 0o600)
+	fmt.Fprintf(r.log, "run %s: blocked, %s, %s\n", r.id, reason, path)
+	return &Result{Record: rec, Path: path}, ErrRobotsDisallow
+}
+
 func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err error) {
 	cfg := r.cfg
 	disp := cfg.Persona.DisplayFor(cfg.Scenario)
 	r.display = disp
 	hook := func(req page.Request) page.Decision {
-		// The gate is open only while the engine signs in, and lets the declared sign-in request through.
 		if r.gate.Take(req.Method, req.URL) {
 			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
 		}
-		switch v := cfg.Target.Decide(req.Method, req.URL); v {
+		switch v := r.cfg.Target.Decide(req.Method, req.URL); v {
 		case policy.Allow:
 			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
 		default:
@@ -231,7 +262,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	}
 	defer p.Close()
 	r.page = p
-	if err := p.SetUserAgent(ctx, telemetry.UserAgent(p.Browser().UserAgent)); err != nil {
+	if err := p.SetUserAgent(ctx, telemetry.UserAgent(p.Browser().UserAgent, cfg.Target.Identify)); err != nil {
 		return nil, nil, fmt.Errorf("set user agent: %w", err)
 	}
 
@@ -840,7 +871,8 @@ func (r *run) writeReport(finish *Finish, runErr error) {
 // target describes the build under test. A URL target without a commit gets one derived from its home page.
 func (r *run) target() record.Target {
 	t := record.Target{Adapter: "url", Environment: r.cfg.Target.Environment, BaseURL: r.cfg.Target.BaseURL,
-		Commit: r.cfg.Target.Commit, RouteUniverse: r.cfg.Universe}
+		Commit: r.cfg.Target.Commit, RouteUniverse: r.cfg.Universe,
+		Identify: r.cfg.Target.Identify, RespectRobots: r.cfg.Target.RespectRobots}
 	if t.Commit == "" && r.build != "" {
 		t.Commit, t.BuildHash = r.build, r.build
 	}

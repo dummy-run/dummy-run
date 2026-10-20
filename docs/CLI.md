@@ -13,13 +13,13 @@ Usage:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE]
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE]
+  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots]
   dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
   dummyrun doctor [--stop]
   dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
@@ -63,6 +63,8 @@ Usage of run:
     	base URL of the provider (Azure endpoint, or the OpenAI-compatible base URL)
   -headful
     	show the browser window
+  -identify
+    	add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent (also set by "identify": true in the target file)
   -model string
     	deployment or model name
   -openai-api string
@@ -81,6 +83,8 @@ Usage of run:
     	region the model runs in, such as uksouth or global (optional where the provider has a default)
   -repeat-index int
     	repeat count for this persona, scenario and model in the batch (default: counted from the records in --out) (default -1)
+  -respect-robots
+    	fetch robots.txt from the target origin and block what it disallows for DummyRun or * (also set by "respect_robots": true in the target file); a site-wide disallow stops the run before the browser starts
   -scenario string
     	scenario ID
   -seed int
@@ -198,12 +202,14 @@ Flags:
   --scheme NAME     light, dark or both (default both)
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
+  --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
                     tested signed in. The file holds cookies: keep it private
   --headful         show the browser window
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
-tested, 2 for a usage error.
+tested, 2 for a usage error, 3 when robots.txt disallows every page. Pages skipped for robots.txt do not fail the sweep.
 ```
 
 ## dummyrun doctor

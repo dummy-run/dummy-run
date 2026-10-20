@@ -259,6 +259,14 @@
               }
             }
           }
+        },
+        "identify": {
+          "type": "boolean",
+          "description": "True when the browser's user agent ended with DummyRun/<version> (+https://dummyrun.dev/scanner/). Left out when false"
+        },
+        "respect_robots": {
+          "type": "boolean",
+          "description": "True when the run fetched the target's robots.txt and blocked the paths it disallows for DummyRun. Left out when false"
         }
       }
     },
@@ -368,6 +376,10 @@
         "provider_filtered"
       ],
       "description": "completed: the persona finished its job. blocked: the app stopped it. errored: the harness failed. budget_exhausted: it ran out of steps or tokens. provider_filtered: the model provider's content filter refused a call, so the run stopped. Added later in version 2, so a reader built from an earlier copy of this schema rejects it"
+    },
+    "outcome_reason": {
+      "type": "string",
+      "description": "Why a run was blocked before the browser started, such as robots.txt disallowing Dummy Run. Left out otherwise"
     },
     "steps": {
       "type": "array",

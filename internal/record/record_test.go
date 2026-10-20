@@ -342,6 +342,29 @@ func FuzzParse(f *testing.F) {
 	})
 }
 
+func TestIdentifyAndRobotsAreOptionalAndRecorded(t *testing.T) {
+	r := sample()
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte("respect_robots")) || bytes.Contains(data, []byte("identify")) || bytes.Contains(data, []byte("outcome_reason")) {
+		t.Errorf("unset settings were written: %s", data)
+	}
+	r.Target.Identify, r.Target.RespectRobots = true, true
+	r.Outcome, r.OutcomeReason = OutcomeBlocked, "robots.txt disallows DummyRun from the start page"
+	r.Steps, r.Findings = []Step{}, []Finding{}
+	data, err = Marshal(r)
+	if err != nil {
+		t.Fatalf("record with the settings rejected: %v", err)
+	}
+	for _, want := range []string{`"identify": true`, `"respect_robots": true`, `"outcome_reason"`} {
+		if !bytes.Contains(data, []byte(want)) {
+			t.Errorf("%s missing from %s", want, data)
+		}
+	}
+}
+
 func TestSigninBlock(t *testing.T) {
 	r := sample()
 	r.Signin = &Signin{Method: "form", Role: "admin", OK: true, DurationMs: 800,

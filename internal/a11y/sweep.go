@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"sort"
@@ -14,8 +15,13 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
+	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
+
+// ErrRobotsDisallow is returned when robots.txt disallows Dummy Run from every page given. No browser is started.
+var ErrRobotsDisallow = errors.New("robots.txt disallows DummyRun from every page")
 
 // Tags are the axe-core rule tags the sweep runs: WCAG 2.0, 2.1 and 2.2 at levels A and AA.
 var Tags = []string{"wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"}
@@ -46,6 +52,12 @@ type Config struct {
 	Schemes   []string // light and/or dark
 	Allow     *AllowList
 	Headless  bool
+	// Identify adds a contact URL to the browser's user agent and to the requests for robots.txt.
+	Identify bool
+	// RespectRobots skips pages that the robots.txt of their origin disallows for DummyRun or *.
+	RespectRobots bool
+	// HTTPClient fetches robots.txt. Nil uses a default client.
+	HTTPClient *http.Client
 	// Settle is how long to wait after the page loads, for late layout. Default 300 ms.
 	Settle time.Duration
 	// Log receives one progress line per page. Nil is silent.
@@ -74,12 +86,14 @@ type Finding struct {
 
 // PageResult is one page in one browser, viewport and colour scheme.
 type PageResult struct {
-	URL          string    `json:"url"`
-	Browser      string    `json:"browser"`
-	Viewport     string    `json:"viewport"`
-	Width        int       `json:"width"`
-	Scheme       string    `json:"scheme"`
-	Error        string    `json:"error,omitempty"`
+	URL      string `json:"url"`
+	Browser  string `json:"browser"`
+	Viewport string `json:"viewport"`
+	Width    int    `json:"width"`
+	Scheme   string `json:"scheme"`
+	Error    string `json:"error,omitempty"`
+	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
+	Skipped      string    `json:"skipped,omitempty"`
 	Violations   []Finding `json:"violations"`
 	NeedsReview  []Finding `json:"needs_review"`
 	DurationMS   int64     `json:"duration_ms"`
@@ -106,6 +120,8 @@ type Report struct {
 	BrowserVersion string       `json:"browser_version,omitempty"`
 	AxeVersion     string       `json:"axe_version,omitempty"`
 	Tags           []string     `json:"tags"`
+	Identify       bool         `json:"identify,omitempty"`
+	RespectRobots  bool         `json:"respect_robots,omitempty"`
 	Results        []PageResult `json:"results"`
 	Summary        Summary      `json:"summary"`
 }
@@ -118,6 +134,7 @@ type Summary struct {
 	Allowed       int `json:"allowed_nodes"`
 	NeedsReview   int `json:"needs_review_rules"`
 	PageErrors    int `json:"page_errors"`
+	Skipped       int `json:"skipped_pages,omitempty"`
 	UnusedAllowed int `json:"unused_allow_entries"`
 }
 
@@ -179,14 +196,59 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	if cfg.Settle == 0 {
 		cfg.Settle = 300 * time.Millisecond
 	}
-	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags}
+	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
+	var skipped []PageResult
+	if cfg.RespectRobots {
+		var err error
+		if cfg.URLs, skipped, err = filterRobots(ctx, cfg); err != nil {
+			return rep, err
+		}
+		if len(cfg.URLs) == 0 {
+			rep.Results = skipped
+			rep.summarise(cfg)
+			return rep, ErrRobotsDisallow
+		}
+	}
 	for _, scheme := range cfg.Schemes {
 		if err := sweepScheme(ctx, cfg, scheme, rep); err != nil {
 			return rep, err
 		}
 	}
+	rep.Results = append(rep.Results, skipped...)
 	rep.summarise(cfg)
 	return rep, nil
+}
+
+// filterRobots fetches robots.txt once for each origin and splits the URLs into those that may be tested and
+// results for those that may not.
+func filterRobots(ctx context.Context, cfg Config) (allowed []string, skipped []PageResult, err error) {
+	ua := telemetry.RequestUserAgent(cfg.Identify)
+	byOrigin := map[string]*robots.Result{}
+	for _, raw := range cfg.URLs {
+		origin, oerr := robots.Origin(raw)
+		if oerr != nil {
+			allowed = append(allowed, raw) // the page load reports a bad URL
+			continue
+		}
+		res := byOrigin[origin]
+		if res == nil {
+			if res, err = robots.Fetch(ctx, cfg.HTTPClient, raw, telemetry.RobotsToken, ua); err != nil {
+				return nil, nil, err
+			}
+			byOrigin[origin] = res
+			if cfg.Log != nil {
+				_, _ = fmt.Fprintf(cfg.Log, "robots: %s: %s\n", origin, res.Status)
+			}
+		}
+		u, _ := url.Parse(raw)
+		if u != nil && !res.Rules.Allowed(u.RequestURI()) {
+			skipped = append(skipped, PageResult{URL: raw, Browser: cfg.Browser, Skipped: "robots.txt disallows DummyRun (" + res.Status + ")",
+				Violations: []Finding{}, NeedsReview: []Finding{}})
+			continue
+		}
+		allowed = append(allowed, raw)
+	}
+	return allowed, skipped, nil
 }
 
 func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) error {
@@ -208,6 +270,17 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) er
 	cx, err := b.Conn.CreateContext(ctx)
 	if err != nil {
 		return fmt.Errorf("a11y: open a tab: %w", err)
+	}
+	if cfg.Identify {
+		// The browser's own user agent stays in front, so pages render as they do for the browser.
+		v, err := b.Conn.Evaluate(ctx, cx, "navigator.userAgent")
+		if err != nil {
+			return fmt.Errorf("a11y: read the user agent: %w", err)
+		}
+		browserUA, _ := v.String()
+		if err := b.Conn.SetUserAgentOverride(ctx, telemetry.UserAgent(browserUA, true), []string{cx}); err != nil {
+			return fmt.Errorf("a11y: set the user agent: %w", err)
+		}
 	}
 	for _, vp := range cfg.Viewports {
 		if err := b.Conn.SetViewport(ctx, cx, vp.Width, vp.Height); err != nil {
@@ -356,6 +429,10 @@ func errText(err error, fallback string) string {
 func (r *Report) summarise(cfg Config) {
 	pages := map[string]bool{}
 	for _, p := range r.Results {
+		if p.Skipped != "" {
+			r.Summary.Skipped++
+			continue
+		}
 		pages[p.URL] = true
 		r.Summary.Runs++
 		if p.Error != "" {

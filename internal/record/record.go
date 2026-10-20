@@ -53,11 +53,13 @@ type Record struct {
 	Provider  Provider  `json:"provider"`
 	Browser   Browser   `json:"browser"`
 	// Signin says how the engine signed the persona in before the run. Nil when it did not.
-	Signin   *Signin   `json:"signin,omitempty"`
-	Outcome  string    `json:"outcome"`
-	Steps    []Step    `json:"steps"`
-	Findings []Finding `json:"findings"`
-	Usage    Usage     `json:"usage"`
+	Signin  *Signin `json:"signin,omitempty"`
+	Outcome string  `json:"outcome"`
+	// OutcomeReason says why a run was blocked before it started, such as a robots.txt disallow.
+	OutcomeReason string    `json:"outcome_reason,omitempty"`
+	Steps         []Step    `json:"steps"`
+	Findings      []Finding `json:"findings"`
+	Usage         Usage     `json:"usage"`
 	// Events are things the engine saw that a reviewer should know about. Left out when there are none.
 	Events []Event `json:"events,omitempty"`
 }
@@ -133,6 +135,10 @@ type Target struct {
 	// BuildHash identifies the deployed build when there is no commit.
 	BuildHash     string               `json:"build_hash,omitempty"`
 	RouteUniverse []RouteUniverseEntry `json:"route_universe,omitempty"`
+	// Identify is true when the user agent named the scanner page.
+	Identify bool `json:"identify,omitempty"`
+	// RespectRobots is true when the run honoured the target's robots.txt.
+	RespectRobots bool `json:"respect_robots,omitempty"`
 }
 
 // Provider describes the model that played the persona.

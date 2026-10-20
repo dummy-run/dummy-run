@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/dummy-run/dummy-run/internal/robots"
 )
 
 // Target is the plain-URL target adapter's configuration.
@@ -25,6 +27,12 @@ type Target struct {
 	ReadOnly bool `json:"read_only"`
 	// Commit is the target's commit, when known.
 	Commit string `json:"commit,omitempty"`
+	// Identify adds a contact URL to the user agent, as "dummyrun run --identify" does.
+	Identify bool `json:"identify,omitempty"`
+	// RespectRobots honours the robots.txt of the base URL's origin for the token DummyRun and for *.
+	RespectRobots bool `json:"respect_robots,omitempty"`
+	// Robots holds the rules once they are fetched. Requests to the base URL's origin that they disallow are blocked.
+	Robots *robots.Rules `json:"-"`
 	// Signin declares how the engine signs in before the persona starts. Nil means no sign-in.
 	Signin *Signin `json:"signin,omitempty"`
 }
@@ -132,6 +140,8 @@ const (
 	BlockHost
 	// BlockWrite fails a request that could change the read-only target.
 	BlockWrite
+	// BlockRobots fails a request to a path the target's robots.txt disallows for Dummy Run.
+	BlockRobots
 	// BlockSignout fails a request to a path the target declares as a sign-out.
 	BlockSignout
 )
@@ -144,6 +154,8 @@ func (v Verdict) String() string {
 		return "host not allowed"
 	case BlockWrite:
 		return "read-only target"
+	case BlockRobots:
+		return "robots.txt disallows DummyRun"
 	case BlockSignout:
 		return "sign-out is blocked"
 	}
@@ -165,6 +177,9 @@ func (t Target) Decide(method, rawURL string) Verdict {
 	if !t.OriginAllowed(u.Scheme, u.Hostname(), u.Port()) {
 		return BlockHost
 	}
+	if t.Robots != nil && t.sameOrigin(u) && !t.Robots.Allowed(u.RequestURI()) {
+		return BlockRobots
+	}
 	if t.signoutBlocked(u) {
 		return BlockSignout
 	}
@@ -172,4 +187,24 @@ func (t Target) Decide(method, rawURL string) Verdict {
 		return BlockWrite
 	}
 	return Allow
+}
+
+// sameOrigin reports whether u has the scheme, host and port of the base URL, the origin robots.txt speaks for.
+// A trailing dot on the host and an explicit default port do not change the origin.
+func (t Target) sameOrigin(u *url.URL) bool {
+	base, err := url.Parse(t.BaseURL)
+	if err != nil {
+		return false
+	}
+	return strings.EqualFold(base.Scheme, u.Scheme) && originHost(base) == originHost(u)
+}
+
+// originHost is the lower-case host without a trailing dot, with the port unless it is the scheme's default.
+func originHost(u *url.URL) string {
+	host := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+	port := u.Port()
+	if port == "" || (port == "443" && u.Scheme == "https") || (port == "80" && u.Scheme == "http") {
+		return host
+	}
+	return host + ":" + port
 }

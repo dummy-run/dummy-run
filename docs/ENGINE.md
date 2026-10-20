@@ -35,7 +35,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 |---|---|
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
 | `--persona ID`, `--scenario ID` | Which persona and which of its scenarios |
-| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
+| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block, and optionally `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`; screenshots and the persona's report are under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
@@ -45,6 +45,8 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together. The default is the date and the target's environment |
 | `--seed N` | A sampling seed, 0 or more. It is sent to providers that take one (see [PROVIDERS.md](PROVIDERS.md)) and recorded as `seed`. Where it is not sent the record has `seed: null` |
 | `--repeat-index N` | The run's `repeat_index`. The default counts the earlier records in `--out` with the same batch, persona, scenario and model |
+| `--identify` | Add `DummyRun/<version> (+https://dummyrun.dev/scanner/)` to the browser's user agent. Also set by `"identify": true` in the target file |
+| `--respect-robots` | Fetch `/robots.txt` from the target's origin and block what it disallows. Also set by `"respect_robots": true` in the target file |
 | `--session FILE` | Sign in from a saved session file in place of the login form. See [Sign in](#sign-in) |
 | `--universe sitemap` | Read the routes that exist from the target's `/sitemap.xml`, or from a sitemap URL, and write them to `target.route_universe` for route coverage |
 | `--steps N` | Step budget, up to 40. A scenario can also ask with a `Budget: 30 steps` line. The default is 25 |
@@ -198,7 +200,7 @@ reviewer can check quotes against.
 Every request to the target carries a `baggage` header with the run and persona IDs. A request also gets a
 `traceparent` header unless the page set one itself, in which case the page's header is kept. The trace ID
 and the step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md` describes
-(code: `internal/telemetry/telemetry.go`). The browser's user agent ends with `DummyRun/<version>`.
+(code: `internal/telemetry/telemetry.go`). The browser's user agent ends with `DummyRun/<version>`, or with `DummyRun/<version> (+https://dummyrun.dev/scanner/)` under `--identify`.
 
 ## Review
 
@@ -480,6 +482,32 @@ captured. Errors are scrubbed of both values before they are recorded or logged.
 (`internal/runner/signin_browser_test.go`). It checks the log and the record for the user name too. A page can still show the user name, for example on a list of users, because the
 engine does not edit page text. See [SECURITY.md](../SECURITY.md) for the threat note.
 
+## Identifying the engine and honouring robots.txt
+
+Two switches, both off by default, let a run say who it is and keep out of places that ask crawlers to stay away.
+Anyone running the engine can leave them off. The code is in `internal/robots`, `internal/policy/policy.go` and `internal/telemetry/telemetry.go`. With `--respect-robots`, a sitemap that `--universe` or `--sitemap` names is checked against its own origin's robots.txt before it is requested.
+
+- **`--identify`.** Without it a run's user agent is the browser's own with `DummyRun/<version>` added. With it the end reads
+  `DummyRun/<version> (+https://dummyrun.dev/scanner/)`. The browser's own text stays in front so sites render as they do for
+  the browser. Both `run` and `a11y` set it through WebDriver BiDi (`emulation.setUserAgentOverride`) on Chrome and Firefox. The
+  engine's own requests, such as `robots.txt` and the sitemap, carry the same suffix.
+- **`--respect-robots`.** The engine fetches `/robots.txt` from the target's origin before anything else, including the home-page hash and the browser. It reads
+  the group for the token `DummyRun` and, if there is none, the group for `*`. It follows RFC 9309. Paths and patterns are compared after percent-encoding normalisation. The longest matching rule
+  wins and `Allow` wins a tie. `*` and a final `$` work in patterns. `Crawl-delay` is ignored. A `4xx` answer means there are
+  no rules. A `5xx` answer or a network failure means the whole site is off limits.
+
+With `run`, a request to the target's origin for a path the rules disallow is blocked through the same interception as the
+read-only policy. The step notes it as `blocked: GET https://example.test/admin (robots.txt disallows DummyRun)`. The
+`/robots.txt` file itself is always allowed. Other hosts in `allowed_hosts` are not covered, because their robots.txt files
+are not read. If the start page is disallowed, which includes a site-wide `Disallow: /`, the run stops before the browser
+starts. The record has the outcome `blocked` and an `outcome_reason`, and the command exits with status 3.
+
+With `a11y`, each page is checked against the robots.txt of its own origin. A disallowed page is skipped, listed as `skipped`
+in the report and counted in `skipped_pages`. It does not fail the sweep. If every page is disallowed no browser starts and the
+exit status is 3. The sweep does not intercept the requests a page makes for its own files.
+
+The record keeps both settings as `target.identify` and `target.respect_robots`, left out when false.
+
 ## Providers
 
 `internal/provider` defines one interface. A request carries a system prompt and the turns so far. Each turn
@@ -521,7 +549,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   scheme where it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the impact. It also has the WCAG
   criteria and the element selector. The help link is there too.
 - **Exit status.** 0 when nothing fails. 1 when any violation is not in the allow-list or a page cannot be
-  loaded. 2 for a usage error.
+  loaded. 2 for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 The allow-list holds violations you have accepted. Each line is `rule | page | selector | reason`. The page
 is a URL path and the selector is matched against the element's selector. A `*` matches anything. The reason

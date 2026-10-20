@@ -56,7 +56,7 @@ High-severity findings wait for a person to confirm them. The page is untrusted 
 
 Chrome and Firefox are driven through WebDriver BiDi, so the same session code drives both. A persona's
 device sets the window size (desktop, tablet or phone), and a persona or scenario may set page zoom. The
-user agent is the browser's own, with `DummyRun/<version>` added at the end. Real devices will come
+user agent is the browser's own, with `DummyRun/<version>` added at the end (`--identify` also adds a contact URL). Real devices will come
 through an adapter for a hosted browser grid.
 
 ## Deployment
