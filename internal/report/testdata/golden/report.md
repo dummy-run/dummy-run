@@ -60,93 +60,93 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 #### A contributor can open the rates table for all writers
 
-**Major**. Confirmed by a reviewer.
+**Major**. Confirmed by a reviewer.The Payments page, the Rates link (`/payments`)
 
 | | |
 |---|---|
-| Where | `/payments`, link:rates |
-| Who hit it | lin-contributor, in 1 of 4 runs |
-| WCAG 2.2 | No criterion recorded for this finding |
+| What went wrong | Let in when it should have been blocked |
+| Who hit it | Lin, a contributor, in 1 of 4 runs |
 | Review | Confirmed by example-reviewer on 18 October 2026. Reason: Reproduced on the preview with a contributor account. |
-| Fix guidance | None recorded for this finding |
-| Kind | permission |
-| Symptom | access-wrongly-allowed |
-| Evidence | code |
-| Fingerprint | `933d06cb3cee90e4` |
 
-**How to reproduce.** Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.
+How to reproduce:
 
-7. Look on /payments.
+1. Sign in as a contributor.
+2. Use a tablet at 200% zoom in Firefox.
+3. On the Payments page, look at what is shown.
 
-*Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /payments.* The file is `screens/008-07.png`, next to the run record.
+What goes wrong: A contributor can open the rates table for all writers
+
+*The Payments page as Lin saw it.* What to look at: the Rates link.
+
+Technical details: run `2026-10-17-lin-contributor-008`, step 7; persona `lin-contributor` on tablet in firefox 146.0; kind permission; symptom `access-wrongly-allowed`; locus `link:rates`; evidence code; fingerprint `933d06cb3cee90e4`; screenshot `screens/008-07.png` next to the run record.
 
 #### Scheduling an issue for a past date returns a server error
 
-**Major**. Confirmed by a reviewer.
+**Major**. Confirmed by a reviewer.The Issues page, the Schedule button (`/issues`)
 
 | | |
 |---|---|
-| Where | `/issues`, button:schedule |
-| Who hit it | ada-editor, in 1 of 4 runs |
-| WCAG 2.2 | No criterion recorded for this finding |
+| What went wrong | An error appeared |
+| Who hit it | Ada, an editor, in 1 of 4 runs |
 | Review | Confirmed |
-| Fix guidance | None recorded for this finding |
-| Kind | bug |
-| Symptom | error-shown |
-| Evidence | measured |
-| Fingerprint | `72be5e1e780d79bb` |
 
-**How to reproduce.** Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.
+How to reproduce:
 
-7. Fill Submit on /issues.
+1. Sign in as an editor.
+2. Use a desktop computer in Chrome.
+3. Type into Submit.
+
+What goes wrong: Scheduling an issue for a past date returns a server error
+
+Technical details: run `2026-10-16-ada-editor-003`, step 7; persona `ada-editor` on desktop in chrome 148.0; kind bug; symptom `error-shown`; locus `button:schedule`; evidence measured; fingerprint `72be5e1e780d79bb`.
 
 ### Minor (1 finding)
 
 #### The hint under the schedule field is too faint to read
 
-**Minor**. Not reviewed.
+**Minor**. Not reviewed.The Issues page, the Schedule form area (`/issues`)
 
 | | |
 |---|---|
-| Where | `/issues`, region:schedule form |
-| Who hit it | ada-editor, in 1 of 4 runs |
+| What went wrong | An automated accessibility check failed (color-contrast) |
+| Who hit it | Ada, an editor, in 1 of 4 runs |
 | WCAG 2.2 | 1.4.3 |
 | Review | Not reviewed. No person has checked this finding |
 | Fix guidance | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
-| Kind | accessibility |
-| Symptom | a11y:color-contrast |
-| Evidence | measured |
-| Fingerprint | `64afd5191821762c` |
 
-**How to reproduce.** Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.
+How to reproduce:
 
-3. Visit on /drafts.
+1. Sign in as an editor.
+2. Use a desktop computer in Chrome.
+3. Open the Drafts page.
 
-*Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts.* The file is `screens/003-03.png`, next to the run record.
+What goes wrong: The hint under the schedule field is too faint to read
+
+*The Drafts page as Ada saw it.*
+
+Technical details: run `2026-10-16-ada-editor-003`, step 3; persona `ada-editor` on desktop in chrome 148.0; kind accessibility; symptom `a11y:color-contrast`; locus `region:schedule form`; evidence measured; fingerprint `64afd5191821762c`; screenshot `screens/003-03.png` next to the run record.
 
 ### Info (1 finding)
 
 #### The payment status 'settled' is unclear to a contributor
 
-**Info**. Confirmed by a reviewer.
+**Info**. Confirmed by a reviewer.The Payments page, the Payment status area (`/payments`)
 
 | | |
 |---|---|
-| Where | `/payments`, region:payment status |
-| Who hit it | lin-contributor, in 3 of 4 runs |
-| WCAG 2.2 | No criterion recorded for this finding |
+| What went wrong | The name does not say what it does |
+| Who hit it | Lin, a contributor, in 3 of 4 runs |
 | Review | Confirmed |
-| Fix guidance | None recorded for this finding |
-| Kind | question |
-| Symptom | unclear-label |
-| Evidence | inferred |
-| Fingerprint | `1718b75300702f7b` |
 
-**How to reproduce.** Run 2026-10-16-lin-contributor-002: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in chrome 148.0.
+How to reproduce:
 
-7. Click Submit on /payments.
+1. Sign in as a contributor.
+2. Use a tablet at 200% zoom in Chrome.
+3. Click Submit.
 
-Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).
+What goes wrong: The payment status 'settled' is unclear to a contributor
+
+Technical details: run `2026-10-16-lin-contributor-002`, step 7; persona `lin-contributor` on tablet in chrome 148.0; kind question; symptom `unclear-label`; locus `region:payment status`; evidence inferred; fingerprint `1718b75300702f7b`. Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).
 
 ## Axe sweep and layout checks
 

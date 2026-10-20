@@ -15,6 +15,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
 
@@ -789,5 +790,42 @@ func TestWhatWorkedListsObservationsAndNeverCountsThem(t *testing.T) {
 	}
 	if strings.Contains(render(t, base, "md"), "What worked") {
 		t.Error("a report with no observations has a What worked section")
+	}
+}
+
+func TestEverySymptomHasPlainWords(t *testing.T) {
+	for _, s := range identity.Symptoms {
+		if _, ok := symptomWords[s]; !ok {
+			t.Errorf("symptom %q has no plain wording", s)
+		}
+		if strings.Contains(symptomText(s), "-") {
+			t.Errorf("symptom %q reads as %q", s, symptomText(s))
+		}
+	}
+	if got := symptomText("missing-information:rates"); got != "Information that was needed is missing (rates)" {
+		t.Errorf("a parameter is lost: %q", got)
+	}
+}
+
+func TestFindingCardsAreInPlainWords(t *testing.T) {
+	rep, err := Build(loadFixture(t), fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, format := range []string{"html", "md"} {
+		out := render(t, rep, format)
+		for _, bad := range []string{"No criterion recorded", "None recorded for this finding", "Run 2026-", "persona lin-contributor signed in"} {
+			if strings.Contains(out, bad) {
+				t.Errorf("%s still has %q", format, bad)
+			}
+		}
+		for _, want := range []string{"Sign in as a", "Technical details"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("%s is missing %q", format, want)
+			}
+		}
+	}
+	if got := placeText("/payments", "link:rates"); got != "the Payments page, the Rates link" {
+		t.Errorf("place reads %q", got)
 	}
 }

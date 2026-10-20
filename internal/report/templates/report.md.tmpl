@@ -85,36 +85,38 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 **{{cap $f.Severity}}**. {{statusText $f.Status}}.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
 
-| | |
+{{- $place := placeText $f.Route $f.Locus}}
+{{- if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
+
+{{end}}| | |
 |---|---|
-{{- if or $f.Route $f.Locus}}
-| Where | {{if $f.Route}}`{{$f.Route}}`{{end}}{{if and $f.Route $f.Locus}}, {{end}}{{$f.Locus}} |
-{{- end}}
-| Who hit it | {{join $f.Personas}}, in {{$f.Runs}} of {{$f.OfRuns}} runs |
-| WCAG 2.2 | {{if $f.WCAG}}{{join $f.WCAG}}{{else}}No criterion recorded for this finding{{end}} |
-| Review | {{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding{{end}} |
-| Fix guidance | {{if $f.HelpURL}}{{$f.HelpURL}}{{else}}None recorded for this finding{{end}} |
-| Kind | {{$f.Kind}} |
 {{- if $f.Symptom}}
-| Symptom | {{$f.Symptom}} |
+| What went wrong | {{symptomText $f.Symptom}} |
 {{- end}}
+| Who hit it | {{whoText $ $f}} |
 {{- if $f.State}}
-| Precondition | {{$f.State}} |
+| When | {{$f.State}} |
 {{- end}}
-| Evidence | {{$f.Evidence}} |
-| Fingerprint | `{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}` |
+{{- if $f.WCAG}}
+| WCAG 2.2 | {{join $f.WCAG}} |
+{{- end}}
+| Review | {{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding{{end}} |
+{{- if $f.HelpURL}}
+| Fix guidance | {{$f.HelpURL}} |
+{{- end}}
 
-**How to reproduce.** Run {{$f.Reproduction.Run}}: persona {{$f.Reproduction.Persona}} signed in as {{$f.Reproduction.Role}} on a {{$f.Reproduction.Device}}{{if ne $f.Reproduction.Zoom 100}} at {{$f.Reproduction.Zoom}} percent zoom{{end}} in {{$f.Reproduction.Browser}}.
+How to reproduce:
 
-{{if $f.Reproduction.Steps}}{{range $f.Reproduction.Steps}}{{.N}}. {{stepText .}}{{if .Note}} The persona said: {{.Note}}{{end}}
-{{end}}{{else}}The record cites no step.
+{{range $n, $step := reproSteps $f}}{{$n | inc}}. {{$step}}
 {{end}}
-{{- if gt (len $f.Instances) 1}}
-Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.
-{{end}}
-{{- range $f.Screenshots}}
-*{{.Alt}}.* The file is `{{.Path}}`, next to the run record.
-{{end}}
+What goes wrong: {{$f.Title}}
+
+{{range $f.Screenshots}}*{{shotCaption $f .}}.*{{with lookAt $f}} {{.}}{{end}}
+
+{{end}}Technical details: run `{{$f.Reproduction.Run}}`{{if $f.Reproduction.Steps}}, step{{if gt (len $f.Reproduction.Steps) 1}}s{{end}} {{range $j, $st := $f.Reproduction.Steps}}{{if $j}}, {{end}}{{$st.N}}{{end}}{{end}}; persona `{{$f.Reproduction.Persona}}` on {{$f.Reproduction.Device}} in {{$f.Reproduction.Browser}}; kind {{$f.Kind}}{{if $f.Symptom}}; symptom `{{$f.Symptom}}`{{end}}{{if $f.Locus}}; locus `{{$f.Locus}}`{{end}}; evidence {{$f.Evidence}}; fingerprint `{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}`{{range $f.Screenshots}}; screenshot `{{.Path}}` next to the run record{{end}}.
+{{- if gt (len $f.Instances) 1}} Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.
+{{- end}}
+
 {{end}}{{end}}
 {{- if .Axe}}## Axe sweep and layout checks
 

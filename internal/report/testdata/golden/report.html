@@ -167,7 +167,11 @@ ol.steps li::marker { font-family: var(--font-heading); font-weight: 700; color:
 figure { margin: 0 0 1rem; }
 figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
 figcaption { font-size: 0.875rem; color: var(--muted); margin-top: 0.4rem; }
-.more { border-top: 1px solid var(--rule); margin-top: 1rem; padding-top: 0.5rem; }
+.outcome { margin: 0 0 1rem; }
+details.tech { border-top: 1px solid var(--rule); margin-top: 1rem; padding: 0.5rem 0 0.4rem; }
+details.tech summary { cursor: pointer; font-size: 0.875rem; font-weight: 700; color: var(--muted); padding: 0.2rem 0; }
+details.tech summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+details.tech dl { margin-top: 0.5rem; }
 
  
 .table-wrap { overflow-x: auto; margin: 0 0 1.25rem; }
@@ -219,6 +223,9 @@ footer p { margin: 0 0 0.4rem; }
   .table-wrap { overflow: visible; }
   a { color: var(--ink); text-decoration: underline; }
   article.finding { border-radius: 6px; }
+  details.tech:not([open])::details-content { content-visibility: visible; display: block; }
+  details.tech summary { list-style: none; }
+  details.tech summary::-webkit-details-marker { display: none; }
   figure img { max-height: 100mm; object-fit: contain; object-position: left top; }
   footer { margin-top: 1.5rem; }
 }
@@ -332,53 +339,68 @@ footer p { margin: 0 0 0.4rem; }
 <article class="finding f-major" id="f-0" aria-labelledby="f-0-t">
 <p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
 <h4 id="f-0-t">A contributor can open the rates table for all writers</h4>
-<p class="f-where">Where: <code>/payments</code>, link:rates</p>
+<p class="f-where">The Payments page, the Rates link <code>/payments</code></p>
 <dl class="facts">
-<dt>Who hit it</dt><dd>lin-contributor, in 1 of 4 runs</dd>
-<dt>WCAG 2.2</dt><dd>No criterion recorded for this finding</dd>
+<dt>What went wrong</dt><dd>Let in when it should have been blocked</dd>
+<dt>Who hit it</dt><dd>Lin, a contributor, in 1 of 4 runs</dd>
 <dt>Review</dt><dd>Confirmed by example-reviewer on 18 October 2026. Reason: Reproduced on the preview with a contributor account.</dd>
-<dt>Fix guidance</dt><dd>None recorded for this finding</dd>
 </dl>
 <h5>How to reproduce</h5>
-<p>Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.</p>
 <ol class="steps">
-<li value="7">Look on /payments.</li>
+<li>Sign in as a contributor.</li>
+<li>Use a tablet at 200% zoom in Firefox.</li>
+<li>On the Payments page, look at what is shown.</li>
 </ol>
+<p class="outcome"><strong>What goes wrong:</strong> A contributor can open the rates table for all writers</p>
 
-<p class="muted">Screenshot <code>screens/008-07.png</code> from run 2026-10-17-lin-contributor-008, step 7, was not found when this report was made.</p>
+<p class="muted">The screenshot for this finding was not found when this report was made.</p>
 
-
-<dl class="facts small more">
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-17-lin-contributor-008</code>, step 7</dd>
+<dt>Persona</dt><dd><code>lin-contributor</code>, tablet, firefox 146.0</dd>
 <dt>Kind</dt><dd>permission</dd>
-<dt>Symptom</dt><dd>access-wrongly-allowed</dd>
+<dt>Symptom</dt><dd><code>access-wrongly-allowed</code></dd>
+<dt>Location</dt><dd><code>/payments</code> <code>link:rates</code></dd>
 <dt>Evidence</dt><dd>code</dd>
 <dt>Fingerprint</dt><dd><code>933d06cb3cee90e4</code></dd>
+<dt>Screenshot</dt><dd>run 2026-10-17-lin-contributor-008, step 7, <code>screens/008-07.png</code></dd>
+
 </dl>
+</details>
 </article>
 
 <article class="finding f-major" id="f-1" aria-labelledby="f-1-t">
 <p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
 <h4 id="f-1-t">Scheduling an issue for a past date returns a server error</h4>
-<p class="f-where">Where: <code>/issues</code>, button:schedule</p>
+<p class="f-where">The Issues page, the Schedule button <code>/issues</code></p>
 <dl class="facts">
-<dt>Who hit it</dt><dd>ada-editor, in 1 of 4 runs</dd>
-<dt>WCAG 2.2</dt><dd>No criterion recorded for this finding</dd>
+<dt>What went wrong</dt><dd>An error appeared</dd>
+<dt>Who hit it</dt><dd>Ada, an editor, in 1 of 4 runs</dd>
 <dt>Review</dt><dd>Confirmed</dd>
-<dt>Fix guidance</dt><dd>None recorded for this finding</dd>
 </dl>
 <h5>How to reproduce</h5>
-<p>Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.</p>
 <ol class="steps">
-<li value="7">Fill Submit on /issues.</li>
+<li>Sign in as an editor.</li>
+<li>Use a desktop computer in Chrome.</li>
+<li>Type into Submit.</li>
 </ol>
+<p class="outcome"><strong>What goes wrong:</strong> Scheduling an issue for a past date returns a server error</p>
 
-
-<dl class="facts small more">
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-16-ada-editor-003</code>, step 7</dd>
+<dt>Persona</dt><dd><code>ada-editor</code>, desktop, chrome 148.0</dd>
 <dt>Kind</dt><dd>bug</dd>
-<dt>Symptom</dt><dd>error-shown</dd>
+<dt>Symptom</dt><dd><code>error-shown</code></dd>
+<dt>Location</dt><dd><code>/issues</code> <code>button:schedule</code></dd>
 <dt>Evidence</dt><dd>measured</dd>
 <dt>Fingerprint</dt><dd><code>72be5e1e780d79bb</code></dd>
+
 </dl>
+</details>
 </article>
 
 
@@ -387,28 +409,38 @@ footer p { margin: 0 0 0.4rem; }
 <article class="finding f-minor" id="f-2" aria-labelledby="f-2-t">
 <p class="f-badges"><span class="badge b-minor">Minor</span><span class="badge st-not-reviewed">Not reviewed</span></p>
 <h4 id="f-2-t">The hint under the schedule field is too faint to read</h4>
-<p class="f-where">Where: <code>/issues</code>, region:schedule form</p>
+<p class="f-where">The Issues page, the Schedule form area <code>/issues</code></p>
 <dl class="facts">
-<dt>Who hit it</dt><dd>ada-editor, in 1 of 4 runs</dd>
+<dt>What went wrong</dt><dd>An automated accessibility check failed (color-contrast)</dd>
+<dt>Who hit it</dt><dd>Ada, an editor, in 1 of 4 runs</dd>
 <dt>WCAG 2.2</dt><dd>1.4.3</dd>
 <dt>Review</dt><dd>Not reviewed. No person has checked this finding.</dd>
 <dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">https://dequeuniversity.com/rules/axe/4.13/color-contrast</a></dd>
 </dl>
 <h5>How to reproduce</h5>
-<p>Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.</p>
 <ol class="steps">
-<li value="3">Visit on /drafts.</li>
+<li>Sign in as an editor.</li>
+<li>Use a desktop computer in Chrome.</li>
+<li>Open the Drafts page.</li>
 </ol>
+<p class="outcome"><strong>What goes wrong:</strong> The hint under the schedule field is too faint to read</p>
 
-<figure><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts"><figcaption>Run 2026-10-16-ada-editor-003, step 3</figcaption></figure>
+<figure><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="Screenshot: The Drafts page as Ada saw it"><figcaption>The Drafts page as Ada saw it.</figcaption></figure>
 
-
-<dl class="facts small more">
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-16-ada-editor-003</code>, step 3</dd>
+<dt>Persona</dt><dd><code>ada-editor</code>, desktop, chrome 148.0</dd>
 <dt>Kind</dt><dd>accessibility</dd>
-<dt>Symptom</dt><dd>a11y:color-contrast</dd>
+<dt>Symptom</dt><dd><code>a11y:color-contrast</code></dd>
+<dt>Location</dt><dd><code>/issues</code> <code>region:schedule form</code></dd>
 <dt>Evidence</dt><dd>measured</dd>
 <dt>Fingerprint</dt><dd><code>64afd5191821762c</code></dd>
+<dt>Screenshot</dt><dd>run 2026-10-16-ada-editor-003, step 3, <code>screens/003-03.png</code></dd>
+
 </dl>
+</details>
 </article>
 
 
@@ -417,26 +449,34 @@ footer p { margin: 0 0 0.4rem; }
 <article class="finding f-info" id="f-3" aria-labelledby="f-3-t">
 <p class="f-badges"><span class="badge b-info">Info</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
 <h4 id="f-3-t">The payment status &#39;settled&#39; is unclear to a contributor</h4>
-<p class="f-where">Where: <code>/payments</code>, region:payment status</p>
+<p class="f-where">The Payments page, the Payment status area <code>/payments</code></p>
 <dl class="facts">
-<dt>Who hit it</dt><dd>lin-contributor, in 3 of 4 runs</dd>
-<dt>WCAG 2.2</dt><dd>No criterion recorded for this finding</dd>
+<dt>What went wrong</dt><dd>The name does not say what it does</dd>
+<dt>Who hit it</dt><dd>Lin, a contributor, in 3 of 4 runs</dd>
 <dt>Review</dt><dd>Confirmed</dd>
-<dt>Fix guidance</dt><dd>None recorded for this finding</dd>
 </dl>
 <h5>How to reproduce</h5>
-<p>Run 2026-10-16-lin-contributor-002: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in chrome 148.0.</p>
 <ol class="steps">
-<li value="7">Click Submit on /payments.</li>
+<li>Sign in as a contributor.</li>
+<li>Use a tablet at 200% zoom in Chrome.</li>
+<li>Click Submit.</li>
 </ol>
+<p class="outcome"><strong>What goes wrong:</strong> The payment status &#39;settled&#39; is unclear to a contributor</p>
 
-<p>Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).</p>
-<dl class="facts small more">
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-16-lin-contributor-002</code>, step 7</dd>
+<dt>Persona</dt><dd><code>lin-contributor</code>, tablet, chrome 148.0</dd>
 <dt>Kind</dt><dd>question</dd>
-<dt>Symptom</dt><dd>unclear-label</dd>
+<dt>Symptom</dt><dd><code>unclear-label</code></dd>
+<dt>Location</dt><dd><code>/payments</code> <code>region:payment status</code></dd>
 <dt>Evidence</dt><dd>inferred</dd>
 <dt>Fingerprint</dt><dd><code>1718b75300702f7b</code></dd>
+<dt>Also seen in</dt><dd>2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed)</dd>
+
 </dl>
+</details>
 </article>
 
 

@@ -171,7 +171,11 @@ ol.steps li::marker { font-family: var(--font-heading); font-weight: 700; color:
 figure { margin: 0 0 1rem; }
 figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
 figcaption { font-size: 0.875rem; color: var(--muted); margin-top: 0.4rem; }
-.more { border-top: 1px solid var(--rule); margin-top: 1rem; padding-top: 0.5rem; }
+.outcome { margin: 0 0 1rem; }
+details.tech { border-top: 1px solid var(--rule); margin-top: 1rem; padding: 0.5rem 0 0.4rem; }
+details.tech summary { cursor: pointer; font-size: 0.875rem; font-weight: 700; color: var(--muted); padding: 0.2rem 0; }
+details.tech summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+details.tech dl { margin-top: 0.5rem; }
 
 /* Tables */
 .table-wrap { overflow-x: auto; margin: 0 0 1.25rem; }
@@ -223,6 +227,9 @@ footer p { margin: 0 0 0.4rem; }
   .table-wrap { overflow: visible; }
   a { color: var(--ink); text-decoration: underline; }
   article.finding { border-radius: 6px; }
+  details.tech:not([open])::details-content { content-visibility: visible; display: block; }
+  details.tech summary { list-style: none; }
+  details.tech summary::-webkit-details-marker { display: none; }
   figure img { max-height: 100mm; object-fit: contain; object-position: left top; }
   footer { margin-top: 1.5rem; }
 }
@@ -380,35 +387,55 @@ footer p { margin: 0 0 0.4rem; }
 <p class="f-badges"><span class="badge b-{{$f.Severity}}">{{cap $f.Severity}}</span><span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span>
 {{- if $f.Baseline}}<span class="badge bl-{{$f.Baseline}}">{{baselineText $f.Baseline}}</span>{{end}}</p>
 <h4 id="f-{{$i}}-t">{{$f.Title}}</h4>
-<p class="f-where">{{if $f.Route}}Where: <code>{{$f.Route}}</code>{{if $f.Locus}}, {{$f.Locus}}{{end}}{{else if $f.Locus}}Where: {{$f.Locus}}{{end}}</p>
+{{- $place := placeText $f.Route $f.Locus}}
+{{if $place}}<p class="f-where">{{upper $place}}{{if $f.Route}} <code>{{$f.Route}}</code>{{end}}</p>{{end}}
 <dl class="facts">
-<dt>Who hit it</dt><dd>{{join $f.Personas}}, in {{$f.Runs}} of {{$f.OfRuns}} runs</dd>
-<dt>WCAG 2.2</dt><dd>{{if $f.WCAG}}{{join $f.WCAG}}{{else}}No criterion recorded for this finding{{end}}</dd>
+{{- if $f.Symptom}}
+<dt>What went wrong</dt><dd>{{symptomText $f.Symptom}}</dd>
+{{- end}}
+<dt>Who hit it</dt><dd>{{whoText $ $f}}</dd>
+{{- if $f.State}}
+<dt>When</dt><dd>{{$f.State}}</dd>
+{{- end}}
+{{- if $f.WCAG}}
+<dt>WCAG 2.2</dt><dd>{{join $f.WCAG}}</dd>
+{{- end}}
 <dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
-<dt>Fix guidance</dt><dd>{{if $f.HelpURL}}<a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a>{{else}}None recorded for this finding{{end}}</dd>
+{{- if $f.HelpURL}}
+<dt>Fix guidance</dt><dd><a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a></dd>
+{{- end}}
 </dl>
 <h5>How to reproduce</h5>
-<p>Run {{$f.Reproduction.Run}}: persona {{$f.Reproduction.Persona}} signed in as {{$f.Reproduction.Role}} on a {{$f.Reproduction.Device}}{{if ne $f.Reproduction.Zoom 100}} at {{$f.Reproduction.Zoom}} percent zoom{{end}} in {{$f.Reproduction.Browser}}.</p>
-{{if $f.Reproduction.Steps}}<ol class="steps">
-{{- range $f.Reproduction.Steps}}
-<li value="{{.N}}">{{stepText .}}{{if .Note}} The persona said: {{.Note}}{{end}}</li>
+<ol class="steps">
+{{- range reproSteps $f}}
+<li>{{.}}</li>
 {{- end}}
-</ol>{{else}}<p>The record cites no step.</p>{{end}}
+</ol>
+<p class="outcome"><strong>What goes wrong:</strong> {{$f.Title}}</p>
 {{range $f.Screenshots}}{{$u := shot .}}
-{{if $u}}<figure><img src="{{$u}}" alt="{{.Alt}}"><figcaption>Run {{.Run}}, step {{.Step}}</figcaption></figure>{{else}}<p class="muted">Screenshot <code>{{.Path}}</code> from run {{.Run}}, step {{.Step}}, was not found when this report was made.</p>{{end}}
+{{if $u}}<figure><img src="{{$u}}" alt="Screenshot: {{shotCaption $f .}}"><figcaption>{{shotCaption $f .}}.{{with lookAt $f}} <strong>{{.}}</strong>{{end}}</figcaption></figure>{{else}}<p class="muted">The screenshot for this finding was not found when this report was made.</p>{{end}}
 {{end}}
-{{if gt (len $f.Instances) 1}}<p>Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.</p>{{end}}
-<dl class="facts small more">
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>{{$f.Reproduction.Run}}</code>{{if $f.Reproduction.Steps}}, step{{if gt (len $f.Reproduction.Steps) 1}}s{{end}} {{range $j, $st := $f.Reproduction.Steps}}{{if $j}}, {{end}}{{$st.N}}{{end}}{{end}}</dd>
+<dt>Persona</dt><dd><code>{{$f.Reproduction.Persona}}</code>, {{$f.Reproduction.Device}}, {{$f.Reproduction.Browser}}</dd>
 <dt>Kind</dt><dd>{{$f.Kind}}</dd>
 {{- if $f.Symptom}}
-<dt>Symptom</dt><dd>{{$f.Symptom}}</dd>
+<dt>Symptom</dt><dd><code>{{$f.Symptom}}</code></dd>
 {{- end}}
-{{- if $f.State}}
-<dt>Precondition</dt><dd>{{$f.State}}</dd>
+{{- if or $f.Route $f.Locus}}
+<dt>Location</dt><dd>{{if $f.Route}}<code>{{$f.Route}}</code>{{end}}{{if $f.Locus}} <code>{{$f.Locus}}</code>{{end}}</dd>
 {{- end}}
 <dt>Evidence</dt><dd>{{$f.Evidence}}</dd>
 <dt>Fingerprint</dt><dd><code>{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}</code></dd>
+{{- if gt (len $f.Instances) 1}}
+<dt>Also seen in</dt><dd>{{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}</dd>
+{{- end}}
+{{range $f.Screenshots}}<dt>Screenshot</dt><dd>run {{.Run}}, step {{.Step}}, <code>{{.Path}}</code></dd>
+{{end}}
 </dl>
+</details>
 </article>
 {{end}}
 {{end}}

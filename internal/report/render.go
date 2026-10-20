@@ -132,6 +132,14 @@ func commonFuncs() map[string]any {
 		"impactSev":    impactSeverity,
 		"plural":       plural,
 		"pages":        pagesTested,
+		"upper":        upperFirst,
+		"inc":          func(i int) int { return i + 1 },
+		"symptomText":  symptomText,
+		"placeText":    placeText,
+		"whoText":      whoText,
+		"reproSteps":   reproSteps,
+		"shotCaption":  shotCaption,
+		"lookAt":       lookAt,
 		"lead":         lead,
 	}
 }

@@ -38,7 +38,7 @@ The HTML report is built to be read, handed on and printed. It uses the Dummy Ru
 
 ![The summary page: key number cards and how sure you can be](images/report-summary.png)
 
-**The findings.** A contents list links to every finding, grouped by severity. Each finding is a card with a colour band and two badges for severity and review. It shows the route, who hit it and the WCAG criterion. It has numbered steps to reproduce, the screenshot with a caption and fix guidance.
+**The findings.** A contents list links to every finding, grouped by severity. Each finding is a card with a colour band and two badges for severity and review. It says where the problem is as a person would, for example "the Payments page, the Rates link". It says what went wrong in plain words and who hit it. The steps to reproduce read as things to do, such as signing in as a contributor and opening a page. The screenshot has a caption, and for a permission or security finding a line says what to look at. Rows with nothing to say are left out. A collapsed "Technical details" block holds the run, the steps, the fingerprint and the other raw fields. It is open in print.
 
 ![One finding card with its badges, steps and screenshot](images/report-finding.png)
 
