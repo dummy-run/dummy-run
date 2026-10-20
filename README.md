@@ -70,6 +70,7 @@ flowchart LR
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
 | [docs/COVERAGE.md](docs/COVERAGE.md) | What `dummyrun coverage` measures and when to trust each number |
 | [docs/REPORT.md](docs/REPORT.md) | What `dummyrun report` puts in an audit report, how to read it and what it does not claim |
+| [docs/BADGES.md](docs/BADGES.md) | The SVG badge and shields.io endpoint from `dummyrun report`, what they say and how to publish them from GitHub Actions |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
 | [schema/report.schema.json](schema/report.schema.json) | The format of the report in JSON, with an example report in [examples/report/](examples/report/) |
 | [docs/integrations/grafana.md](docs/integrations/grafana.md) | Sending runs to Grafana, linking them to your app's traces, and alerts |
