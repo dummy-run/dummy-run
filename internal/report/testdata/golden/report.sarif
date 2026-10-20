@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "dummyrun",
+          "version": "0.0.0-test",
+          "informationUri": "https://dummyrun.dev",
+          "rules": [
+            {
+              "id": "axe/button-name",
+              "shortDescription": {
+                "text": "Buttons must have discernible text"
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.13/button-name"
+            },
+            {
+              "id": "axe/color-contrast",
+              "shortDescription": {
+                "text": "Elements must meet minimum color contrast ratio thresholds"
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.13/color-contrast"
+            },
+            {
+              "id": "dummyrun/a11y:color-contrast",
+              "shortDescription": {
+                "text": "a11y:color-contrast"
+              },
+              "helpUri": "https://dequeuniversity.com/rules/axe/4.13/color-contrast"
+            },
+            {
+              "id": "dummyrun/access-wrongly-allowed",
+              "shortDescription": {
+                "text": "access-wrongly-allowed"
+              }
+            },
+            {
+              "id": "dummyrun/error-shown",
+              "shortDescription": {
+                "text": "error-shown"
+              }
+            },
+            {
+              "id": "dummyrun/unclear-label",
+              "shortDescription": {
+                "text": "unclear-label"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "dummyrun/access-wrongly-allowed",
+          "level": "error",
+          "message": {
+            "text": "A contributor can open the rates table for all writers"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://pr-41.inkwell.example/payments"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "dummyrun/v1": "933d06cb3cee90e4"
+          },
+          "properties": {
+            "kind": "permission",
+            "runs": 1,
+            "severity": "major",
+            "status": "confirmed"
+          }
+        },
+        {
+          "ruleId": "dummyrun/error-shown",
+          "level": "error",
+          "message": {
+            "text": "Scheduling an issue for a past date returns a server error"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://pr-41.inkwell.example/issues"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "dummyrun/v1": "72be5e1e780d79bb"
+          },
+          "properties": {
+            "kind": "bug",
+            "runs": 1,
+            "severity": "major",
+            "status": "confirmed"
+          }
+        },
+        {
+          "ruleId": "dummyrun/a11y:color-contrast",
+          "level": "warning",
+          "message": {
+            "text": "The hint under the schedule field is too faint to read (not reviewed)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://pr-41.inkwell.example/issues"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "dummyrun/v1": "64afd5191821762c"
+          },
+          "properties": {
+            "kind": "accessibility",
+            "runs": 1,
+            "severity": "minor",
+            "status": "not-reviewed",
+            "wcag": [
+              "1.4.3"
+            ]
+          }
+        },
+        {
+          "ruleId": "dummyrun/unclear-label",
+          "level": "note",
+          "message": {
+            "text": "The payment status 'settled' is unclear to a contributor"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://pr-41.inkwell.example/payments"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "dummyrun/v1": "1718b75300702f7b"
+          },
+          "properties": {
+            "kind": "question",
+            "runs": 3,
+            "severity": "info",
+            "status": "confirmed"
+          }
+        },
+        {
+          "ruleId": "axe/button-name",
+          "level": "error",
+          "message": {
+            "text": "Buttons must have discernible text: #menu-toggle"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://pr-41.inkwell.example/issues"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "dummyrun/v1": "84b5ee8b6163156f/685f9dd6"
+          },
+          "properties": {
+            "element": "#menu-toggle",
+            "impact": "critical",
+            "wcag": [
+              "4.1.2"
+            ]
+          }
+        },
+        {
+          "ruleId": "axe/color-contrast",
+          "level": "error",
+          "message": {
+            "text": "Elements must meet minimum color contrast ratio thresholds: .hint"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://pr-41.inkwell.example/issues"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "dummyrun/v1": "c5ffc81a448ffacf/a7d89cca"
+          },
+          "properties": {
+            "element": ".hint",
+            "impact": "serious",
+            "wcag": [
+              "1.4.3"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

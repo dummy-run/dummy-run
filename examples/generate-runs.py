@@ -142,6 +142,10 @@ def make_run(rng, start, n, seen):
     goal = {"completed": "yes", "blocked": "no", "errored": "no", "budget_exhausted": "partly"}[outcome]
     if goal == "yes" and any(f["severity"] in ("blocker", "major") for f in findings):
         goal = "partly"
+    for f in findings:
+        if f["verdict"] != "pending":
+            f["reviewer"] = "example-reviewer"
+            f["reviewed_at"] = (t + timedelta(hours=20)).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {
         "schema_version": 2,
         "id": f"{start:%Y-%m-%d}-{persona['id']}-{n:03d}",

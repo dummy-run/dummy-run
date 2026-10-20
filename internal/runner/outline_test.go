@@ -87,6 +87,17 @@ func TestSystemPromptNamesRefusedToolsAndZoom(t *testing.T) {
 			t.Errorf("system prompt lacks %q", want)
 		}
 	}
+	for _, want := range []string{
+		"Findings are problems only",
+		"Observations are things that worked",
+		"The search box has no label",
+		"The home page accessibility check found no violations.",
+		"Never report something that worked as a finding.",
+	} {
+		if !strings.Contains(p, want) {
+			t.Errorf("system prompt lacks %q", want)
+		}
+	}
 	r = &run{cfg: Config{Persona: &cast.Persona{ID: "kit"}}, budget: 20, display: cast.Display{Device: "desktop", Zoom: 100}}
 	if p := r.systemPrompt(); strings.Contains(p, "may not use") || strings.Contains(p, "percent zoom") {
 		t.Error("a persona without limits or zoom was told about them")

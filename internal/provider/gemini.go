@@ -198,12 +198,15 @@ func fromGemini(r *genai.GenerateContentResponse) (Response, error) {
 	}
 	if len(r.Candidates) == 0 || r.Candidates[0] == nil {
 		if r.PromptFeedback != nil && r.PromptFeedback.BlockReason != "" {
-			return resp, fmt.Errorf("provider: gemini blocked the prompt: %s (%w)", r.PromptFeedback.BlockReason, ErrNoChoice)
+			return resp, filtered("gemini", "blocked the prompt: "+string(r.PromptFeedback.BlockReason), nil)
 		}
 		return resp, ErrNoChoice
 	}
 	cand := r.Candidates[0]
 	resp.FinishReason = string(cand.FinishReason)
+	if isFilterReason(resp.FinishReason) {
+		return resp, filtered("gemini", "finish reason "+resp.FinishReason, nil)
+	}
 	if cand.Content == nil {
 		return resp, nil
 	}

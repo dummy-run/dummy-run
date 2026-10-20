@@ -90,6 +90,87 @@
   });
 })();
 
+// A copy button on every code block. Without JavaScript the code stays as plain text.
+(function () {
+  if (!navigator.clipboard || !window.isSecureContext) {
+    return;
+  }
+  var status = document.createElement("div");
+  status.className = "sr-only";
+  status.setAttribute("role", "status");
+  document.body.appendChild(status);
+
+  document.querySelectorAll("pre").forEach(function (pre) {
+    if (pre.classList.contains("diagram-source") || pre.closest(".record")) {
+      return;
+    }
+    var bar = pre.closest(".terminal") && pre.closest(".terminal").querySelector(".t-bar");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "copy-button";
+    button.textContent = "Copy";
+    button.setAttribute("aria-label", "Copy code");
+    button.addEventListener("click", function () {
+      var sel = pre.getAttribute("data-copy");
+      var text = pre.textContent;
+      if (sel) {
+        text = Array.prototype.map.call(pre.querySelectorAll(sel), function (n) {
+          return n.textContent;
+        }).join("\n");
+      }
+      navigator.clipboard.writeText(text.replace(/\n$/, "")).then(function () {
+        button.textContent = "Copied";
+        status.textContent = "Copied to the clipboard";
+        window.setTimeout(function () {
+          button.textContent = "Copy";
+          status.textContent = "";
+        }, 2000);
+      }, function () {
+        button.textContent = "Copy failed";
+        status.textContent = "Copy failed. Select the code and copy it.";
+        window.setTimeout(function () {
+          button.textContent = "Copy";
+          status.textContent = "";
+        }, 3000);
+      });
+    });
+    if (bar) {
+      bar.insertBefore(button, bar.querySelector(".t-pause"));
+      return;
+    }
+    var host = pre.closest(".highlight") || pre;
+    var wrap = document.createElement("div");
+    wrap.className = "code-wrap";
+    host.parentNode.insertBefore(wrap, host);
+    wrap.appendChild(host);
+    wrap.appendChild(button);
+  });
+})();
+
+// The flow animation. Without JavaScript, or when the visitor asks for reduced motion, it stays a still list.
+(function () {
+  var media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var flows = document.querySelectorAll(".flow");
+  Array.prototype.forEach.call(flows, function (flow) {
+    var button = flow.querySelector(".flow-toggle");
+    if (!button) {
+      return;
+    }
+    function sync() {
+      var still = media.matches;
+      flow.classList.toggle("is-live", !still);
+      button.hidden = still;
+    }
+    button.addEventListener("click", function () {
+      var paused = button.getAttribute("aria-pressed") !== "true";
+      button.setAttribute("aria-pressed", paused ? "true" : "false");
+      flow.classList.toggle("is-paused", paused);
+    });
+    media.addEventListener("change", sync);
+    sync();
+  });
+})();
+
 // Watch a run. Without JavaScript every step shows as a list. With it, one step shows at a time.
 (function () {
   var bar = document.querySelector(".rp-bar");
@@ -167,3 +248,143 @@
   index.hidden = false;
   show(fromHash(), false);
 })();
+
+// The audit request form. Without JavaScript the form posts to the API and the API redirects to a result page.
+(function () {
+  var form = document.querySelector("form[data-audit]");
+  if (!form || !window.fetch) {
+    return;
+  }
+  var status = form.querySelector(".form-status");
+  var messages = {
+    invalid_email: "That email address does not look right. Check it and try again.",
+    invalid_request: "Something in the form is missing or too long. Check it and try again.",
+    consent_required: "Tick the box so we can contact you, then try again.",
+    turnstile: "The human check did not pass. Try again.",
+    rate_limited: "Too many tries. Wait a little and try again.",
+    unavailable: "The form is not taking requests right now. Email hello@dummyrun.dev instead."
+  };
+  var prefixes = { error: "Problem: ", ok: "Done: " };
+
+  function show(kind, text) {
+    status.className = "form-status is-" + kind;
+    status.textContent = prefixes[kind] + text;
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var body = {};
+    new FormData(form).forEach(function (value, key) {
+      body[key] = value;
+    });
+    var button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 15000);
+    fetch(form.action, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (response) {
+      return response.json().then(function (parsed) {
+        return { ok: response.ok && !!parsed && parsed.ok === true, error: parsed && parsed.error };
+      }).catch(function () { return { ok: false, error: response.status === 429 ? "rate_limited" : "unavailable" }; });
+    }).then(function (result) {
+      if (result.ok) {
+        form.reset();
+        show("ok", "Thank you. We will reply to the email address you gave.");
+      } else {
+        show("error", Object.prototype.hasOwnProperty.call(messages, result.error) ? messages[result.error] : messages.unavailable);
+      }
+    }).catch(function () {
+      show("error", messages.unavailable);
+    }).then(function () {
+      clearTimeout(timer);
+      button.disabled = false;
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+    });
+  });
+})();
+
+// On the audit problem page, mark the cause named in the address.
+(function () {
+  var list = document.querySelector(".problem-codes");
+  if (!list || !window.URLSearchParams) {
+    return;
+  }
+  var code = new URLSearchParams(window.location.search).get("code");
+  var items = list.querySelectorAll("li");
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].getAttribute("data-code") === code) {
+      items[i].className = "is-match";
+      items[i].setAttribute("aria-current", "true");
+    }
+  }
+})();
+
+// The waitlist form. Without JavaScript the form posts to the API and the API redirects to a result page.
+(function () {
+  if (!window.fetch) {
+    return;
+  }
+  var forms = document.querySelectorAll("[data-waitlist] form");
+  for (var i = 0; i < forms.length; i++) {
+    setupWaitlist(forms[i]);
+  }
+})();
+
+function setupWaitlist(form) {
+  var status = form.querySelector(".waitlist-status");
+  var messages = {
+    invalid_email: "That email address does not look right. Check it and try again.",
+    consent_required: "Tick the box to agree, then try again.",
+    turnstile: "The human check did not pass. Try again.",
+    rate_limited: "Too many tries. Wait a little and try again.",
+    unavailable: "The list is not taking sign-ups right now. Try again later."
+  };
+
+  var prefixes = { error: "Problem: ", ok: "Done: " };
+
+  function show(kind, text) {
+    status.className = "waitlist-status is-" + kind;
+    status.textContent = prefixes[kind] + text;
+    status.focus();
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var data = new FormData(form);
+    var body = {};
+    data.forEach(function (value, key) {
+      body[key] = value;
+    });
+    var button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    fetch(form.action, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (response) {
+      return response.json().then(function (parsed) {
+        return { ok: response.ok && !!parsed && parsed.ok === true, error: parsed && parsed.error };
+      }).catch(function () { return { ok: false, error: "unavailable" }; });
+    }).then(function (result) {
+      if (result.ok) {
+        form.reset();
+        show("ok", "Thank you. Check your inbox for an email and select the link in it to confirm.");
+      } else {
+        show("error", Object.prototype.hasOwnProperty.call(messages, result.error) ? messages[result.error] : messages.unavailable);
+      }
+    }).catch(function () {
+      show("error", messages.unavailable);
+    }).then(function () {
+      button.disabled = false;
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+    });
+  });
+}

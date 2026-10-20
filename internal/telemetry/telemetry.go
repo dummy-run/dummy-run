@@ -23,17 +23,38 @@ var Version = "0.1.0-dev"
 // -ldflags "-X github.com/dummy-run/dummy-run/internal/telemetry.Commit=<sha>".
 var Commit = "unknown"
 
+// ScannerURL is the page that says who Dummy Run is and how to opt out. An identified user agent names it.
+const ScannerURL = "https://dummyrun.dev/scanner/"
+
+// RobotsToken is the product token a robots.txt file uses to address Dummy Run.
+const RobotsToken = "DummyRun"
+
 // UserAgentSuffix is appended to the browser's own user agent.
 func UserAgentSuffix() string { return "DummyRun/" + Version }
 
+// IdentifiedSuffix is the suffix with a contact URL, as --identify adds it.
+func IdentifiedSuffix() string { return UserAgentSuffix() + " (+" + ScannerURL + ")" }
+
 // UserAgent returns the browser's user agent with the Dummy Run suffix, unless
-// it already ends with one.
-func UserAgent(browserUA string) string {
+// it already ends with one. With identify the suffix also names ScannerURL. The
+// browser's own user agent stays in front so sites render as they do for the browser.
+func UserAgent(browserUA string, identify bool) string {
 	suffix := UserAgentSuffix()
+	if identify {
+		suffix = IdentifiedSuffix()
+	}
 	if strings.HasSuffix(browserUA, suffix) {
 		return browserUA
 	}
 	return strings.TrimSpace(browserUA) + " " + suffix
+}
+
+// RequestUserAgent is the user agent for the engine's own requests, such as robots.txt and sitemaps.
+func RequestUserAgent(identify bool) string {
+	if identify {
+		return IdentifiedSuffix()
+	}
+	return UserAgentSuffix()
 }
 
 var slugUnsafe = regexp.MustCompile(`[^a-z0-9-]+`)

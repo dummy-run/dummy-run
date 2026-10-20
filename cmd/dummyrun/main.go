@@ -14,10 +14,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -45,12 +48,20 @@ func run(args []string) int {
 	switch args[0] {
 	case "run":
 		return runCmd(args[1:])
+	case "review":
+		return reviewCmd(args[1:])
 	case "a11y":
 		return a11yCmd(args[1:])
 	case "coverage":
 		return coverageCmd(args[1:])
+	case "report":
+		return reportCmd(args[1:])
 	case "doctor":
 		return doctorCmd(args[1:])
+	case "session":
+		return sessionCmd(args[1:])
+	case "mcp":
+		return mcpCmd(args[1:])
 	case "audit":
 		if len(args) > 1 && args[1] == "a11y" {
 			return a11yCmd(args[2:])
@@ -80,14 +91,19 @@ func usage() {
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
+  dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
+      [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
+  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots]
+  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
   dummyrun doctor [--stop]
+  dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -101,7 +117,8 @@ Providers:
                      GOOGLE_CLOUD_PROJECT) and --region are required.
   bedrock            Amazon Bedrock Converse with the AWS default credential chain. --region defaults to eu-west-2.
 
-An API key is read from the environment when the run starts. It is never printed or written to a run record.`)
+An API key is read from the environment when the run starts. It is never printed or written to a run record.
+The same holds for the test-user credentials named in a target file's signin block.`)
 }
 
 func runCmd(args []string) int {
@@ -126,8 +143,11 @@ func runCmd(args []string) int {
 	batch := fs.String("batch", "", "batch ID grouping runs started together")
 	seed := fs.Int64("seed", -1, "sampling seed sent to the model API where the provider takes one (0 or more); recorded as seed, null where it is not sent")
 	repeat := fs.Int("repeat-index", -1, "repeat count for this persona, scenario and model in the batch (default: counted from the records in --out)")
+	sessionFile := fs.String("session", "", "sign in from this saved session file (see \"dummyrun session save\") instead of the login form")
 	universe := fs.String("universe", "", "where the routes that exist come from, for route coverage: \"sitemap\" (base_url/sitemap.xml) or a sitemap URL")
 	headful := fs.Bool("headful", false, "show the browser window")
+	identify := fs.Bool("identify", false, "add \"DummyRun/<version> (+"+telemetry.ScannerURL+")\" to the browser's user agent (also set by \"identify\": true in the target file)")
+	respect := fs.Bool("respect-robots", false, "fetch robots.txt from the target origin and block what it disallows for DummyRun or * (also set by \"respect_robots\": true in the target file); a site-wide disallow stops the run before the browser starts")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -150,6 +170,8 @@ func runCmd(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
+	target.Identify = target.Identify || *identify
+	target.RespectRobots = target.RespectRobots || *respect
 	persona, err := cast.Load(*castDir, *personaID)
 	if err != nil {
 		return fail(err)
@@ -170,7 +192,8 @@ func runCmd(args []string) int {
 	defer stop()
 	cfg := runner.Config{
 		Persona: persona, Scenario: scenario, Target: target, Provider: p, Browser: *browser, Headless: !*headful,
-		OutDir: *out, StepBudget: *steps, TokenBudget: *tokens, Batch: *batch, Log: os.Stderr,
+		OutDir: *out, SessionFile: *sessionFile, StepBudget: *steps, TokenBudget: *tokens, Batch: *batch, Log: os.Stderr,
+		HTTPClient: requestClient(target.Identify),
 	}
 	if *seed >= 0 {
 		cfg.Seed = seed
@@ -179,13 +202,19 @@ func runCmd(args []string) int {
 		cfg.RepeatIndex = repeat
 	}
 	if *universe != "" {
-		if cfg.Universe, err = fetchUniverse(ctx, *universe, target.BaseURL); err != nil {
+		if cfg.Universe, err = fetchUniverse(ctx, cfg.HTTPClient, *universe, target.BaseURL, robotsGuard(cfg.HTTPClient, target.Identify, target.RespectRobots)); err != nil {
 			return fail(err)
 		}
 	}
 	res, err := runner.Run(ctx, cfg)
+	if errors.Is(err, runner.ErrRobotsDisallow) {
+		fmt.Fprintf(os.Stderr, "dummyrun: %v; the run was recorded as blocked at %s\n", err, res.Path)
+		return exitRobots
+	}
 	if err != nil {
-		if res != nil {
+		if res != nil && errors.Is(err, provider.ErrContentFiltered) {
+			fmt.Fprintf(os.Stderr, "dummyrun: the model provider's content filter stopped the run. It was recorded as provider_filtered at %s\n", res.Path)
+		} else if res != nil {
 			fmt.Fprintf(os.Stderr, "dummyrun: run errored and was recorded at %s\n", res.Path)
 		}
 		return fail(err)
@@ -195,12 +224,12 @@ func runCmd(args []string) int {
 }
 
 // fetchUniverse reads a sitemap and returns its normalised routes, each tagged with the source "sitemap".
-func fetchUniverse(ctx context.Context, spec, baseURL string) ([]record.RouteUniverseEntry, error) {
+func fetchUniverse(ctx context.Context, client *http.Client, spec, baseURL string, allowed func(context.Context, string) error) ([]record.RouteUniverseEntry, error) {
 	loc := spec
 	if spec == "sitemap" {
 		loc = strings.TrimSuffix(baseURL, "/") + "/sitemap.xml"
 	}
-	pages, err := a11y.FetchSitemap(ctx, nil, loc)
+	pages, err := a11y.FetchSitemap(ctx, client, loc, allowed)
 	if err != nil {
 		return nil, err
 	}
@@ -231,10 +260,37 @@ func loadTarget(path string) (policy.Target, error) {
 	if t.Adapter == "" {
 		t.Adapter = "url"
 	}
+	if t.Signin != nil {
+		t.Signin.Dir = filepath.Dir(path)
+	}
 	if err := t.Validate(); err != nil {
 		return policy.Target{}, fmt.Errorf("%s: %w", path, err)
 	}
 	return t, nil
+}
+
+// exitRobots is the exit status when robots.txt keeps Dummy Run off the site.
+const exitRobots = 3
+
+// requestClient is the HTTP client for the engine's own requests (sitemaps, the home page). With identify
+// they carry the same suffix as the browser.
+func requestClient(identify bool) *http.Client {
+	c := &http.Client{Timeout: 30 * time.Second}
+	if identify {
+		c.Transport = uaTransport{ua: telemetry.RequestUserAgent(true), next: http.DefaultTransport}
+	}
+	return c
+}
+
+type uaTransport struct {
+	ua   string
+	next http.RoundTripper
+}
+
+func (t uaTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r = r.Clone(r.Context())
+	r.Header.Set("User-Agent", t.ua)
+	return t.next.RoundTrip(r)
 }
 
 func summary(rec *record.Record) {

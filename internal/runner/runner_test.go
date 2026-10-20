@@ -12,6 +12,7 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
 
@@ -88,6 +89,60 @@ func TestParseFinishRepairsBadValues(t *testing.T) {
 	}
 }
 
+func TestParseFinishSplitsObservationsFromFindings(t *testing.T) {
+	args := json.RawMessage(`{"verdict":"pass","goal_met":"yes","report":"r",
+	  "findings":[
+	    {"kind":"accessibility","severity":"minor","symptom":"a11y","rule":"image-alt","title":"The logo has no alt text","steps":[2],"evidence":"measured"},
+	    {"class":"observation","kind":"question","severity":"info","title":" The home page check found no violations ","steps":[1],"evidence":"measured"}],
+	  "observations":[
+	    {"text":" Checkout took three clicks. ","steps":[3,3,0,9]},
+	    {"text":"","steps":[1]},
+	    {"text":"No steps cited","steps":[]}]}`)
+	f, err := ParseFinish(args, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Findings) != 1 || f.Findings[0].Class != record.ClassProblem {
+		t.Fatalf("findings %+v, want only the problem", f.Findings)
+	}
+	want := []FinishObservation{{Text: "Checkout took three clicks.", Steps: []int{3}}, {Text: "The home page check found no violations", Steps: []int{1}}}
+	if len(f.Observations) != 2 || f.Observations[0].Text != want[0].Text || f.Observations[0].Steps[0] != 3 || f.Observations[1].Text != want[1].Text {
+		t.Fatalf("observations %+v, want %+v", f.Observations, want)
+	}
+	recs := RecordObservations(f)
+	if len(recs) != 2 || recs[1].Text != want[1].Text || len(recs[1].Steps) != 1 {
+		t.Errorf("record observations %+v", recs)
+	}
+	if got := RecordFindings(f, NewLocator([]Step{sampleStep(1, "look", ""), sampleStep(2, "look", "")})); len(got) != 1 {
+		t.Errorf("%d record findings, want 1: observations are not findings", len(got))
+	}
+}
+
+func TestFinishToolSeparatesProblemsFromObservations(t *testing.T) {
+	var finish provider.Tool
+	for _, tl := range Tools {
+		if tl.Name == "finish" {
+			finish = tl
+		}
+	}
+	props := finish.Parameters["properties"].(map[string]any)
+	if _, ok := props["observations"]; !ok {
+		t.Fatal("finish has no observations")
+	}
+	items := props["findings"].(map[string]any)["items"].(map[string]any)["properties"].(map[string]any)
+	if _, ok := items["class"]; ok {
+		t.Error("a finding still offers class: findings are problems only")
+	}
+	if d := props["findings"].(map[string]any)["description"].(string); !strings.Contains(d, "Problems only") {
+		t.Errorf("findings description %q", d)
+	}
+	for _, r := range finish.Parameters["required"].([]string) {
+		if r == "observations" {
+			t.Error("observations must stay optional")
+		}
+	}
+}
+
 func sampleStep(n int, action string, err string) Step {
 	return Step{N: n, PageChanged: true, Obs: page.Observation{Action: action, Target: "@1", URL: "https://t.test/", Error: err,
 		Duration: 300 * time.Millisecond, Status: 200, ConsoleErrors: []string{"boom"},
@@ -122,7 +177,7 @@ func TestRenderAndSummary(t *testing.T) {
 		t.Error("missing snapshot not explained")
 	}
 	sum := Summary(sampleStep(2, "visit", "timeout"))
-	if !strings.HasPrefix(sum, "step 2: visit @1 · now at https://t.test/ · Home · error: timeout") {
+	if !strings.HasPrefix(sum, `step 2: visit @1 · now at https://t.test/ · title "Home" · error: timeout`) {
 		t.Errorf("summary %q", sum)
 	}
 }
