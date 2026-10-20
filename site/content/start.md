@@ -24,6 +24,8 @@ cd dummy-run
 
 ## 1. Install the commands {#install}
 
+{{< mascot "dummy-keyboard" >}}
+
 `dummyrun` plays a persona. `dummyrun-otel` sends the run to an OpenTelemetry backend.
 
 ```sh

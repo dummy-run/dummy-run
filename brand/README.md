@@ -45,6 +45,14 @@ Use Dummy in docs, empty states and error pages. Keep it out of the logo. The fi
 | `mascot/dummy-head-mono-black.svg` and `-mono-white.svg` | The head in one colour |
 | `mascot/dummy.svg`, `dummy-mono-black.svg`, `dummy-mono-white.svg` | Legacy. The first, deadpan head. Do not use in new work |
 
+On the site, Dummy appears at most once a page and never in legal text. It sits beside a heading or a step, at 80 to 160 pixels, and is decorative. The pages are:
+
+- 404 and audit problem: oops
+- Audit thanks: thumbs up
+- Pricing, persona library, About and the home page: friendly
+- Docs: reading
+- Get started: keyboard
+
 The poses share one body, so they sit at the same size and can swap in place. Use one pose per page and
 keep Dummy beside the text and never behind it.
 
