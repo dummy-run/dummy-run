@@ -93,7 +93,7 @@ publish-badge:
         git push origin gh-pages
 ```
 
-The badge is then at `https://OWNER.github.io/REPO/badge.svg`. Pin the actions to commit hashes if your policy asks for it.
+Set the Pages publishing source to the `gh-pages` branch and the root folder once in the repository settings. The badge is then at `https://OWNER.github.io/REPO/badge.svg`. Pin the actions to commit hashes if your policy asks for it.
 
 ### A release asset
 
