@@ -41,7 +41,7 @@
   <div class="cf-turnstile" data-sitekey="{{ . }}" data-theme="auto"></div>
   {{- end }}
   <button class="btn" type="submit">Send the request</button>
-  <p id="audit-status" class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
+  <p id="audit-status" class="form-status" role="status" aria-live="polite"></p>
 </form>
 <p class="field-hint">This form loads Cloudflare Turnstile, a human check. You can also write to <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p>
 {{- with site.Params.waitlist_turnstile_sitekey }}

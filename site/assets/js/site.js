@@ -188,7 +188,6 @@
   function show(kind, text) {
     status.className = "form-status is-" + kind;
     status.textContent = prefixes[kind] + text;
-    status.focus();
   }
 
   form.addEventListener("submit", function (event) {
@@ -199,14 +198,17 @@
     });
     var button = form.querySelector("button[type=submit]");
     button.disabled = true;
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 15000);
     fetch(form.action, {
       method: "POST",
+      signal: controller.signal,
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify(body)
     }).then(function (response) {
       return response.json().then(function (parsed) {
         return { ok: response.ok && !!parsed && parsed.ok === true, error: parsed && parsed.error };
-      }).catch(function () { return { ok: false, error: "unavailable" }; });
+      }).catch(function () { return { ok: false, error: response.status === 429 ? "rate_limited" : "unavailable" }; });
     }).then(function (result) {
       if (result.ok) {
         form.reset();
@@ -217,6 +219,7 @@
     }).catch(function () {
       show("error", messages.unavailable);
     }).then(function () {
+      clearTimeout(timer);
       button.disabled = false;
       if (window.turnstile) {
         window.turnstile.reset();
