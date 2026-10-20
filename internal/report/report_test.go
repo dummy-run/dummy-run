@@ -15,6 +15,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/record"
 )
 
 var update = flag.Bool("update", false, "rewrite the golden files")
@@ -201,12 +202,9 @@ func TestPendingIsMarked(t *testing.T) {
 
 func TestRejectedNeverAppears(t *testing.T) {
 	for _, pending := range []bool{false, true} {
-		rep, err := Build(loadFixture(t), fixtureOptions(t))
-		if pending {
-			opt := fixtureOptions(t)
-			opt.IncludePending = true
-			rep, err = Build(loadFixture(t), opt)
-		}
+		opt := fixtureOptions(t)
+		opt.IncludePending = pending
+		rep, err := Build(loadFixture(t), opt)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -447,6 +445,9 @@ func TestNoPassOrCompliantWording(t *testing.T) {
 	for name, s := range sets {
 		rep, err := Build(s.runs, s.opt)
 		if err != nil {
+			if name != "fixture empty" {
+				t.Fatalf("%s: %v", name, err)
+			}
 			continue // the empty case: no records match
 		}
 		for _, f := range Formats {
@@ -586,3 +587,78 @@ func TestEmbeddedSchemaMatchesRepository(t *testing.T) {
 }
 
 func sweepList(r ...*a11y.Report) []*a11y.Report { return r }
+
+func TestBaselineDoesNotCallAFindingFixedWhenTheRunsSawItAgainUnreviewed(t *testing.T) {
+	opt := fixtureOptions(t)
+	opt.IncludePending = true
+	base, err := Build(loadFixture(t), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pendingFP string
+	for _, f := range base.Findings {
+		if f.Status == StatusNotReviewed && f.Fingerprint != "" {
+			pendingFP = f.Fingerprint
+		}
+	}
+	if pendingFP == "" {
+		t.Fatal("the fixture has no unreviewed finding to test with")
+	}
+	now := fixtureOptions(t)
+	now.IncludePending = false
+	now.Baseline = base
+	rep, err := Build(loadFixture(t), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range rep.Fixed {
+		if f.Fingerprint == pendingFP {
+			t.Errorf("%q is listed as fixed although the runs saw it again and only left it out as not reviewed", f.Title)
+		}
+	}
+}
+
+func TestScreenshotPathsStayInTheRunFolder(t *testing.T) {
+	root := t.TempDir()
+	run := filepath.Join(root, "run")
+	if err := os.Mkdir(run, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "outside.png"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(run, "inside.png"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	h := hit{
+		run: &Run{Dir: run, Rec: &record.Record{ID: "r1", Steps: []record.Step{
+			{N: 1, Screenshot: "../outside.png"},
+			{N: 2, Screenshot: "inside.png"},
+		}}},
+		f: record.Finding{Steps: []int{1, 2}},
+	}
+	shots := screenshotsFor(h)
+	if len(shots) != 2 {
+		t.Fatalf("%d screenshots, want 2", len(shots))
+	}
+	if shots[0].File != "" {
+		t.Errorf("a path that climbs out of the run folder was resolved to %q", shots[0].File)
+	}
+	if shots[1].File == "" {
+		t.Error("a screenshot inside the run folder was not found")
+	}
+}
+
+func TestSplitReviewsKeepsLargeIntegersExact(t *testing.T) {
+	in := `{"seed":9223372036854775807,"findings":[{"id":"f1","reviewer":"sam"}]}`
+	reviews, out, err := splitReviews([]byte(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reviews["f1"].Reviewer != "sam" {
+		t.Errorf("reviews %+v", reviews)
+	}
+	if !strings.Contains(string(out), "9223372036854775807") {
+		t.Errorf("the seed changed: %s", out)
+	}
+}

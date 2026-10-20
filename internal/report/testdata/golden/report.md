@@ -78,7 +78,7 @@ How to read these numbers:
 
 Cautions:
 
-- Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate..
+- Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate.
 - Identity reliability is not measured (no reviewer clusters): every problem count is conditional on the fingerprint rule.
 - T=3 completed runs: Chao recommends at least 5, so read the interval as decorative.
 - Stratum desktop has 0 completed runs; remaining-problem estimates need enough runs per stratum (at least 4).
@@ -157,13 +157,11 @@ Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts. The fil
 - Review: confirmed
 - Fingerprint: `1718b75300702f7b`
 
-How to reproduce. Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.
+How to reproduce. Run 2026-10-16-lin-contributor-002: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in chrome 148.0.
 
-5. Look on /payments.
+7. Click Submit on /payments.
 
 Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).
-
-Screenshot from run 2026-10-17-lin-contributor-008, step 5: look on /payments. The file is `screens/008-05.png`, next to the run record.
 
 ## Axe sweep
 
@@ -207,7 +205,7 @@ Axe cannot decide these rules alone. A person has to look.
 
 ## What this report is not
 
-- This report is a sample. Personas played a set of scenarios on one build. A problem they did not meet is not in it.
+- This report is a sample. Personas played a set of scenarios on the builds listed under scope. A problem they did not meet is not in it.
 - It is not a WCAG conformance claim, a certificate or a statement about the law.
 - Automated checks find only some accessibility problems. The sweep covers the pages it lists and nothing else.
 - It does not replace testing with disabled people.

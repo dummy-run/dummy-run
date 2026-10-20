@@ -153,7 +153,7 @@
     "routes_visited": 0,
     "route_universe": 0,
     "warnings": [
-      "Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate..",
+      "Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate.",
       "Identity reliability is not measured (no reviewer clusters): every problem count is conditional on the fingerprint rule.",
       "T=3 completed runs: Chao recommends at least 5, so read the interval as decorative.",
       "Stratum desktop has 0 completed runs; remaining-problem estimates need enough runs per stratum (at least 4).",
@@ -497,29 +497,22 @@
       "runs": 3,
       "of_runs": 4,
       "reproduction": {
-        "run": "2026-10-17-lin-contributor-008",
+        "run": "2026-10-16-lin-contributor-002",
         "persona": "lin-contributor",
         "role": "contributor",
         "device": "tablet",
         "zoom_percent": 200,
-        "browser": "firefox 146.0",
+        "browser": "chrome 148.0",
         "steps": [
           {
-            "n": 5,
-            "action": "look",
+            "n": 7,
+            "action": "click",
+            "target": "Submit",
             "route": "/payments",
             "url": "https://pr-41.inkwell.example/payments"
           }
         ]
       },
-      "screenshots": [
-        {
-          "run": "2026-10-17-lin-contributor-008",
-          "step": 5,
-          "path": "screens/008-05.png",
-          "alt": "Screenshot from run 2026-10-17-lin-contributor-008, step 5: look on /payments"
-        }
-      ],
       "instances": [
         {
           "run": "2026-10-16-lin-contributor-002",
@@ -655,7 +648,7 @@
     ]
   },
   "limits": [
-    "This report is a sample. Personas played a set of scenarios on one build. A problem they did not meet is not in it.",
+    "This report is a sample. Personas played a set of scenarios on the builds listed under scope. A problem they did not meet is not in it.",
     "It is not a WCAG conformance claim, a certificate or a statement about the law.",
     "Automated checks find only some accessibility problems. The sweep covers the pages it lists and nothing else.",
     "It does not replace testing with disabled people.",

@@ -41,7 +41,7 @@ const defaultAxeVersion = "4.13"
 
 // Limits is the statement of what the report is not. Every format prints it.
 var Limits = []string{
-	"This report is a sample. Personas played a set of scenarios on one build. A problem they did not meet is not in it.",
+	"This report is a sample. Personas played a set of scenarios on the builds listed under scope. A problem they did not meet is not in it.",
 	"It is not a WCAG conformance claim, a certificate or a statement about the law.",
 	"Automated checks find only some accessibility problems. The sweep covers the pages it lists and nothing else.",
 	"It does not replace testing with disabled people.",
@@ -110,12 +110,12 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 			axeVersion = parts[0] + "." + parts[1]
 		}
 	}
-	var omitted int
+	var omitted []string
 	rep.Findings, omitted = buildFindings(runs, opt.IncludePending, axeRules, axeVersion)
-	rep.Summary.PendingOmitted = omitted
+	rep.Summary.PendingOmitted = len(omitted)
 	rep.Coverage = buildCoverage(runs, opt)
 	if opt.Baseline != nil {
-		applyBaseline(rep, opt.Baseline)
+		applyBaseline(rep, opt.Baseline, omitted)
 	}
 	summarise(rep)
 	return rep, nil
@@ -302,7 +302,7 @@ type hit struct {
 	status string
 }
 
-func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axeVersion string) ([]Finding, int) {
+func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axeVersion string) ([]Finding, []string) {
 	groups := map[string][]hit{}
 	var order []string
 	for _, run := range runs {
@@ -326,7 +326,7 @@ func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axe
 	}
 	total := len(runs)
 	out := []Finding{}
-	omitted := 0
+	var omitted []string
 	for _, key := range order {
 		hits := groups[key]
 		var confirmed, pending []hit
@@ -341,7 +341,7 @@ func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axe
 		status := StatusConfirmed
 		if len(confirmed) == 0 {
 			if !includePending {
-				omitted++
+				omitted = append(omitted, key)
 				continue
 			}
 			use, status = pending, StatusNotReviewed
@@ -367,9 +367,23 @@ func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axe
 }
 
 func makeFinding(key string, hits []hit, status string, total int, axe map[string]AxeRule, axeVersion string) Finding {
-	// The lead sighting gives the title: the worst severity, then the earliest run.
-	lead := hits[0]
-	for _, h := range hits[1:] {
+	// The lead sighting gives the title: the worst severity, then the earliest run. A confirmed finding
+	// takes its lead and its reproduction from the confirmed sightings, so a model's claim that no person
+	// checked cannot set the severity beside the badge that says a person confirmed it.
+	pool := hits
+	if status == StatusConfirmed {
+		var confirmed []hit
+		for _, h := range hits {
+			if h.status == StatusConfirmed {
+				confirmed = append(confirmed, h)
+			}
+		}
+		if len(confirmed) > 0 {
+			pool = confirmed
+		}
+	}
+	lead := pool[0]
+	for _, h := range pool[1:] {
 		if severityRank[h.f.Severity] < severityRank[lead.f.Severity] {
 			lead = h
 		}
@@ -416,14 +430,14 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 	sort.Slice(f.Instances, func(i, j int) bool { return f.Instances[i].Run < f.Instances[j].Run })
 
 	// The reproduction is the first sighting that has a screenshot, or else the first sighting.
-	rep := hits[0]
-	for _, h := range hits {
+	rep := pool[0]
+	for _, h := range pool {
 		if len(screenshotsFor(h)) > 0 {
 			rep = h
 			break
 		}
 	}
-	for _, h := range hits {
+	for _, h := range pool {
 		if h.run.Rec.ID < rep.run.Rec.ID && len(screenshotsFor(rep)) == 0 && len(screenshotsFor(h)) == 0 {
 			rep = h
 		}
@@ -472,6 +486,11 @@ func screenshotsFor(h hit) []Screenshot {
 			}
 			s := Screenshot{Run: r.ID, Step: n, Path: st.Screenshot,
 				Alt: fmt.Sprintf("Screenshot from run %s, step %d: %s", r.ID, n, describeStep(st))}
+			if !filepath.IsLocal(st.Screenshot) {
+				// A path that is absolute or climbs out of the run folder is never read.
+				out = append(out, s)
+				continue
+			}
 			for _, cand := range []string{filepath.Join(h.run.Dir, st.Screenshot), filepath.Join(h.run.Dir, r.ID, st.Screenshot)} {
 				if fi, err := os.Stat(cand); err == nil && !fi.IsDir() {
 					s.File = cand
@@ -651,7 +670,7 @@ func buildCoverage(runs []*Run, opt Options) CoverageSection {
 		if strings.Contains(w, "--confirmed-only") {
 			w = "Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate."
 		}
-		cs.Warnings = append(cs.Warnings, cap1(w)+".")
+		cs.Warnings = append(cs.Warnings, strings.TrimSuffix(cap1(w), ".")+".")
 	}
 	if len(rep.Completeness.IdentityBand) > 0 {
 		head := rep.Completeness.IdentityBand[0]
@@ -671,7 +690,9 @@ func buildCoverage(runs []*Run, opt Options) CoverageSection {
 	return cs
 }
 
-func applyBaseline(rep *Report, base *Report) {
+// applyBaseline marks each finding new or still present and lists what the baseline had and this report
+// does not. A fingerprint that the runs saw again but left out as not reviewed is not fixed, so it counts as seen.
+func applyBaseline(rep *Report, base *Report, omitted []string) {
 	rep.Baseline = &BaselineInfo{Title: base.Title, Date: base.Date}
 	prev := map[string]bool{}
 	prevInfo := map[string]FixedFinding{}
@@ -688,6 +709,9 @@ func applyBaseline(rep *Report, base *Report) {
 		}
 	}
 	seen := map[string]bool{}
+	for _, fp := range omitted {
+		seen[fp] = true
+	}
 	for i := range rep.Findings {
 		f := &rep.Findings[i]
 		if f.Fingerprint == "" {

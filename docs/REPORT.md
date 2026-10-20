@@ -12,7 +12,7 @@ dummyrun report --runs examples/runs --build a865ffd \
   --title "Inkwell preview audit" --client "Inkwell Press" --out report.html
 ```
 
-The default format is one HTML file. It holds its own styles and screenshots and loads nothing from the network. Open it in a browser or print it to PDF. The print styles drop the contents list and keep each finding on one page.
+The default format is one HTML file. It holds its own styles and screenshots and loads nothing from the network. Open it in a browser or print it to PDF. The print styles drop the contents list and ask the browser not to split a finding across pages.
 
 | Flag | What it does |
 |---|---|
@@ -85,7 +85,7 @@ Findings are matched by fingerprint, and axe rules by rule. Each is marked new o
 |---|---|
 | `md` | The same report as Markdown, for a pull request or a wiki. Screenshots are links to the files |
 | `json` | The full data, described by [schema/report.schema.json](../schema/report.schema.json). It is the input for `--baseline` |
-| `sarif` | SARIF 2.1.0 for tools that read it, such as GitHub code scanning. Each problem and each failing axe element is a result. The location is the page address. It does not point at a file in your repository |
+| `sarif` | SARIF 2.1.0 for tools that read it. Each problem and each failing axe element is a result. The location is the page address and not a file in your repository, so GitHub code scanning cannot place a result on a source file |
 | `junit` | JUnit XML for a CI job. Blocker, major and minor problems and failing axe rules are failures. Info problems are skipped |
 
 ## The limits
