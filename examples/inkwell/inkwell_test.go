@@ -219,10 +219,17 @@ func TestPermissionSwitches(t *testing.T) {
 func TestSeededAuthorOwnsDraftInReview(t *testing.T) {
 	for _, on := range []bool{false, true} {
 		e := newEnv(t, withSwitch(on, "perm-owner-self-review"))
-		c := e.client("author")
-		code, _ := e.do(c, "POST", "/drafts/6/review", f("verdict", "approve"))
-		if allowed(code) != on {
-			t.Errorf("switch %v: review status %d", on, code)
+		d := e.s.draftByID("6")
+		if d == nil || d.OwnerID != "sam" || d.Status != "in_review" {
+			t.Fatalf("seed draft 6 = %+v, want an in-review draft owned by sam", d)
+		}
+		code, _ := e.do(e.client("author"), "POST", "/drafts/6/review", f("verdict", "approve"))
+		want := http.StatusForbidden
+		if on {
+			want = http.StatusSeeOther
+		}
+		if code != want {
+			t.Errorf("switch %v: review status %d, want %d", on, code, want)
 		}
 	}
 }

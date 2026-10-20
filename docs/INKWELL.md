@@ -31,7 +31,7 @@ There are five roles. Every account uses the password `inkwell-test`, and the si
 | `ravi@inkwell.test` | reviewer | Approve or reject drafts in review, and read the review list |
 | `root@inkwell.test` | admin | Manage users and settings, delete drafts and approve payments |
 
-Sam owns three drafts: one waiting for a verdict, one approved and one still being written. Lin owns one waiting for a verdict and two published.
+Sam owns three drafts: one waiting for a verdict, one approved and one that is a draft (code: the seed data in `examples/inkwell/server.go`). Lin owns one waiting for a verdict and two published.
 
 The pages are `/drafts`, `/reviews` and `/issues`. Money is at `/payments`. Admins also have `/admin/users` and
 `/settings`. The `/help` page
