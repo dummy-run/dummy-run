@@ -19,6 +19,19 @@ var metadataHosts = map[string]bool{
 	"instance-data": true, "instance-data.ec2.internal": true, "metadata.azure.internal": true,
 }
 
+// metadataAddrs are the addresses of cloud metadata services that are not in the link-local range. The
+// AWS IPv6 endpoint sits in a unique local range that counts as private, so it needs its own entry.
+var metadataAddrs = []net.IP{net.ParseIP("fd00:ec2::254"), net.ParseIP("169.254.169.254"), net.ParseIP("169.254.170.2")}
+
+func isMetadataAddr(ip net.IP) bool {
+	for _, m := range metadataAddrs {
+		if ip.Equal(m) {
+			return true
+		}
+	}
+	return false
+}
+
 // Origins decides which sites a tool call may point the browser at. A site is allowed when it is on this
 // machine or a private network, or when an --allow-origin entry names it.
 type Origins struct {
@@ -90,6 +103,9 @@ func (o *Origins) Check(raw string) (*url.URL, error) {
 	if host == "" {
 		return nil, fmt.Errorf("%q has no host", raw)
 	}
+	if ip := net.ParseIP(host); ip != nil && isMetadataAddr(ip) {
+		return nil, fmt.Errorf("%s is a cloud metadata address, which this server never tests", host)
+	}
 	if metadataHosts[host] {
 		return nil, fmt.Errorf("%s is a cloud metadata service, which this server never tests", host)
 	}
@@ -147,6 +163,9 @@ func resolvesToAllowedAddress(host string) error {
 		return nil
 	}
 	for _, a := range addrs {
+		if isMetadataAddr(a.IP) {
+			return fmt.Errorf("%s resolves to %s, a cloud metadata address", host, a.IP)
+		}
 		if a.IP.IsLinkLocalUnicast() || a.IP.IsLinkLocalMulticast() || a.IP.IsUnspecified() {
 			return fmt.Errorf("%s resolves to %s, a link-local address where cloud metadata services live", host, a.IP)
 		}
