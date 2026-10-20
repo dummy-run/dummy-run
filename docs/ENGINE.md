@@ -358,8 +358,9 @@ Bedrock reports a guardrail stop reason, and the call keeps its token counts (co
 
 ## Sign in
 
-Some apps show nothing until a user signs in. The engine signs in before the persona starts. The persona
-never sees the credentials and cannot be asked for them. There are two ways. Both use a test account of
+Some apps show nothing until a user signs in. The engine signs in before the persona starts. The harness
+does not give the credentials to the persona, so it cannot be asked for them. A signed-in page can still show the
+user name (see below). There are two ways. Both use a test account of
 your own that has no multi-factor step. Single sign-on and multi-factor prompts are out of scope. For those, sign in
 once by hand or with a test account and use a session file.
 
@@ -394,7 +395,7 @@ A target file gains an optional `signin` block (code: `internal/policy/signin.go
 |---|---|
 | `login_url` | The page with the form. A path is resolved against `base_url` |
 | `username`, `password`, `submit` | How to find each control. Give a CSS `selector` or the text of its `label`, not both |
-| `allow_request` | The form's own request, by `method` (default POST) and `url`. The query is ignored. This is the only request the sign-in phase may send on a read-only target |
+| `allow_request` | The form's own request, by `method` (default POST) and `url`. The query is ignored. This is the only request that would otherwise fail the read-only policy during the sign-in phase |
 | `success` | A `url_matches` regular expression, a `selector` or both. Make it specific to a signed-in page. Sign-in only counts when the request above was sent and this holds |
 | `block_paths` | Paths that sign the user out, such as `/logout`. A request to one fails for the whole run, whatever its method |
 | `credentials` | One entry for each role. It names the environment variables that hold the user name and password, or a `session_file` |

@@ -169,6 +169,11 @@ func (t Target) validateSignin() error {
 		if !t.HostAllowed(u.Hostname()) {
 			return fmt.Errorf("signin.%s: host %s is not in allowed_hosts", name, u.Hostname())
 		}
+		// The address must also match the allowed port, so the form's request cannot go to another
+		// service on an allowed host.
+		if !t.OriginAllowed(u.Scheme, u.Hostname(), u.Port()) {
+			return fmt.Errorf("signin.%s: %s is not an allowed origin; give its port in allowed_hosts as host:port", name, u.Host)
+		}
 		// The password goes to these addresses, so they follow the same rule as base_url.
 		if u.Scheme != "https" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" {
 			return fmt.Errorf("signin.%s must use https (or localhost)", name)

@@ -38,7 +38,11 @@ func TestSigninValidate(t *testing.T) {
 		t.Fatalf("valid sign-in rejected: %v", err)
 	}
 	bad := map[string]func(map[string]any){
-		"no login url":        func(s map[string]any) { delete(s, "login_url") },
+		"no login url":          func(s map[string]any) { delete(s, "login_url") },
+		"login on another port": func(s map[string]any) { s["login_url"] = "https://app.example.test:9443/signin" },
+		"post on another port": func(s map[string]any) {
+			s["allow_request"] = map[string]any{"url": "https://app.example.test:9443/signin"}
+		},
 		"login over http":     func(s map[string]any) { s["login_url"] = "http://app.example.test/signin" },
 		"post over http":      func(s map[string]any) { s["allow_request"] = map[string]any{"url": "http://app.example.test/signin"} },
 		"login host outside":  func(s map[string]any) { s["login_url"] = "https://other.test/signin" },
