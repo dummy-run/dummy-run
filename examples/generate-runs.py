@@ -22,7 +22,7 @@ from urllib.parse import urlsplit
 
 PERSONAS = [
     {"id": "ada-editor", "role": "editor", "device": "desktop"},
-    {"id": "sam-author", "role": "author", "device": "phone"},
+    {"id": "sam-author", "role": "author", "device": "phone", "text_scale": 200},
     {"id": "ravi-reviewer", "role": "reviewer", "device": "desktop"},
     {"id": "lin-contributor", "role": "contributor", "device": "tablet", "zoom": 200},
 ]

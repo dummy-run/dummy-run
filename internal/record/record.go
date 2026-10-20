@@ -99,6 +99,9 @@ type Persona struct {
 	Device string `json:"device"`
 	// Zoom is the page zoom in percent, 100 to 500. Zero leaves it out, meaning 100.
 	Zoom int `json:"zoom,omitempty"`
+	// TextScale is the system text size in percent, 100 to 300: the browser's default font size
+	// raised, with the page not zoomed. Zero leaves it out, meaning 100.
+	TextScale int `json:"text_scale,omitempty"`
 	// Dimensions are the persona's dimensions for diversity coverage. Nil in a version 1 record.
 	Dimensions *Dimensions `json:"dimensions,omitempty"`
 }

@@ -87,6 +87,12 @@
           "maximum": 500,
           "description": "Page zoom in percent the run used. Left out means 100"
         },
+        "text_scale": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 300,
+          "description": "System text size in percent the run used, set as the browser's default font size with the page not zoomed. Left out means 100"
+        },
         "dimensions": {
           "type": "object",
           "additionalProperties": false,

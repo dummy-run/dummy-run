@@ -123,15 +123,16 @@ browser behaves for that persona.
 |---|---|
 | `device` | `desktop` (1400 x 1000), `tablet` (820 x 1180) or `phone` (390 x 844). The window size is in device pixels. This key is required. |
 | `zoom` | Page zoom in percent, from 100 to 500. `200` and `200%` both work. The default is 100 |
+| `text_scale` | System text size in percent, from 100 to 300. `200` and `200%` both work. The default is 100. See Text scale below |
 | `tools-allowed` | The only tools the persona may use, separated by spaces or commas. `finish` is always allowed |
 | `tools-denied` | Tools the persona may not use. When both keys are set, a tool must be allowed and not denied |
 
-A scenario file can put `Device: phone` and `Zoom: 200%` on lines of their own. A scenario's setting replaces
+A scenario file can put `Device: phone`, `Zoom: 200%` and `Text scale: 200%` on lines of their own. A scenario's setting replaces
 the persona's, so one persona can be run on several devices. The scenario files already start with a line such
 as `Device: desktop. Start at the home page.`, and the engine reads that line. A `Budget: 30 steps` line works
-the same way. A `Device:` line may carry other words after the device name. A `Zoom:` value has its line to
-itself. A run does not start with a device other than `desktop`, `tablet` or `phone`. It does not start with a
-zoom that is not a number from 100 to 500.
+the same way. A `Device:` line may carry other words after the device name. A `Zoom:` or `Text scale:` value has
+its line to itself. A run does not start with a device other than `desktop`, `tablet` or `phone`. It does not
+start with a zoom that is not a number from 100 to 500 or a text scale that is not a number from 100 to 300.
 
 ### Tool limits
 
@@ -158,6 +159,55 @@ reader that still has the earlier schema rejects a record that has `persona.zoom
 `schema/run-record.schema.json` first. The Grafana exporter in this repository is already updated.
 
 This is the setting for WCAG 2.2 SC 1.4.4 (resize text) and SC 1.4.10 (reflow).
+
+### Text scale
+
+Many people with low vision raise the text size on their phone or in their browser and leave the page alone.
+That is a different setting from zoom. With zoom, the page lays out in fewer CSS pixels and everything gets
+bigger, so media queries see a narrower window. With a larger text size the window stays as it is, and only
+text that follows the default font size grows.
+
+| | `zoom: 200` | `text_scale: 200` |
+|---|---|---|
+| Viewport in CSS pixels | Halved (a 390 px phone becomes 195 px) | Unchanged (390 px) |
+| `devicePixelRatio` | Doubled | Unchanged |
+| Media queries | See the narrower window | See the same window |
+| Text set in `rem`, `em` or `%`, and unstyled text | Doubles | Doubles, when the root and parent font sizes follow the browser default. A page that sets `html { font-size: 16px }` stops it |
+| Text set in `px` | Doubles | Stays the same |
+| Boxes, images and gaps set in `px` | Double | Stay the same |
+| What it finds | Reflow at a narrow width (WCAG 1.4.10) | Text that outgrows a fixed box, overlaps its neighbour or runs off the screen (WCAG 1.4.4) |
+
+The engine sets it the way a user does, as the browser's default font size, when it starts the browser. On
+Chrome it writes `webkit.webprefs.default_font_size` and `default_fixed_font_size` into the profile through
+chromedriver's `prefs` option. On Firefox it writes `font.size.variable.<group>` and `font.size.monospace.<group>` into `user.js` for every language group.
+Firefox picks the size from the page's `lang` attribute. A page in Russian, Japanese or Arabic would otherwise stay at normal size. A scale of 200 turns the 16 px default into 32 px.
+The engine does not set a minimum font size. A minimum would also lift text that a page sets in `px` to the same
+floor, which a larger default size does not do. A page that sizes its text in `px` therefore looks half enlarged,
+as it does to the person. A real phone can differ: Android and iOS scale text by their own rules, and some
+Android browsers scale `px` text too. The persona `large-text-phone` states this limit.
+
+Observations show a `text size:` line, and no `zoom:` line unless zoom is set too. The run record holds the
+value in `persona.text_scale`, an optional key in schema version 2 that is left out at 100. The persona object
+allows no other keys, so a reader with an earlier copy of `schema/run-record.schema.json` rejects a record
+that has it. Update that copy first. The Grafana exporter in this repository is already updated and sends
+`dummyrun.persona.text_scale`. The system prompt tells the model the text size and that the page is not zoomed.
+
+`dummyrun a11y --text-scale 200` runs the sweep the same way, with one browser for each size because the
+browser reads the setting from its profile at start. A list such as `--text-scale 100,200` runs both.
+
+### Layout facts
+
+Every observation carries a `layout:` line when the engine measured something wrong in the page. It does this in
+the browser, with no model call, and names controls by their `@number` so the persona can look at them:
+
+```text
+layout: the page scrolls sideways (120 px wider than the window); 2 pairs of controls overlap (@4 @7, @5 @6); text is cut off in 1 control (@9)
+```
+
+The line appears for any run, not only at a larger text size. It has three facts: the page is wider than the window,
+interactive elements overlap, and an interactive element's text is cut off. It leaves out small targets, which are
+common on a phone and would be noise on every step. The line never repeats a selector or a label, because both
+come from the page. The same measurements run in `dummyrun a11y` as the layout checks below.
 
 ### Device in the record
 
@@ -571,6 +621,36 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - **Exit status.** 0 when nothing fails. 1 when any violation is not in the allow-list or a page cannot be
   loaded. 2 for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
+### Layout checks
+
+Add `--layout` to also run the layout checks, or give `--text-scale`, which turns them on. They measure the page in
+the browser, with no model call, and report each problem as a finding beside the axe rules. They fail the sweep
+like an axe violation, and the allow-list can accept them. They are off by default, so adding them does not
+turn a passing sweep red.
+
+| Rule ID | Fails when | WCAG | Impact |
+|---|---|---|---|
+| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window | 1.4.10 | serious |
+| `dummyrun-clipped-text` | An interactive element, or an element inside it, hides part of its text with `overflow` or an ellipsis, or a parent that clips hides part of the element | 1.4.4 | serious |
+| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The finding lists both selectors, with an ampersand between them | 1.4.4, 1.4.10 | serious |
+| `dummyrun-target-size` | A visible, enabled interactive element is under 24 by 24 CSS px | 2.5.8 | moderate |
+
+The checks are an approximation of what a person sees, and they say so in the `detail` of each node. Overlap
+skips a control inside another control, a pair that something else covers where they meet, and a fixed bar against
+content below the window. Target size follows the two exceptions in WCAG 2.5.8 that can be measured. A link inside
+a sentence is exempt, and so is a small target with room around it. A 24 px circle on its centre must meet no other target, and no circle of another small target. A checkbox or radio counts as
+large as its label. Disabled controls and elements 1 px or smaller, which pages use to hide text from the eye,
+are skipped. Overlap and clipping are the strongest signals. Check a target size finding by eye before you act on it.
+
+Each result in the JSON has `text_scale` (left out at 100) and `layout_checked`. Each node can have a `detail` and a
+`screenshot`. `--screenshots DIR` writes a PNG crop of each flagged element to `DIR`, up to 12 for each page and
+setting, and the reflow finding gets a shot of the window. The summary lists them. The settings in the summary and
+report end in `/text-200` when a text scale was used.
+
+```sh
+dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://example.com/
+```
+
 The allow-list holds violations you have accepted. Each line is `rule | page | selector | reason`. The page
 is a URL path and the selector is matched against the element's selector. A `*` matches anything. The reason
 is required, so every exception is explained. A line that matches nothing in a run is reported, so stale
@@ -586,7 +666,9 @@ against a local test server. They cover the conformance suite (`internal/bidi`) 
 (`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`), the canary page of injection attempts
 (`internal/runner/testdata/canary.html`) and the accessibility sweep (`internal/a11y`, on a fixture page with known violations). The MCP server (`internal/mcpserver`) has a test that drives it through an in-process client. CI runs all of them on ubuntu-latest with pinned browsers.
 The conformance suite includes `browsingContext.setViewport` with `devicePixelRatio`, and the tool suite
-covers focus, the outline and zoom on both browsers.
+covers focus, the outline and zoom on both browsers. The text scale tests read the font sizes a page ends up with
+at 100 and 200 percent (`internal/bidi`). The layout tests plant one overflow, one clipped control, one overlap
+and one small target in fixture pages (`internal/a11y`). Run one browser at a time on a shared machine.
 
 Every test that launches a browser closes it with `t.Cleanup`. Each test binary fails when a browser was
 launched and never closed. The conformance suite also fails when a browser's process or profile outlives its

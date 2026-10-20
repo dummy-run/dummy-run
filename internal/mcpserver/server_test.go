@@ -196,8 +196,8 @@ func TestListPersonasLibraryAndLocalCast(t *testing.T) {
 	for _, p := range out.Personas {
 		byID[p.ID] = p
 	}
-	if len(out.Personas) != 11 {
-		t.Errorf("got %d personas, want the ten in the library and one local", len(out.Personas))
+	if len(out.Personas) != 12 {
+		t.Errorf("got %d personas, want the eleven in the library and one local", len(out.Personas))
 	}
 	tom := byID["tom-developer"]
 	if tom.Source != filepath.Base(cast) || tom.Summary != "Tom reads the quickstart first." || len(tom.Scenarios) != 1 || tom.Scenarios[0].ID != "find-the-quickstart" {

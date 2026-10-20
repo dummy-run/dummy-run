@@ -49,7 +49,7 @@ Every finding has a stable ID, so the same problem in three runs is one row on t
 
 | Browser | Driven through | Notes |
 |---|---|---|
-| Chrome | WebDriver BiDi | A persona has a desktop, tablet or phone window, and may set page zoom |
+| Chrome | WebDriver BiDi | A persona has a desktop, tablet or phone window, and may set page zoom or a larger system text size |
 | Firefox | WebDriver BiDi | The same session code as Chrome |
 | Real phones and tablets | A hosted browser grid, through an adapter | Not available |
 | Safari | Not supported | Dummy Run does not drive it |

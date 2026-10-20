@@ -75,6 +75,9 @@ type Options struct {
 	// viewport command also sets devicePixelRatio to Zoom/100, which is what a
 	// browser does when the user zooms.
 	Zoom int
+	// TextScale is the system text size in percent, 0 and 100 meaning none. Above 100 the browser is
+	// launched with a larger default font size. The window and the device pixel ratio stay as they are.
+	TextScale int
 	// Hosts limits network interception to these hostnames. Empty intercepts everything.
 	Hosts []string
 	// RequestHook decides each intercepted request. nil lets everything through.
@@ -115,6 +118,10 @@ type Snapshot struct {
 	DevicePixelRatio float64 `json:"device_pixel_ratio,omitempty"`
 	// Zoom is the page zoom in percent the run set, 100 when none.
 	Zoom int `json:"zoom,omitempty"`
+	// TextScale is the system text size in percent the run set, 0 when none.
+	TextScale int `json:"text_scale,omitempty"`
+	// Layout is set when the geometry checks found something wrong. Nil means nothing was found.
+	Layout *LayoutNote `json:"layout,omitempty"`
 	// Focus is the element that has keyboard focus, nil when nothing does.
 	Focus *Focus `json:"focus"`
 	// Tree is the outline of landmarks, headings and interactive elements,
@@ -177,6 +184,7 @@ type Page struct {
 	status        int
 	controls      []Control
 	zoom          int
+	textScale     int
 }
 
 // Browser returns the launched browser.
@@ -212,11 +220,17 @@ func Open(ctx context.Context, opts Options) (*Page, error) {
 	lo := opts.Launch
 	lo.Browser = opts.Browser
 	lo.Headless = opts.Headless
+	if opts.TextScale > 100 {
+		var err error
+		if lo, err = bidi.WithTextScale(lo, opts.TextScale); err != nil {
+			return nil, err
+		}
+	}
 	b, err := bidi.Launch(ctx, lo)
 	if err != nil {
 		return nil, err
 	}
-	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, inflight: map[string]bool{}, blockedIDs: map[string]bool{}}
+	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100)}
 	if err := p.setup(ctx, opts); err != nil {
 		b.Close()
 		return nil, err
@@ -573,9 +587,13 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 		obs.Error = "could not read the page: " + merr.Error()
 	} else if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit, mark); err == nil {
 		snap.Zoom = p.zoom
+		if p.textScale > 100 {
+			snap.TextScale = p.textScale
+		}
 		obs.Snapshot = &snap
 		obs.URL = snap.URL
 		p.addOutline(ctx, &snap)
+		p.addLayout(ctx, &snap)
 	} else if obs.Error == "" {
 		obs.Error = "could not read the page: " + firstLine(err.Error())
 	}
