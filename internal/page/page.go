@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
+	"github.com/dummy-run/dummy-run/internal/inject"
 )
 
 //go:embed look.js
@@ -566,7 +567,7 @@ func (p *Page) settle(ctx context.Context) {
 
 func (p *Page) observe(ctx context.Context, obs *Observation) {
 	var snap Snapshot
-	if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit); err == nil {
+	if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit, inject.NewNonce()+inject.NewNonce()); err == nil {
 		snap.Zoom = p.zoom
 		obs.Snapshot = &snap
 		obs.URL = snap.URL

@@ -2,8 +2,9 @@
 // content, and every visible control numbered so the persona can act on "@12"
 // instead of guessing a selector. Numbers are reassigned on every look.
 //
-// Called as a function expression with (maxControls, textLimit, logLimit).
-(maxControls, textLimit, logLimit) => {
+// Called as a function expression with (maxControls, textLimit, logLimit, mark). mark is a random value
+// made by the engine for this look.
+(maxControls, textLimit, logLimit, mark) => {
   // Off-canvas elements (a closed drawer parked beyond the left or right edge) count as hidden.
   const visible = (el) => {
     const r = el.getBoundingClientRect();
@@ -97,14 +98,15 @@
   const inFlow = (el) => {
     for (let e = el; e && e !== document.body; e = e.parentElement) {
       const s = getComputedStyle(e);
+      if (s.display === "contents") continue; // no box of its own, so it hides nothing
       const r = e.getBoundingClientRect();
       if (unseen(e) || r.bottom + scrollY <= 0 || s.position === "absolute" || s.position === "fixed" || parseFloat(s.fontSize) < 4 || /rgba\(.*,\s*0\)$/.test(s.color) || s.color === "transparent" || s.clipPath !== "none" || parseFloat(s.textIndent) < -100) return false;
     }
     return true;
   };
   const main = document.querySelector("main") || document.body;
-  // The markers carry a random value for this look, so a page cannot forge or close one.
-  const mark = String(Math.random()).slice(2) + String(Math.random()).slice(2);
+  // The markers carry a random value that the engine made for this look. The page cannot predict it,
+  // so it cannot forge or close one.
   const open = "\uE000" + mark + "\uE001";
   const shut = "\uE002" + mark + "\uE003";
   const added = [];
