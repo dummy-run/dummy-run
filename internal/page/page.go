@@ -21,6 +21,9 @@ import (
 //go:embed look.js
 var lookJS string
 
+//go:embed tree.js
+var treeJS string
+
 //go:embed axe/axe.min.js
 var axeJS string
 
@@ -31,6 +34,13 @@ const (
 	settleWait  = 5 * time.Second
 	// MaxWait caps the wait tool.
 	MaxWait = 15
+	// TreeTokens is the budget for the accessibility outline in one observation.
+	TreeTokens = 600
+	// CharsPerToken converts that budget to characters. Three is deliberately
+	// low: outline lines are short names and punctuation, which tokenise worse than prose.
+	CharsPerToken = 3
+	// TreeChars is the outline's size limit in characters.
+	TreeChars = TreeTokens * CharsPerToken
 )
 
 // Request is an intercepted request offered to the hook.
@@ -55,8 +65,14 @@ type Options struct {
 	Browser   string
 	Headless  bool
 	UserAgent string
-	Width     int
-	Height    int
+	// Width and Height are the viewport in CSS pixels. With a Zoom above 100
+	// the browser window is Zoom percent larger in each direction.
+	Width  int
+	Height int
+	// Zoom is the page zoom in percent. 0 and 100 mean none. Above 100 the
+	// viewport command also sets devicePixelRatio to Zoom/100, which is what a
+	// browser does when the user zooms.
+	Zoom int
 	// Hosts limits network interception to these hostnames. Empty intercepts everything.
 	Hosts []string
 	// RequestHook decides each intercepted request. nil lets everything through.
@@ -86,6 +102,32 @@ type Snapshot struct {
 	Text     string    `json:"text"`
 	LogText  string    `json:"log_text"`
 	Controls []Control `json:"controls"`
+	// Hidden is text and attribute values a person does not see: hidden or off-screen text, comments,
+	// aria-label, title and alt values. The model is not sent it. The engine scans it for injection.
+	Hidden []string `json:"hidden,omitempty"`
+	// DevicePixelRatio is window.devicePixelRatio as the page sees it.
+	DevicePixelRatio float64 `json:"device_pixel_ratio,omitempty"`
+	// Zoom is the page zoom in percent the run set, 100 when none.
+	Zoom int `json:"zoom,omitempty"`
+	// Focus is the element that has keyboard focus, nil when nothing does.
+	Focus *Focus `json:"focus"`
+	// Tree is the outline of landmarks, headings and interactive elements,
+	// one line each, within TreeTokens.
+	Tree string `json:"tree,omitempty"`
+	// TreeOmitted counts the outline entries cut to fit the budget.
+	TreeOmitted int `json:"tree_omitted,omitempty"`
+	// TreeError is set when focus and the outline could not be read, so that
+	// "no focus" is never reported for a page that was not checked.
+	TreeError string `json:"tree_error,omitempty"`
+}
+
+// Focus is the focused element as an assistive technology would announce it.
+type Focus struct {
+	Role string `json:"role"`
+	Name string `json:"name"`
+	// Ref is the control's @number from the same look, empty if it has none.
+	Ref string `json:"ref,omitempty"`
+	Tag string `json:"tag"`
 }
 
 // Violation is one axe-core rule that failed.
@@ -128,10 +170,29 @@ type Page struct {
 	blockedIDs    map[string]bool
 	status        int
 	controls      []Control
+	zoom          int
 }
 
 // Browser returns the launched browser.
 func (p *Page) Browser() *bidi.Browser { return p.browser }
+
+// Conn returns the BiDi connection, for the engine's own set-up steps.
+func (p *Page) Conn() *bidi.Conn { return p.conn }
+
+// Context returns the ID of the tab the run uses.
+func (p *Page) Context() string { return p.cx }
+
+// DrainProblems forgets the console errors, failed requests and blocked requests collected so far
+// and returns the blocked ones. The engine calls it after its set-up steps, so that the first
+// observation shows only what the persona caused.
+func (p *Page) DrainProblems() (blocked []string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	blocked = uniq(p.blocked)
+	p.consoleErrors, p.failed, p.blocked = nil, nil, nil
+	p.status = 0
+	return blocked
+}
 
 // Controls returns the numbered controls from the last look.
 func (p *Page) Controls() []Control {
@@ -173,9 +234,16 @@ func (p *Page) setup(ctx context.Context, opts Options) error {
 	}
 	p.cx = cx
 	// The browser's own first tab stays on about:blank; the run uses this one.
+	p.zoom = max(opts.Zoom, 100)
 	if opts.Width > 0 && opts.Height > 0 {
-		if err := c.SetViewport(ctx, cx, opts.Width, opts.Height); err != nil {
-			return err
+		var err error
+		if p.zoom > 100 {
+			err = c.SetViewportScaled(ctx, cx, opts.Width, opts.Height, float64(p.zoom)/100)
+		} else {
+			err = c.SetViewport(ctx, cx, opts.Width, opts.Height)
+		}
+		if err != nil {
+			return fmt.Errorf("set viewport at %d percent: %w", p.zoom, err)
 		}
 	}
 	if opts.UserAgent != "" {
@@ -495,8 +563,10 @@ func (p *Page) settle(ctx context.Context) {
 func (p *Page) observe(ctx context.Context, obs *Observation) {
 	var snap Snapshot
 	if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit); err == nil {
+		snap.Zoom = p.zoom
 		obs.Snapshot = &snap
 		obs.URL = snap.URL
+		p.addOutline(ctx, &snap)
 	} else if obs.Error == "" {
 		obs.Error = "could not read the page: " + firstLine(err.Error())
 	}
@@ -524,6 +594,21 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 		p.controls = obs.Snapshot.Controls
 	}
 	p.mu.Unlock()
+}
+
+// addOutline adds focus and the accessibility outline to a snapshot. A page
+// that cannot be read this way keeps the rest of its snapshot.
+func (p *Page) addOutline(ctx context.Context, snap *Snapshot) {
+	var out struct {
+		Focus   *Focus `json:"focus"`
+		Tree    string `json:"tree"`
+		Omitted int    `json:"omitted"`
+	}
+	if err := p.conn.CallFunctionJSON(ctx, p.cx, treeJS, &out, TreeChars); err != nil {
+		snap.TreeError = firstLine(err.Error())
+		return
+	}
+	snap.Focus, snap.Tree, snap.TreeOmitted = out.Focus, out.Tree, out.Omitted
 }
 
 func uniq(in []string) []string {

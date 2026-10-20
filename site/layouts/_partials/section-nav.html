@@ -1,0 +1,26 @@
+{{- /* The side navigation for a page: the six roles under Who it is for, the grouped reference under Docs, and nothing on the stand-alone pages. */ -}}
+{{- $cur := .RelPermalink -}}
+{{- if eq .Section "for" -}}
+<nav class="side-nav" aria-label="Who it is for">
+  <p class="side-nav-heading"><a href="/for/"{{ if eq $cur "/for/" }} aria-current="page"{{ end }}>Who it is for</a></p>
+  <ul>
+    {{- range (where .Site.RegularPages "Section" "for").ByWeight }}
+    <li><a href="{{ .RelPermalink }}"{{ if eq $cur .RelPermalink }} aria-current="page"{{ end }}>{{ .Title }}</a></li>
+    {{- end }}
+  </ul>
+</nav>
+{{- else if eq .Section "docs" -}}
+<nav class="side-nav" aria-label="Docs">
+  <p class="side-nav-heading"><a href="/docs/"{{ if eq $cur "/docs/" }} aria-current="page"{{ end }}>Docs</a></p>
+  {{- $pages := where .Site.RegularPages "Section" "docs" }}
+  {{- range site.Params.docGroups }}
+  {{- $key := .key }}
+  <p class="side-nav-group">{{ .title }}</p>
+  <ul>
+    {{- range (where $pages "Params.group" $key).ByWeight }}
+    <li><a href="{{ .RelPermalink }}"{{ if eq $cur .RelPermalink }} aria-current="page"{{ end }}>{{ .Title }}</a></li>
+    {{- end }}
+  </ul>
+  {{- end }}
+</nav>
+{{- end -}}

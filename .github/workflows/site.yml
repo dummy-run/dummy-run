@@ -13,6 +13,7 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/tools/**"
       - ".github/workflows/site.yml"
   push:
     branches: [main]
@@ -27,6 +28,7 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/tools/**"
       - ".github/workflows/site.yml"
 
 permissions:
@@ -49,7 +51,7 @@ jobs:
     # Pull requests from forks are not built. They cannot reach the deploy job either.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install Hugo 0.165.0 extended
@@ -63,13 +65,15 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - name: Install the check tools
         working-directory: site
         run: npm ci --no-audit --no-fund
+      - name: Social cards are up to date
+        run: go run ./internal/tools/socialcards -check
       - name: Build
         working-directory: site
         run: hugo --gc --minify --panicOnWarning --printPathWarnings --printUnusedTemplates
@@ -110,6 +114,8 @@ jobs:
           curl -fsS -o /dev/null http://127.0.0.1:1313/
       - name: Build the sweep
         run: go build -o "$RUNNER_TEMP/dummyrun" ./cmd/dummyrun
+      - name: Documented commands that need the served site run
+        run: go run ./internal/tools/doctest -site
       - name: Accessibility, Chrome, 1280 and 375 pixels, light and dark
         run: >-
           "$RUNNER_TEMP/dummyrun" a11y --browser chrome
@@ -122,6 +128,9 @@ jobs:
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
           --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-firefox.json"
           http://127.0.0.1:1313/404.html
+      - name: No engine browser or profile directory is left behind
+        if: ${{ !cancelled() }}
+        run: '"$RUNNER_TEMP/dummyrun" doctor'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:

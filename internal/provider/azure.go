@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,6 +23,8 @@ type Azure struct {
 	client openai.Client
 	model  string
 	region string
+	effort string
+	api    string
 }
 
 // DefaultAPIVersion is the Azure OpenAI API version used when none is configured.
@@ -42,6 +45,9 @@ func NewAzure(cfg Config) (*Azure, error) {
 	if cfg.Region == "" {
 		return nil, errors.New("provider: azure needs the deployment's region, such as uksouth or global")
 	}
+	if err := checkAPI(cfg); err != nil {
+		return nil, err
+	}
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("provider: azure credential: %w", err)
@@ -52,7 +58,7 @@ func NewAzure(cfg Config) (*Azure, error) {
 	}
 	client := openai.NewClient(azure.WithEndpoint(strings.TrimSuffix(cfg.Endpoint, "/"), version), azure.WithTokenCredential(cred),
 		option.WithRequestTimeout(RequestTimeout), option.WithMaxRetries(3))
-	return &Azure{client: client, model: cfg.Model, region: cfg.Region}, nil
+	return &Azure{client: client, model: cfg.Model, region: cfg.Region, effort: cfg.ReasoningEffort, api: cfg.API}, nil
 }
 
 // Kind is the run record's provider.kind for Azure OpenAI.
@@ -66,10 +72,19 @@ func (a *Azure) Region() string { return a.region }
 
 // Chat makes one chat completion call.
 func (a *Azure) Chat(ctx context.Context, req Request) (Response, error) {
+	if a.api == APIResponses {
+		return callResponses(ctx, &a.client, "azure", responsesParams(a.model, req, "required", a.effort))
+	}
 	params := chatParams(a.model, req)
+	if a.effort != "" {
+		params.ReasoningEffort = shared.ReasoningEffort(a.effort)
+	}
 	completion, err := a.client.Chat.Completions.New(ctx, params)
 	if err != nil {
 		var apiErr *openai.Error
+		if errors.As(err, &apiErr) && isFilterAPIError(apiErr.Code, apiErr.Message) {
+			return Response{}, filtered("azure", apiErr.Message, err)
+		}
 		if errors.As(err, &apiErr) && apiErr.Message != "" {
 			return Response{}, fmt.Errorf("provider: azure: %d %s: %s (%w)", apiErr.StatusCode, apiErr.Code, apiErr.Message, err)
 		}
@@ -78,8 +93,22 @@ func (a *Azure) Chat(ctx context.Context, req Request) (Response, error) {
 	return fromCompletion(completion)
 }
 
-// chatParams maps a Request onto the chat completions API.
+// Capabilities reads the capability table.
+func (a *Azure) Capabilities() Capabilities {
+	c := capabilityTable[a.Kind()]
+	c.Seed = c.Seed && a.api != APIResponses // the Responses API has no seed
+	return c
+}
+
+// chatParams maps a Request onto the chat completions API for Azure, which is
+// told to call a tool every turn.
 func chatParams(model string, req Request) openai.ChatCompletionNewParams {
+	return chatParamsWith(model, req, "required")
+}
+
+// chatParamsWith maps a Request onto the chat completions API. choice is the
+// tool_choice sent when no tool is forced: "required" or "auto".
+func chatParamsWith(model string, req Request, choice string) openai.ChatCompletionNewParams {
 	msgs := make([]openai.ChatCompletionMessageParamUnion, 0, len(req.Turns)+1)
 	if req.System != "" {
 		msgs = append(msgs, openai.SystemMessage(req.System))
@@ -119,6 +148,9 @@ func chatParams(model string, req Request) openai.ChatCompletionNewParams {
 	if req.MaxOutputTokens > 0 {
 		params.MaxCompletionTokens = openai.Int(int64(req.MaxOutputTokens))
 	}
+	if req.Seed != nil {
+		params.Seed = openai.Int(*req.Seed)
+	}
 	for _, tool := range req.Tools {
 		def := shared.FunctionDefinitionParam{Name: tool.Name, Description: openai.String(tool.Description)}
 		if tool.Parameters != nil {
@@ -130,26 +162,50 @@ func chatParams(model string, req Request) openai.ChatCompletionNewParams {
 		if req.ForceTool != "" {
 			params.ToolChoice = openai.ToolChoiceOptionFunctionToolChoice(openai.ChatCompletionNamedToolChoiceFunctionParam{Name: req.ForceTool})
 		} else {
-			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("required")}
+			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String(choice)}
 		}
 	}
 	return params
 }
 
 func fromCompletion(c *openai.ChatCompletion) (Response, error) {
-	resp := Response{Usage: Usage{InputTokens: int(c.Usage.PromptTokens), OutputTokens: int(c.Usage.CompletionTokens)}}
+	if c == nil {
+		return Response{}, ErrNoChoice
+	}
+	resp := Response{Usage: Usage{InputTokens: int(c.Usage.PromptTokens), OutputTokens: int(c.Usage.CompletionTokens),
+		CachedInputTokens: int(c.Usage.PromptTokensDetails.CachedTokens)}}
 	if len(c.Choices) == 0 {
 		return resp, ErrNoChoice
 	}
 	choice := c.Choices[0]
 	resp.FinishReason = choice.FinishReason
+	if isFilterReason(choice.FinishReason) {
+		return resp, filtered("chat completions", "finish reason "+choice.FinishReason, nil)
+	}
+	if strings.TrimSpace(choice.Message.Refusal) != "" && len(choice.Message.ToolCalls) == 0 {
+		return resp, filtered("chat completions", "the model refused to answer", nil)
+	}
 	resp.Text = choice.Message.Content
 	for _, tc := range choice.Message.ToolCalls {
 		if tc.Type != "function" && tc.Type != "" {
 			continue
 		}
 		fn := tc.AsFunction()
-		resp.ToolCalls = append(resp.ToolCalls, ToolCall{ID: fn.ID, Name: fn.Function.Name, Args: []byte(fn.Function.Arguments)})
+		id := fn.ID
+		if id == "" {
+			// Some local servers send no call ID; the reply to the call needs one.
+			id = fmt.Sprintf("call_%d", len(resp.ToolCalls)+1)
+		}
+		resp.ToolCalls = append(resp.ToolCalls, ToolCall{ID: id, Name: fn.Function.Name, Args: normaliseArgs(fn.Function.Arguments)})
 	}
 	return resp, nil
+}
+
+// normaliseArgs makes tool arguments a JSON value. A model that calls a tool
+// with no arguments may send an empty string.
+func normaliseArgs(s string) json.RawMessage {
+	if strings.TrimSpace(s) == "" {
+		return json.RawMessage("{}")
+	}
+	return json.RawMessage(s)
 }

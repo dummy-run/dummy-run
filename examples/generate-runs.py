@@ -5,19 +5,26 @@ Usage: examples/generate-runs.py [--runs N] [--days D] [--end YYYY-MM-DD] [--see
 
 The output is deterministic for a given seed and end date. The defaults write the eight records in
 examples/runs/. Larger sets (for example --runs 400 --days 28) give dashboards some history.
-Every record validates against schema/run-record.schema.json.
+Every record validates against schema/run-record.schema.json (version 2).
+
+Fingerprints follow internal/identity (route|locus|symptom, SHA-256, first 16 hex). Costs come from
+internal/price/prices.json. Each environment has one commit, so the runs of one environment can be pooled
+by "dummyrun coverage". The records that use the same persona, scenario and model in a batch get a
+repeat_index of 0, 1, 2.
 """
 import argparse
+import hashlib
 import json
 import random
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 PERSONAS = [
     {"id": "ada-editor", "role": "editor", "device": "desktop"},
     {"id": "sam-author", "role": "author", "device": "phone"},
     {"id": "ravi-reviewer", "role": "reviewer", "device": "desktop"},
-    {"id": "lin-contributor", "role": "contributor", "device": "tablet"},
+    {"id": "lin-contributor", "role": "contributor", "device": "tablet", "zoom": 200},
 ]
 SCENARIOS = {
     "ada-editor": [("schedule-issue", "Schedule next week's issue"), ("reassign-draft", "Reassign a stalled draft")],
@@ -26,23 +33,34 @@ SCENARIOS = {
     "lin-contributor": [("first-pitch", "Send a first pitch"), ("check-payment", "Check a payment status")],
 }
 # Findings each persona can hit, with the step they surface on and how often.
+# Each finding also has the route it appears on, the locus (control or region) and the symptom.
 FINDINGS = {
     "ravi-reviewer": [("reviewer-sees-unassigned-drafts", "permission", "blocker",
-                       "A reviewer can open drafts that are not assigned to them", "measured", 0.6)],
+                       "A reviewer can open drafts that are not assigned to them", "measured", 0.6,
+                       "/drafts", "region:draft list", "access-wrongly-allowed")],
     "sam-author": [("submit-button-below-keyboard", "friction", "major",
-                    "On a phone the Submit button sits under the keyboard", "measured", 0.5),
+                    "On a phone the Submit button sits under the keyboard", "measured", 0.5,
+                    "/drafts", "button:submit", "obscured"),
                    ("draft-title-field-unlabelled", "accessibility", "minor",
-                    "The draft title field has no accessible name", "measured", 0.7)],
+                    "The draft title field has no accessible name", "measured", 0.7,
+                    "/drafts", "textbox:title", "a11y:label")],
     "ada-editor": [("schedule-500-on-past-date", "bug", "major",
-                    "Scheduling an issue for a past date returns a server error", "measured", 0.3)],
+                    "Scheduling an issue for a past date returns a server error", "measured", 0.3,
+                    "/issues", "button:schedule", "error-shown")],
     "lin-contributor": [("payment-status-wording", "question", "info",
-                         "The payment status 'settled' is unclear to a contributor", "inferred", 0.4),
+                         "The payment status 'settled' is unclear to a contributor", "inferred", 0.4,
+                         "/payments", "region:payment status", "unclear-label"),
                         ("contributor-sees-rates-table", "permission", "major",
-                         "A contributor can open the rates table for all writers", "code", 0.25)],
+                         "A contributor can open the rates table for all writers", "code", 0.25,
+                         "/payments", "link:rates", "access-wrongly-allowed")],
 }
+DEVICES = {"desktop": (1400, 1000), "tablet": (820, 1180), "phone": (390, 844)}
+TAXONOMY_VERSION = 1
+PRICES = {m["model"]: m for m in json.loads(
+    (Path(__file__).parent.parent / "internal" / "price" / "prices.json").read_text())["models"]}
 ACTIONS = ["look", "visit", "click", "fill", "click", "look", "select", "click", "type", "scroll", "a11y", "look"]
 PROVIDERS = [
-    {"kind": "vertex-gemini", "model": "gemini-3.5-flash", "region": "europe-west2"},
+    {"kind": "vertex-gemini", "model": "gemini-3.5-flash-lite", "region": "europe-west2"},
     {"kind": "anthropic", "model": "claude-sonnet-5-5", "region": "global"},
 ]
 BROWSERS = [{"name": "chrome", "version": "148.0"}, {"name": "firefox", "version": "146.0"}]
@@ -52,7 +70,20 @@ def iso(t):
     return t.astimezone(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
-def make_run(rng, start, n):
+def route_of(url):
+    segs = [s for s in urlsplit(url).path.split("/") if s]
+    return "/" + "/".join(segs)
+
+
+def fingerprint(route, locus, symptom):
+    return hashlib.sha256(f"{route}|{locus}|{symptom}".encode()).hexdigest()[:16]
+
+
+def commit_for(env):
+    return hashlib.sha256(f"inkwell-{env}".encode()).hexdigest()[:7]
+
+
+def make_run(rng, start, n, seen):
     persona = rng.choice(PERSONAS)
     sid, title = rng.choice(SCENARIOS[persona["id"]])
     env = f"pr-{rng.choice([41, 42, 43, 44])}"
@@ -67,6 +98,7 @@ def make_run(rng, start, n):
                 "status": 200, "console_errors": 0}
         if action in ("click", "fill", "select", "type"):
             step["target"] = rng.choice(["Submit", "Title", "Assign to", "Schedule", "Approve", "Comment"])
+        step["route"] = route_of(step["url"])
         if action == "a11y":
             step["a11y_violations"] = rng.randint(0, 3)
         if action == "look":
@@ -75,14 +107,18 @@ def make_run(rng, start, n):
         t += timedelta(milliseconds=dur + rng.randint(1500, 6000))
 
     findings = []
-    for fid, kind, sev, ftitle, evidence, p in FINDINGS.get(persona["id"], []):
+    for fid, kind, sev, ftitle, evidence, p, froute, flocus, symptom in FINDINGS.get(persona["id"], []):
         if rng.random() < p:
             at = rng.randint(2, count - 1)
+            steps[at - 1]["url"] = f"https://{env}.inkwell.example{froute}"
+            steps[at - 1]["route"] = froute
             if kind == "bug":
                 steps[at - 1]["status"] = 500
                 steps[at - 1]["console_errors"] = 2
             findings.append({"id": fid, "kind": kind, "severity": sev, "title": ftitle, "steps": [at],
-                             "evidence": evidence, "verdict": rng.choices(["confirmed", "pending", "rejected"], [7, 2, 1])[0]})
+                             "evidence": evidence, "verdict": rng.choices(["confirmed", "pending", "rejected"], [7, 2, 1])[0],
+                             "class": "problem", "route": froute, "locus": flocus, "symptom": symptom,
+                             "taxonomy_version": TAXONOMY_VERSION, "fingerprint": fingerprint(froute, flocus, symptom)})
 
     roll = rng.random()
     outcome = "completed"
@@ -94,22 +130,41 @@ def make_run(rng, start, n):
         outcome = "errored"
     calls = count + rng.randint(0, 4)
     inp, out = calls * rng.randint(5000, 9000), calls * rng.randint(250, 600)
-    price = 0.30e-6 * inp + 2.5e-6 * out if provider["kind"] == "vertex-gemini" else 3e-6 * inp + 15e-6 * out
+    rng.getrandbits(28)  # keeps the random stream of earlier versions of this script
+    pr = PRICES.get(provider["model"])
+    cost = round((pr["input"] * inp + pr["output"] * out) / 1e6, 4) if pr else None
+    batch = f"{start:%Y-%m-%d}-{env}"
+    key = (batch, persona["id"], sid, provider["model"])
+    repeat = seen.get(key, 0)
+    seen[key] = repeat + 1
+    width, height = DEVICES[persona["device"]]
+    zoom = persona.get("zoom", 100)
+    goal = {"completed": "yes", "blocked": "no", "errored": "no", "budget_exhausted": "partly"}[outcome]
+    if goal == "yes" and any(f["severity"] in ("blocker", "major") for f in findings):
+        goal = "partly"
+    for f in findings:
+        if f["verdict"] != "pending":
+            f["reviewer"] = "example-reviewer"
+            f["reviewed_at"] = (t + timedelta(hours=20)).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "id": f"{start:%Y-%m-%d}-{persona['id']}-{n:03d}",
-        "batch": f"{start:%Y-%m-%d}-{env}",
+        "batch": batch,
+        "repeat_index": repeat,
+        "seed": None,
         "started_at": iso(start), "ended_at": iso(t),
-        "persona": persona,
-        "scenario": {"id": sid, "title": title},
+        "persona": {**persona, "dimensions": {
+            "viewport": {"width": width * 100 // zoom, "height": height * 100 // zoom},
+            "locale": None, "at": "none", "connection": "unthrottled", "zoom": zoom / 100, "motion": None}},
+        "scenario": {"id": sid, "title": title, "goal_met": goal},
         "target": {"adapter": "url", "environment": env, "base_url": f"https://{env}.inkwell.example",
-                   "commit": f"{rng.getrandbits(28):07x}"},
+                   "commit": commit_for(env)},
         "provider": provider,
         "browser": rng.choice(BROWSERS),
         "outcome": outcome,
         "steps": steps,
         "findings": findings,
-        "usage": {"model_calls": calls, "input_tokens": inp, "output_tokens": out, "cost_usd": round(price, 4)},
+        "usage": {"model_calls": calls, "input_tokens": inp, "output_tokens": out, "cost_usd": cost},
     }
 
 
@@ -126,8 +181,9 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     starts = sorted(end - timedelta(seconds=rng.randint(0, a.days * 86400)) for _ in range(a.runs))
+    seen = {}
     for n, start in enumerate(starts, 1):
-        run = make_run(rng, start, n)
+        run = make_run(rng, start, n, seen)
         (out / f"{run['id']}.json").write_text(json.dumps(run, indent=2) + "\n")
     print(f"wrote {a.runs} runs to {out}")
 

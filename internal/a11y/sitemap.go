@@ -3,6 +3,7 @@ package a11y
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -69,16 +70,47 @@ func Rebase(urls []string, base string) ([]string, error) {
 }
 
 // FetchSitemap downloads a sitemap, following a sitemap index one level deep, and returns the
-// page URLs in order without duplicates.
-func FetchSitemap(ctx context.Context, client *http.Client, loc string) ([]string, error) {
+// page URLs in order without duplicates. When allowed is not nil it is called with each sitemap address
+// before that address is requested, and an error stops the fetch.
+func FetchSitemap(ctx context.Context, client *http.Client, loc string, allowed func(ctx context.Context, loc string) error) ([]string, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	check := func(l string) error {
+		if allowed == nil {
+			return nil
+		}
+		return allowed(ctx, l)
+	}
+	if allowed != nil {
+		// A redirect is a new request, so it is checked before it is followed.
+		c := *client
+		prev := c.CheckRedirect
+		c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			if err := check(req.URL.String()); err != nil {
+				return err
+			}
+			if prev != nil {
+				return prev(req, via)
+			}
+			if len(via) >= 10 {
+				return errors.New("stopped after 10 redirects")
+			}
+			return nil
+		}
+		client = &c
+	}
+	if err := check(loc); err != nil {
+		return nil, err
 	}
 	pages, children, err := fetchOne(ctx, client, loc)
 	if err != nil {
 		return nil, err
 	}
 	for _, c := range children {
+		if err := check(c); err != nil {
+			return nil, err
+		}
 		more, grand, err := fetchOne(ctx, client, c)
 		if err != nil {
 			return nil, err

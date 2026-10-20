@@ -1,0 +1,219 @@
+{
+  "schema_version": 2,
+  "id": "2026-10-17-lin-contributor-008",
+  "batch": "2026-10-17-pr-41",
+  "repeat_index": 0,
+  "seed": null,
+  "started_at": "2026-10-17T13:52:56.000Z",
+  "ended_at": "2026-10-17T13:54:03.183Z",
+  "persona": {
+    "id": "lin-contributor",
+    "role": "contributor",
+    "device": "tablet",
+    "zoom": 200,
+    "dimensions": {
+      "viewport": {
+        "width": 410,
+        "height": 590
+      },
+      "locale": null,
+      "at": "none",
+      "connection": "unthrottled",
+      "zoom": 2.0,
+      "motion": null
+    }
+  },
+  "scenario": {
+    "id": "check-payment",
+    "title": "Check a payment status",
+    "goal_met": "partly"
+  },
+  "target": {
+    "adapter": "url",
+    "environment": "pr-41",
+    "base_url": "https://pr-41.inkwell.example",
+    "commit": "a865ffd"
+  },
+  "provider": {
+    "kind": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "region": "global"
+  },
+  "browser": {
+    "name": "firefox",
+    "version": "146.0"
+  },
+  "outcome": "completed",
+  "steps": [
+    {
+      "n": 1,
+      "at": "2026-10-17T13:52:56.000Z",
+      "action": "select",
+      "duration_ms": 4264,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Assign to",
+      "route": "/issues"
+    },
+    {
+      "n": 2,
+      "at": "2026-10-17T13:53:04.663Z",
+      "action": "click",
+      "duration_ms": 4204,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Title",
+      "route": "/drafts"
+    },
+    {
+      "n": 3,
+      "at": "2026-10-17T13:53:12.946Z",
+      "action": "select",
+      "duration_ms": 1340,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Submit",
+      "route": "/drafts"
+    },
+    {
+      "n": 4,
+      "at": "2026-10-17T13:53:18.659Z",
+      "action": "click",
+      "duration_ms": 3242,
+      "url": "https://pr-41.inkwell.example/drafts",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment",
+      "route": "/drafts"
+    },
+    {
+      "n": 5,
+      "at": "2026-10-17T13:53:26.976Z",
+      "action": "look",
+      "duration_ms": 2924,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "route": "/payments",
+      "screenshot": "screens/008-05.png"
+    },
+    {
+      "n": 6,
+      "at": "2026-10-17T13:53:34.594Z",
+      "action": "type",
+      "duration_ms": 2631,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Comment",
+      "route": "/payments"
+    },
+    {
+      "n": 7,
+      "at": "2026-10-17T13:53:39.958Z",
+      "action": "look",
+      "duration_ms": 2891,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "route": "/payments",
+      "screenshot": "screens/008-07.png"
+    },
+    {
+      "n": 8,
+      "at": "2026-10-17T13:53:48.432Z",
+      "action": "visit",
+      "duration_ms": 1464,
+      "url": "https://pr-41.inkwell.example/issues",
+      "status": 200,
+      "console_errors": 0,
+      "route": "/issues"
+    },
+    {
+      "n": 9,
+      "at": "2026-10-17T13:53:54.110Z",
+      "action": "click",
+      "duration_ms": 1458,
+      "url": "https://pr-41.inkwell.example/payments",
+      "status": 200,
+      "console_errors": 0,
+      "target": "Assign to",
+      "route": "/payments"
+    },
+    {
+      "n": 10,
+      "at": "2026-10-17T13:53:59.117Z",
+      "action": "finish",
+      "duration_ms": 1030,
+      "url": "https://pr-41.inkwell.example/reviews",
+      "status": 200,
+      "console_errors": 0,
+      "route": "/reviews"
+    }
+  ],
+  "findings": [
+    {
+      "id": "payment-status-wording",
+      "kind": "question",
+      "severity": "info",
+      "title": "The payment status 'settled' is unclear to a contributor",
+      "steps": [
+        5
+      ],
+      "evidence": "inferred",
+      "verdict": "pending",
+      "class": "problem",
+      "route": "/payments",
+      "locus": "region:payment status",
+      "symptom": "unclear-label",
+      "taxonomy_version": 1,
+      "fingerprint": "1718b75300702f7b"
+    },
+    {
+      "id": "contributor-sees-rates-table",
+      "kind": "permission",
+      "severity": "major",
+      "title": "A contributor can open the rates table for all writers",
+      "steps": [
+        7
+      ],
+      "evidence": "code",
+      "verdict": "confirmed",
+      "class": "problem",
+      "route": "/payments",
+      "locus": "link:rates",
+      "symptom": "access-wrongly-allowed",
+      "taxonomy_version": 1,
+      "fingerprint": "933d06cb3cee90e4",
+      "reviewer": "example-reviewer",
+      "reviewed_at": "2026-10-18T09:30:00Z",
+      "reason": "Reproduced on the preview with a contributor account."
+    },
+    {
+      "id": "totals-rounding",
+      "kind": "bug",
+      "severity": "minor",
+      "title": "Totals are rounded in a way that hides pennies",
+      "steps": [
+        5
+      ],
+      "evidence": "inferred",
+      "verdict": "rejected",
+      "class": "problem",
+      "route": "/payments",
+      "locus": "region:totals",
+      "symptom": "unclear-label",
+      "taxonomy_version": 1,
+      "fingerprint": "0f9980304e008284"
+    }
+  ],
+  "usage": {
+    "model_calls": 11,
+    "input_tokens": 62986,
+    "output_tokens": 3102,
+    "cost_usd": 0.157
+  }
+}

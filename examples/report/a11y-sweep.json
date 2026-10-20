@@ -1,0 +1,76 @@
+{
+  "tool": "dummyrun a11y",
+  "browser": "chrome",
+  "browser_version": "148.0.7778.97",
+  "axe_version": "4.13.0",
+  "tags": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+  "results": [
+    {
+      "url": "https://pr-41.inkwell.example/issues",
+      "browser": "chrome",
+      "viewport": "desktop",
+      "width": 1280,
+      "scheme": "light",
+      "violations": [
+        {
+          "rule": "color-contrast",
+          "impact": "serious",
+          "wcag": ["1.4.3"],
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
+          "nodes": [{ "target": ".hint" }, { "target": ".footer-note", "allowed": true, "allowed_reason": "Decorative text" }]
+        },
+        {
+          "rule": "button-name",
+          "impact": "critical",
+          "wcag": ["4.1.2"],
+          "help": "Buttons must have discernible text",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.13/button-name",
+          "nodes": [{ "target": "#menu-toggle" }]
+        }
+      ],
+      "needs_review": [
+        {
+          "rule": "color-contrast",
+          "impact": "serious",
+          "wcag": ["1.4.3"],
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
+          "nodes": [{ "target": ".banner" }]
+        }
+      ],
+      "duration_ms": 812
+    },
+    {
+      "url": "https://pr-41.inkwell.example/issues",
+      "browser": "chrome",
+      "viewport": "phone",
+      "width": 375,
+      "scheme": "light",
+      "violations": [
+        {
+          "rule": "color-contrast",
+          "impact": "serious",
+          "wcag": ["1.4.3"],
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
+          "nodes": [{ "target": ".hint" }]
+        }
+      ],
+      "needs_review": [],
+      "duration_ms": 640
+    },
+    {
+      "url": "https://pr-41.inkwell.example/payments",
+      "browser": "chrome",
+      "viewport": "desktop",
+      "width": 1280,
+      "scheme": "light",
+      "error": "the page did not load within 30 seconds",
+      "violations": [],
+      "needs_review": [],
+      "duration_ms": 30000
+    }
+  ],
+  "summary": { "pages": 2, "runs": 3, "failing_nodes": 3, "allowed_nodes": 1, "needs_review_rules": 1, "page_errors": 1, "unused_allow_entries": 0 }
+}

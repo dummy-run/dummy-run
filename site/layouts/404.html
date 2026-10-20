@@ -4,6 +4,11 @@
   <img class="not-found-mascot" src="{{ .RelPermalink }}" width="160" height="160" alt="The Dummy mascot, a crash-test dummy head with a target on its temple">
   {{ end }}
   <h1 class="u-title">There is no page at this address.</h1>
-  <p>The persona would log this as a 404 and move on. You can start again at the <a href="/">home page</a>, pick a page from the <a href="/docs/">reference</a>, or <a href="{{ .Site.Params.repo }}/issues">open an issue</a> if a link brought you here.</p>
+  <p>The persona would log this as a 404 and move on. Start again at the <a href="/">home page</a> or pick a page from the <a href="/docs/">docs</a>. If a link brought you here, <a href="{{ .Site.Params.repo }}/issues">open an issue</a>.</p>
+  <p class="actions">
+    <a class="btn" href="/start/">Get started</a>
+    <a class="btn btn-quiet" href="/">Go to the home page</a>
+    <a class="btn btn-quiet" href="/personas/">Browse the persona library</a>
+  </p>
 </section>
 {{ end }}

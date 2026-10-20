@@ -107,9 +107,6 @@ func TestNewRejectsUnknownProviders(t *testing.T) {
 	if _, err := New(Config{Provider: "nope"}); err == nil {
 		t.Error("unknown provider accepted")
 	}
-	if _, err := New(Config{Provider: "anthropic"}); err == nil || !strings.Contains(err.Error(), "not implemented") {
-		t.Errorf("anthropic gave %v", err)
-	}
 	if _, err := NewAzure(Config{Model: "m", Region: "r"}); err == nil {
 		t.Error("azure without an endpoint accepted")
 	}

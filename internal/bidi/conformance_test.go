@@ -1,9 +1,12 @@
 package bidi_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -98,8 +101,64 @@ func launch(t *testing.T, browser string) *bidi.Browser {
 	if err != nil {
 		t.Fatalf("launch %s: %v", browser, err)
 	}
+	// Cleanups run last in, first out, so this check runs after Close.
+	t.Cleanup(func() {
+		for _, d := range b.ProfileDirs() {
+			if _, err := os.Stat(d); err == nil {
+				t.Errorf("profile %s outlived its test", d)
+			}
+		}
+		if b.Alive() {
+			t.Errorf("%s still has a running process after Close", browser)
+		}
+	})
 	t.Cleanup(b.Close)
 	return b
+}
+
+func TestLaunchAndCloseLeaveNothingBehind(t *testing.T) {
+	for _, browser := range browsersUnderTest(t) {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatalf("launch %s: %v", browser, err)
+			}
+			dirs := b.ProfileDirs()
+			if len(dirs) == 0 || !b.Alive() {
+				t.Fatalf("expected a running browser with a profile, got alive=%v dirs=%v", b.Alive(), dirs)
+			}
+			before, err := bidi.FindLeftovers()
+			if err != nil {
+				t.Fatal(err)
+			}
+			b.Close()
+			if b.Alive() {
+				t.Error("a process is still running after Close")
+			}
+			for _, d := range dirs {
+				if _, err := os.Stat(d); !os.IsNotExist(err) {
+					t.Errorf("profile %s remains", d)
+				}
+			}
+			after, err := bidi.FindLeftovers()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Other browsers may be running for other work, so look only for this one's profile.
+			for _, p := range after.Processes {
+				for _, d := range dirs {
+					if strings.Contains(p.Args, d) {
+						t.Errorf("process %d still names %s", p.PID, d)
+					}
+				}
+			}
+			if len(before.Processes) == 0 {
+				t.Error("FindLeftovers did not see the running browser")
+			}
+		})
+	}
 }
 
 func evalString(t *testing.T, c *bidi.Conn, cx, expr string) string {
@@ -381,4 +440,82 @@ func TestConformance(t *testing.T) {
 			})
 		})
 	}
+}
+
+// TestSetViewportDevicePixelRatio checks the part of browsingContext.setViewport
+// the zoom setting depends on: a smaller viewport with a larger
+// devicePixelRatio lays the page out in fewer CSS pixels, keeps doing so after
+// a navigation, and paints each CSS pixel as that many screenshot pixels.
+func TestSetViewportDevicePixelRatio(t *testing.T) {
+	for _, browser := range browsersUnderTest(t) {
+		t.Run(browser, func(t *testing.T) {
+			ctx := context.Background()
+			c := launch(t, browser).Conn
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "text/html")
+				_, _ = io.WriteString(w, `<!doctype html><title>Zoom</title><style>
+body{margin:0} #w{width:100px;height:50px;background:#c00}
+#narrow{display:none} @media (max-width: 500px){#narrow{display:block}}</style>
+<div id="w"></div><p id="narrow">narrow layout</p>`)
+			}))
+			t.Cleanup(srv.Close)
+			cx, err := c.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			read := func() (w, h int, dpr float64, narrow bool, shotW, shotH int) {
+				t.Helper()
+				var got struct {
+					W, H   int
+					Dpr    float64
+					Narrow bool
+				}
+				if err := c.EvaluateJSON(ctx, cx, `({W: innerWidth, H: innerHeight, Dpr: devicePixelRatio,
+					Narrow: getComputedStyle(document.getElementById('narrow')).display === 'block'})`, &got); err != nil {
+					t.Fatal(err)
+				}
+				data, err := c.CaptureScreenshot(ctx, cx)
+				if err != nil {
+					t.Fatal(err)
+				}
+				png, _ := base64.StdEncoding.DecodeString(data)
+				cfg, err := pngConfig(png)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return got.W, got.H, got.Dpr, got.Narrow, cfg.Width, cfg.Height
+			}
+			if _, err := c.Navigate(ctx, cx, srv.URL); err != nil {
+				t.Fatal(err)
+			}
+			// 200 percent on a 1000 by 800 window: 500 by 400 CSS pixels at a ratio of 2.
+			if err := c.SetViewportScaled(ctx, cx, 500, 400, 2); err != nil {
+				t.Fatalf("setViewport with devicePixelRatio: %v", err)
+			}
+			w, h, dpr, narrow, sw, sh := read()
+			if w != 500 || h != 400 || dpr != 2 || !narrow {
+				t.Errorf("after setViewport: innerWidth %d innerHeight %d devicePixelRatio %v narrow media query %v", w, h, dpr, narrow)
+			}
+			if sw != 1000 || sh != 800 {
+				t.Errorf("screenshot is %d by %d pixels, want 1000 by 800", sw, sh)
+			}
+			if _, err := c.Navigate(ctx, cx, srv.URL+"/again"); err != nil {
+				t.Fatal(err)
+			}
+			if w, _, dpr, _, _, _ := read(); w != 500 || dpr != 2 {
+				t.Errorf("after a navigation: innerWidth %d devicePixelRatio %v", w, dpr)
+			}
+			// Back to 100 percent.
+			if err := c.SetViewportScaled(ctx, cx, 1000, 800, 0); err != nil {
+				t.Fatalf("reset devicePixelRatio: %v", err)
+			}
+			if w, _, dpr, narrow, _, _ := read(); w != 1000 || dpr != 1 || narrow {
+				t.Errorf("after reset: innerWidth %d devicePixelRatio %v narrow %v", w, dpr, narrow)
+			}
+		})
+	}
+}
+
+func pngConfig(data []byte) (image.Config, error) {
+	return png.DecodeConfig(bytes.NewReader(data))
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Inkwell audit" tests="6" failures="5" skipped="1">
+  <testsuite name="dummyrun personas" tests="4" failures="3" skipped="1">
+    <testcase name="A contributor can open the rates table for all writers" classname="dummyrun.access-wrongly-allowed">
+      <failure message="major: A contributor can open the rates table for all writers" type="major">Route /payments. Found by lin-contributor in 1 of 4 runs. Fingerprint 933d06cb3cee90e4.</failure>
+    </testcase>
+    <testcase name="Scheduling an issue for a past date returns a server error" classname="dummyrun.error-shown">
+      <failure message="major: Scheduling an issue for a past date returns a server error" type="major">Route /issues. Found by ada-editor in 1 of 4 runs. Fingerprint 72be5e1e780d79bb.</failure>
+    </testcase>
+    <testcase name="The hint under the schedule field is too faint to read" classname="dummyrun.a11y:color-contrast">
+      <failure message="minor: The hint under the schedule field is too faint to read (not reviewed)" type="minor">Route /issues. Found by ada-editor in 1 of 4 runs. Fingerprint 64afd5191821762c.</failure>
+    </testcase>
+    <testcase name="The payment status &#39;settled&#39; is unclear to a contributor" classname="dummyrun.unclear-label">
+      <skipped message="info: The payment status &#39;settled&#39; is unclear to a contributor"></skipped>
+    </testcase>
+  </testsuite>
+  <testsuite name="dummyrun axe sweep" tests="2" failures="2" skipped="0">
+    <testcase name="Buttons must have discernible text" classname="axe.button-name">
+      <failure message="critical: Buttons must have discernible text" type="critical">https://pr-41.inkwell.example/issues: #menu-toggle&#xA;</failure>
+    </testcase>
+    <testcase name="Elements must meet minimum color contrast ratio thresholds" classname="axe.color-contrast">
+      <failure message="serious: Elements must meet minimum color contrast ratio thresholds" type="serious">https://pr-41.inkwell.example/issues: .hint&#xA;</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

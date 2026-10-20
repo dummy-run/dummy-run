@@ -13,7 +13,10 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> Pre-release. Nothing here installs yet. The website is at [dummyrun.dev](https://dummyrun.dev).
+> Pre-release, with no tagged version yet. The engine installs with
+> `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. It runs personas on six kinds of
+> model provider; [docs/ENGINE.md](docs/ENGINE.md) shows
+> how. A person confirms findings with `dummyrun review`. The results board is not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
@@ -36,10 +39,11 @@ flowchart LR
 ```
 
 - **Targets.** An adapter finds the preview for a pull request, creates a test user with the right role
-  and loads test data. Planned adapters cover plain URLs and GitHub Deployments, plus Vercel, Netlify
-  and Cloudflare Pages.
-- **Model providers.** Vertex AI, Azure AI Foundry, Anthropic or a local model. Choose one per market to
-  keep runs inside a jurisdiction such as the UK or the EU.
+  and loads test data. The `url` adapter takes a plain URL. Adapters for GitHub Deployments, Vercel,
+  Netlify and Cloudflare Pages are planned.
+- **Model providers.** Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service
+  works too, such as a local server. Choose one per market to keep runs inside a
+  jurisdiction such as the UK or the EU.
 - **Nothing is posted for you.** Findings go to the board. A person decides what becomes a ticket.
 
 ## Who it is for
@@ -58,10 +62,18 @@ flowchart LR
 | Document | What it covers |
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
-| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the read-only policy and the model providers |
+| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, focus, reviewing findings, the read-only policy and the accessibility sweep |
+| [docs/MCP.md](docs/MCP.md) | Using Dummy Run from Claude Code, Cursor, VS Code or Codex through `dummyrun mcp`, and what each tool costs |
+| [docs/CLI.md](docs/CLI.md) | The help text of each command, written from the code |
+| [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, their sign-in and what each can do |
+| [docs/PERSONAS.md](docs/PERSONAS.md) | The persona library in [casts/library](casts/library/README.md), and how to copy one into your cast |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
+| [docs/COVERAGE.md](docs/COVERAGE.md) | What `dummyrun coverage` measures and when to trust each number |
+| [docs/REPORT.md](docs/REPORT.md) | What `dummyrun report` puts in an audit report, how to read it and what it does not claim |
+| [docs/BADGES.md](docs/BADGES.md) | The SVG badge and shields.io endpoint from `dummyrun report`, what they say and how to publish them from GitHub Actions |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
+| [schema/report.schema.json](schema/report.schema.json) | The format of the report in JSON, with an example report in [examples/report/](examples/report/) |
 | [docs/integrations/grafana.md](docs/integrations/grafana.md) | Sending runs to Grafana, linking them to your app's traces, and alerts |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the automated checks, and the rules on evidence and privacy |
 | [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and findings about apps you do not own |

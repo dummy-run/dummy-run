@@ -37,10 +37,10 @@ jobs:
     name: Engine passes golangci-lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
@@ -55,15 +55,18 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - name: Embedded schema matches the repository copy
-        run: cmp internal/record/run-record.schema.json schema/run-record.schema.json
+        run: |
+          cmp internal/record/run-record.schema.json schema/run-record.schema.json
+          cmp internal/record/run-record.v1.schema.json schema/run-record.v1.schema.json
+          cmp internal/report/report.schema.json schema/report.schema.json
       - name: go vet
         run: go vet ./...
       - name: go test with the race detector and coverage
@@ -82,16 +85,18 @@ jobs:
         run: go test -run='^$' -fuzz=FuzzDecode -fuzztime=30s ./internal/bidi/
       - name: Fuzz the run record writer for 30 seconds
         run: go test -run='^$' -fuzz=FuzzWrite -fuzztime=30s ./internal/record/
+      - name: Fuzz the provider response decoders for 30 seconds
+        run: go test -run='^$' -fuzz=FuzzDecodeResponses -fuzztime=30s ./internal/provider/
 
   conformance:
     name: BiDi conformance on Chrome and Firefox
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
@@ -119,4 +124,7 @@ jobs:
       - name: Run the conformance suite, the tool suite and the end-to-end run on both browsers
         env:
           DUMMYRUN_BROWSERS: chrome,firefox
-        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/
+        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd|TestLaunchAndClose|TestServerWithRealBrowsers' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/ ./internal/mcpserver/
+      - name: No engine browser or profile directory is left behind
+        if: always()
+        run: go run ./cmd/dummyrun doctor

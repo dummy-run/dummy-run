@@ -1,0 +1,50 @@
+[
+ {
+  "url": "https://spektrabot.co.uk/docs/?b=2&a=1#x",
+  "locus_in": "link:Assessment taking too long",
+  "symptom": "off-screen",
+  "route": "/docs?a&b",
+  "locus": "link:assessment taking too long",
+  "fingerprint": "4821fa6104c08750"
+ },
+ {
+  "url": "/docs",
+  "locus_in": "link:assessment taking too long",
+  "symptom": "off-screen",
+  "route": "/docs",
+  "locus": "link:assessment taking too long",
+  "fingerprint": "8d21edaf403271c5"
+ },
+ {
+  "url": "https://dummyrun.dev/docs/telemetry",
+  "locus_in": "page",
+  "symptom": "missing-information:screenshots-exported-model-provider",
+  "route": "/docs/telemetry",
+  "locus": "page",
+  "fingerprint": "b91fafc7f6d39de6"
+ },
+ {
+  "url": "/users/12345/orders/",
+  "locus_in": "button:Cancel order",
+  "symptom": "wrong-outcome",
+  "route": "/users/:id/orders",
+  "locus": "button:cancel order",
+  "fingerprint": "0b57f1647af20838"
+ },
+ {
+  "url": "https://x.test/a/3f2b8c1e-1111-4222-8333-444455556666?tab=1&tab=2",
+  "locus_in": "region:Main  nav",
+  "symptom": "a11y:color-contrast",
+  "route": "/a/:id?tab",
+  "locus": "region:main nav",
+  "fingerprint": "735deedb67172597"
+ },
+ {
+  "url": "https://x.test",
+  "locus_in": "page",
+  "symptom": "not-reachable",
+  "route": "/",
+  "locus": "page",
+  "fingerprint": "a29669ddce7b7e77"
+ }
+]

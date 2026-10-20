@@ -62,17 +62,45 @@
   }
   const texts = (sel) =>
     [...document.querySelectorAll(sel)].filter(visible).map((e) => squash(e.innerText)).filter(Boolean);
+  // Text and attribute values a person does not see. They are not sent to the model. The engine
+  // scans them for text that tries to instruct it, and keeps them in steps.jsonl for the reviewer.
+  const hidden = new Set();
+  let hiddenChars = 0;
+  const keepHidden = (s) => {
+    s = squash(s).slice(0, 300);
+    if (s && hiddenChars < 3000 && !hidden.has(s)) {
+      hidden.add(s);
+      hiddenChars += s.length;
+    }
+  };
+  const unseen = (el) => {
+    const r = el.getBoundingClientRect();
+    const s = getComputedStyle(el);
+    return !visible(el) || r.width < 2 || r.height < 2 || s.opacity === "0" || parseFloat(s.fontSize) === 0 || el.getAttribute("aria-hidden") === "true";
+  };
+  let scanned = 0;
+  for (const el of document.body.querySelectorAll("*")) {
+    if (++scanned > 5000) break;
+    for (const attr of ["aria-label", "aria-description", "title", "alt", "placeholder"]) keepHidden(el.getAttribute(attr));
+    if (/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(el.tagName)) continue;
+    const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join(" ");
+    if (squash(own) && unseen(el)) keepHidden(own);
+  }
+  const walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT);
+  for (let n = walker.nextNode(), c = 0; n && c < 200; n = walker.nextNode(), c++) keepHidden(n.nodeValue);
   const main = document.querySelector("main") || document.body;
   const body = (main.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
   return {
     url: location.href,
     title: document.title,
     viewport: [innerWidth, innerHeight],
+    device_pixel_ratio: devicePixelRatio,
     scroll: [Math.round(scrollY), Math.round(document.documentElement.scrollHeight)],
     headings: texts("h1, h2").slice(0, 10),
     alerts: texts("[role=alert], [role=status], [aria-live]").slice(0, 5),
     text: body.slice(0, textLimit),
     log_text: body.slice(0, logLimit),
     controls,
+    hidden: [...hidden],
   };
 }
