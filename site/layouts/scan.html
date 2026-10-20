@@ -40,13 +40,13 @@
   <section class="band" aria-labelledby="care-heading">
     <h2 id="care-heading" class="u-title-sm">How it treats your site</h2>
     <ul class="scan-care">
-      <li>It loads public pages only and never signs in.</li>
+      <li>It loads only the public pages of your site and never signs in.</li>
       <li>It is read-only. Only GET, HEAD and OPTIONS requests reach your site.</li>
       <li>It is rate limited, with a cap on pages for each scan.</li>
-      <li>It identifies itself in the user agent, and it honours robots.txt.</li>
+      <li>It identifies itself in the user agent and it honours your robots.txt.</li>
       <li>It stops when you ask. <a href="/scanner/">Dummy Run visited my site</a> says how.</li>
     </ul>
-    <p class="band-note">The text and screenshots of the pages it visits go to the model that plays the persona. The privacy page covers the waitlist today. <a href="/privacy/">Read the privacy page</a></p>
+    <p class="band-note">The text and screenshots of the pages it visits on your site go to the model that plays the persona. The privacy page covers the waitlist today. <a href="/privacy/">Read the privacy page</a></p>
   </section>
 
   {{- if site.Params.waitlist_enabled }}
