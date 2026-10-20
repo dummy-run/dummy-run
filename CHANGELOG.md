@@ -5,6 +5,11 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-20
+
+### Fixed
+- The release image can start `dummyrun` again. The binary lost its execute permission on the way into the image, and the image build now sets it.
+
 ### Changed
 - The user docs and the README are rewritten to read more plainly and to describe only what the product does today. Design reasoning and plans moved to `docs/DECISIONS.md` and `docs/PLAN.md`, and test-suite notes moved to `CONTRIBUTING.md`. The site no longer renders the plan or the naming notes. The style guide, type scale, brand and contributing pages sit under a Contributing group.
 
