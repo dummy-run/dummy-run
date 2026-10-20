@@ -4,7 +4,10 @@
     <div>
       {{ partial "breadcrumbs.html" . }}
       <p class="scan-badge">Opening soon</p>
-      <h1 id="scan-title" class="u-display-sm">{{ .Title }}</h1>
+      <div class="scan-title-row">
+        <h1 id="scan-title" class="u-display-sm">{{ .Title }}</h1>
+        {{ partial "mascot.html" (dict "name" "dummy-friendly" "class" "scan-title-mascot") }}
+      </div>
       <p class="u-lead">{{ .Params.lead }}</p>
     </div>
     {{- if site.Params.waitlist_enabled }}
