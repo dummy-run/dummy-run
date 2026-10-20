@@ -52,7 +52,6 @@ plans:
     includes:
       - A scoped audit delivered by a person.
       - Invoiced by Dummy Run directly.
-      - No VAT added. We are not registered for VAT.
     cta:
       kind: link
       label: Request an audit
