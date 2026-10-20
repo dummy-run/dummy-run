@@ -327,10 +327,16 @@
 
 // The waitlist form. Without JavaScript the form posts to the API and the API redirects to a result page.
 (function () {
-  var form = document.querySelector("[data-waitlist] form");
-  if (!form || !window.fetch) {
+  if (!window.fetch) {
     return;
   }
+  var forms = document.querySelectorAll("[data-waitlist] form");
+  for (var i = 0; i < forms.length; i++) {
+    setupWaitlist(forms[i]);
+  }
+})();
+
+function setupWaitlist(form) {
   var status = form.querySelector(".waitlist-status");
   var messages = {
     invalid_email: "That email address does not look right. Check it and try again.",
@@ -381,4 +387,4 @@
       }
     });
   });
-})();
+}

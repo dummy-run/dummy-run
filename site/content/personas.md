@@ -14,6 +14,8 @@ Every site has screen-reader users, phone users and people who have never seen i
 
 A persona simulates a barrier to find likely problems. It does not replace testing with disabled people. [Ethics and limits](../../docs/ETHICS.md) says more.
 
+{{< try-scan >}}
+
 ## Pick a persona
 
 {{< library >}}
