@@ -17,8 +17,9 @@ const reportHelp = `Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y 
     [--format html|md|json|sarif|junit|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
 
 Turns run records and accessibility sweep results into an audit report. The default is one self-contained
-HTML file. Only reviewer-confirmed findings appear. --include pending adds the others, marked not reviewed.
-Rejected findings never appear. The report is a sample. It is not a WCAG conformance claim.
+HTML file. It shows only the findings a reviewer has confirmed. Add --include pending to show the rest,
+marked not reviewed. Rejected findings never appear. The report covers a sample of pages and makes no
+claim of WCAG conformance.
 --format badge writes a small SVG badge and --format shields writes the shields.io endpoint JSON for it.
 Both say how many findings are open and the date of the newest run.`
 

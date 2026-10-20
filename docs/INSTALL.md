@@ -1,7 +1,8 @@
 # Install
 
-Dummy Run ships as binaries, a container image and Go source. Every release is signed. Verify what you
-download before you run it.
+You can install Dummy Run as a binary, as a container image or from Go source. Every release is signed,
+so check what you download before you run it. The first release isn't published yet. For now, use
+[Go install](#go-install).
 
 ## Binaries
 
@@ -132,15 +133,15 @@ The container can run with `--read-only` when `/tmp` and `/data` are writable, f
 
 ### Hosted runs
 
-The hosted free-scan runner runs this image as a job, such as an Azure Container Apps job. It passes the
-command in the job's arguments, for example `a11y --json /data/report.json <url>`. It mounts storage at
-`/data`, uses a managed identity for Azure and sets `DUMMYRUN_AZURE_ENDPOINT` as a plain variable. Give the job
-at least 2 vCPU and 4 GiB of memory, since Chrome needs room. Reference the image by digest so a job never
-changes without a deliberate update.
+You can also run the image as a job on a hosted platform, such as an Azure Container Apps job. Pass the
+command in the job's arguments, for example `a11y --json /data/report.json <url>`. Mount storage at `/data`. On Azure, a
+managed identity saves you a secret, and `DUMMYRUN_AZURE_ENDPOINT` can be a plain variable. Give the job at
+least 2 vCPU and 4 GiB of memory, because Chrome needs room. Reference the image by digest, so the job only
+changes when you update it.
 
 ## Go install
 
-You need Go 1.27.
+You'll need Go 1.27.1 or later.
 
 ```sh
 go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
