@@ -405,6 +405,8 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
   `title`, `alt` and comments (code: `scan_text` in `internal/page/look.js`). A lone "system prompt" or "call `finish`" in
   visible prose is a weak match. It becomes an event with `low confidence:` in its detail. It does not warn
   the persona and it does not file a finding.
+  The model still receives the skipped text. A hostile page can put an instruction in a visible code element, and the
+  scan will not flag it. Fencing still applies.
 - A strong match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,
   and one finding of kind `security` that cites every step with a match. The engine files the finding, so a
   persona that obeys the page still leaves it behind. Its symptom is `misleading-copy`. Its severity is `major`

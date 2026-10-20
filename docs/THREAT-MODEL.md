@@ -63,7 +63,7 @@ These gaps remain.
 - Text drawn into an image reaches the model in screenshots and is not scanned.
 - Text moved off screen but still rendered goes to the model on purpose. The screen-reader persona needs it, because assistive technology reads that text too. Fencing and the scan cover the injection risk. The scan flags a match.
 - A model that is persuaded can still leave real findings out. The security finding shows that the page tried, and it does not restore what was left out.
-- Visible code and quotes are not scanned, so an attacker who can pass off an instruction as a code block or a quote on a visible page gets it through the scan. Fencing still applies. The scan can still flag prose that talks about prompts. The reviewer decides.
+- Visible code and quotes are not scanned, and the model still reads them. A hostile page can put an instruction in a code block or a quote and the scan will not flag it. Fencing still applies. The scan can still flag prose that talks about prompts. The reviewer decides.
 
 ### Faked or suppressed findings
 
