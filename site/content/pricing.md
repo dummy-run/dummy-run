@@ -4,7 +4,7 @@ lead: What Dummy Run sells and what it costs.
 description: Dummy Run prices in pounds. A free scan, a one-off full report, a monthly Watch plan and a scoped audit.
 ---
 
-Paid plans open soon. Prices are in pounds sterling and include VAT where applicable. Paddle is our reseller and merchant of record.
+Paid plans open soon. Prices are in pounds sterling and exclude tax. Paddle is our reseller and merchant of record for the full report and Watch. Paddle adds any VAT or sales tax due at checkout, based on where you are.
 
 ## Free scan
 
@@ -20,7 +20,7 @@ Free. Opening soon. Join the waitlist on the home page.
 
 ## Audit
 
-From £1,950. A scoped audit delivered by a person. Ask for one at hello@dummyrun.dev.
+From £1,950. A scoped audit delivered by a person. Ask for one at hello@dummyrun.dev. Audits are invoiced by Dummy Run directly. We are not registered for VAT, so no VAT is added.
 
 ## Open-source engine
 
