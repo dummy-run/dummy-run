@@ -14,7 +14,7 @@ timeout = "120s"
 # public site key and switch waitlist_enabled on. For a local build, override with
 # HUGO_PARAMS_WAITLIST_ENABLED=true and HUGO_PARAMS_WAITLIST_TURNSTILE_SITEKEY=<test key>.
 # The endpoint must match connect-src and form-action in site/static/_headers. Change both together.
-  waitlist_enabled = false
+  waitlist_enabled = true
   waitlist_endpoint = "https://api.dummyrun.dev/waitlist"
 # The audit request form. With audit_form_enabled off, the page shows an email fallback and nothing
 # reaches the API or Cloudflare Turnstile. The form uses waitlist_turnstile_sitekey for the human check.
