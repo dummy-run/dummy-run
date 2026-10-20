@@ -1,0 +1,53 @@
+{{ define "main" }}
+{{- $updated := .Params.updated | time -}}
+<div class="legal">
+  <header class="legal-head">
+    {{ partial "breadcrumbs.html" . }}
+    <h1 class="u-display-sm">{{ .Title }}</h1>
+    {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
+    <p class="legal-updated">Last updated <time datetime="{{ $updated.Format "2006-01-02" }}">{{ $updated.Format "2 January 2006" }}</time></p>
+  </header>
+
+  <div class="legal-grid">
+    <nav class="legal-toc" aria-labelledby="toc-heading">
+      <h2 id="toc-heading" class="legal-toc-title">On this page</h2>
+      <ul>
+        {{- range .Fragments.Headings }}{{ range .Headings }}
+        <li><a href="#{{ .ID }}">{{ .Title | plainify }}</a></li>
+        {{- end }}{{ end }}
+      </ul>
+    </nav>
+
+    <article class="legal-body">
+      {{- with .Params.short }}
+      <section class="in-short" aria-labelledby="short-heading">
+        <h2 id="short-heading" class="in-short-title">In short</h2>
+        <ul>
+          {{- range . }}
+          <li>{{ . | markdownify }}</li>
+          {{- end }}
+        </ul>
+        <p class="in-short-note">A summary only. Read the full text below.</p>
+      </section>
+      {{- end }}
+
+      <div class="prose legal-prose">
+        {{ .Content }}
+      </div>
+
+      {{- with .Params.contact }}
+      <section class="contact" aria-labelledby="contact-heading">
+        <h2 id="contact-heading" class="contact-title">Contact</h2>
+        <dl>
+          {{- range . }}
+          <div><dt>{{ .label }}</dt><dd><a href="mailto:{{ .email }}">{{ .email }}</a></dd></div>
+          {{- end }}
+        </dl>
+        <p class="contact-note">Dummy Run is the trading name of Joel Merrick, a sole trader in the United Kingdom.</p>
+      </section>
+      {{- end }}
+      {{ partial "page-source.html" . }}
+    </article>
+  </div>
+</div>
+{{ end }}

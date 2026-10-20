@@ -36,6 +36,10 @@ Every dashboard can be filtered by environment and by persona. A scenario variab
 {{< grafana-shot name="run" alt="The run dashboard for one run. The trace is shown as a waterfall of step spans above tables of the steps and findings and then the log lines." >}}The run dashboard shows one run, picked by its ID from a list that Tempo feeds.{{< /grafana-shot >}}
 {{< /shot-grid >}}
 
+## The project tests its own site
+
+Every Monday a workflow plays the four personas of the `dummyrun-dev` cast through their scenarios against dummyrun.dev, with a read-only target. It sends the runs to the project's Grafana Cloud stack with `dummyrun-otel` and keeps the run records for 90 days as a workflow artifact. The [Grafana guide](../../../docs/integrations/grafana.md) has the details.
+
 ## Names in Prometheus
 
 Prometheus renames OpenTelemetry metrics on the way in. `dummyrun.runs` becomes `dummyrun_runs_total` and `dummyrun.run.duration` becomes `dummyrun_run_duration_seconds_bucket` with its `_sum` and `_count`. Attributes become labels with the same prefix, so `persona.id` is `dummyrun_persona_id`. Run IDs and finding IDs are never labels, because each value would create a new series.

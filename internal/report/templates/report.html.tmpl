@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="generator" content="dummyrun {{.ToolVersion}}">
+<title>{{.Title}}</title>
+<style>
+:root { --ink: #1a1a1a; --muted: #4a4a4a; --line: #767676; --soft: #eef0f2; --link: #0b4f9c; --paper: #ffffff; }
+* { box-sizing: border-box; }
+html { font-size: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow-wrap: anywhere; }
+a { color: var(--link); text-underline-offset: 0.15em; }
+a:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.skip { position: absolute; left: 0.5rem; top: -4rem; background: var(--ink); color: #fff; padding: 0.6rem 1rem; z-index: 10; }
+.skip:focus { top: 0.5rem; }
+.wrap { max-width: 62rem; margin: 0 auto; padding: 0 1rem; }
+header[role="banner"], body > header { border-bottom: 4px solid var(--ink); padding: 2rem 0 1.25rem; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); line-height: 1.15; margin: 0 0 0.5rem; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 2.75rem 0 0.75rem; padding-top: 0.75rem; border-top: 2px solid var(--ink); }
+h3 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 0.5rem; }
+h4 { font-size: 1rem; margin: 1.25rem 0 0.25rem; }
+p, ul, ol, dl, table, figure { margin: 0 0 1rem; }
+.meta { color: var(--muted); font-size: 1rem; margin: 0; }
+nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+nav a { display: inline-block; padding: 0.25rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: 1rem; table-layout: auto; }
+caption { text-align: left; font-weight: 700; padding: 0.5rem 0; }
+th, td { border: 1px solid var(--line); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+thead th { background: var(--soft); }
+tbody th { background: #f7f8f9; font-weight: 600; }
+.num { text-align: right; }
+article.finding { border: 2px solid var(--ink); padding: 1rem 1.25rem; margin: 0 0 1.5rem; }
+.badge { display: inline-block; padding: 0.05rem 0.55rem; font-size: 1rem; font-weight: 700; border: 2px solid var(--ink); margin-right: 0.4rem; }
+.sev-blocker, .sev-critical { background: #7a0019; color: #fff; }
+.sev-major, .sev-serious { background: #8a3b00; color: #fff; }
+.sev-minor, .sev-moderate { background: #594700; color: #fff; }
+.sev-info { background: #3d4852; color: #fff; }
+.st-confirmed { background: #e3f1e6; color: #0d3d1b; }
+.st-not-reviewed { background: #fff3c4; color: var(--ink); border-style: dashed; }
+.bl-new { background: #dbe8f8; color: #0b2f5c; }
+.bl-still-present, .bl-fixed { background: var(--soft); color: var(--ink); }
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; font-size: 1rem; }
+dl.facts dt { font-weight: 700; }
+dl.facts dd { margin: 0; }
+figure { border: 1px solid var(--line); padding: 0.5rem; }
+figure img { max-width: 100%; height: auto; display: block; }
+figcaption { font-size: 1rem; color: var(--muted); margin-top: 0.4rem; }
+.notice { border-left: 6px solid var(--ink); background: var(--soft); padding: 0.75rem 1rem; margin: 0 0 1rem; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; background: var(--soft); padding: 0 0.2em; }
+footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2rem; font-size: 1rem; color: var(--muted); }
+.big { font-size: 1.1rem; }
+@page { margin: 16mm; }
+@media print {
+  body { font-size: 11pt; line-height: 1.45; }
+  .skip, nav { display: none; }
+  h2 { break-after: avoid; margin-top: 1.5rem; }
+  article.finding, figure, tr { break-inside: avoid; }
+  .wrap { max-width: none; padding: 0; }
+  a { color: var(--ink); }
+  .badge, thead th, .notice { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the report</a>
+<header>
+<div class="wrap">
+<h1>{{.Title}}</h1>
+<p class="meta">{{if .Client}}Prepared for {{.Client}}. {{end}}Report date {{.Date}}. Made with dummyrun {{.ToolVersion}}. Findings included: {{.Basis}}.</p>
+</div>
+</header>
+<div class="wrap">
+<nav aria-label="Contents">
+<ul>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#scope">Scope and method</a></li>
+<li><a href="#coverage">Coverage</a></li>
+<li><a href="#findings">Findings</a></li>
+{{- if .Axe}}
+<li><a href="#axe-sweep">Axe sweep</a></li>
+{{- end}}
+{{- if .Baseline}}
+<li><a href="#fixed">Since the baseline</a></li>
+{{- end}}
+<li><a href="#limits">What this report is not</a></li>
+</ul>
+</nav>
+<main id="main">
+
+<section id="summary" aria-labelledby="h-summary">
+<h2 id="h-summary">Summary</h2>
+{{range .Summary.Text}}<p class="big">{{.}}</p>
+{{end}}
+<table>
+<caption>Findings by severity</caption>
+<thead><tr><th scope="col">Severity</th><th scope="col" class="num">Distinct problems</th></tr></thead>
+<tbody>
+{{- range $sev := severities}}
+<tr><th scope="row">{{cap $sev}}</th><td class="num">{{index $.Summary.BySeverity $sev}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+{{if .Summary.NotReviewed}}<p class="notice">Not reviewed: {{.Summary.NotReviewed}}. A model reported these findings and no person has checked them against the evidence.</p>{{end}}
+{{range .Warnings}}<p class="notice">{{.}}</p>{{end}}
+</section>
+
+<section id="scope" aria-labelledby="h-scope">
+<h2 id="h-scope">Scope and method</h2>
+<p>Each run signs one fictional user, called a persona, in to the app in a real browser. The persona works through a scenario and reports what broke, what confused it and what its role should not have seen. Findings are folded together when they share a fingerprint, which is a hash of the route, the control and the kind of symptom.</p>
+{{if .Scope.Runs.Total}}
+<dl class="facts">
+<dt>Period</dt><dd>{{.Scope.StartedAt}} to {{.Scope.EndedAt}}</dd>
+<dt>Runs</dt><dd>{{.Scope.Runs.Total}} in total: {{.Scope.Runs.Completed}} completed, {{.Scope.Runs.Blocked}} blocked, {{.Scope.Runs.Errored}} errored and {{.Scope.Runs.BudgetExhausted}} out of budget</dd>
+<dt>Model cost</dt><dd>{{usd .Scope.Cost.USD}} over {{.Scope.Cost.ModelCalls}} model calls ({{.Scope.Cost.InputTokens}} input and {{.Scope.Cost.OutputTokens}} output tokens){{if .Scope.Cost.UnpricedRuns}}. {{.Scope.Cost.UnpricedRuns}} runs used a model with no price, so the cost is a floor{{end}}</dd>
+<dt>Routes visited</dt><dd>{{len .Scope.Routes}}{{if .Scope.Routes}}: {{range .Scope.Routes}}<code>{{.}}</code> {{end}}{{end}}</dd>
+</dl>
+
+<table>
+<caption>Target and build</caption>
+<thead><tr><th scope="col">Address</th><th scope="col">Environment</th><th scope="col">Build</th><th scope="col">Adapter</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+{{- range .Scope.Targets}}
+<tr><td>{{.BaseURL}}</td><td>{{.Environment}}</td><td><code>{{.Build}}</code> ({{.BuildKind}})</td><td>{{.Adapter}}</td><td class="num">{{.Runs}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+
+<table>
+<caption>Personas and the dimensions they varied</caption>
+<thead><tr><th scope="col">Persona</th><th scope="col">Role</th><th scope="col">Device</th><th scope="col">Dimensions</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+{{- range .Scope.Personas}}
+<tr><th scope="row">{{.ID}}</th><td>{{.Role}}</td><td>{{join .Devices}}</td><td>{{if .Dimensions}}{{join .Dimensions}}{{else}}None recorded{{end}}</td><td class="num">{{.Runs}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+
+<table>
+<caption>Scenarios and whether the persona did what it came to do</caption>
+<thead><tr><th scope="col">Scenario</th><th scope="col" class="num">Runs</th><th scope="col" class="num">Yes</th><th scope="col" class="num">Partly</th><th scope="col" class="num">No</th><th scope="col" class="num">Not recorded</th></tr></thead>
+<tbody>
+{{- range .Scope.Scenarios}}
+<tr><th scope="row">{{.Title}}</th><td class="num">{{.Runs}}</td><td class="num">{{.GoalMet}}</td><td class="num">{{.GoalPartly}}</td><td class="num">{{.GoalNotMet}}</td><td class="num">{{.GoalUnknown}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+
+<table>
+<caption>Browsers</caption>
+<thead><tr><th scope="col">Browser</th><th scope="col">Version</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+{{- range .Scope.Browsers}}
+<tr><td>{{.Name}}</td><td>{{.Version}}</td><td class="num">{{.Runs}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+
+<table>
+<caption>Models and providers</caption>
+<thead><tr><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Region</th><th scope="col" class="num">Runs</th></tr></thead>
+<tbody>
+{{- range .Scope.Models}}
+<tr><td>{{.Model}}</td><td>{{.Kind}}</td><td>{{.Region}}</td><td class="num">{{.Runs}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+{{else}}
+<p>No persona runs were given. This report holds the axe sweep only.</p>
+{{end}}
+{{if .Axe}}<p>The axe sweep ran {{.Axe.Tool}} with axe-core {{.Axe.AxeVersion}} on {{join .Axe.Browsers}}. It tested {{.Axe.Pages}} pages in {{.Axe.Runs}} settings.</p>{{end}}
+</section>
+
+<section id="coverage" aria-labelledby="h-coverage">
+<h2 id="h-coverage">Coverage</h2>
+{{if .Coverage.Available}}
+<p>These numbers come from <code>dummyrun coverage</code> over the same runs. They say how much the sample can tell you.</p>
+<dl class="facts">
+<dt>Counted</dt><dd>{{.Coverage.Basis}}</dd>
+<dt>Completed runs</dt><dd>{{.Coverage.CompletedRuns}}</dd>
+<dt>Distinct problems seen</dt><dd>{{.Coverage.Observed}}</dd>
+<dt>Still unfound</dt><dd>{{if .Coverage.UnfoundAtLeast}}At least {{f1 .Coverage.UnfoundAtLeast}} (Chao2 lower bound of {{f1 .Coverage.TotalAtLeast}} in total, {{.Coverage.Form}} form){{else}}Not estimable from these runs{{end}}</dd>
+<dt>Sample coverage</dt><dd>{{if .Coverage.SampleCoverage}}{{f2 .Coverage.SampleCoverage}}{{else}}Not estimable{{end}}</dd>
+<dt>New problems per extra run</dt><dd>{{if .Coverage.NewPerExtraRun}}{{f2 .Coverage.NewPerExtraRun}}{{else}}Not estimable{{end}}</dd>
+{{- if .Coverage.RouteUniverse}}
+<dt>Routes visited</dt><dd>{{.Coverage.RoutesVisited}} of {{.Coverage.RouteUniverse}} known routes</dd>
+{{- end}}
+<dt>Stopping rule</dt><dd>{{.Coverage.StoppingRule}}</dd>
+</dl>
+<h3>How to read these numbers</h3>
+<ul>
+<li>The Chao2 figure is a floor. The real number of problems is at least that high. It is never a count of what remains.</li>
+<li>Sample coverage is the share of the chance of finding a problem that sits in problems already found. Below 0.50 do not extrapolate from it.</li>
+<li>New problems per extra run is how many new problems one more run is expected to find. A low figure suggests more runs will add little.</li>
+<li>With fewer than 5 completed runs the estimates are weak. The stopping rule needs 4 completed runs in each group.</li>
+</ul>
+{{if .Coverage.Warnings}}<h3>Cautions</h3>
+<ul>
+{{- range .Coverage.Warnings}}
+<li>{{.}}</li>
+{{- end}}
+</ul>{{end}}
+{{else}}
+<p class="notice">Coverage was not computed. {{.Coverage.Unavailable}}</p>
+{{end}}
+</section>
+
+<section id="findings" aria-labelledby="h-findings">
+<h2 id="h-findings">Findings</h2>
+<p>Findings are sorted by severity, then by the number of runs that found them. Each one is a distinct problem. A problem found in several runs appears once.</p>
+{{if not .Findings}}<p>This report has no persona findings.</p>{{end}}
+{{range $i, $f := .Findings}}
+<article class="finding" aria-labelledby="f-{{$i}}">
+<h3 id="f-{{$i}}"><span class="badge sev-{{$f.Severity}}">{{cap $f.Severity}}</span>{{$f.Title}}</h3>
+<p>
+<span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span>
+{{- if $f.Baseline}}<span class="badge bl-{{$f.Baseline}}">{{baselineText $f.Baseline}}</span>{{end}}
+</p>
+<dl class="facts">
+<dt>Kind</dt><dd>{{$f.Kind}}</dd>
+{{- if $f.Symptom}}
+<dt>Symptom</dt><dd>{{$f.Symptom}}</dd>
+{{- end}}
+{{- if $f.Route}}
+<dt>Route</dt><dd><code>{{$f.Route}}</code></dd>
+{{- end}}
+{{- if $f.Locus}}
+<dt>Control or region</dt><dd>{{$f.Locus}}</dd>
+{{- end}}
+{{- if $f.State}}
+<dt>Precondition</dt><dd>{{$f.State}}</dd>
+{{- end}}
+<dt>Evidence</dt><dd>{{$f.Evidence}}</dd>
+<dt>Found by</dt><dd>{{join $f.Personas}} in {{$f.Runs}} of {{$f.OfRuns}} runs</dd>
+<dt>WCAG 2.2 criterion</dt><dd>{{if $f.WCAG}}{{join $f.WCAG}}{{else}}Not recorded for this finding{{end}}</dd>
+<dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{$f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
+{{- if $f.HelpURL}}
+<dt>Fix guidance</dt><dd><a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a></dd>
+{{- end}}
+<dt>Fingerprint</dt><dd><code>{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}</code></dd>
+</dl>
+<h4>How to reproduce</h4>
+<p>Run {{$f.Reproduction.Run}}: persona {{$f.Reproduction.Persona}} signed in as {{$f.Reproduction.Role}} on a {{$f.Reproduction.Device}}{{if ne $f.Reproduction.Zoom 100}} at {{$f.Reproduction.Zoom}} percent zoom{{end}} in {{$f.Reproduction.Browser}}.</p>
+{{if $f.Reproduction.Steps}}<ol>
+{{- range $f.Reproduction.Steps}}
+<li value="{{.N}}">{{stepText .}}{{if .Note}} The persona said: {{.Note}}{{end}}</li>
+{{- end}}
+</ol>{{else}}<p>The record cites no step.</p>{{end}}
+{{if gt (len $f.Instances) 1}}<p>Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.</p>{{end}}
+{{range $f.Screenshots}}{{$u := shot .}}
+{{if $u}}<figure><img src="{{$u}}" alt="{{.Alt}}"><figcaption>{{.Alt}}</figcaption></figure>{{else}}<p>Screenshot <code>{{.Path}}</code> from run {{.Run}}, step {{.Step}}, was not found when this report was made.</p>{{end}}
+{{end}}
+</article>
+{{end}}
+</section>
+{{if .Axe}}
+<section id="axe-sweep" aria-labelledby="h-axe">
+<h2 id="h-axe">Axe sweep</h2>
+<p>The sweep ran axe-core {{.Axe.AxeVersion}} on {{.Axe.Pages}} pages in {{.Axe.Runs}} settings (browser, viewport and colour scheme). It checked the rules with these tags: {{range .Axe.Tags}}<code>{{.}}</code> {{end}}. It found {{.Axe.FailingNodes}} failing elements{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.</p>
+{{if .Axe.Rules}}
+{{range $i, $r := .Axe.Rules}}
+<article class="finding" aria-labelledby="a-{{$i}}">
+<h3 id="a-{{$i}}"><span class="badge sev-{{or $r.Impact "info"}}">{{if $r.Impact}}{{cap $r.Impact}}{{else}}No impact given{{end}}</span>{{$r.Help}}</h3>
+{{- if $r.Baseline}}<p><span class="badge bl-{{$r.Baseline}}">{{baselineText $r.Baseline}}</span></p>{{end}}
+<dl class="facts">
+<dt>Rule</dt><dd><code>{{$r.Rule}}</code></dd>
+<dt>WCAG 2.2 criterion</dt><dd>{{if $r.WCAG}}{{join $r.WCAG}}{{else}}Not recorded for this rule{{end}}</dd>
+<dt>Elements</dt><dd>{{$r.Elements}}</dd>
+<dt>Fix guidance</dt><dd>{{if $r.HelpURL}}<a href="{{$r.HelpURL}}">{{$r.HelpURL}}</a>{{else}}None recorded{{end}}</dd>
+</dl>
+<table>
+<caption>Where {{$r.Rule}} failed</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
+<tbody>
+{{- range $r.Pages}}
+<tr><td>{{.URL}}</td><td>{{range $k, $t := .Targets}}{{if $k}}<br>{{end}}<code>{{$t}}</code>{{end}}</td><td>{{range $k, $t := .Settings}}{{if $k}}<br>{{end}}{{$t}}{{end}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+</article>
+{{end}}
+{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
+{{if .Axe.NeedsReview}}
+<h3>Needs a person to check</h3>
+<p>Axe cannot decide these rules alone. A person has to look.</p>
+<table>
+<caption>Rules that need review</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col">WCAG 2.2 criterion</th><th scope="col">Pages</th></tr></thead>
+<tbody>
+{{- range .Axe.NeedsReview}}
+<tr><td><code>{{.Rule}}</code></td><td>{{.Help}}</td><td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+{{end}}
+{{if .Axe.Errors}}
+<h3>Pages that could not be tested</h3>
+<table>
+<caption>Page errors</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Setting</th><th scope="col">Error</th></tr></thead>
+<tbody>
+{{- range .Axe.Errors}}
+<tr><td>{{.URL}}</td><td>{{.Setting}}</td><td>{{.Message}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+{{end}}
+</section>
+{{end}}
+{{if .Baseline}}
+<section id="fixed" aria-labelledby="h-fixed">
+<h2 id="h-fixed">Since the baseline</h2>
+<p>The baseline is the report titled {{.Baseline.Title}} of {{.Baseline.Date}}. Findings are matched by fingerprint. A fixed finding is one that the baseline had and this report did not find again. A sample can miss a problem that is still there.</p>
+{{if .Fixed}}
+<table>
+<caption>Fixed since the baseline</caption>
+<thead><tr><th scope="col">Severity</th><th scope="col">Problem</th><th scope="col">Source</th></tr></thead>
+<tbody>
+{{- range .Fixed}}
+<tr><td>{{cap .Severity}}</td><td>{{.Title}}</td><td>{{if eq .Source "axe"}}Axe sweep{{else}}Persona run{{end}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+{{else}}<p>Nothing from the baseline is missing from this report.</p>{{end}}
+</section>
+{{end}}
+<section id="limits" aria-labelledby="h-limits">
+<h2 id="h-limits">What this report is not</h2>
+<ul>
+{{- range .Limits}}
+<li>{{.}}</li>
+{{- end}}
+</ul>
+</section>
+</main>
+<footer>
+<p>Made with dummyrun {{.ToolVersion}} on {{.Date}}. The report is one file. It loads nothing from the network.</p>
+</footer>
+</div>
+</body>
+</html>

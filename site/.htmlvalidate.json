@@ -8,7 +8,8 @@
     "require-sri": [
       "error",
       {
-        "target": "all"
+        "target": "all",
+        "exclude": ["https://challenges.cloudflare.com/turnstile/v0/api.js"]
       }
     ],
     "no-trailing-whitespace": "off",

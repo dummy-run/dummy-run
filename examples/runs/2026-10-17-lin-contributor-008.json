@@ -187,7 +187,9 @@
       "locus": "link:rates",
       "symptom": "access-wrongly-allowed",
       "taxonomy_version": 1,
-      "fingerprint": "933d06cb3cee90e4"
+      "fingerprint": "933d06cb3cee90e4",
+      "reviewer": "example-reviewer",
+      "reviewed_at": "2026-10-18T09:54:03Z"
     }
   ],
   "usage": {
