@@ -31,7 +31,7 @@ Run data stays with whoever runs Dummy Run.
 
 ## Test credentials
 
-A target file can name test accounts so the engine signs in before a persona starts. The rules for them:
+A target file can name test accounts so the engine signs in before a persona starts. These rules apply to them.
 
 - Use accounts made for testing, with no multi-factor step and no access to real data. Never use a person's account.
 - The target file holds the names of environment variables and never the values. Put the values in your CI secret store or your shell. Do not commit them.

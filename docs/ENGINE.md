@@ -424,7 +424,7 @@ is signed in as, and that signing out is blocked.
 ### Method two: a session file
 
 `dummyrun session save` signs in once through the form and writes the browser's cookies, and the local storage
-of the target's origin, to a file.
+of the target's origin and of the sign-in page's origin, to a file (code: `internal/signin/session.go`).
 
 <!-- doctest -->
 ```sh
@@ -439,10 +439,10 @@ dummyrun a11y --session sessions/admin.json https://staging.example.test/admin/
 ```
 
 The file is in Playwright's `storageState` format, so a file saved by Playwright loads here and the reverse.
-Cookies for hosts outside `allowed_hosts` are skipped, and so are expired ones. Set a role's `session_file` in
+Cookies for hosts outside `allowed_hosts` are skipped, and so are expired ones (code: `Session.Apply` in `internal/signin/session.go`). A session that loads no cookie and no local storage is an error. Set a role's `session_file` in
 the target file to load it without the flag. A relative path starts at the target file's directory. The file holds
-live session cookies. It is written with mode 0600. Treat it like a password and keep it out of version control.
-The engine does not check that a loaded session is still valid. Save a fresh one when it expires.
+live session cookies. It is written with mode 0600 (code: `Session.Save` in `internal/signin/session.go`). Treat it like a password and keep it out of version control.
+The engine does not check that a loaded session is still valid (code: `loadSession` in `internal/signin/session.go`). Save a fresh one when it expires.
 
 `dummyrun a11y --session FILE` loads the same file before the first page, so the sweep tests the pages as that user sees them.
 

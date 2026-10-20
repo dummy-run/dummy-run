@@ -169,6 +169,10 @@ func (t Target) validateSignin() error {
 		if !t.HostAllowed(u.Hostname()) {
 			return fmt.Errorf("signin.%s: host %s is not in allowed_hosts", name, u.Hostname())
 		}
+		// The password goes to these addresses, so they follow the same rule as base_url.
+		if u.Scheme != "https" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" {
+			return fmt.Errorf("signin.%s must use https (or localhost)", name)
+		}
 	}
 	for name, f := range map[string]Field{"username": s.Username, "password": s.Password, "submit": s.Submit} {
 		if err := f.validate(name); err != nil {

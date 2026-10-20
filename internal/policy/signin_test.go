@@ -39,6 +39,8 @@ func TestSigninValidate(t *testing.T) {
 	}
 	bad := map[string]func(map[string]any){
 		"no login url":        func(s map[string]any) { delete(s, "login_url") },
+		"login over http":     func(s map[string]any) { s["login_url"] = "http://app.example.test/signin" },
+		"post over http":      func(s map[string]any) { s["allow_request"] = map[string]any{"url": "http://app.example.test/signin"} },
 		"login host outside":  func(s map[string]any) { s["login_url"] = "https://other.test/signin" },
 		"post host outside":   func(s map[string]any) { s["allow_request"] = map[string]any{"url": "https://other.test/signin"} },
 		"field with both":     func(s map[string]any) { s["username"] = map[string]any{"selector": "#a", "label": "A"} },

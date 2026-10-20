@@ -89,7 +89,7 @@ func sessionSave(args []string) int {
 	defer p.Close()
 	n, err := signin.SaveForm(ctx, p, target, plan, gate, *out)
 	if err != nil {
-		return fail(errors.New(signin.Scrub(err.Error(), plan.Secrets()...)))
+		return fail(signin.ScrubError(err, plan.Secrets()...))
 	}
 	fmt.Printf("saved %d cookies for the role %s to %s (mode 0600)\n", n, plan.Role, *out)
 	return 0

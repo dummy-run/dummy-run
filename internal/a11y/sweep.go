@@ -240,7 +240,7 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) er
 
 // applySession loads the session for the hosts the sweep will visit. A session that loads nothing is
 // an error, so a sweep never runs signed out by accident.
-func applySession(ctx context.Context, conn *bidi.Conn, cfg Config) error {
+func applySession(ctx context.Context, conn signin.StorageConn, cfg Config) error {
 	hosts := map[string]bool{}
 	for _, raw := range cfg.URLs {
 		if u, err := url.Parse(raw); err == nil {
@@ -251,8 +251,8 @@ func applySession(ctx context.Context, conn *bidi.Conn, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("a11y: load the session: %w", err)
 	}
-	if got.Cookies == 0 && len(cfg.Session.Origins) == 0 {
-		return errors.New("a11y: the session has no cookie that is unexpired and for a host in the URLs")
+	if got.Cookies == 0 && got.Storage == 0 {
+		return errors.New("a11y: the session has no cookie or local storage that is unexpired and for a host in the URLs")
 	}
 	return nil
 }

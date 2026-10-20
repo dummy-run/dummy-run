@@ -106,6 +106,24 @@ func Scrub(s string, secrets ...string) string {
 	return s
 }
 
+// scrubbedError shows a message with the secrets removed and still unwraps to the original error,
+// so errors.Is can tell a cancelled sign-in from a failed one.
+type scrubbedError struct {
+	msg   string
+	cause error
+}
+
+func (e *scrubbedError) Error() string { return e.msg }
+func (e *scrubbedError) Unwrap() error { return e.cause }
+
+// ScrubError returns an error whose message has the secrets removed. It unwraps to err.
+func ScrubError(err error, secrets ...string) error {
+	if err == nil {
+		return nil
+	}
+	return &scrubbedError{msg: Scrub(err.Error(), secrets...), cause: err}
+}
+
 // Hook is the request policy for a run that signs in without a persona: the target's normal
 // policy plus the gate's one exception. The runner builds its own hook, which also adds telemetry
 // headers, from the same two parts.
@@ -144,7 +162,7 @@ func Do(ctx context.Context, p *page.Page, t policy.Target, plan *Plan, g *polic
 	res.DurationMs = int(time.Since(started).Milliseconds())
 	if err != nil {
 		res.Error = Scrub(err.Error(), plan.Secrets()...)
-		return res, fmt.Errorf("sign in as %s: %s", plan.Role, res.Error)
+		return res, &scrubbedError{msg: fmt.Sprintf("sign in as %s: %s", plan.Role, res.Error), cause: err}
 	}
 	res.OK = true
 	return res, nil

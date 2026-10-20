@@ -91,14 +91,22 @@ func (s *Session) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := tmp.Write(append(data, '\n')); err != nil {
+	// The temporary file holds live cookies, so it must not stay behind when a step fails.
+	fail := func(err error) error {
 		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
 		return err
+	}
+	if _, err := tmp.Write(append(data, '\n')); err != nil {
+		return fail(err)
 	}
 	if err := tmp.Close(); err != nil {
-		return err
+		return fail(err)
 	}
-	return os.Rename(tmp.Name(), path)
+	if err := os.Rename(tmp.Name(), path); err != nil {
+		return fail(err)
+	}
+	return nil
 }
 
 func (c SessionCookie) toBiDi() bidi.Cookie {
@@ -139,9 +147,21 @@ func fromBiDi(ck bidi.Cookie) SessionCookie {
 	return c
 }
 
+// StorageConn is the part of the browser connection that Apply uses. *bidi.Conn provides it, and a
+// test can replace it.
+type StorageConn interface {
+	CreateContext(ctx context.Context) (string, error)
+	CloseContext(ctx context.Context, context string) error
+	SetCookie(ctx context.Context, ck bidi.Cookie) error
+	Navigate(ctx context.Context, context, url string) (bidi.NavigateResult, error)
+	CallFunctionJSON(ctx context.Context, context, declaration string, out any, args ...any) error
+}
+
 // Applied says what Apply did.
 type Applied struct {
 	Cookies int
+	// Storage counts the local storage entries set.
+	Storage int
 	// Skipped counts cookies and storage entries left out: expired, or for a host the run may not reach.
 	Skipped int
 }
@@ -150,7 +170,7 @@ type Applied struct {
 // storage through a short visit to each origin. It uses a tab of its own and closes it. Entries
 // for hosts that hostOK refuses are skipped, so a session file cannot plant anything outside the
 // target. Expired cookies are skipped too.
-func (s *Session) Apply(ctx context.Context, conn *bidi.Conn, hostOK func(host string) bool, now time.Time) (Applied, error) {
+func (s *Session) Apply(ctx context.Context, conn StorageConn, hostOK func(host string) bool, now time.Time) (Applied, error) {
 	var out Applied
 	cx, err := conn.CreateContext(ctx)
 	if err != nil {
@@ -192,6 +212,7 @@ func (s *Session) Apply(ctx context.Context, conn *bidi.Conn, hostOK func(host s
 		if err := conn.CallFunctionJSON(ctx, cx, setStorageJS, &n, string(items)); err != nil {
 			return out, fmt.Errorf("set local storage for %s: %w", o.Origin, err)
 		}
+		out.Storage += len(o.LocalStorage)
 	}
 	return out, nil
 }
@@ -222,20 +243,33 @@ func Capture(ctx context.Context, p *page.Page, t policy.Target) (*Session, erro
 		return nil, fmt.Errorf("open a tab: %w", err)
 	}
 	defer closeTab(p, cx)
-	nctx, cancel := context.WithTimeout(ctx, formTimeout)
-	defer cancel()
-	if _, err := conn.Navigate(nctx, cx, t.BaseURL); err != nil {
-		return nil, fmt.Errorf("visit %s to read local storage: %w", t.BaseURL, err)
+	// Local storage belongs to an origin. Read it from the target's origin and from the sign-in page's
+	// origin, which can be another allowed host.
+	visit := []string{t.BaseURL}
+	if t.Signin != nil {
+		if login := t.LoginURL(); login != "" {
+			visit = append(visit, login)
+		}
 	}
-	var ls struct {
-		Origin string        `json:"origin"`
-		Items  []StorageItem `json:"items"`
-	}
-	if err := conn.CallFunctionJSON(ctx, cx, readStorageJS, &ls); err != nil {
-		return nil, fmt.Errorf("read local storage: %w", err)
-	}
-	if len(ls.Items) > 0 {
-		s.Origins = append(s.Origins, SessionOrigin{Origin: ls.Origin, LocalStorage: ls.Items})
+	seen := map[string]bool{}
+	for _, addr := range visit {
+		nctx, cancel := context.WithTimeout(ctx, formTimeout)
+		_, err := conn.Navigate(nctx, cx, addr)
+		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("visit %s to read local storage: %w", addr, err)
+		}
+		var ls struct {
+			Origin string        `json:"origin"`
+			Items  []StorageItem `json:"items"`
+		}
+		if err := conn.CallFunctionJSON(ctx, cx, readStorageJS, &ls); err != nil {
+			return nil, fmt.Errorf("read local storage: %w", err)
+		}
+		if len(ls.Items) > 0 && !seen[ls.Origin] {
+			seen[ls.Origin] = true
+			s.Origins = append(s.Origins, SessionOrigin{Origin: ls.Origin, LocalStorage: ls.Items})
+		}
 	}
 	if len(s.Cookies) == 0 && len(s.Origins) == 0 {
 		return nil, errors.New("the browser holds no cookies or local storage after sign-in, so there is nothing to save")
@@ -253,8 +287,8 @@ func loadSession(ctx context.Context, p *page.Page, t policy.Target, path string
 	if err != nil {
 		return err
 	}
-	if a.Cookies == 0 && len(s.Origins) == 0 {
-		return fmt.Errorf("none of the %d cookies in the session file can be used: they are expired or for hosts outside allowed_hosts", len(s.Cookies))
+	if a.Cookies == 0 && a.Storage == 0 {
+		return fmt.Errorf("nothing in the session file can be used: its cookies and local storage are expired or for hosts outside allowed_hosts")
 	}
 	return nil
 }
