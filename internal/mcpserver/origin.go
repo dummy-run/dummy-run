@@ -21,7 +21,8 @@ var metadataHosts = map[string]bool{
 
 // metadataAddrs are the addresses of cloud metadata services that are not in the link-local range. The
 // AWS IPv6 endpoint sits in a unique local range that counts as private, so it needs its own entry.
-var metadataAddrs = []net.IP{net.ParseIP("fd00:ec2::254"), net.ParseIP("169.254.169.254"), net.ParseIP("169.254.170.2")}
+var metadataAddrs = []net.IP{net.ParseIP("fd00:ec2::254"), net.ParseIP("169.254.169.254"), net.ParseIP("169.254.170.2"),
+	net.ParseIP("100.100.100.200"), net.ParseIP("192.0.0.192")}
 
 func isMetadataAddr(ip net.IP) bool {
 	for _, m := range metadataAddrs {
@@ -153,22 +154,35 @@ func (o *Origins) listed(scheme, host, port string) bool {
 // the browser to fail. The answer is read once, so this narrows the risk and is not a defence against DNS
 // rebinding.
 func resolvesToAllowedAddress(host string) error {
-	if net.ParseIP(host) != nil {
-		return nil
+	if ip := net.ParseIP(host); ip != nil {
+		return checkAddress(host, ip)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	addrs, err := lookupIP(ctx, host)
 	if err != nil {
 		return nil
 	}
 	for _, a := range addrs {
-		if isMetadataAddr(a.IP) {
-			return fmt.Errorf("%s resolves to %s, a cloud metadata address", host, a.IP)
+		if err := checkAddress(host, a.IP); err != nil {
+			return err
 		}
-		if a.IP.IsLinkLocalUnicast() || a.IP.IsLinkLocalMulticast() || a.IP.IsUnspecified() {
-			return fmt.Errorf("%s resolves to %s, a link-local address where cloud metadata services live", host, a.IP)
-		}
+	}
+	return nil
+}
+
+// lookupIP resolves a name. A test replaces it.
+var lookupIP = func(ctx context.Context, host string) ([]net.IPAddr, error) {
+	return net.DefaultResolver.LookupIPAddr(ctx, host)
+}
+
+// checkAddress refuses a metadata address and any link-local or unspecified address.
+func checkAddress(host string, ip net.IP) error {
+	if isMetadataAddr(ip) {
+		return fmt.Errorf("%s is or resolves to %s, a cloud metadata address", host, ip)
+	}
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+		return fmt.Errorf("%s is or resolves to %s, a link-local address where cloud metadata services live", host, ip)
 	}
 	return nil
 }

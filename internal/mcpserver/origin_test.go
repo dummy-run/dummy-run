@@ -1,6 +1,8 @@
 package mcpserver
 
 import (
+	"context"
+	"net"
 	"strings"
 	"testing"
 )
@@ -63,5 +65,40 @@ func TestParseOriginsRejectsBroadEntries(t *testing.T) {
 		if _, err := ParseOrigins([]string{bad}); err == nil {
 			t.Errorf("ParseOrigins(%q) accepted it", bad)
 		}
+	}
+}
+
+func TestListedMetadataAddressesAreStillRefused(t *testing.T) {
+	o, err := ParseOrigins([]string{"169.254.169.254", "100.100.100.200", "169.254.1.1", "192.0.0.192"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, u := range []string{"http://169.254.169.254/", "http://100.100.100.200/", "http://169.254.1.1/", "http://192.0.0.192/"} {
+		if _, err := o.Check(u); err == nil {
+			t.Errorf("%s was allowed although it is a metadata or link-local address", u)
+		}
+	}
+}
+
+func TestAPrivateNameThatResolvesToAMetadataAddressIsRefused(t *testing.T) {
+	old := lookupIP
+	defer func() { lookupIP = old }()
+	lookupIP = func(_ context.Context, host string) ([]net.IPAddr, error) {
+		switch host {
+		case "app.internal":
+			return []net.IPAddr{{IP: net.ParseIP("fd00:ec2::254")}}, nil
+		case "link.test":
+			return []net.IPAddr{{IP: net.ParseIP("169.254.1.1")}}, nil
+		}
+		return []net.IPAddr{{IP: net.ParseIP("10.0.0.5")}}, nil
+	}
+	o, _ := ParseOrigins(nil)
+	for _, u := range []string{"https://app.internal/", "https://link.test/"} {
+		if _, err := o.Check(u); err == nil {
+			t.Errorf("%s was allowed", u)
+		}
+	}
+	if _, err := o.Check("https://ok.internal/"); err != nil {
+		t.Errorf("a private name that resolves to a private address was refused: %v", err)
 	}
 }
