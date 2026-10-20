@@ -737,7 +737,8 @@ func applyBaseline(rep *Report, base *Report, omitted []string) {
 	for fp, info := range prevInfo {
 		// A report can only say a problem was not seen again when it looked for that kind of problem.
 		// Without runs nothing looked for persona findings, and without a sweep nothing looked for axe rules.
-		if info.Source == "axe" && rep.Axe == nil || info.Source != "axe" && rep.Scope.Runs.Total == 0 {
+		// A sweep with pages that could not be tested may have missed the rule there, so it clears nothing.
+		if info.Source == "axe" && (rep.Axe == nil || rep.Axe.PageErrors > 0) || info.Source != "axe" && rep.Scope.Runs.Total == 0 {
 			continue
 		}
 		if !seen[fp] {

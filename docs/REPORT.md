@@ -77,7 +77,7 @@ dummyrun report --runs runs/week-1 --format json --out week-1.json
 dummyrun report --runs runs/week-2 --baseline week-1.json --out week-2.html
 ```
 
-Findings are matched by fingerprint, and axe rules by rule. Each is marked new or still present. A problem that the baseline had and the new report did not find again is listed as fixed. Axe rules are listed only when the new report has a sweep, and persona findings only when it has runs. A sample can miss a problem that is still there, so check a fixed problem before you close it.
+Findings are matched by fingerprint, and axe rules by rule. Each is marked new or still present. A problem that the baseline had and the new report did not find again is listed as fixed. Axe rules are listed only when the new report has a sweep that tested every page, and persona findings only when it has runs. A sample can miss a problem that is still there, so check a fixed problem before you close it.
 
 ## Other formats
 

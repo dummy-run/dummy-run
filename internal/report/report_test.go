@@ -698,3 +698,25 @@ func TestBaselineItemsAreNotFixedWhenTheNewReportDidNotLookForThem(t *testing.T)
 		}
 	}
 }
+
+func TestAxeRulesAreNotFixedWhenTheSweepHadPageErrors(t *testing.T) {
+	opt := fixtureOptions(t)
+	base, err := Build(loadFixture(t), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if base.Axe == nil || base.Axe.PageErrors == 0 {
+		t.Skip("the fixture sweep has no page errors")
+	}
+	base.Axe.Rules = append(base.Axe.Rules, AxeRule{Fingerprint: "lost-rule", Rule: "lost-rule", Help: "A rule on a page that failed to load", Impact: "serious"})
+	opt.Baseline = base
+	rep, err := Build(loadFixture(t), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range rep.Fixed {
+		if f.Source == "axe" {
+			t.Errorf("axe rule %q is listed as fixed although the sweep could not test every page", f.Title)
+		}
+	}
+}
