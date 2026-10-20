@@ -42,6 +42,7 @@
     <ul class="scan-care">
       <li>It loads public pages only and never signs in.</li>
       <li>It is read-only. Only GET, HEAD and OPTIONS requests reach your site.</li>
+      <li>It is rate limited, with a cap on pages for each scan.</li>
       <li>It identifies itself in the user agent, and it honours robots.txt.</li>
       <li>It stops when you ask. <a href="/scanner/">Dummy Run visited my site</a> says how.</li>
     </ul>
@@ -59,5 +60,8 @@
   </section>
   {{ partial "waitlist-script.html" . }}
   {{- end }}
+  <section class="band prose scan-sources">
+    {{ .Content }}
+  </section>
 </div>
 {{ end }}
