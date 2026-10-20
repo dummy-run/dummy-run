@@ -2,66 +2,66 @@
 {{- $compact := .compact | default false -}}
 <div class="flow{{ if $compact }} is-compact{{ end }}" role="group" aria-label="The whole flow, from a cast of personas to the report">
   <p class="flow-controls"><button type="button" class="flow-toggle" aria-pressed="false" hidden><span class="flow-toggle-icon" aria-hidden="true"></span>Pause animation<span class="flow-toggle-state" aria-hidden="true">Paused</span></button></p>
-  <ol class="flow-steps">
-    <li class="flow-step" style="--i:0">
+  <ol class="flow-steps" role="list">
+    <li class="flow-step">
       <span class="flow-num" aria-hidden="true">1</span>
       <span class="flow-name">Pick a cast</span>
       <div class="flow-art is-cast" aria-hidden="true">
         {{ partial "icons/mascot.html" (dict "class" "flow-mascot") }}
-        <span class="flow-chip" style="--d:0.1s">Screen reader</span><span class="flow-chip" style="--d:0.4s">Keyboard only</span><span class="flow-chip" style="--d:0.7s">Older adult</span><span class="flow-chip" style="--d:1s">Slow phone</span><span class="flow-chip" style="--d:1.3s">Viewer</span><span class="flow-chip" style="--d:1.6s">Admin</span>
+        <span class="flow-chip">Screen reader</span><span class="flow-chip">Keyboard only</span><span class="flow-chip">Older adult</span><span class="flow-chip">Slow phone</span><span class="flow-chip">Viewer</span><span class="flow-chip">Admin</span>
       </div>
       <p class="flow-text">Personas from the library, such as a screen-reader user or an older adult.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
-    <li class="flow-step" style="--i:1">
+    <li class="flow-step">
       <span class="flow-num" aria-hidden="true">2</span>
       <span class="flow-name">Use the real app</span>
       <div class="flow-art is-run" aria-hidden="true">
-        <div class="flow-browser"><span class="flow-url g-code">preview</span><span class="flow-line" style="--d:0.1s"></span><span class="flow-line" style="--d:0.35s"></span><span class="flow-line" style="--d:0.6s"></span></div>
-        <div class="flow-acts"><span class="flow-pill" style="--d:0.3s">Sees</span><span class="flow-pill" style="--d:1s">Thinks</span><span class="flow-pill" style="--d:1.7s">Acts</span></div>
-        <div class="flow-block"><span class="flow-post" style="--d:1.9s">POST</span><span class="flow-lock" style="--d:1.9s">{{ partial "icons/icon.html" (dict "name" "lock") }}Writes blocked</span></div>
+        <div class="flow-browser"><span class="flow-url g-code">preview</span><span class="flow-line"></span><span class="flow-line"></span><span class="flow-line"></span></div>
+        <div class="flow-acts"><span class="flow-pill">Sees</span><span class="flow-pill">Thinks</span><span class="flow-pill">Acts</span></div>
+        <div class="flow-block"><span class="flow-post">POST</span><span class="flow-lock">{{ partial "icons/icon.html" (dict "name" "lock") }}Writes blocked</span></div>
       </div>
       <p class="flow-text">Chrome or Firefox, with writes blocked. Each step it sees, thinks with the model you choose and acts.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
-    <li class="flow-step" style="--i:2">
+    <li class="flow-step">
       <span class="flow-num" aria-hidden="true">3</span>
       <span class="flow-name">Find problems</span>
       <div class="flow-art is-find" aria-hidden="true">
-        <span class="flow-claim" style="--d:0.1s">Submit is under the keyboard</span>
-        <span class="flow-tags"><span class="flow-evidence" style="--d:1s">Step 7</span><span class="flow-evidence" style="--d:1.6s">Screenshot</span></span>
+        <span class="flow-claim">Submit is under the keyboard</span>
+        <span class="flow-tags"><span class="flow-evidence">Step 7</span><span class="flow-evidence">Screenshot</span></span>
       </div>
       <p class="flow-text">Every finding cites the steps and screenshots behind it.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
-    <li class="flow-step" style="--i:3">
+    <li class="flow-step">
       <span class="flow-num" aria-hidden="true">4</span>
       <span class="flow-name">A person reviews</span>
       <div class="flow-art is-review" aria-hidden="true">
-        <div class="flow-row"><span class="flow-mini">Submit is hidden</span><span class="flow-verdict is-yes" style="--d:0.2s">{{ partial "icons/icon.html" (dict "name" "tick") }}Confirm</span></div>
-        <div class="flow-row"><span class="flow-mini">Admin sees rates</span><span class="flow-verdict is-no" style="--d:0.2s">{{ partial "icons/icon.html" (dict "name" "cross") }}Reject</span></div>
-        <span class="flow-cursor" style="--d:0.2s"></span>
+        <div class="flow-row"><span class="flow-mini">Submit is hidden</span><span class="flow-verdict is-yes">{{ partial "icons/icon.html" (dict "name" "tick") }}Confirm</span></div>
+        <div class="flow-row"><span class="flow-mini">Admin sees rates</span><span class="flow-verdict is-no">{{ partial "icons/icon.html" (dict "name" "cross") }}Reject</span></div>
+        <span class="flow-cursor"></span>
       </div>
       <p class="flow-text">A person confirms or rejects each finding.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
-    <li class="flow-step" style="--i:4">
+    <li class="flow-step">
       <span class="flow-num" aria-hidden="true">5</span>
       <span class="flow-name">Check coverage</span>
       <div class="flow-art is-cover" aria-hidden="true">
-        <span class="flow-meter"><span class="flow-meter-fill" style="--d:0.4s"></span></span>
-        <span class="flow-sums"><span class="flow-count" style="--d:0.4s">At least <span class="flow-n"></span> unfound</span><span class="flow-stop" style="--d:1.9s">Stop when flat</span></span>
+        <span class="flow-meter"><span class="flow-meter-fill"></span></span>
+        <span class="flow-sums"><span class="flow-count">At least <span class="flow-n"></span> in all</span><span class="flow-stop">Stop when flat</span></span>
       </div>
-      <p class="flow-text">How much is covered, and at least how many problems are still unfound. Stop when new finds dry up.</p>
+      <p class="flow-text">How much is covered, and a lower bound on how many problems there are in all. Stop when new finds dry up.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
-    <li class="flow-step" style="--i:5">
+    <li class="flow-step">
       <span class="flow-num" aria-hidden="true">6</span>
       <span class="flow-name">Share the result</span>
       <div class="flow-art is-out" aria-hidden="true">
-        <span class="flow-out" style="--d:0.2s;--r:-28deg">{{ partial "icons/icon.html" (dict "name" "report") }}Report</span>
-        <span class="flow-out" style="--d:0.7s;--r:-28deg"><svg class="flow-spark" viewBox="0 0 32 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" style="--d:1.2s" d="M1 11l5-4 4 2 5-7 5 6 4-3 7 5"/></svg>Grafana</span>
-        <span class="flow-out" style="--d:1.2s;--r:-28deg">{{ partial "icons/icon.html" (dict "name" "terminal") }}CI</span>
+        <span class="flow-out">{{ partial "icons/icon.html" (dict "name" "report") }}Report</span>
+        <span class="flow-out"><svg class="flow-spark" viewBox="0 0 32 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M1 11l5-4 4 2 5-7 5 6 4-3 7 5"/></svg>Grafana</span>
+        <span class="flow-out">{{ partial "icons/icon.html" (dict "name" "terminal") }}CI</span>
       </div>
       <p class="flow-text">A report, Grafana dashboards over OpenTelemetry and a CI check.</p>
     </li>

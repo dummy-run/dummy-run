@@ -797,6 +797,38 @@ td code, th code { white-space: nowrap; }
   @keyframes flow-draw-4 { 0%, 76.17% { opacity: 1; clip-path: var(--clip0); } 82.50%, 96% { opacity: 1; clip-path: inset(0); } 99% { opacity: 0; clip-path: inset(0); } 100% { opacity: 0; clip-path: var(--clip0); } }
 }
 
+/* Timing for the flow. The page sets a strict Content Security Policy, so these values live here and not in style attributes. --i is the step, --d the delay inside a step and --r a tilt. */
+.flow-steps > li:nth-child(1) { --i: 0; }
+.flow-steps > li:nth-child(2) { --i: 1; }
+.flow-steps > li:nth-child(3) { --i: 2; }
+.flow-steps > li:nth-child(4) { --i: 3; }
+.flow-steps > li:nth-child(5) { --i: 4; }
+.flow-steps > li:nth-child(6) { --i: 5; }
+.is-cast .flow-chip:nth-of-type(1) { --d: 0.1s; }
+.is-cast .flow-chip:nth-of-type(2) { --d: 0.4s; }
+.is-cast .flow-chip:nth-of-type(3) { --d: 0.7s; }
+.is-cast .flow-chip:nth-of-type(4) { --d: 1s; }
+.is-cast .flow-chip:nth-of-type(5) { --d: 1.3s; }
+.is-cast .flow-chip:nth-of-type(6) { --d: 1.6s; }
+.flow-browser .flow-line:nth-child(2) { --d: 0.1s; }
+.flow-browser .flow-line:nth-child(3) { --d: 0.35s; }
+.flow-browser .flow-line:nth-child(4) { --d: 0.6s; }
+.flow-acts .flow-pill:nth-child(1) { --d: 0.3s; }
+.flow-acts .flow-pill:nth-child(2) { --d: 1s; }
+.flow-acts .flow-pill:nth-child(3) { --d: 1.7s; }
+.flow-post, .flow-lock { --d: 1.9s; }
+.flow-claim { --d: 0.1s; }
+.flow-tags .flow-evidence:nth-child(1) { --d: 1s; }
+.flow-tags .flow-evidence:nth-child(2) { --d: 1.6s; }
+.flow-verdict, .flow-cursor { --d: 0.2s; }
+.flow-meter-fill, .flow-count { --d: 0.4s; }
+.flow-stop { --d: 1.9s; }
+.is-out .flow-out { --r: -28deg; }
+.is-out .flow-out:nth-of-type(1) { --d: 0.2s; }
+.is-out .flow-out:nth-of-type(2) { --d: 0.7s; }
+.is-out .flow-out:nth-of-type(3) { --d: 1.2s; }
+.flow-spark path { --d: 1.2s; }
+
 /* Watch a run. All steps read as a list. With JavaScript one step shows at a time. */
 .rp-facts { display: grid; gap: 0.5rem 1.5rem; grid-template-columns: 1fr; margin: 1rem 0 0; padding: 1.1rem 1.3rem; border-radius: var(--radius); background: var(--panel); border-top: 5px solid var(--amber); font-size: var(--type-small); }
 @media (min-width: 48em) { .rp-facts { grid-template-columns: 1fr 1fr; } }
