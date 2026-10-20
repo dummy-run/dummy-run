@@ -254,7 +254,7 @@ func TestReviewFieldsAreReadWhenPresent(t *testing.T) {
 	}
 	var withReview, without int
 	for _, f := range rep.Findings {
-		if len(f.Reviewers) > 0 && f.Reviewers[0] == "Priya Shah" && f.ReviewedAt == "2026-10-18T09:30:00Z" && strings.Contains(f.Reason, "Reproduced") {
+		if len(f.Reviewers) > 0 && f.Reviewers[0] == "example-reviewer" && f.ReviewedAt == "2026-10-18T09:30:00Z" && strings.Contains(f.Reason, "Reproduced") {
 			withReview++
 		} else {
 			without++
@@ -263,7 +263,7 @@ func TestReviewFieldsAreReadWhenPresent(t *testing.T) {
 	if withReview != 1 || without == 0 {
 		t.Errorf("records with reviewer fields: %d, without: %d. A record without them must still load", withReview, without)
 	}
-	if !strings.Contains(render(t, rep, "html"), "Priya Shah") {
+	if !strings.Contains(render(t, rep, "html"), "example-reviewer") {
 		t.Error("the reviewer is not in the HTML")
 	}
 }
@@ -660,5 +660,41 @@ func TestSplitReviewsKeepsLargeIntegersExact(t *testing.T) {
 	}
 	if !strings.Contains(string(out), "9223372036854775807") {
 		t.Errorf("the seed changed: %s", out)
+	}
+}
+
+func TestBaselineItemsAreNotFixedWhenTheNewReportDidNotLookForThem(t *testing.T) {
+	opt := fixtureOptions(t)
+	opt.IncludePending = true
+	base, err := Build(loadFixture(t), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if base.Axe == nil || len(base.Findings) == 0 {
+		t.Fatal("the fixture baseline needs persona findings and an axe sweep")
+	}
+	// A report with runs and no sweep must not call the baseline's axe rules fixed.
+	noSweep := fixtureOptions(t)
+	noSweep.A11y = nil
+	noSweep.Baseline = base
+	rep, err := Build(loadFixture(t), noSweep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range rep.Fixed {
+		if f.Source == "axe" {
+			t.Errorf("axe rule %q is listed as fixed although this report ran no sweep", f.Title)
+		}
+	}
+	// A report with a sweep and no runs must not call the baseline's persona findings fixed.
+	sweepOnly := Options{A11y: fixtureOptions(t).A11y, Date: fixedDate, Baseline: base}
+	rep, err = Build(nil, sweepOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range rep.Fixed {
+		if f.Source == "persona" {
+			t.Errorf("finding %q is listed as fixed although this report has no runs", f.Title)
+		}
 	}
 }

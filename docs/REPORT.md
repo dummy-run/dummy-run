@@ -77,7 +77,7 @@ dummyrun report --runs runs/week-1 --format json --out week-1.json
 dummyrun report --runs runs/week-2 --baseline week-1.json --out week-2.html
 ```
 
-Findings are matched by fingerprint, and axe rules by rule. Each is marked new or still present. A problem that the baseline had and the new report did not find again is listed as fixed. A sample can miss a problem that is still there, so check a fixed problem before you close it.
+Findings are matched by fingerprint, and axe rules by rule. Each is marked new or still present. A problem that the baseline had and the new report did not find again is listed as fixed. Axe rules are listed only when the new report has a sweep, and persona findings only when it has runs. A sample can miss a problem that is still there, so check a fixed problem before you close it.
 
 ## Other formats
 
@@ -90,14 +90,14 @@ Findings are matched by fingerprint, and axe rules by rule. Each is marked new o
 
 ## The limits
 
-The report says the following on its last page.
+The report prints these limits on its last page.
 
-- It is a sample. Personas played a set of scenarios on one build. A problem they did not meet is not in it.
+- It is a sample. Personas played a set of scenarios on the builds listed under scope. A problem they did not meet is not in it.
 - It is not a WCAG conformance claim, a certificate or a statement about the law.
-- Automated checks find only some accessibility problems.
+- Automated checks find only some accessibility problems. The sweep covers the pages it lists and nothing else.
 - It does not replace testing with disabled people.
 - A finding marked not reviewed is a claim by a model that no person has checked.
-- Parts of the app that no run visited are not covered.
+- Parts of the app that no run visited are not covered, whether or not the report has findings.
 
 The report never says that the target passed or is compliant. A test in `internal/report` fails when the templates or any rendered format use those words. A report with no findings says that the runs found none and that this says little on its own.
 

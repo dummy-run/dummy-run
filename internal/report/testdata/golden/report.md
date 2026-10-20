@@ -98,7 +98,7 @@ Findings are sorted by severity, then by the number of runs that found them. Eac
 - Evidence: code
 - Found by: lin-contributor in 1 of 4 runs
 - WCAG 2.2 criterion: not recorded for this finding
-- Review: confirmed by Priya Shah on 2026-10-18T09:30:00Z. Reason: Reproduced on the preview with a contributor account.
+- Review: confirmed by example-reviewer on 2026-10-18T09:30:00Z. Reason: Reproduced on the preview with a contributor account.
 - Fingerprint: `933d06cb3cee90e4`
 
 How to reproduce. Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.

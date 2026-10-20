@@ -381,7 +381,7 @@
       "evidence": "code",
       "status": "confirmed",
       "reviewers": [
-        "Priya Shah"
+        "example-reviewer"
       ],
       "reviewed_at": "2026-10-18T09:30:00Z",
       "reason": "Reproduced on the preview with a contributor account.",
