@@ -199,7 +199,7 @@ Flags:
   --sitemap URL     a sitemap (or sitemap index) listing the pages to test
   --rebase URL      move every sitemap URL onto this origin, to test a local copy of a site
   --browser NAME    chrome or firefox (default chrome)
-  --viewport NAME   desktop (1280 wide), phone (375 wide) or both (default both)
+  --viewport NAME   desktop (1280), phone (375), small (320) or both (desktop and phone, the default)
   --scheme NAME     light, dark or both (default both)
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,

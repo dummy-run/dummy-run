@@ -36,6 +36,8 @@ type Viewport struct {
 var (
 	Desktop = Viewport{Name: "desktop", Width: 1280, Height: 900}
 	Phone   = Viewport{Name: "phone", Width: 375, Height: 740}
+	// Small is 320 CSS px wide, the width WCAG 1.4.10 sets for reflow, and the narrowest phone in use.
+	Small = Viewport{Name: "small", Width: 320, Height: 640}
 )
 
 // Colour schemes the sweep can ask the browser for.

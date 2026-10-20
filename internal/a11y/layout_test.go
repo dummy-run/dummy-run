@@ -26,6 +26,11 @@ var layoutPages = map[string]string{
 <button class="btn" id="a">First</button> <button class="btn" id="b">Second</button>
 <button id="lone" style="width:12px;height:12px;margin:60px"></button>
 <button class="btn" id="icon"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">Screen reader label</span>Menu</button></main>` + layoutTail,
+	// Two links in one narrow paragraph wrap onto several lines. Their bounding boxes cross but the lines do not,
+	// so they do not overlap. The details are closed, so the long block in them is not on the page.
+	"/wrapped": layoutHead + `<h1>Wrapped</h1><p style="width:120px;font-size:20px;line-height:1.6">See <a href="/a">the first long link text</a> and <a href="/b">the second long link text</a> here.</p>
+<details><summary class="btn">More</summary><pre style="height:400px">hidden</pre><button id="hiddentiny" style="width:8px;height:8px;padding:0"></button><button id="hiddentiny2" style="width:8px;height:8px;padding:0"></button></details>
+<button class="btn" id="after">After</button>` + layoutTail,
 	"/overflow": layoutHead + `<h1>Overflow</h1><div id="wide" style="width:640px;height:40px;background:#cde">A fixed-width block</div>
 <button class="btn" id="a">Ok</button>` + layoutTail,
 	"/clipped": layoutHead + `<h1>Clipped</h1>
@@ -164,6 +169,15 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 			f := layoutFinding(res, RuleTargetSize)
 			if f == nil || !strings.Contains(targets(f), "s2") || strings.Contains(targets(f), "ok") {
 				t.Errorf("small targets %v, want both crowded 14 px buttons and not #ok", f)
+			}
+			// Links that wrap compare line by line, and the content of a closed <details> is not on the page.
+			res = layoutRun(t, browser, srv.URL+"/wrapped", nil, "")[0]
+			if f := layoutFinding(res, RuleOverlap); f != nil {
+				t.Errorf("wrapped links reported as overlapping: %s", targets(f))
+			}
+			// Two tiny buttons side by side would fail the target size rule if they were on the page.
+			if f := layoutFinding(res, RuleTargetSize); f != nil && strings.Contains(targets(f), "hiddentiny") {
+				t.Errorf("content of a closed details is reported: %s", targets(f))
 			}
 			res = layoutRun(t, browser, srv.URL+"/clean", nil, "")[0]
 			for _, rule := range LayoutRules {
