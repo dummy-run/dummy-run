@@ -78,14 +78,14 @@ publish-badge:
         go-version: stable
     - run: go install github.com/dummy-run/dummy-run/cmd/dummyrun@VERSION
     - run: |
-        mkdir site
-        dummyrun report --runs runs --out site/report.html
-        dummyrun report --runs runs --format badge --out site/badge.svg
-        dummyrun report --runs runs --format shields --out site/badge.json
+        mkdir -p badge-out
+        dummyrun report --runs runs --out badge-out/report.html
+        dummyrun report --runs runs --format badge --out badge-out/badge.svg
+        dummyrun report --runs runs --format shields --out badge-out/badge.json
     - run: |
         git fetch origin gh-pages
         git worktree add -B gh-pages ../pages FETCH_HEAD
-        cp site/* ../pages/
+        cp badge-out/* ../pages/
         cd ../pages
         git add .
         if git diff --cached --quiet; then exit 0; fi
