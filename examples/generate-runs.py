@@ -24,7 +24,7 @@ PERSONAS = [
     {"id": "ada-editor", "role": "editor", "device": "desktop"},
     {"id": "sam-author", "role": "author", "device": "phone", "text_scale": 200},
     {"id": "ravi-reviewer", "role": "reviewer", "device": "desktop"},
-    {"id": "lin-contributor", "role": "contributor", "device": "tablet", "zoom": 200},
+    {"id": "lin-contributor", "role": "author", "device": "tablet", "zoom": 200},
 ]
 SCENARIOS = {
     "ada-editor": [("schedule-issue", "Schedule next week's issue"), ("reassign-draft", "Reassign a stalled draft")],
@@ -50,9 +50,9 @@ FINDINGS = {
     "lin-contributor": [("payment-status-wording", "question", "info",
                          "The payment status 'settled' is unclear to a contributor", "inferred", 0.4,
                          "/payments", "region:payment status", "unclear-label"),
-                        ("contributor-sees-rates-table", "permission", "major",
-                         "A contributor can open the rates table for all writers", "code", 0.25,
-                         "/payments", "link:rates", "access-wrongly-allowed")],
+                        ("author-edits-others-draft", "permission", "major",
+                         "An author can edit another author's draft by its address", "code", 0.25,
+                         "/drafts/:id/edit", "page", "access-wrongly-allowed")],
 }
 DEVICES = {"desktop": (1400, 1000), "tablet": (820, 1180), "phone": (390, 844)}
 TAXONOMY_VERSION = 1

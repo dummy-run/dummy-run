@@ -8,7 +8,7 @@
   "ended_at": "2026-10-17T13:54:03.183Z",
   "persona": {
     "id": "lin-contributor",
-    "role": "contributor",
+    "role": "author",
     "device": "tablet",
     "zoom": 200,
     "dimensions": {
@@ -105,21 +105,21 @@
       "at": "2026-10-17T13:53:34.594Z",
       "action": "type",
       "duration_ms": 2631,
-      "url": "https://pr-41.inkwell.example/payments",
+      "url": "https://pr-41.inkwell.example/drafts/1/edit",
       "status": 200,
       "console_errors": 0,
-      "target": "Comment",
-      "route": "/payments"
+      "target": "Title",
+      "route": "/drafts/:id/edit"
     },
     {
       "n": 7,
       "at": "2026-10-17T13:53:39.958Z",
       "action": "look",
       "duration_ms": 2891,
-      "url": "https://pr-41.inkwell.example/payments",
+      "url": "https://pr-41.inkwell.example/drafts/1/edit",
       "status": 200,
       "console_errors": 0,
-      "route": "/payments",
+      "route": "/drafts/:id/edit",
       "screenshot": "screens/008-07.png"
     },
     {
@@ -173,21 +173,21 @@
       "fingerprint": "1718b75300702f7b"
     },
     {
-      "id": "contributor-sees-rates-table",
+      "id": "author-edits-others-draft",
       "kind": "permission",
       "severity": "major",
-      "title": "A contributor can open the rates table for all writers",
+      "title": "An author can edit another author's draft by its address",
       "steps": [
         7
       ],
       "evidence": "code",
       "verdict": "confirmed",
       "class": "problem",
-      "route": "/payments",
-      "locus": "link:rates",
+      "route": "/drafts/:id/edit",
+      "locus": "page",
       "symptom": "access-wrongly-allowed",
       "taxonomy_version": 1,
-      "fingerprint": "933d06cb3cee90e4",
+      "fingerprint": "65c4733c447f838b",
       "reviewer": "example-reviewer",
       "reviewed_at": "2026-10-18T09:54:03Z"
     }

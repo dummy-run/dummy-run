@@ -79,7 +79,7 @@
       },
       {
         "id": "lin-contributor",
-        "role": "contributor",
+        "role": "author",
         "devices": [
           "tablet at 200 percent zoom"
         ],
@@ -134,6 +134,7 @@
     },
     "routes_visited": [
       "/drafts",
+      "/drafts/:id/edit",
       "/issues",
       "/payments",
       "/reviews"
@@ -312,24 +313,24 @@
       },
       "findings": [
         {
-          "fingerprint": "933d06cb3cee90e4",
-          "route": "/payments",
-          "locus": "link:rates",
+          "fingerprint": "65c4733c447f838b",
+          "route": "/drafts/:id/edit",
+          "locus": "page",
           "symptom": "access-wrongly-allowed",
-          "title": "A contributor can open the rates table for all writers",
+          "title": "An author can edit another author's draft by its address",
           "band": "major",
           "severity": "major",
           "verdict": "confirmed",
           "k": 1,
-          "n": 3,
+          "n": 1,
           "wilson95": [
-            0.06,
-            0.79
+            0.21,
+            1
           ],
           "evidence": "code",
           "unreplicated": true,
           "state_conditional": false,
-          "display": "major (reviewer severity major); seen in 1 of 3 exposed runs; evidence code; unreplicated",
+          "display": "major (reviewer severity major); seen in 1 of 1 exposed runs; evidence code; unreplicated",
           "runs": [
             "2026-10-17-lin-contributor-008"
           ]
@@ -371,13 +372,13 @@
   },
   "findings": [
     {
-      "fingerprint": "933d06cb3cee90e4",
-      "title": "A contributor can open the rates table for all writers",
+      "fingerprint": "65c4733c447f838b",
+      "title": "An author can edit another author's draft by its address",
       "severity": "major",
       "kind": "permission",
       "symptom": "access-wrongly-allowed",
-      "route": "/payments",
-      "locus": "link:rates",
+      "route": "/drafts/:id/edit",
+      "locus": "page",
       "evidence": "code",
       "status": "confirmed",
       "reviewers": [
@@ -392,7 +393,7 @@
       "reproduction": {
         "run": "2026-10-17-lin-contributor-008",
         "persona": "lin-contributor",
-        "role": "contributor",
+        "role": "author",
         "device": "tablet",
         "zoom_percent": 200,
         "browser": "firefox 146.0",
@@ -400,8 +401,8 @@
           {
             "n": 7,
             "action": "look",
-            "route": "/payments",
-            "url": "https://pr-41.inkwell.example/payments"
+            "route": "/drafts/:id/edit",
+            "url": "https://pr-41.inkwell.example/drafts/1/edit"
           }
         ]
       },
@@ -410,13 +411,13 @@
           "run": "2026-10-17-lin-contributor-008",
           "step": 7,
           "path": "screens/008-07.png",
-          "alt": "Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /payments"
+          "alt": "Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /drafts/:id/edit"
         }
       ],
       "instances": [
         {
           "run": "2026-10-17-lin-contributor-008",
-          "finding_id": "contributor-sees-rates-table",
+          "finding_id": "author-edits-others-draft",
           "persona": "lin-contributor",
           "device": "tablet",
           "browser": "firefox",
@@ -499,7 +500,7 @@
       "reproduction": {
         "run": "2026-10-16-lin-contributor-002",
         "persona": "lin-contributor",
-        "role": "contributor",
+        "role": "author",
         "device": "tablet",
         "zoom_percent": 200,
         "browser": "chrome 148.0",

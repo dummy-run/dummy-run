@@ -221,5 +221,5 @@ func lookAt(f *Finding) string {
 	if l := locusText(f.Locus); l != "" {
 		return "What to look at: " + l + "."
 	}
-	return "What to look at: what this role can see or do here."
+	return ""
 }
