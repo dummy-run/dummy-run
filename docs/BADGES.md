@@ -113,9 +113,11 @@ your policy asks for it.
 
 ### A release asset
 
-To attach the files to a release, use the GitHub CLI:
+To attach the files to a release, create a release tagged `badges` once, then upload to it from the
+workflow with the GitHub CLI:
 
 ```sh
+gh release create badges --title Badges --notes "Report badges"
 gh release upload badges badge.svg badge.json --clobber
 ```
 

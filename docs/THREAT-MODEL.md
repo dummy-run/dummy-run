@@ -156,7 +156,7 @@ Any model that reads a record still has to fence it and treat it as data. Any to
 
 ### Supply chain
 
-Go modules are locked in `go.sum` and watched by Dependabot and dependency review. CI actions are pinned to commit hashes and checked by zizmor, and gitleaks scans for secrets. The browsers and chromedriver are pinned in CI. The axe-core copy in `internal/page/axe` is vendored with its licence.
+`go.mod` fixes the module versions and `go.sum` records their checksums. Both are watched by Dependabot and dependency review. CI actions are pinned to commit hashes and checked by zizmor, and gitleaks scans for secrets. The browsers and chromedriver are pinned in CI. The axe-core copy in `internal/page/axe` is vendored with its licence.
 
 Casts and scenarios still aren't signed. A cast you didn't write can steer the persona through its prompt, so read it first. `go install ...@latest` takes whatever is newest.
 
@@ -164,7 +164,7 @@ Casts and scenarios still aren't signed. A cast you didn't write can steer the p
 
 `internal/runner/testdata/canary.html` is a page full of injection attempts. They sit in visible text, in text moved off screen, in a `display: none` block and in a comment. They also sit in an `aria-label`, in `alt` text and in a `title` attribute. A link, a redirect and an image lead to another origin.
 
-The browser tests in `internal/runner/canary_browser_test.go` play a scripted model against that page. They show that nothing reaches the other origin, every kind of attempt is flagged, and hidden text isn't sent to the model. They also show that the security finding and the model's own findings survive whether the model resists or obeys, and they cover a provider that refuses the call. Run them with:
+The browser tests in `internal/runner/canary_browser_test.go` play a scripted model against that page. They show that nothing reaches the other origin, every kind of attempt is flagged, and the `display: none` text and the comment aren't sent to the model. They also show that the security finding and the model's own findings survive whether the model resists or obeys, and they cover a provider that refuses the call. Run them with:
 
 ```sh
 DUMMYRUN_BROWSERS=chrome,firefox go test ./internal/runner/
