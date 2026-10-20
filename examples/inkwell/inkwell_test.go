@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -385,16 +386,23 @@ func TestVagueErrorAndDateFormat(t *testing.T) {
 
 func TestSlowReviewsAndShortSession(t *testing.T) {
 	e := newEnv(t, manifestOf("fric-reviews-slow", "fric-session-short"))
+	// The handler runs on another goroutine, so the shared values sit behind a mutex.
+	var mu sync.Mutex
 	var slept time.Duration
-	e.s.sleep = func(d time.Duration) { slept += d }
+	e.s.sleep = func(d time.Duration) { mu.Lock(); slept += d; mu.Unlock() }
 	now := time.Now()
-	e.s.now = func() time.Time { return now }
+	e.s.now = func() time.Time { mu.Lock(); defer mu.Unlock(); return now }
 	c := e.client("editor")
 	e.do(c, "GET", "/reviews", nil)
-	if slept != 3*time.Second {
-		t.Errorf("slept %v", slept)
+	mu.Lock()
+	got := slept
+	mu.Unlock()
+	if got != 3*time.Second {
+		t.Errorf("slept %v", got)
 	}
+	mu.Lock()
 	now = now.Add(3 * time.Minute)
+	mu.Unlock()
 	if code, _ := e.do(c, "GET", "/drafts", nil); code != http.StatusSeeOther {
 		t.Errorf("session should have ended, got %d", code)
 	}
@@ -440,6 +448,36 @@ func TestOpenRedirectRefused(t *testing.T) {
 		if got := safeNext(n); got != "/drafts" {
 			t.Errorf("safeNext(%q) = %q", n, got)
 		}
+	}
+}
+
+func TestSafeNextKeepsLocalPaths(t *testing.T) {
+	for _, n := range []string{"/issues", "/drafts/2?page=1", "/drafts"} {
+		if got := safeNext(n); got != n {
+			t.Errorf("safeNext(%q) = %q, want it kept", n, got)
+		}
+	}
+	if got := safeNext("/issues\x1f"); got != "/drafts" {
+		t.Errorf("a trailing control character was kept: %q", got)
+	}
+}
+
+func TestSignInRedirectsToALocalNext(t *testing.T) {
+	e := newEnv(t, nil)
+	c := e.client("")
+	form := f("email", "ada@inkwell.test", "password", TestPassword, "next", "/drafts/2?page=1")
+	req, err := http.NewRequest("POST", e.srv.URL+"/signin", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := c.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != "/drafts/2?page=1" {
+		t.Errorf("status %d, Location %q", resp.StatusCode, resp.Header.Get("Location"))
 	}
 }
 

@@ -37,7 +37,7 @@ explains the rules that look odd, such as why nobody publishes their own draft.
 
 ## Signing in for a run
 
-The engine has no sign-in step yet, so a test build offers a cookie route. With `-test-login`, a request to
+A target can sign in through the login form with its `signin` block, which is the way to test real sign-in. For a quick run that needs no credentials, a test build offers a cookie route. With `-test-login`, a request to
 `/test-login?as=ROLE&next=PATH` signs in as the first account with that role and redirects to `PATH`. Add
 `&user=ID` to pick an account by its ID, such as `lin`. A target whose `base_url` is that address starts every run
 already signed in.
