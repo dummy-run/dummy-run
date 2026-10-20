@@ -6,7 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- The terminal on the Get started page now plays one real run. You see a persona run against dummyrun.dev, the steps it took, and the report command with its result. The commands type out, the output appears in chunks, and a button pauses it. With reduced motion the whole transcript shows at once. The raw capture and its run ID are in `site/data/start-session.json`, and `bin/check-start-session` checks that every line shown was really printed.
+- The terminal on the Get started page now plays one real run. You see a persona run against dummyrun.dev, the steps it took, and the report command with its result. The commands type out, the output appears in chunks, and a button pauses it. With reduced motion, the whole transcript shows at once. The raw capture and its run ID are in `site/data/start-session.json`, and `bin/check-start-session` checks that each output line is in the capture, is a shortened captured line or is an ellipsis.
 - The home page hero shows a real step and a real finding from the recorded run, in place of the made-up Inkwell phone.
 - The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and the other listed audience phrases (code: `bin/check-prose` and `docs/STYLE.md`).
 

@@ -185,6 +185,10 @@
       return;
     }
     started = true;
+    if (paused) {
+      next = run;
+      return;
+    }
     later(run, 600);
   }
 

@@ -1,5 +1,5 @@
 {
- "note": "A real run against https://dummyrun.dev/ (read-only), played by one persona. The transcript is cut from the raw capture below with … where lines are left out. Titles in the findings table are shortened with …. The --out path was runs/ in the recording's report step and a scratch folder in the run step. To regenerate: build dummyrun from main, run the first command in 'transcript' with your own --out and deployment, then run the review and report commands on that folder, and replace this file. bin/check-start-session checks every transcript line against the raw capture.",
+ "note": "A real run against https://dummyrun.dev/ (read-only), played by one persona. The transcript is cut from the raw capture below with … where lines are left out. Titles in the findings table are shortened with …. The --out path was runs/ in the recording's report step and a scratch folder in the run step. To regenerate: build dummyrun from main, run the first command in 'transcript' with your own --out and deployment, then run the review and report commands on that folder, and replace this file. bin/check-start-session checks every transcript line against the raw capture. The local path in the raw capture is replaced with [local path redacted].",
  "date": "2026-10-20",
  "run_id": "2026-10-20-tom-developer-find-the-quickstart-72451a71f427b886",
  "persona": "tom-developer",
@@ -178,7 +178,7 @@
    "  step 11: click @43 -> https://dummyrun.dev/docs/cli/ (1 blocked)",
    "  model call 11: 19.6s, 13625 in / 1046 out tokens",
    "  step 12: finish pass, 2 findings",
-   "run 2026-10-20-tom-developer-find-the-quickstart-72451a71f427b886: completed, 12 steps, 11 calls, 127510 in / 1195 out tokens, /private/tmp/claude-501/-Users-joel-src-projects-insiris-agentic-personas/ebc35e88-82ae-445b-81fd-765a0740abc5/scratchpad/runs/2026-10-20-tom-developer-find-the-quickstart-72451a71f427b886.json"
+   "run 2026-10-20-tom-developer-find-the-quickstart-72451a71f427b886: completed, 12 steps, 11 calls, 127510 in / 1195 out tokens, [local path redacted]/2026-10-20-tom-developer-find-the-quickstart-72451a71f427b886.json"
   ],
   "persona_report_md": [
    "## Verdict",

@@ -10,17 +10,22 @@
     <p class="hero-note">The free scan gives you an accessibility sweep and a persona&rsquo;s findings on your public pages, by email.</p>
   </div>
   {{- $r := hugo.Data.replay -}}
-  {{- $f := index $r.findings 3 -}}
+  {{- $f := dict -}}
+  {{- range $r.findings }}{{ if eq .id "question-i-found-browser-details-in-the-schema-example-but-not-a-dedi" }}{{ $f = . }}{{ end }}{{ end -}}
+  {{- if not $f }}{{ errorf "home.html: the hero finding is missing from data/replay.json" }}{{ end -}}
+  {{- $last := index $f.steps (sub (len $f.steps) 1) -}}
+  {{- $title := "" -}}
+  {{- range $r.steps }}{{ if eq .n $last }}{{ $title = .title }}{{ end }}{{ end -}}
   <div class="hero-scene">
     <div class="frame">
       <span class="frame-inner"></span>
       <div class="scene is-real">
-        <img class="scene-shot" src="/replay/023.webp" width="1000" height="714" decoding="async" alt="A screenshot from step 23 of a real run. The persona is reading the run record page of this website.">
+        <img class="scene-shot" src="/replay/{{ printf "%03d" (int $last) }}.webp" width="1000" height="714" decoding="async" alt="A screenshot from step {{ $last }} of a real run. The persona is reading the page titled {{ $title }}.">
         <div class="scene-finding">
           <div class="graphic finding" role="group" aria-label="A finding from the same run">
-            <div class="finding-tags"><span class="g-tag is-kind">{{ $f.kind }}</span><span class="g-tag is-minor">{{ $f.severity }}</span><span class="g-tag is-evidence">{{ $f.evidence }}</span><span class="g-tag is-pending">not reviewed</span></div>
+            <div class="finding-tags"><span class="g-tag is-kind">{{ $f.kind }}</span><span class="g-tag is-{{ $f.severity }}">{{ $f.severity }}</span><span class="g-tag is-evidence">{{ $f.evidence }}</span><span class="g-tag is-{{ $f.verdict }}">{{ if eq $f.verdict "pending" }}not reviewed{{ else }}{{ $f.verdict }}{{ end }}</span></div>
             <div class="finding-title">{{ $f.title }}</div>
-            <div class="g-meta">Steps {{ index $f.steps 0 }} and {{ index $f.steps 1 }} of the run.</div>
+            <div class="g-meta">{{ if eq (len $f.steps) 1 }}Step{{ else }}Steps{{ end }} {{ delimit $f.steps ", " " and " }} of the run.</div>
           </div>
         </div>
       </div>
