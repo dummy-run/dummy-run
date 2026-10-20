@@ -93,7 +93,7 @@ how to verify a download.
 | [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
 | [docs/INSTALL.md](docs/INSTALL.md) | Binaries, the container image, how to verify a release, and the image's variables and volumes |
 | [docs/RELEASING.md](docs/RELEASING.md) | The release manager's checklist and the one-time setup |
-| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, focus, reviewing findings, the read-only policy and the accessibility sweep |
+| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, text size, focus, reviewing findings, the read-only policy and the accessibility sweep with its layout checks |
 | [docs/MCP.md](docs/MCP.md) | Using Dummy Run from Claude Code, Cursor, VS Code or Codex through `dummyrun mcp`, and what each tool costs |
 | [docs/CLI.md](docs/CLI.md) | The help text of each command, written from the code |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, their sign-in and what each can do |

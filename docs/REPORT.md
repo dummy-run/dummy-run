@@ -69,6 +69,8 @@ When a problem was found in several runs and only some were confirmed, the probl
 
 The sweep section folds the results of every page and setting into one entry for each rule. It shows the impact and the WCAG criteria. It lists the pages and elements and the settings in which the rule failed. Elements on the allow-list are counted and left out. Rules that axe cannot decide are listed apart under "needs a person to check". Pages that could not be tested are listed too.
 
+When the sweep ran with `--layout` or `--text-scale`, its layout rules appear in the same section, because they are in the sweep file as violations. The rule IDs all begin `dummyrun-`. They map to WCAG 1.4.10, 1.4.4 and 2.5.8. Each is a measurement made in the browser, and the help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
+
 ## Compare with an earlier report
 
 Write the earlier report as JSON and give it back with `--baseline`.

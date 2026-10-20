@@ -90,6 +90,10 @@ func renderPage(s Step) string {
 	if p.Zoom > 100 && len(p.Viewport) == 2 {
 		fmt.Fprintf(&b, "zoom: %d%% (the page lays out in %d x %d CSS px, device pixel ratio %g)\n", p.Zoom, p.Viewport[0], p.Viewport[1], p.DevicePixelRatio)
 	}
+	if p.TextScale > 100 && len(p.Viewport) == 2 {
+		fmt.Fprintf(&b, "text size: %d%% of normal, set as the browser's default font size (the page is not zoomed and lays out in %d x %d CSS px)\n", p.TextScale, p.Viewport[0], p.Viewport[1])
+	}
+	b.WriteString(layoutLine(p.Layout))
 	if len(p.Scroll) == 2 && p.Scroll[1] > 0 && len(p.Viewport) == 2 {
 		fmt.Fprintf(&b, "scroll: %d of %d px (viewport %d px tall)\n", p.Scroll[0], p.Scroll[1], p.Viewport[1])
 	}
@@ -109,6 +113,39 @@ func renderPage(s Step) string {
 		fmt.Fprintf(&b, "  %s\n", strings.TrimRight(line, " "))
 	}
 	return b.String()
+}
+
+// layoutLine says what the geometry checks found, or nothing when they found nothing.
+func layoutLine(l *page.LayoutNote) string {
+	if l == nil {
+		return ""
+	}
+	var parts []string
+	if l.OverflowPx > 0 {
+		parts = append(parts, fmt.Sprintf("the page scrolls sideways (%d px wider than the window)", l.OverflowPx))
+	}
+	if l.Overlaps > 0 {
+		part := fmt.Sprintf("%d %s overlap", l.Overlaps, plural(l.Overlaps, "pair of controls", "pairs of controls"))
+		if len(l.OverlapRefs) > 0 {
+			part += " (" + strings.Join(l.OverlapRefs, ", ") + ")"
+		}
+		parts = append(parts, part)
+	}
+	if l.Clipped > 0 {
+		part := fmt.Sprintf("text is cut off in %d %s", l.Clipped, plural(l.Clipped, "control", "controls"))
+		if len(l.ClippedRefs) > 0 {
+			part += " (" + strings.Join(l.ClippedRefs, ", ") + ")"
+		}
+		parts = append(parts, part)
+	}
+	return "layout: " + strings.Join(parts, "; ") + "\n"
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
 
 // focusLine says which element has keyboard focus.

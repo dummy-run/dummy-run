@@ -77,6 +77,8 @@ type Persona struct {
 	Device string `json:"device"`
 	// Zoom is the page zoom in percent, or 0 when the record has none (100).
 	Zoom int `json:"zoom,omitempty"`
+	// TextScale is the system text size in percent, or 0 when the record has none (100).
+	TextScale int `json:"text_scale,omitempty"`
 	// Dimensions are set in version 2 records.
 	Dimensions *Dimensions `json:"dimensions,omitempty"`
 }

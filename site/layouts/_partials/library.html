@@ -31,7 +31,7 @@
       </header>
       <p class="lib-summary">{{ .summary }}</p>
       <dl class="lib-facts">
-        <div><dt>Device</dt><dd>{{ .device | title }}{{ with .zoom }}, zoom {{ . }} percent{{ end }}</dd></div>
+        <div><dt>Device</dt><dd>{{ .device | title }}{{ with .zoom }}, zoom {{ . }} percent{{ end }}{{ with .textScale }}, text size {{ . }} percent{{ end }}</dd></div>
         {{- with .denied }}<div><dt>Refused</dt><dd>{{ if eq . "click" }}Clicks{{ else if eq . "screenshot" }}Screenshots{{ else }}{{ . }}{{ end }}</dd></div>{{ end }}
         <div><dt>Looks for</dt><dd>{{ .finds }}</dd></div>
         {{- with .limit }}<div><dt>Limit</dt><dd>{{ . }}</dd></div>{{ end }}
