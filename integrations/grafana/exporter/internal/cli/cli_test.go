@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -246,7 +247,7 @@ func TestWatchGivesEachRecordAFreshAnnotationBudget(t *testing.T) {
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
 		grafana.mu2.Lock()
-		n := grafana.posts
+		n := len(grafana.times)
 		grafana.mu2.Unlock()
 		if n >= 2 {
 			break
@@ -257,8 +258,8 @@ func TestWatchGivesEachRecordAFreshAnnotationBudget(t *testing.T) {
 	<-done
 	grafana.mu2.Lock()
 	defer grafana.mu2.Unlock()
-	if grafana.posts < 2 {
-		t.Errorf("%d create calls, want one for each record; stderr %q", grafana.posts, errb.String())
+	if len(grafana.times) < 2 {
+		t.Errorf("creates for %d different records, want both; stderr %q", len(grafana.times), errb.String())
 	}
 }
 
@@ -482,16 +483,31 @@ func TestWatchSendsNewFiles(t *testing.T) {
 
 // limitedGrafana wraps fakeGrafana and answers the first refuse POSTs with 429 and a Retry-After.
 // A negative refuse means every POST.
+// annotationBody is the part of a created annotation that tells records apart.
+type annotationBody struct {
+	Time int64 `json:"time"`
+}
+
 type limitedGrafana struct {
 	fakeGrafana
 	mu2    sync.Mutex
 	refuse int
 	posts  int
+	// times holds the start time of each annotation a POST carried.
+	times map[int64]bool
 }
 
 func (l *limitedGrafana) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
+		data, _ := io.ReadAll(r.Body)
+		r.Body = io.NopCloser(bytes.NewReader(data))
+		var a annotationBody
+		_ = json.Unmarshal(data, &a)
 		l.mu2.Lock()
+		if l.times == nil {
+			l.times = map[int64]bool{}
+		}
+		l.times[a.Time] = true
 		l.posts++
 		limited := l.refuse < 0 || l.posts <= l.refuse
 		l.mu2.Unlock()
