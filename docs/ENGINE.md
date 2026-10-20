@@ -293,7 +293,8 @@ run ID and step number, as [TELEMETRY.md](TELEMETRY.md) describes. The browser's
 
 ## Review
 
-A paid report only holds findings a person has confirmed, and `dummyrun review` is where you confirm them. Point
+A report shows only the findings a person has confirmed, unless you ask it to include pending ones, and
+`dummyrun review` is where you confirm them. Point
 it at a folder of run records, or at the record files themselves. It lists the findings that are still
 `pending` and lets you set each one to `confirmed` or `rejected`.
 
@@ -681,7 +682,7 @@ identity before your Azure CLI sign-in. It never reads an API key. The other pro
 environment when the run starts. The Azure API version defaults to `2025-04-01-preview`, and `--api-version`
 overrides it.
 
-Each call has a 120 second timeout and up to three retries. Token usage from every call is added up in the
+Each call has a 120-second timeout and up to three retries. Token usage from every call is added up in the
 record's `usage` block. `--region` is recorded as `provider.region`, because a deployment doesn't report where
 it runs.
 

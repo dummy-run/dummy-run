@@ -15,7 +15,7 @@ dummyrun report --runs examples/runs --build a865ffd \
 ```
 
 You get a single HTML file with its styles and screenshots inside it. It loads nothing from the network. Open
-it in a browser, or print it to PDF. When you print, the contents list is dropped and the browser is asked not
+it in a browser or print it to PDF. When you print, the contents list is dropped and the browser is asked not
 to split a finding across pages.
 
 | Flag | What it does |
@@ -24,25 +24,25 @@ to split a finding across pages.
 | `--a11y FILE` | A file from `dummyrun a11y --json`. Repeat the flag for several sweeps |
 | `--title`, `--client` | The title, and free text naming who the report is for |
 | `--format` | `html` (the default), `md`, `json`, `sarif`, `junit`, `badge` or `shields`. [BADGES.md](BADGES.md) covers the last two |
-| `--include pending` | Also include findings no reviewer has confirmed. Without it you only see confirmed findings |
+| `--include pending` | Also include findings no reviewer has confirmed. Without it, you only see confirmed findings |
 | `--baseline FILE` | An earlier report in JSON, so each finding is marked new or still present |
 | `--build SHA` | Report on one commit or build hash, at least 7 characters long |
 | `--date` | The report date as `YYYY-MM-DD`. The default is today |
 | `--out FILE` | Write to a file instead of standard output |
 
-Rejected findings never appear, in any format. Neither do observations, which are notes about things that
+Rejected findings never appear in any format. Neither do observations, which are notes about things that
 worked.
 
 ## What is in it
 
 1. A plain-language summary of how many problems were found, how many a person confirmed and how many
-   nobody has reviewed yet.
+   are still unreviewed.
 2. Scope and method. This names the target, the build and the dates. It lists the personas, the dimensions
    they varied and the scenarios. It also lists the browsers, the models and providers, the number of runs and
    what the model calls cost.
 3. Coverage, using the same numbers as [dummyrun coverage](COVERAGE.md).
 4. Findings, worst first.
-5. What worked, when the runs hold observations. These are a model's notes that no person has checked. They
+5. What worked, if the runs hold observations. These are a model's notes that no person has checked. They
    aren't findings and never enter a count.
 6. The axe sweep, if you gave one.
 7. A comparison with the baseline, if you gave one.
@@ -50,11 +50,12 @@ worked.
 
 ## Coverage
 
-The coverage section tells you how much the sample can say. The line to read first is "still unfound". It's
-the Chao2 lower bound on all distinct problems, minus the number already seen. Treat it as a floor. It never
+The coverage section tells you how much the sample can say. Start with "still unfound", which is
+the Chao2 lower bound on all distinct problems minus the number already seen. Treat it as a floor. It never
 counts what remains, and the form of the estimate is named beside it.
 
-Sample coverage is the share of the chance of finding a problem that sits in problems already found. Below
+Sample coverage estimates how likely the next problem a run meets is one you've already found. At 0.90,
+that's about 9 times in 10. Below
 0.50, don't extrapolate from it. When a number can't be estimated, the report says so instead of guessing. If
 your records come from more than one build, coverage isn't computed and the report tells you why. Pass
 `--build` to pick one.
@@ -78,7 +79,7 @@ Each finding shows:
 - screenshots of the cited steps
 
 A persona finding only gets a WCAG criterion when its symptom names an axe rule that appears in a sweep you
-gave. Otherwise the report says it isn't recorded. Screenshots are embedded when the files sit next to the
+gave. Otherwise, the report says it isn't recorded. Screenshots are embedded when the files sit next to the
 record. If one is missing, the report names it and still builds.
 
 A finding with a `pending` verdict hasn't been reviewed, so nobody has checked the model's claim against the
@@ -105,9 +106,10 @@ dummyrun report --runs runs/week-1 --format json --out week-1.json
 dummyrun report --runs runs/week-2 --baseline week-1.json --out week-2.html
 ```
 
-Findings are matched by fingerprint, and axe results by rule. Each is marked new or still present. A problem
-the baseline had that the new runs didn't find again is listed as fixed. Axe rules only appear in the
-comparison when the new report has a sweep that tested every page, and persona findings only when it has runs.
+Findings are matched by fingerprint, and axe results by rule. Each finding in the new report is marked new or
+still present. A problem the baseline had that the new runs didn't find again is listed as fixed. Axe rules
+only appear in the comparison when the new report has a sweep that tested every page, and persona findings
+only when the new report has runs.
 A sample can miss a problem that's still there, so check a fixed problem before you close it.
 
 ## Other formats
@@ -121,17 +123,17 @@ A sample can miss a problem that's still there, so check a fixed problem before 
 
 ## The limits
 
-The report prints these on its last page.
+The HTML report prints these on its last page.
 
-- It's a sample. Personas played a set of scenarios on the builds listed under scope. A problem they didn't
-  meet isn't in it.
+- It's a sample. Personas played a set of scenarios on the builds listed under scope. A problem that no scenario
+  ran into isn't in it.
 - It isn't a WCAG conformance claim, a certificate or a statement about the law.
 - Automated checks find only some accessibility problems. The sweep covers the pages it lists and nothing else.
 - It doesn't replace testing with disabled people.
 - A finding marked not reviewed is a model's claim that no person has checked.
-- Parts of the app no run visited aren't covered, whether or not the report has findings.
+- Parts of the app that no run visited aren't covered, whatever the findings say.
 
-The report never says the target passed or is compliant. If the runs found nothing, it says so, and adds that
+The report never says the target passed or is compliant. If the runs found nothing, it says so and adds that
 this tells you little on its own.
 
 ## Example

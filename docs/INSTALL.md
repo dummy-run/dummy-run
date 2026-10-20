@@ -1,7 +1,7 @@
 # Install
 
 You can install Dummy Run as a binary, as a container image or from Go source. Every release is signed,
-so check what you download before you run it. The first release isn't published yet, so for now use
+so check what you download before you run it. The first release isn't published yet. For now, use
 [Go install](#go-install).
 
 ## Binaries

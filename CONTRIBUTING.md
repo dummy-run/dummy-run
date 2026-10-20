@@ -44,7 +44,7 @@ A hook skips a tool you haven't installed and tells you so. CI still runs every 
 
 ## Running the tests
 
-To run the unit tests:
+`go test ./...` runs the unit tests.
 
 ```sh
 go test ./...

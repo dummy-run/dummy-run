@@ -63,5 +63,5 @@ and `--identify` adds a contact URL as well.
 
 ## Deployment
 
-There's no packaged deployment yet, such as a container image or a Helm chart. Install the engine with
-`go install` as [ENGINE.md](ENGINE.md) shows, and run it on your laptop or in a CI job.
+Run the engine on your laptop, in a CI job or as a container job on a hosted platform. [INSTALL.md](INSTALL.md)
+covers the binaries, the container image and `go install`.

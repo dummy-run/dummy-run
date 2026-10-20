@@ -10,11 +10,11 @@ What a persona can and can't tell you is in [ETHICS.md](ETHICS.md).
 ## Copy a persona into your cast
 
 1. Copy the folder, for example `cp -r casts/library/keyboard-only-user casts/<your-cast>/`.
-2. Edit `profile.md`. You can change the name, but keep `id` the same as the folder name, because the loader
+2. Edit `profile.md`. You can change the name, but keep `id` the same as the folder name because the loader
    checks it. `device` must be `desktop`, `tablet` or `phone`.
 3. Fill in the placeholders. In the scenarios, `[the product]` is your product's name and `[the fact]` is
    something people look for on your site. `[the organisation]` and `[the app]` are what they sound like.
-   Replace every placeholder before a run, because the model reads them as written and guesses what they mean.
+   Replace every placeholder before a run because the model reads them as written and guesses what they mean.
 4. Rename the roles in the permission trio. `role-viewer`, `role-editor` and `role-admin` use generic names.
    Change `role` in the front matter, the folder names and the text to match the roles in your app. Swap the
    example addresses, such as `/admin` and `/records/1/edit`, for real ones.
@@ -43,14 +43,14 @@ older adults are confident. Noor uses a screen reader, and no one person speaks 
 `role-viewer`, `role-editor` and `role-admin` test what each role can see and do beyond its rights. Each has
 four scenarios that try the obvious things a curious user would, such as opening an edit address as a viewer
 or an admin page as an editor. Run them only on a test environment, with test data and test accounts. A
-finding that a role can do something it shouldn't is often the most useful thing a run turns up.
+finding that a role can do something it shouldn't is often the first one to act on.
 
 These three sign in as the role in their `role` key. Give your target file a `signin` block with credentials
 for those roles, or for the names you renamed them to, and the engine signs each persona in before it starts.
-The persona never sees the password. The block and the two sign-in methods are under Sign in in
+The persona never sees the password. The block and the two sign-in methods are in the Sign in section of
 [ENGINE.md](ENGINE.md).
 
-Use a test account with no multi-factor step, or a saved session file. A read-only target still works,
+Use a test account with no multi-factor step, or a saved session file. A read-only target still works
 because the engine's own sign-in request is the one write it allows.
 
 ## Settings a persona can use

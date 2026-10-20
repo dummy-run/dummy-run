@@ -100,7 +100,7 @@ has them, it also gets `url.full` and `http.response.status_code`, plus
 step that got a status of 500 or more has status `ERROR`.
 
 Each finding is a span event named `dummyrun.finding` on the root span, timed at the `at` of the
-finding's first step. Security findings show up with `security` as `dummyrun.finding.kind`.
+finding's first step, or at the run's start when the finding cites no step. Security findings show up with `security` as `dummyrun.finding.kind`.
 
 | Event attribute | From the finding |
 |---|---|
@@ -145,11 +145,11 @@ cost unit is in braces so the translation drops it, which gives `dummyrun_cost_u
 
 Run IDs and finding IDs are never metric labels, since every value would start a new series.
 `scenario.id` is a label on `dummyrun.runs` and `dummyrun.run.duration` because scenario IDs come from
-your cast's files and stay few. Findings carry the scenario only in their log record.
+the scenario file names in your cast. Keep their number small so the series stay few. Findings carry the scenario only in their log record.
 
 Metric data points carry the time the exporter sent them, and each exporter process starts its counters
 at zero. So metrics describe runs as you export them. Use `dummyrun-otel watch` for live charts, and the
-log records for history. Each run-end record holds the run's outcome, step count, tokens and cost.
+log records for history. Each run-end record holds the run's outcome, step count and tokens, plus the cost when the record has one.
 Each finding record holds one finding. For step durations, use the step spans in traces.
 
 | Histogram | Bucket boundaries |
@@ -193,14 +193,14 @@ annotation with the same tags and times, and skips the run if there is one.
 
 Grafana can answer HTTP 429 when annotations arrive too fast. The exporter waits at least half a second
 between calls, and retries a call that gets a 429 up to five times, honouring `Retry-After`. A lookup
-also retries on a 5xx. A create doesn't, because Grafana may already have stored the annotation. One
+also retries on a 5xx. The request that creates an annotation doesn't retry on a 5xx, because Grafana may already have stored it. One
 export spends at most ten minutes on annotations.
 
 If an annotation still fails, the exporter carries on and sends the telemetry for every run. Then it
 lists the failed annotations and exits with code 3. The exit codes mean:
 
-- Code 3: some annotations couldn't be created. Any telemetry you selected was sent first (with `--signals annotations` there is none).
-- Code 1: the telemetry failed.
+- 3 means some annotations couldn't be created. Any telemetry you selected was sent first, and with `--signals annotations` there is none.
+- 1 means the telemetry failed.
 
 To fill the gaps, export again with `--signals annotations`. That sends only the annotations, without
 repeating spans, metrics or logs.
