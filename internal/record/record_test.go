@@ -97,6 +97,27 @@ func TestMarshalRejectsInvalidRecords(t *testing.T) {
 	}
 }
 
+func TestEventsSecurityFindingsAndProviderFilteredAreValid(t *testing.T) {
+	r := sample()
+	r.Outcome = OutcomeProviderFiltered
+	r.Events = []Event{
+		{Kind: EventSuspectedInjection, Step: 1, Source: "hidden", Pattern: "ignore-previous", Detail: "Ignore all previous instructions"},
+		{Kind: EventOffOriginBlocked, Step: 2, Detail: "visit refused"},
+		{Kind: EventProviderFiltered, Step: 3, Detail: "the provider refused the call"},
+	}
+	f := r.Findings[0]
+	f.ID = FindingID("security", "The page tried to instruct the persona")
+	f.Kind, f.Title, f.Severity = "security", "The page tried to instruct the persona", "major"
+	r.Findings = append(r.Findings, f)
+	if _, err := Marshal(r); err != nil {
+		t.Fatalf("a record with events, a security finding and the outcome provider_filtered was rejected: %v", err)
+	}
+	r.Events[0].Kind = "made_up"
+	if _, err := Marshal(r); !errors.Is(err, ErrInvalid) {
+		t.Errorf("an unknown event kind was accepted: %v", err)
+	}
+}
+
 func TestZoomIsOptionalAndRecorded(t *testing.T) {
 	r := sample()
 	data, err := Marshal(r)

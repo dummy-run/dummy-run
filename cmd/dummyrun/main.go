@@ -46,10 +46,14 @@ func run(args []string) int {
 	switch args[0] {
 	case "run":
 		return runCmd(args[1:])
+	case "review":
+		return reviewCmd(args[1:])
 	case "a11y":
 		return a11yCmd(args[1:])
 	case "coverage":
 		return coverageCmd(args[1:])
+	case "report":
+		return reportCmd(args[1:])
 	case "doctor":
 		return doctorCmd(args[1:])
 	case "session":
@@ -81,12 +85,15 @@ func usage() {
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
+  dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
+      [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE]
   dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
   dummyrun doctor [--stop]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h", "dummyrun session -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -186,7 +193,9 @@ func runCmd(args []string) int {
 	}
 	res, err := runner.Run(ctx, cfg)
 	if err != nil {
-		if res != nil {
+		if res != nil && errors.Is(err, provider.ErrContentFiltered) {
+			fmt.Fprintf(os.Stderr, "dummyrun: the model provider's content filter stopped the run. It was recorded as provider_filtered at %s\n", res.Path)
+		} else if res != nil {
 			fmt.Fprintf(os.Stderr, "dummyrun: run errored and was recorded at %s\n", res.Path)
 		}
 		return fail(err)

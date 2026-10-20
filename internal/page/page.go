@@ -102,6 +102,9 @@ type Snapshot struct {
 	Text     string    `json:"text"`
 	LogText  string    `json:"log_text"`
 	Controls []Control `json:"controls"`
+	// Hidden is text and attribute values a person does not see: hidden or off-screen text, comments,
+	// aria-label, title and alt values. The model is not sent it. The engine scans it for injection.
+	Hidden []string `json:"hidden,omitempty"`
 	// DevicePixelRatio is window.devicePixelRatio as the page sees it.
 	DevicePixelRatio float64 `json:"device_pixel_ratio,omitempty"`
 	// Zoom is the page zoom in percent the run set, 100 when none.

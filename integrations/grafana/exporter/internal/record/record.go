@@ -57,6 +57,9 @@ type Run struct {
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
 	Usage         Usage     `json:"usage"`
+	// Events are accepted so a record that has them loads. The exporter does not send them,
+	// because an event's detail is page text.
+	Events []json.RawMessage `json:"events,omitempty"`
 }
 
 // Persona is the fictional user who ran the scenario.
@@ -178,6 +181,10 @@ type Finding struct {
 	ClusterID       string   `json:"cluster_id,omitempty"`
 	SeededDefectID  string   `json:"seeded_defect_id,omitempty"`
 	ReviewedBy      []string `json:"reviewed_by,omitempty"`
+	// Reviewer, ReviewedAt and Reason are set by dummyrun review when a person confirms or rejects the finding.
+	Reviewer   string     `json:"reviewer,omitempty"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	Reason     string     `json:"reason,omitempty"`
 }
 
 // Usage is what the run cost in model calls, tokens and money.

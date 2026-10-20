@@ -35,7 +35,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 |---|---|
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
 | `--persona ID`, `--scenario ID` | Which persona and which of its scenarios |
-| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. See `examples/targets/` and [Sign in](#sign-in) |
+| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`; screenshots and the persona's report are under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
@@ -191,7 +191,7 @@ A version 2 record adds the fingerprint of each finding and the route of each st
 dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
 `internal/price/prices.json`. The cost is null for a model that is not in the table. A target without a `commit` gets one from a hash of its
 home page, which the engine fetches with one GET request outside the browser. Findings
-start with the verdict `pending`; the reviewer is a later stage. Next to the record, `report.md` holds the
+start with the verdict `pending`, and the Review section below shows how a person changes it. Next to the record, `report.md` holds the
 persona's own report and `steps.jsonl` holds the full observation for each step, including page text the
 reviewer can check quotes against.
 
@@ -199,6 +199,104 @@ Every request to the target carries a `baggage` header with the run and persona 
 `traceparent` header unless the page set one itself, in which case the page's header is kept. The trace ID
 and the step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md` describes
 (code: `internal/telemetry/telemetry.go`). The browser's user agent ends with `DummyRun/<version>`.
+
+## Review
+
+A paid report holds only findings that a person has confirmed. `dummyrun review` is where that person works. It reads a folder of run records, or the record files you name (code: `internal/review/store.go`). It lists the findings that are still `pending` and sets each one to `confirmed` or `rejected` (code: `Apply` in `internal/review/store.go`).
+
+List what is waiting. This changes nothing.
+
+<!-- doctest -->
+```sh
+dummyrun review examples/runs --list
+```
+
+Add `--json` for a script, or `--verdict all` to include findings that are already reviewed.
+
+### One finding at a time
+
+Run the command in a terminal with no other flag. It shows the problems one by one, most severe first. Each one lists the persona and the scenario. It also lists the title, the severity and the kind. The route, the symptom and the evidence tag follow. For every step the finding cites it shows the action, what the step saw, the element that had focus and the screenshot file. Open the screenshot yourself and then press a key and Enter.
+
+| Key | What it does |
+|---|---|
+| `c` | Confirm |
+| `r` | Reject. It asks for a short reason and does nothing if you leave it empty |
+| `e` | Change the severity or the title. The change is saved with your next `c` or `r` |
+| `s` | Skip. The finding stays `pending` |
+| `q` | Quit. Nothing is lost, because each decision is saved as you make it |
+
+A session looks like this. The screenshot path is shortened.
+
+```text
+2 problems to review, reviewer Pat Example. Type a key and press Enter.
+
+--- 1 of 2 ---
+minor  accessibility  evidence: measured  class: problem
+  The draft title field has no accessible name
+  fingerprint 87c7d46615a89adf  route /drafts  locus textbox:title  symptom a11y:label
+  persona sam-author (author)  scenario submit-draft  run 2026-10-15-sam-author-001
+  cited steps:
+    step 3  click Schedule
+      saw: status 200, route /drafts
+      focus: button "Schedule"
+      screenshot: runs/2026-10-15-sam-author-001/screens/003.png
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > e
+Severity (blocker major minor info, Enter keeps minor): major
+Title (Enter keeps it):
+The edit is applied with your next confirm or reject.
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > c
+confirmed: 1 finding in 1 run.
+
+--- 2 of 2 ---
+info  question  evidence: inferred  class: problem
+  The payment status 'settled' is unclear to a contributor
+  fingerprint 1718b75300702f7b  route /payments  locus region:payment status  symptom unclear-label
+  persona lin-contributor (contributor)  scenario check-payment  run 2026-10-16-lin-contributor-004
+  3 findings of this problem in all. One verdict covers the 2 still pending. The others:
+    2026-10-16-lin-contributor-002  persona lin-contributor  confirmed  payment-status-wording
+    2026-10-17-lin-contributor-008  persona lin-contributor  pending  payment-status-wording
+  cited steps:
+    step 9  visit
+      saw: status 200, route /payments
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > r
+Reason for rejecting (empty cancels): The wording matches the product glossary
+rejected: 2 findings in 2 runs.
+
+Confirmed 1, rejected 1, skipped 0. 3 findings changed.
+```
+
+### Without a terminal
+
+A script or a CI job names the findings in flags. A selector is a fingerprint or a prefix of at least six characters, in either case. It can also be `run-id/finding-id`, or a finding ID that only one problem uses. The command checks every selector before it writes anything. If one is wrong it exits 2 and changes nothing.
+
+```sh
+dummyrun review runs/ --confirm 87c7d4 --reviewer "Pat Example"
+dummyrun review runs/ --reject 1718b7 --reason "The wording matches the product glossary"
+```
+
+A rejection needs `--reason`. A confirmation may have one. Give `--reason` once. It goes with every verdict in the command. `--reviewer` defaults to `git config user.name`, and the command stops if neither is set. The exit code is 0 when it wrote the verdicts, 1 when a write failed and 2 when the command line was wrong.
+
+### One problem is judged once
+
+Findings with the same fingerprint are one problem seen in several runs. You decide it once. The verdict reaches every finding with that fingerprint that is still `pending`, and the command says how many it changed. A finding that someone has already confirmed or rejected is never changed. An edit to the severity or the title reaches the same pending findings.
+
+### What a decision writes
+
+For each finding it changes, the command sets `verdict` and adds three optional fields from schema version 2.
+
+| Field | Content |
+|---|---|
+| `reviewer` | The `--reviewer` value or `git config user.name` |
+| `reviewed_at` | The time of the decision in UTC |
+| `reason` | Why. Required for a rejection |
+
+Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. If another reviewer saves the record in between, the command reads it again and applies your verdict to what is still pending. Where the system has a lock, two reviewers in the same folder take turns. The command holds the lock while it rewrites a record (code: `internal/review/lock_unix.go` and `internal/review/lock_windows.go`). That covers Linux, macOS, the BSDs and Windows. Windows keeps a `.review.lock` file in the folder. Other systems have no lock. There the command reads the record again just before the rename and starts over if it changed. Two reviewers can still collide in the instant between that check and the rename (code: `internal/review/lock_other.go`). A failure while the record is checked or replaced leaves the old record in place (code: `editOnce` in `internal/review/store.go`). It then adds one line to `review-log.jsonl` in the folder of the record. If that write fails, the records have already changed and the command says so (code: `Apply` in `internal/review/store.go`). The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
+
+Version 1 records have no fingerprint and no review fields. The command skips them and says so.
+
+### Reports and exports
+
+`dummyrun coverage` counts only confirmed findings unless you pass `--confirmed-only=false`. Review before you export. `dummyrun-otel` sends `verdict` with each finding, and it reads reviewed records without change. It does not update what it sent earlier, so sending a record again after a review duplicates its spans and log lines. [TELEMETRY.md](TELEMETRY.md) explains what a repeat does.
 
 ## Read-only policy
 
@@ -209,6 +307,54 @@ network error before it leaves the browser, and the step that caused it gets a n
 `allowed_hosts` fails the same way. The one exception is the sign-in request, described under [Sign in](#sign-in). The persona is told about the policy in its prompt as well, but the
 interception is what enforces it. `internal/page/tools_test.go` proves it with a form whose POST never
 reaches the test server, on both browsers (measured on Firefox 158.0 and Chrome 155.0.8059.80).
+
+An `allowed_hosts` entry is a host name or `host:port`. A bare host name matches the default port of the
+request's scheme, and also the port of `base_url` when it is the base URL's own host. Another port needs its own
+`host:port` entry. With a bare `127.0.0.1` entry and no `127.0.0.1:9000` entry, a page on `127.0.0.1:8080` cannot reach a service on `127.0.0.1:9000`. Matching
+is exact, so a subdomain needs its own entry (code: `internal/policy/policy.go`). A request or a `visit` that goes to a host outside the list is not
+followed. The step gets a `blocked:` note and the record gets an `off_origin_blocked` event.
+
+## Untrusted page content
+
+The page under test is input the model must not trust. [Threat model](THREAT-MODEL.md) lists the threats. The
+engine does these things about prompt injection (code: `internal/inject`, `internal/runner/inspect.go`).
+
+- Everything from the page that is sent to the model arrives between `<<<PAGE_CONTENT <id>` and `PAGE_CONTENT <id>>>>`
+  markers. The id is random for each run, so the page cannot close the fence. The system prompt says that text
+  inside the markers is data and never changes the task, the tools, the verdict or the findings.
+- Text that the browser does not render is not sent. That covers `display: none` and `visibility: hidden`.
+  Comments are not sent either. Text with zero size, zero opacity or `aria-hidden` is still in the page text. It can
+  reach the model. The scan flags it as hidden. `internal/page/look.js` collects all of that text and the
+  `aria-label`, `title`, `alt` and `placeholder` values. They go in `page.hidden` in `steps.jsonl`, for the scan and
+  for the reviewer (code: `internal/page/look.js`). Text that CSS only moves off the screen is still page text. The
+  model can see it, and the scan flags it as hidden text (code: `internal/runner/canary_browser_test.go`).
+- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such as
+  "ignore previous instructions", "system prompt" and "you are now". It looks for chat template tokens. It looks for
+  orders to report nothing or to call `finish`, and for claims that the site is fully accessible. It looks for
+  instructions to go to a host outside the allow list, and for invisible Unicode characters. Hidden text that talks to
+  an assistant and gives an order is flagged too. These are heuristics for a reviewer and not a filter.
+- A match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,
+  and one finding of kind `security` that cites every step with a match. The engine files the finding, so a
+  persona that obeys the page still leaves it behind. Its symptom is `misleading-copy`. Its severity is `major`
+  when the text was hidden or contained invisible characters and `minor` otherwise (code: `internal/runner/inspect.go`). Its verdict is `pending`.
+- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
+
+The record's `events` array is optional. Each event has a `kind` and a short `detail`. It has a `step` where one applies. For `suspected_injection` it also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
+The `detail` of such an event is page text. Treat it as data. `dummyrun-otel` does not export events (code: `integrations/grafana/exporter/internal/record/record.go`).
+A reader built from an earlier copy of `schema/run-record.schema.json` rejects a record that has `events`, the
+outcome `provider_filtered` or a finding of kind `security` (code: `schema/run-record.schema.json`). `dummyrun-otel` reads the outcome and the finding kind and ignores `events`.
+
+### When the provider refuses
+
+A model provider may refuse a call because its content filter objects to the page. The run stops. The record
+has the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding.
+`report.md` and the command's message say that the provider refused the call. The command exits with status 1.
+Every provider maps to this outcome through one error (code: `internal/provider/filter.go`). Azure OpenAI and the
+other OpenAI-compatible services report a content filter finish reason, a `refusal` message or an API error
+(code: `internal/provider/azure.go` and `internal/provider/openai_compat.go`). The Responses API reports a cut-off
+response or a `refusal` part (code: `internal/provider/responses.go`). Anthropic reports a `refusal` stop reason
+(code: `internal/provider/anthropic.go`). Gemini reports safety blocks (code: `internal/provider/gemini.go`).
+Bedrock reports a guardrail stop reason, and the call keeps its token counts (code: `internal/provider/bedrock.go`).
 
 ## Sign in
 
@@ -388,8 +534,8 @@ The site's own check is this command, run on Chrome and Firefox against the buil
 
 `go test ./...` runs the unit tests. Set `DUMMYRUN_BROWSERS=chrome,firefox` to also run the browser tests
 against a local test server. They cover the conformance suite (`internal/bidi`) and the tool suite
-(`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`) and the
-accessibility sweep (`internal/a11y`, on a fixture page with known violations). CI runs all of them on ubuntu-latest with pinned browsers.
+(`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`), the canary page of injection attempts
+(`internal/runner/testdata/canary.html`) and the accessibility sweep (`internal/a11y`, on a fixture page with known violations). CI runs all of them on ubuntu-latest with pinned browsers.
 The conformance suite includes `browsingContext.setViewport` with `devicePixelRatio`, and the tool suite
 covers focus, the outline and zoom on both browsers.
 

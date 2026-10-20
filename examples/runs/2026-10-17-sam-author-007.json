@@ -201,7 +201,9 @@
       "locus": "button:submit",
       "symptom": "obscured",
       "taxonomy_version": 1,
-      "fingerprint": "de415978251b1f7b"
+      "fingerprint": "de415978251b1f7b",
+      "reviewer": "example-reviewer",
+      "reviewed_at": "2026-10-18T07:50:32Z"
     }
   ],
   "usage": {

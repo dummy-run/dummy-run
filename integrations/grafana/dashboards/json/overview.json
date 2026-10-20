@@ -541,6 +541,21 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "provider_filtered"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       }
@@ -1463,6 +1478,10 @@
                       "errored": {
                         "color": "text",
                         "index": 3
+                      },
+                      "provider_filtered": {
+                        "color": "purple",
+                        "index": 4
                       }
                     }
                   }

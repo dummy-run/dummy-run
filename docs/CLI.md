@@ -16,12 +16,15 @@ Usage:
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
+  dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
+      [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+  dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE]
   dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
   dummyrun doctor [--stop]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun a11y -h", "dummyrun session -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -119,6 +122,63 @@ Usage of coverage:
     	policy number as name=value, repeatable: coverage (default 0.90), min-runs (4), no-new (3), kappa (0.6)
 ```
 
+## dummyrun report
+
+Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md) and [BADGES.md](BADGES.md).
+
+```text
+Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--title TEXT] [--client TEXT]
+    [--format html|md|json|sarif|junit|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+
+Turns run records and accessibility sweep results into an audit report. The default is one self-contained
+HTML file. Only reviewer-confirmed findings appear. --include pending adds the others, marked not reviewed.
+Rejected findings never appear. The report is a sample. It is not a WCAG conformance claim.
+--format badge writes a small SVG badge and --format shields writes the shields.io endpoint JSON for it.
+Both say how many findings are open and the date of the newest run.
+  -a11y value
+    	JSON file from dummyrun a11y --json; repeatable
+  -baseline string
+    	an earlier report in JSON form; each finding is marked new or still present, and fixed ones are listed
+  -build string
+    	commit or build hash to report on (at least 7 characters); default is every record given
+  -client string
+    	free text naming who the report is for
+  -date string
+    	report date as YYYY-MM-DD (default today)
+  -format string
+    	html, md, json, sarif, junit, badge (SVG) or shields (shields.io endpoint JSON) (default "html")
+  -include string
+    	"pending" also includes findings no reviewer has confirmed, marked not reviewed (default: confirmed only)
+  -out string
+    	write the report to this file instead of standard output
+  -runs value
+    	directory or file of run records; repeat the flag to read several (record paths may also follow the flags)
+  -title string
+    	report title (default "Accessibility and usability audit")
+```
+
+## dummyrun review
+
+Confirm or reject the pending findings in run records. Only confirmed findings reach a report. See [ENGINE.md](ENGINE.md).
+
+```text
+Usage of review:
+  -confirm value
+    	confirm the pending findings with this fingerprint, a fingerprint prefix (6 or more characters), run/finding or a finding ID; repeatable
+  -json
+    	with --list, print JSON instead of a table
+  -list
+    	list the problems and change nothing
+  -reason value
+    	why, given once for the whole command: required with --reject, optional with --confirm
+  -reject value
+    	reject the pending findings with this fingerprint, prefix, run/finding or finding ID; needs --reason; repeatable
+  -reviewer string
+    	who is reviewing (default: git config user.name)
+  -verdict string
+    	with --list, which findings to show: pending, confirmed, rejected or all (default "pending")
+```
+
 ## dummyrun a11y
 
 Check pages for WCAG 2.2 A and AA failures with no model. `dummyrun audit a11y` is the same command.
@@ -211,6 +271,8 @@ Usage of dummyrun-otel export:
     	metric temporality: cumulative or delta (default "cumulative")
   -protocol string
     	OTLP transport: http/protobuf (default) or grpc
+  -signals string
+    	what to send, a comma separated list of traces, metrics, logs and annotations; use it to send only what an earlier export missed. Annotations also need --grafana-url (default "traces,metrics,logs,annotations")
   -timeout duration
     	how long to wait for the final flush (default 30s)
   -verify-loki string
@@ -237,6 +299,8 @@ Usage of dummyrun-otel watch:
     	metric temporality: cumulative or delta (default "cumulative")
   -protocol string
     	OTLP transport: http/protobuf (default) or grpc
+  -signals string
+    	what to send, a comma separated list of traces, metrics, logs and annotations; use it to send only what an earlier export missed. Annotations also need --grafana-url (default "traces,metrics,logs,annotations")
   -timeout duration
     	how long to wait for the final flush (default 30s)
   -verify-loki string
