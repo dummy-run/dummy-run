@@ -9,7 +9,7 @@ label: Phone on a slow connection
 need: device
 summary: Works on a phone-sized screen with one thumb and little patience.
 finds: Small tap targets, close-packed buttons and long pages with no clear way to the part you need.
-limit: The network isn't actually slowed, so pages load at full speed.
+limit: The engine doesn't slow the network, so it can't tell you how a page behaves on a slow connection.
 ---
 # Eli, phone user on a slow connection
 

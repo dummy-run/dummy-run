@@ -17,13 +17,13 @@ next:
 
 {{< graphic name="board" >}}
 
-Each finding names the problem, how serious it is and which kind of user hit it, and a screenshot sits behind every one. Somebody on your team has checked each finding before it reaches you, and the report says plainly that it's a sample of your product and no kind of certificate. It's a single HTML file, so it can go round by email or sit behind your own login. A results board that gathers findings from every run is coming soon.
+Each finding names the problem, how serious it is and which kind of user hit it, and a screenshot sits behind every one. By default the report holds only findings someone on your team has checked, and anything unreviewed that they choose to include is clearly marked. The report also says plainly that it's a sample of your product and no kind of certificate. It's a single HTML file, so it can go round by email or sit behind your own login. A results board that gathers findings from every run is coming soon.
 
 ## What a run costs
 
 {{< graphic name="cost" >}}
 
-Every run records its model calls, tokens and cost in US dollars, so there are no surprises on the bill. These two example runs cost four cents and forty-seven cents. The [Grafana](../docs/grafana.md) dashboards show spend by model over time.
+Every run records its model calls, tokens and cost in US dollars, so there are no surprises on the bill. These two example runs cost four cents and thirty-two cents. The [Grafana](../docs/grafana.md) dashboards show spend by model over time.
 
 ## What you take on
 

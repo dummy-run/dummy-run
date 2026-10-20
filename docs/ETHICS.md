@@ -4,7 +4,7 @@ Dummy Run plays fictional users so you can find likely problems early, while the
 
 ## What a persona is
 
-A persona is a model playing a part. It simulates a barrier, such as having no mouse or a small screen, and reports where that barrier stopped it. That makes it a quick, cheap way to catch problems before release. It doesn't replace testing with disabled people, and it doesn't replace a conformance audit. If a run finds nothing, that tells you nothing about whether your site works for a person with that need.
+A persona is a model playing a part. It simulates a barrier, such as having no mouse or a small screen, and reports where that barrier stopped it. That makes it a quick, cheap way to catch problems before release. It doesn't replace testing with disabled people, and it doesn't replace a conformance audit. If a run finds nothing, that doesn't show your site works for people with that need.
 
 The personas are composites. Each one describes a need, and none of them speaks for a group of people. We'd welcome review of the library by disabled-led organisations and by disabled testers. Open an issue or a discussion on [GitHub](https://github.com/dummy-run/dummy-run) to start that conversation.
 
@@ -20,11 +20,11 @@ The engine doesn't run a real screen reader. The screen-reader persona works fro
 
 The persona is a model reading what the browser shows, so the provider you choose receives page text and screenshots. You choose the provider with `--provider`, and [Providers](PROVIDERS.md) lists what each one needs.
 
-Some providers keep prompts and responses for a while to monitor abuse. Azure OpenAI, for example, can keep them for up to 30 days unless you have an approved opt-out. Check your provider's terms before you point a run at anything sensitive, and run against previews that hold test data rather than real customers. A page can also try to give the model instructions, and the [threat model](THREAT-MODEL.md) explains how the engine handles that. Exported telemetry carries no screenshots, and [Telemetry](TELEMETRY.md) lists what it does carry.
+Some providers keep prompts and responses for a while to monitor abuse. Azure OpenAI, for example, can keep them for up to 30 days unless you have an approved opt-out, as Microsoft's [data, privacy and security page for Azure OpenAI](https://learn.microsoft.com/legal/cognitive-services/openai/data-privacy) explains. Check your provider's terms before you point a run at anything sensitive, and run against previews that hold test data rather than real customers. A page can also try to give the model instructions, and the [threat model](THREAT-MODEL.md) explains how the engine handles that. Exported telemetry carries no screenshots, and [Telemetry](TELEMETRY.md) lists what it does carry.
 
 ## Read-only by policy
 
-A target with `"read_only": true` blocks every request that could change data, and every request to another host. Use it for any site you don't own, and add `--identify` and `--respect-robots` so the site's owner can see who you are and keep you out if they want to. The [engine guide](ENGINE.md) describes the policy in full. Run the permission personas only on a test environment with test accounts.
+A target with `"read_only": true` blocks every request to another host, and every request that could change data apart from the sign-in form's own request while the engine signs in. Use it for any site you don't own, and add `--identify` and `--respect-robots` so the site's owner can see who you are and keep you out if they want to. The [engine guide](ENGINE.md) describes the policy in full. Run the permission personas only on a test environment with test accounts.
 
 ## Findings about apps you don't own
 

@@ -30,7 +30,7 @@ No, and it isn't meant to. A script checks the steps you wrote, the same way eve
 
 ## Your app, your model
 
-You point a run at a target file that says where the app lives, which hosts the persona may touch and whether it may change anything. With `"read_only": true` the browser blocks every request that could change data, so it's safe to run against a site you care about. If the app needs a sign-in, the engine logs in with a test account before the persona starts, and the persona never sees the password.
+You point a run at a target file that says where the app lives, which hosts the persona may touch and whether it may change anything. With `"read_only": true` the browser blocks every request that could change data, so it's safe to run against a site you care about. If the app needs a sign-in, the engine logs in with a test account before the persona starts. That sign-in request is the one change it allows, and the persona never sees the password.
 
 The persona runs on the model you choose. Azure OpenAI, Anthropic, Gemini (on Vertex AI or the Developer API) and Amazon Bedrock all work, and so does any OpenAI-compatible service, including a model on your own machine. You pick the region with `--region`, and every run record notes where the model ran. [The provider guide](../../docs/PROVIDERS.md) shows what each one needs.
 

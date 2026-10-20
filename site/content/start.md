@@ -4,7 +4,7 @@ lead: Install Dummy Run, send one persona to a website without changing a thing,
 description: Get started with Dummy Run. Install the dummyrun command, run one persona against a site in read-only mode, then export the run to a local Grafana.
 next:
   title: Pick personas to run
-  text: The library has ready-made personas for the people every site has, from screen-reader users to someone on a phone.
+  text: The library has ready-made personas for the people most sites have, from screen-reader users to someone on a phone.
   label: Browse the persona library
   href: /personas/
 ---

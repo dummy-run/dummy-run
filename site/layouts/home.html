@@ -9,15 +9,28 @@
     </p>
     <p class="hero-note">The free scan checks your public pages for accessibility problems, sends a persona round them and emails you what it found.</p>
   </div>
+  {{- $r := hugo.Data.replay -}}
+  {{- $f := dict -}}
+  {{- range $r.findings }}{{ if eq .id "question-i-found-browser-details-in-the-schema-example-but-not-a-dedi" }}{{ $f = . }}{{ end }}{{ end -}}
+  {{- if not $f }}{{ errorf "home.html: the hero finding is missing from data/replay.json" }}{{ end -}}
+  {{- $last := index $f.steps (sub (len $f.steps) 1) -}}
+  {{- $title := "" -}}
+  {{- range $r.steps }}{{ if eq .n $last }}{{ $title = .title }}{{ end }}{{ end -}}
   <div class="hero-scene">
-    <div class="frame is-inkwell">
+    <div class="frame">
       <span class="frame-inner"></span>
-      <div class="scene">
-        {{ partial "graphics/phone.html" . }}
-        <div class="scene-finding">{{ partial "graphics/finding-card.html" (dict "kind" "friction") }}</div>
+      <div class="scene is-real">
+        <img class="scene-shot" src="/replay/{{ printf "%03d" (int $last) }}.webp" width="1000" height="714" decoding="async" alt="A screenshot from step {{ $last }} of a real run. The persona is reading the page titled {{ $title }}.">
+        <div class="scene-finding">
+          <div class="graphic finding" role="group" aria-label="A finding from the same run">
+            <div class="finding-tags"><span class="g-tag is-kind">{{ $f.kind }}</span><span class="g-tag is-{{ $f.severity }}">{{ $f.severity }}</span><span class="g-tag is-evidence">{{ $f.evidence }}</span><span class="g-tag is-{{ $f.verdict }}">{{ if eq $f.verdict "pending" }}not reviewed{{ else }}{{ $f.verdict }}{{ end }}</span></div>
+            <div class="finding-title">{{ $f.title }}</div>
+            <div class="g-meta">{{ if eq (len $f.steps) 1 }}Step{{ else }}Steps{{ end }} {{ delimit $f.steps ", " " and " }} of the run.</div>
+          </div>
+        </div>
       </div>
     </div>
-    <p class="example-tag is-caption">Example</p>
+    <p class="hero-caption">A real step from a run on {{ time.Format "2 January 2006" $r.date }}. The persona was reading this website. <a href="/watch-a-run/">Watch the whole run</a>.</p>
   </div>
 </section>
 
@@ -89,8 +102,8 @@
 
 <section class="band" aria-labelledby="library-heading">
   <div class="panel">
-    <h2 id="library-heading" class="u-title-sm">A persona library for every site</h2>
-    <p class="band-lede">Every site has screen-reader users, people on phones and people who have never seen it before. The library has a ready-made persona for each of them, so you can start testing today instead of writing your own.</p>
+    <h2 id="library-heading" class="u-title-sm">Personas for the people on your site</h2>
+    <p class="band-lede">Most sites have screen-reader users, people on phones and people who have never seen them before. The library has a ready-made persona for each of them, so you can start testing today instead of writing your own.</p>
     {{ partial "library.html" (dict "short" true) }}
     <p class="band-more"><a href="/personas/">Browse the persona library</a></p>
   </div>
@@ -110,7 +123,7 @@
 <section class="band" aria-labelledby="grafana-heading">
   <div class="stage">
     <h2 id="grafana-heading" class="u-title-sm">Every run in Grafana</h2>
-    <p class="band-lede">Each run arrives as one OpenTelemetry trace, so you can follow a persona step by step next to your own app&rsquo;s traces. Four ready-made dashboards come with it. These show example runs against Inkwell. <a href="/docs/grafana/">See the dashboards</a></p>
+    <p class="band-lede">Each run arrives as one OpenTelemetry trace, so you can follow a persona step by step next to your own app&rsquo;s traces. Ready-made dashboards come with it. These show example runs against Inkwell. <a href="/docs/grafana/">See the dashboards</a></p>
     {{ partial "graphics/grafana-stack.html" . }}
   </div>
 </section>

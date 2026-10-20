@@ -19,11 +19,11 @@ next:
 |---|---|
 | Where do run records and screenshots live? | Wherever you keep your runs, such as a local folder or your own object storage. |
 | Do screenshots reach the model provider? | Yes. The persona is a model reading what the browser shows, so the provider you choose receives page text and screenshots. |
-| Does exported telemetry carry screenshots or page text? | No screenshots and no page snapshots. It carries run IDs, outcomes and the target environment, plus page addresses, the model, its region and the cost. It also carries each finding's title and verdict. A title is a sentence the persona wrote, so it can quote a few words of the page. |
+| Does exported telemetry carry screenshots or page text? | No screenshots and no page snapshots. It carries run IDs, outcomes and the target environment, plus page addresses, what each step acted on, the model, its region and the cost. It also carries each finding's title, evidence label and verdict. A step's target can be a button label and a title is a sentence the persona wrote, so either can quote a few words of the page. |
 | Where does telemetry live? | In your own OpenTelemetry backend. Dummy Run sends it nowhere else. |
 | Can I keep the model in one region? | Yes. You choose the provider and region for each run, and the run record notes the region the model used. Keep your OpenTelemetry backend in the same region too. |
 
-The provider sees what the persona sees, and your backend gets the telemetry. That's all that leaves. Run against previews that hold test data rather than real customers. [Ethics and limits](../../../docs/ETHICS.md) has more on how long providers keep prompts.
+The provider sees what the persona sees, and your backend gets the telemetry. If you pass `--grafana-url`, Grafana also gets an annotation for each run. That's all that leaves. Run against previews that hold test data rather than real customers. [Ethics and limits](../../../docs/ETHICS.md) has more on how long providers keep prompts.
 
 ## Permission findings
 

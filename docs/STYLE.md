@@ -44,7 +44,7 @@ Each row names a habit and what to write instead.
 
 Passive voice isn't on the list and is never a reason to rewrite on its own. A quotation keeps its words.
 
-`bin/check-prose` checks the countable habits in CI. It fails on bold in running text, bold labels, staged contrasts, signposts, banned words and project state. It warns, without failing, about a sentence that runs long or holds a lot of commas, and about "their" after "a QA lead", "teams" and the other audience phrases on reader-facing pages. A warning is a prompt to read the sentence again. If it reads well aloud, leave it. The other habits need a human reader.
+`bin/check-prose` checks the countable habits in CI. It fails on bold in running text, bold labels, staged contrasts, signposts, banned words and project state. It warns, without failing, about a sentence that runs long or holds many commas, and about "their" after "a QA lead", "teams" and the other audience phrases on reader-facing pages. A warning is a prompt to read the sentence again. If it reads well aloud, leave it. The other habits need a human reader.
 
 ## Citations in contributor documents
 

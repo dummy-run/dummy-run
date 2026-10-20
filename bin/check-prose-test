@@ -46,6 +46,10 @@ class Failures(unittest.TestCase):
     def test_bold_in_prose(self):
         self.assertFails("A persona finds **real problems** in your app.\n", "bold inside prose")
         self.assertFails("**Result:** nine seconds.\n", "bold label with a colon")
+        self.assertFails("**Important** text.\n", "bold inside prose")
+
+    def test_machine_word_in_sentence_table_cell(self):
+        self.assertFails("| Row | It is a robust tool. |\n|---|---|\n", "machine-copy word")
 
     def test_project_state(self):
         self.assertFails("This works once PR #42 merges.\n", "project state")
