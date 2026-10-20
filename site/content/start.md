@@ -67,6 +67,8 @@ Open `http://localhost:3000` and sign in as `admin` with the password `admin`. P
 
 Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The [Grafana guide](../../docs/integrations/grafana.md) covers the dashboards and alerts.
 
+To hand the runs to someone else, run `dummyrun report --runs examples/runs --build a865ffd --include pending --out report.html`. It writes one HTML file with the findings, the scope and what the report does not claim. The [report guide](../../docs/REPORT.md) explains each part.
+
 ## Sources
 
 The install and run commands are in `docs/ENGINE.md`, code. The export commands are in `integrations/grafana/exporter/README.md`, code. The read-only behaviour is the engine's request interception, code.
