@@ -485,8 +485,7 @@ engine does not edit page text. See [SECURITY.md](../SECURITY.md) for the threat
 ## Identifying the engine and honouring robots.txt
 
 Two switches, both off by default, let a run say who it is and keep out of places that ask crawlers to stay away.
-They exist so that a hosted service can keep its promises to the owners of the sites it visits. Anyone running the
-engine can leave them off. Code: `internal/robots`, `internal/policy/policy.go`, `internal/telemetry/telemetry.go`.
+Anyone running the engine can leave them off. The code is in `internal/robots`, `internal/policy/policy.go` and `internal/telemetry/telemetry.go`. With `--respect-robots`, a sitemap that `--universe` or `--sitemap` names is checked against its own origin's robots.txt before it is requested.
 
 - **`--identify`.** Without it a run's user agent is the browser's own with `DummyRun/<version>` added. With it the end reads
   `DummyRun/<version> (+https://dummyrun.dev/scanner/)`. The browser's own text stays in front so sites render as they do for

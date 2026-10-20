@@ -156,25 +156,33 @@ func TestLoadTargetWithSignin(t *testing.T) {
 }
 
 func TestRequestClientUserAgent(t *testing.T) {
+	var mu sync.Mutex
 	var agents []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
 		agents = append(agents, r.Header.Get("User-Agent"))
+		mu.Unlock()
 		if r.URL.Path == "/start" {
 			http.Redirect(w, r, "/end", http.StatusFound)
 		}
 	}))
 	t.Cleanup(srv.Close)
 	for _, identify := range []bool{true, false} {
+		mu.Lock()
 		agents = nil
+		mu.Unlock()
 		resp, err := requestClient(identify).Get(srv.URL + "/start")
 		if err != nil {
 			t.Fatal(err)
 		}
 		_ = resp.Body.Close()
-		if len(agents) != 2 {
-			t.Fatalf("identify=%v: %d requests, want 2 (a redirect)", identify, len(agents))
+		mu.Lock()
+		seen := append([]string(nil), agents...)
+		mu.Unlock()
+		if len(seen) != 2 {
+			t.Fatalf("identify=%v: %d requests, want 2 (a redirect)", identify, len(seen))
 		}
-		for _, ua := range agents {
+		for _, ua := range seen {
 			if got := strings.Contains(ua, "(+https://dummyrun.dev/scanner/)"); got != identify {
 				t.Errorf("identify=%v: user agent %q", identify, ua)
 			}

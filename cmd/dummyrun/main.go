@@ -197,7 +197,7 @@ func runCmd(args []string) int {
 		cfg.RepeatIndex = repeat
 	}
 	if *universe != "" {
-		if cfg.Universe, err = fetchUniverse(ctx, cfg.HTTPClient, *universe, target.BaseURL); err != nil {
+		if cfg.Universe, err = fetchUniverse(ctx, cfg.HTTPClient, *universe, target.BaseURL, robotsGuard(cfg.HTTPClient, target.Identify, target.RespectRobots)); err != nil {
 			return fail(err)
 		}
 	}
@@ -219,12 +219,12 @@ func runCmd(args []string) int {
 }
 
 // fetchUniverse reads a sitemap and returns its normalised routes, each tagged with the source "sitemap".
-func fetchUniverse(ctx context.Context, client *http.Client, spec, baseURL string) ([]record.RouteUniverseEntry, error) {
+func fetchUniverse(ctx context.Context, client *http.Client, spec, baseURL string, allowed func(context.Context, string) error) ([]record.RouteUniverseEntry, error) {
 	loc := spec
 	if spec == "sitemap" {
 		loc = strings.TrimSuffix(baseURL, "/") + "/sitemap.xml"
 	}
-	pages, err := a11y.FetchSitemap(ctx, client, loc)
+	pages, err := a11y.FetchSitemap(ctx, client, loc, allowed)
 	if err != nil {
 		return nil, err
 	}

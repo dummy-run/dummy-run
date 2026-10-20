@@ -51,11 +51,11 @@ func TestFetchSitemapIndex(t *testing.T) {
 	})
 	srv = httptest.NewServer(mux)
 	defer srv.Close()
-	got, err := FetchSitemap(context.Background(), nil, srv.URL+"/index.xml")
+	got, err := FetchSitemap(context.Background(), nil, srv.URL+"/index.xml", nil)
 	if err != nil || !reflect.DeepEqual(got, []string{"https://x/a", "https://x/b", "https://x/c"}) {
 		t.Fatalf("%v %v", got, err)
 	}
-	if _, err := FetchSitemap(context.Background(), nil, srv.URL+"/missing.xml"); err == nil {
+	if _, err := FetchSitemap(context.Background(), nil, srv.URL+"/missing.xml", nil); err == nil {
 		t.Fatal("a missing sitemap must be an error")
 	}
 }

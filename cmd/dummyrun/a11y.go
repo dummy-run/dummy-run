@@ -109,7 +109,7 @@ func a11yCmd(args []string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if *sitemap != "" {
-		pages, err := a11y.FetchSitemap(ctx, requestClient(*identify), *sitemap)
+		pages, err := a11y.FetchSitemap(ctx, requestClient(*identify), *sitemap, robotsGuard(requestClient(*identify), *identify, *respect))
 		if err != nil {
 			return fail(err)
 		}
