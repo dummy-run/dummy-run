@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Checks that the terminal on the Get started page shows only lines that were really printed.
+# Every line of site/data/start-session.json "transcript" must be a line of the raw capture stored
+# in the same file, or a bare ellipsis, or a raw line cut short with an ellipsis.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec python3 -I - site/data/start-session.json <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+raw = set()
+for lines in d["raw"].values():
+    for l in lines:
+        raw.add(l.rstrip())
+bad = []
+for item in d["transcript"]:
+    if item["t"] != "out":
+        continue
+    l = item["text"].rstrip()
+    if l.strip() == "…" or l in raw:
+        continue
+    if l.endswith("…") and any(r.startswith(l[:-1]) for r in raw):
+        continue
+    bad.append(l)
+if bad:
+    print("start-session.json: lines not in the raw capture:", *bad, sep="\n  ")
+    sys.exit(1)
+print("start-session.json: %d transcript lines match the raw capture" % len(d["transcript"]))
+PY

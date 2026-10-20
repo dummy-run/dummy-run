@@ -9,15 +9,23 @@
     </p>
     <p class="hero-note">The free scan gives you an accessibility sweep and a persona&rsquo;s findings on your public pages, by email.</p>
   </div>
+  {{- $r := hugo.Data.replay -}}
+  {{- $f := index $r.findings 3 -}}
   <div class="hero-scene">
-    <div class="frame is-inkwell">
+    <div class="frame">
       <span class="frame-inner"></span>
-      <div class="scene">
-        {{ partial "graphics/phone.html" . }}
-        <div class="scene-finding">{{ partial "graphics/finding-card.html" (dict "kind" "friction") }}</div>
+      <div class="scene is-real">
+        <img class="scene-shot" src="/replay/023.webp" width="1000" height="714" decoding="async" alt="A screenshot from step 23 of a real run. The persona is reading the run record page of this website.">
+        <div class="scene-finding">
+          <div class="graphic finding" role="group" aria-label="A finding from the same run">
+            <div class="finding-tags"><span class="g-tag is-kind">{{ $f.kind }}</span><span class="g-tag is-minor">{{ $f.severity }}</span><span class="g-tag is-evidence">{{ $f.evidence }}</span><span class="g-tag is-pending">not reviewed</span></div>
+            <div class="finding-title">{{ $f.title }}</div>
+            <div class="g-meta">Steps {{ index $f.steps 0 }} and {{ index $f.steps 1 }} of the run.</div>
+          </div>
+        </div>
       </div>
     </div>
-    <p class="example-tag is-caption">Example</p>
+    <p class="hero-caption">A real step from a run on {{ time.Format "2 January 2006" $r.date }}. The persona was reading this website. <a href="/watch-a-run/">Watch the whole run</a>.</p>
   </div>
 </section>
 
