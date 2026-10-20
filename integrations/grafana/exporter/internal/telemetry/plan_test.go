@@ -356,6 +356,25 @@ func TestPersonaZoomIsExportedWhenPresent(t *testing.T) {
 	}
 }
 
+func TestPersonaTextScaleIsExportedWhenPresent(t *testing.T) {
+	run := load(t, "2026-10-17-ravi-reviewer-005.json")
+	attr := func() int64 {
+		for _, kv := range Build(run).Root.Attributes {
+			if kv.Key == "dummyrun.persona.text_scale" {
+				return kv.Value.AsInt64()
+			}
+		}
+		return 0
+	}
+	if got := attr(); got != 0 {
+		t.Errorf("a record without text_scale exported %d", got)
+	}
+	run.Persona.TextScale = 200
+	if got := attr(); got != 200 {
+		t.Errorf("dummyrun.persona.text_scale = %d, want 200", got)
+	}
+}
+
 // The contract fixes the derivation: trace ID is the first 16 bytes of SHA-256 of
 // "dummyrun.run:<id>", root span ID the first 8 bytes of SHA-256 of "dummyrun.span:<id>:root", and
 // step span IDs the first 8 bytes of SHA-256 of "dummyrun.span:<id>:step:<n>".

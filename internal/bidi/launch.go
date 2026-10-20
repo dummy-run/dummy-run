@@ -39,6 +39,9 @@ type LaunchOptions struct {
 	Args []string
 	// FirefoxPrefs are extra Firefox preferences, written to the temporary profile.
 	FirefoxPrefs map[string]any
+	// ChromePrefs are extra Chrome profile preferences, as the nested map of the profile's Preferences file.
+	// They go to chromedriver's "prefs" option, which writes them before the browser starts.
+	ChromePrefs map[string]any
 }
 
 // Browser is a launched browser with its BiDi connection.
@@ -338,6 +341,9 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	}
 	args = append(args, opts.Args...)
 	chromeOpts := map[string]any{"args": args}
+	if len(opts.ChromePrefs) > 0 {
+		chromeOpts["prefs"] = opts.ChromePrefs
+	}
 	if chrome != "" {
 		chromeOpts["binary"] = chrome
 	}

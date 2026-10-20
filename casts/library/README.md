@@ -1,6 +1,6 @@
 # The persona library
 
-Ten fictional users that most websites have. Copy one into your own cast and adapt it. How to do that is in
+Eleven fictional users that most websites have. Copy one into your own cast and adapt it. How to do that is in
 [docs/PERSONAS.md](../../docs/PERSONAS.md).
 
 | Persona | Who | Device | Tags |
@@ -9,6 +9,7 @@ Ten fictional users that most websites have. Copy one into your own cast and ada
 | `keyboard-only-user` | Kit, no mouse, looks for tab order, focus marks and traps | desktop | accessibility, keyboard |
 | `phone-slow-connection` | Eli, one thumb, one bar of signal, little patience | phone | mobile, performance |
 | `low-vision-zoom` | Hana, text enlarged to 200 percent, needs reflow | desktop at 200 percent zoom | accessibility, low-vision |
+| `large-text-phone` | Ivy, system text size at 200 percent on a phone, looks for overlap and cut-off text | phone at 200 percent text | accessibility, low-vision, mobile |
 | `first-time-visitor` | Alex, no context, asks what it is, what it costs and how to start | desktop | general, comprehension |
 | `non-native-reader` | Zofia, reads English as a second language, stops at jargon and idioms | desktop | language, content |
 | `older-adult` | Margaret, careful and wary of scams, wants trust signals and kind errors | desktop | trust, error-recovery |
@@ -17,7 +18,7 @@ Ten fictional users that most websites have. Copy one into your own cast and ada
 | `role-admin` | Ada, manages her organisation, probes what even an admin should not do | desktop | permissions |
 
 Each persona has `profile.md`, `prompt.md` and four scenarios in `scenarios/`, the same layout as
-[casts/dummyrun-dev](../dummyrun-dev/README.md). The first seven are visitors and read only. They find a fact,
+[casts/dummyrun-dev](../dummyrun-dev/README.md). The first eight are visitors and read only. They find a fact,
 start a sign-up or contact journey and stop before the submit button, move around the site and recover from an
 error. The last three need a sign-in and a target that allows changes, so run them on a test environment with
 test data. [Inkwell](../../docs/INKWELL.md) is a test app for exactly that.
@@ -27,8 +28,8 @@ engine tools the persona uses most. Both are space-separated lists. The website 
 [persona library](https://dummyrun.dev/personas/) from these files, so it reads five more keys. `label` is
 the card title. `need` picks the filter the card sits under. The allowed values are in `site/layouts/_partials/library-data.html`. `summary`
 and `finds` are one sentence each. `limit` is optional and says what the persona cannot do. The site build
-fails if a persona lacks one of the first four. Three personas use settings the engine
-enforces. `low-vision-zoom` sets `zoom: 200`, `keyboard-only-user` sets `tools-denied: click` and
+fails if a persona lacks one of the first four. Four personas use settings the engine
+enforces. `low-vision-zoom` sets `zoom: 200`, `large-text-phone` sets `text_scale: 200`, `keyboard-only-user` sets `tools-denied: click` and
 `screen-reader-user` sets `tools-denied: screenshot`.
 
 Every trait is tagged `sourced` or `inferred` as [docs/STYLE.md](../../docs/STYLE.md) describes. A sourced

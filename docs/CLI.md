@@ -200,6 +200,14 @@ Flags:
   --browser NAME    chrome or firefox (default chrome)
   --viewport NAME   desktop (1280 wide), phone (375 wide) or both (default both)
   --scheme NAME     light, dark or both (default both)
+  --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
+                    100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
+                    so rem and em text grows and px text may not. Turns on --layout
+  --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
+                    and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
+                    dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
+                    allow-list can accept them
+  --screenshots DIR write a PNG crop of each element the layout checks flag into DIR
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent

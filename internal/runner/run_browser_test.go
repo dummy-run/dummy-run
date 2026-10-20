@@ -408,6 +408,53 @@ func TestScenarioDeviceAndZoom(t *testing.T) {
 	}
 }
 
+const overlapSite = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title>
+<style>body{margin:0;font:1rem sans-serif} button{position:absolute;top:20px;height:48px;font:inherit}</style></head>
+<body><main><h1>Shop</h1><button style="left:10px;width:150px">Add to basket</button><button style="left:100px;width:150px">Buy now</button></main></body></html>`
+
+// TestTextScaleRun plays a persona with a text scale of 200 on a phone. The record says so, the model is
+// told, the first observation shows the text size and names the two overlapping buttons, and the page is
+// not zoomed: the window and the device pixel ratio stay as the phone's.
+func TestTextScaleRun(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the end-to-end test")
+	}
+	for _, browser := range strings.Split(browsers, ",") {
+		t.Run(browser, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "text/html")
+				_, _ = io.WriteString(w, overlapSite)
+			}))
+			t.Cleanup(srv.Close)
+			castDir := writePersonaCast(t, "text_scale: 200\n", "Device: phone. Start at the home page.")
+			res, prov := runScripted(t, browser, castDir, []provider.ToolCall{{Name: "look", Args: json.RawMessage(`{}`)}}, srv.URL)
+			rec := res.Record
+			if rec.Persona.TextScale != 200 || rec.Persona.Zoom != 0 || rec.Persona.Device != "phone" {
+				t.Errorf("persona block %+v, want phone at text scale 200 and no zoom", rec.Persona)
+			}
+			if z := rec.Persona.Dimensions.Zoom; z == nil || *z != 1 {
+				t.Errorf("dimensions zoom %v, want 1: text scale is not zoom", z)
+			}
+			if _, err := record.Read(res.Path); err != nil {
+				t.Errorf("the record does not validate: %v", err)
+			}
+			if sys := prov.requests[0].System; !strings.Contains(sys, "system text size raised to 200 percent") {
+				t.Errorf("the model was not told about the text size")
+			}
+			first := prov.requests[0].Turns[0].Text
+			for _, want := range []string{"text size: 200% of normal", "layout: 1 pair of controls overlap (@1 @2)"} {
+				if !strings.Contains(first, want) {
+					t.Errorf("the first observation lacks %q:\n%s", want, first)
+				}
+			}
+			if strings.Contains(first, "zoom:") {
+				t.Errorf("a text scale run shows a zoom line:\n%s", first)
+			}
+		})
+	}
+}
+
 func TestRobotsDisallowStopsBeforeTheBrowser(t *testing.T) {
 	var mu sync.Mutex
 	var hits []string

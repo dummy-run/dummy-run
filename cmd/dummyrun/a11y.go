@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/signin"
 )
 
@@ -25,6 +26,14 @@ Flags:
   --browser NAME    chrome or firefox (default chrome)
   --viewport NAME   desktop (1280 wide), phone (375 wide) or both (default both)
   --scheme NAME     light, dark or both (default both)
+  --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
+                    100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
+                    so rem and em text grows and px text may not. Turns on --layout
+  --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
+                    and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
+                    dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
+                    allow-list can accept them
+  --screenshots DIR write a PNG crop of each element the layout checks flag into DIR
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
@@ -44,6 +53,9 @@ func a11yCmd(args []string) int {
 	browser := fs.String("browser", "chrome", "chrome or firefox")
 	viewport := fs.String("viewport", "both", "desktop, phone or both")
 	scheme := fs.String("scheme", "both", "light, dark or both")
+	textScale := fs.String("text-scale", "", "system text size in percent, or a comma-separated list")
+	layout := fs.Bool("layout", false, "run the layout checks")
+	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
 	sessionPath := fs.String("session", "", "saved session file to load before the sweep")
@@ -80,6 +92,15 @@ func a11yCmd(args []string) int {
 		a11y.Light: {a11y.Light}, a11y.Dark: {a11y.Dark}, "both": {a11y.Light, a11y.Dark}})
 	if !ok {
 		fmt.Fprintf(os.Stderr, "dummyrun a11y: --scheme %q: want light, dark or both\n", *scheme)
+		return 2
+	}
+	scales, err := parseTextScales(*textScale)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "dummyrun a11y: --text-scale: %v\n", err)
+		return 2
+	}
+	if *shotDir != "" && !*layout && len(scales) == 0 {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y: --screenshots needs --layout or --text-scale, which run the checks that take them")
 		return 2
 	}
 	if *sitemap == "" && len(urls) == 0 {
@@ -123,6 +144,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11y.Run(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
+		TextScales: scales, Layout: *layout, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
@@ -155,6 +177,25 @@ func a11yCmd(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+// parseTextScales reads "200" or "100,200" into percentages. Empty gives none, which means 100.
+func parseTextScales(v string) ([]int, error) {
+	if strings.TrimSpace(v) == "" {
+		return nil, nil
+	}
+	var out []int
+	for _, part := range strings.Split(v, ",") {
+		n, err := cast.ParseTextScale(part)
+		if err != nil {
+			return nil, err
+		}
+		if n == 0 {
+			return nil, fmt.Errorf("%q is empty; want a percentage such as 200", v)
+		}
+		out = append(out, n)
+	}
+	return out, nil
 }
 
 func pick[T any](name string, options map[string][]T) ([]T, bool) {
