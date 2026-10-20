@@ -7,6 +7,10 @@ Per sentence it flags: more than two commas, signposts, and staged contrasts ("n
 "X, not Y"). Per paragraph or list item it flags bold anywhere but a run-in head at the start, and
 bold labels ending in a colon. In tables, only cells written as sentences (ending in a full stop) are
 checked for commas, since a cell may list an inventory and a bold cell may name a row. Code, inline code, URLs, link targets and HTML are ignored. Exits 1 on any finding.
+
+It also prints a warning, without failing, when a page written for the reader (site/content/for/, the
+home, pricing, scan and start pages) says "their" after "a QA lead", "a developer", "an agency",
+"teams", "buyers" or "readers" in one sentence. Those pages address the reader as "you".
 """
 import re
 import sys
@@ -19,6 +23,8 @@ SIGNPOSTS = re.compile(
     r"needless to say|simply put|at the end of the day|here's the thing|let's dive)\b", re.I)
 PROJECT_STATE = re.compile(r"\bPR #\d+|/pull/\d+|\bin review\b|\bonce (?:PR|#)\S* (?:merges|lands)|\buntil (?:PR|#)\S* (?:merges|lands)", re.I)
 STAGED = [re.compile(r"\bnot\b[^.;:]{1,80}?,\s*but\b", re.I), re.compile(r",\s+not\s+(?!only\b)\w", re.I)]
+AUDIENCE_PAGE = re.compile(r"site/content/(?:for/[^/]+|_index|pricing|scan|start)\.md$")
+THIRD_PERSON = re.compile(r"\b(?:a QA lead|a developer|an agency|teams?|buyers?|readers?)\b[^.!?]*\btheir\b", re.I)
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+")
 
 
@@ -63,6 +69,11 @@ def blocks(lines):
 
 def check(path):
     hits = []
+    if AUDIENCE_PAGE.search(str(path)):
+        for n, _, text in blocks(Path(path).read_text().splitlines()):
+            for sent in re.split(r"(?<=[.!?])\s+", clean(text)):
+                if THIRD_PERSON.search(sent):
+                    print(f"{path}:{n}: warning: \"their\" for the reader; write \"you\" or \"your\": \"{sent.strip()[:80]}\"", file=sys.stderr)
     for n, kind, text in blocks(Path(path).read_text().splitlines()):
         text = clean(text)
         parts = [c for c in text.split("|") if c.strip().endswith(".")] if kind == "table" else [text]

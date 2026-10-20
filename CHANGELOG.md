@@ -5,6 +5,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and the other listed audience phrases (code: `bin/check-prose` and `docs/STYLE.md`).
+
 ### Fixed
 - The OpenAI-compatible provider now sends an empty string as the text of a turn that only calls tools. Before, it left the field out, and a local Ollama server answered "invalid message content type" (code: `internal/provider/openai_compat.go`).
 - The Grafana exporter retries annotations on HTTP 429 (#34). Annotation lookup also retries on 5xx. Annotation creation does not retry on 5xx. Grafana may have stored the annotation. The exporter waits for `Retry-After`, spaces its calls and spends at most ten minutes on annotations in one export. If an annotation still fails, the exporter still sends and flushes all the telemetry. It then lists the failed annotations and exits with code 3. Code 3 means some annotations failed after any selected telemetry arrived. `--signals traces,metrics,logs,annotations` chooses what to send, so a re-export can send only what is missing. The dogfood workflow treats code 3 as a warning.

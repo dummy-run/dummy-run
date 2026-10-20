@@ -5,7 +5,7 @@ icon: terminal
 lead_short: Your laptop or CI
 weight: 20
 lead: Your product used the way a customer uses it, on your laptop or in CI.
-description: What a developer gets from Dummy Run. Two install commands, a real browser on your preview, a read-only mode and a JSON run record per run. One JSON run record per run, and headers that join your own telemetry.
+description: What you get from Dummy Run as a developer. Two install commands, a real browser on your preview, a read-only mode and one JSON run record per run. Headers join your own telemetry.
 next:
   title: Run it
   text: Install both commands, run one persona read-only and look at the run in a local Grafana.

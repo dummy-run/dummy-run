@@ -48,7 +48,7 @@ plans:
     prefix: From
     price: "£1,950"
     unit: scoped to your site
-    for: For a team that wants a person to do the work.
+    for: For when you want a person to do the work.
     includes:
       - A scoped audit delivered by a person.
       - Invoiced by Dummy Run directly.
