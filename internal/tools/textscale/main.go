@@ -58,8 +58,9 @@ func main() {
 	shots := flag.String("shots", "", "directory for a full-page PNG of every page (created if missing)")
 	flag.Parse()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-	if err := run(ctx, *sitemap, *rebase, flag.Args(), *width, *height, *font, *zoom, *spacing, *scheme, *shots); err != nil {
+	err := run(ctx, *sitemap, *rebase, flag.Args(), *width, *height, *font, *zoom, *spacing, *scheme, *shots)
+	stop()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "textscale:", err)
 		os.Exit(1)
 	}
@@ -86,7 +87,7 @@ func run(ctx context.Context, sitemap, rebase string, urls []string, width, heig
 		schemes = []string{a11y.Light, a11y.Dark}
 	}
 	if shots != "" {
-		if err := os.MkdirAll(shots, 0o755); err != nil {
+		if err := os.MkdirAll(shots, 0o750); err != nil {
 			return err
 		}
 	}
@@ -223,7 +224,7 @@ func check(ctx context.Context, conn *bidi.Conn, cx, u string, font, zoom int, s
 		if err != nil {
 			return res, err
 		}
-		if err := os.WriteFile(filepath.Join(shots, shotName(u, scheme)), png, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(shots, shotName(u, scheme)), png, 0o600); err != nil {
 			return res, err
 		}
 	}
