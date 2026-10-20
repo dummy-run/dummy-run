@@ -51,11 +51,14 @@ section to `docs/INSTALL.md` when the tap is on.
 
 ## When a release fails
 
-A failed run leaves the release in draft, since only `publish` makes it public. The image gets its version, minor
-and `latest` tags once it is signed and attested. A failure before that leaves only an untagged digest. If the
-`image` job gave the digest its tags, or `publish` failed after it, delete those tags in the package settings of
-`ghcr.io/dummy-run/dummyrun` before you retry. Then fix the cause, delete the draft release and its tag on
-GitHub, and push the tag again on the fixed commit.
+The `release` workflow checks the tag and the `main` commit before it builds anything. A run that fails that check leaves no draft and no image. Fix the cause and push the tag again.
+
+A run that fails after the check leaves the release in draft, since only `publish` makes it public. The image gets its version, minor and `latest` tags once it is signed and attested. A failure before that leaves only an untagged digest. To retry:
+
+1. If the `image` job gave the digest its tags, or `publish` failed after it, delete those tags in the package settings of `ghcr.io/dummy-run/dummyrun`.
+2. Fix the cause.
+3. Delete the draft release and its tag on GitHub.
+4. Push the tag again on the fixed commit.
 
 This cleanup applies only to a release that was never published. Never move a published tag. A published
 release is final, so ship a new patch version instead.
@@ -95,11 +98,7 @@ gh variable set HOMEBREW_TAP_ENABLED --body true --repo dummy-run/dummy-run
 ```
 
 The next release then pushes `Formula/dummyrun.rb` to the tap. The formula installs the macOS and Linux
-archives, and its test runs `dummyrun version`. The tap is updated while the release is still a draft, so a
-failed image job leaves a formula that points at a draft. Fix the failure and tag again. Then check that
-`Formula/dummyrun.rb` points at the new release before users install from the tap, and repair it if it is stale.
-After that, add a Homebrew
-section to `docs/INSTALL.md`.
+archives, and its test runs `dummyrun version`. The tap is updated while the release is still a draft. A failure in the `image` job or in `publish` can leave a formula that points at a draft. After you fix the failure and tag again, check that `Formula/dummyrun.rb` points at the new release before users install from the tap. Repair it if it is stale. Then add a Homebrew section to `docs/INSTALL.md`.
 
 ### Package visibility
 
