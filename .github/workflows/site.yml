@@ -134,9 +134,9 @@ jobs:
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
           --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-firefox.json"
           http://127.0.0.1:1313/404.html
-      - name: Large text, Chrome, phone width, 100 and 200 percent text, light and dark
+      - name: Large text, Chrome, 320 pixels, 100 and 200 percent text, light and dark
         run: >-
-          "$RUNNER_TEMP/dummyrun" a11y --browser chrome --viewport phone --text-scale 100,200 --layout
+          "$RUNNER_TEMP/dummyrun" a11y --browser chrome --viewport small --text-scale 100,200 --layout
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
           --allow site/a11y-allow.txt --screenshots "$RUNNER_TEMP/large-text"
           --json "$RUNNER_TEMP/a11y-large-text.json"

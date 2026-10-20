@@ -59,10 +59,10 @@ the repository root:
 
 <!-- doctest site -->
 ```sh
-dummyrun a11y --viewport phone --scheme light --text-scale 200 --layout --allow site/a11y-allow.txt http://127.0.0.1:1313/start/
+dummyrun a11y --viewport small --scheme light --text-scale 200 --layout --allow site/a11y-allow.txt http://127.0.0.1:1313/start/
 ```
 
-It opens each page in Chrome at phone width with the browser's default font size doubled. It fails when the
+It opens each page in Chrome at 320 pixels wide with the browser's default font size doubled. It fails when the
 page scrolls sideways. It fails when a button or label clips its text. It fails when two controls overlap. Add `--sitemap` and
 `--rebase` to test every page, and `--screenshots DIR` to save a crop of each fault. `docs/ENGINE.md` describes the
 rules. The site workflow runs it on every page in the sitemap.
