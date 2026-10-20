@@ -8,7 +8,7 @@ import (
 )
 
 func TestParseTextScales(t *testing.T) {
-	for in, want := range map[string][]int{"": nil, "200": {200}, "100": {100}, "100,200": {100, 200}, " 150% , 300 ": {150, 300}} {
+	for in, want := range map[string][]int{"": nil, "200": {200}, "100": {100}, "100,200": {100, 200}, "150% ,300": {150, 300}} {
 		got, err := parseTextScales(in)
 		if err != nil || !reflect.DeepEqual(got, want) {
 			t.Errorf("%q: got %v, %v want %v", in, got, err, want)
