@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dummyrun.dev/schema/report/v1.json",
+  "title": "Dummy Run audit report",
+  "description": "The JSON form of the report that dummyrun report writes. The HTML, Markdown, SARIF and JUnit forms are made from the same data. A later report can take this file as its baseline.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report_version", "title", "date", "tool", "tool_version", "basis", "summary", "scope", "coverage", "findings", "limits", "warnings"],
+  "properties": {
+    "report_version": { "const": 1 },
+    "title": { "type": "string" },
+    "client": { "type": "string", "description": "Free text naming who the report is for" },
+    "date": { "type": "string", "format": "date" },
+    "tool": { "const": "dummyrun" },
+    "tool_version": { "type": "string" },
+    "basis": { "type": "string", "description": "Which findings the report includes" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "findings_total", "by_severity", "confirmed", "not_reviewed", "pending_omitted", "axe_failing_rules", "axe_failing_elements"],
+      "properties": {
+        "text": { "type": "array", "items": { "type": "string" }, "description": "The executive summary, one paragraph for each entry" },
+        "findings_total": { "type": "integer", "minimum": 0 },
+        "by_severity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["blocker", "major", "minor", "info"],
+          "properties": {
+            "blocker": { "type": "integer", "minimum": 0 },
+            "major": { "type": "integer", "minimum": 0 },
+            "minor": { "type": "integer", "minimum": 0 },
+            "info": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "confirmed": { "type": "integer", "minimum": 0 },
+        "not_reviewed": { "type": "integer", "minimum": 0 },
+        "pending_omitted": { "type": "integer", "minimum": 0, "description": "Findings left out because no reviewer has confirmed them" },
+        "axe_failing_rules": { "type": "integer", "minimum": 0 },
+        "axe_failing_elements": { "type": "integer", "minimum": 0 },
+        "new": { "type": "integer", "minimum": 0 },
+        "still_present": { "type": "integer", "minimum": 0 },
+        "fixed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targets", "started_at", "ended_at", "browsers", "models", "personas", "scenarios", "runs", "cost", "routes_visited"],
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["base_url", "environment", "adapter", "build", "build_kind", "runs"],
+            "properties": {
+              "base_url": { "type": "string" },
+              "environment": { "type": "string" },
+              "adapter": { "type": "string" },
+              "build": { "type": "string", "description": "Commit or build hash" },
+              "build_kind": { "enum": ["commit", "build hash"] },
+              "runs": { "type": "integer" }
+            }
+          }
+        },
+        "started_at": { "type": "string" },
+        "ended_at": { "type": "string" },
+        "browsers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version", "runs"],
+            "properties": { "name": { "type": "string" }, "version": { "type": "string" }, "runs": { "type": "integer" } }
+          }
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "model", "region", "runs"],
+            "properties": { "kind": { "type": "string" }, "model": { "type": "string" }, "region": { "type": "string" }, "runs": { "type": "integer" } }
+          }
+        },
+        "personas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "role", "devices", "dimensions", "runs"],
+            "properties": {
+              "id": { "type": "string" },
+              "role": { "type": "string" },
+              "devices": { "type": "array", "items": { "type": "string" } },
+              "dimensions": { "type": "array", "items": { "type": "string" } },
+              "runs": { "type": "integer" }
+            }
+          }
+        },
+        "scenarios": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "title", "runs", "goal_met", "goal_partly", "goal_not_met", "goal_unknown"],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "runs": { "type": "integer" },
+              "goal_met": { "type": "integer" },
+              "goal_partly": { "type": "integer" },
+              "goal_not_met": { "type": "integer" },
+              "goal_unknown": { "type": "integer" }
+            }
+          }
+        },
+        "runs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "completed", "blocked", "errored", "budget_exhausted"],
+          "properties": {
+            "total": { "type": "integer" },
+            "completed": { "type": "integer" },
+            "blocked": { "type": "integer" },
+            "errored": { "type": "integer" },
+            "budget_exhausted": { "type": "integer" }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["usd", "unpriced_runs", "model_calls", "input_tokens", "output_tokens"],
+          "properties": {
+            "usd": { "type": "number", "minimum": 0 },
+            "unpriced_runs": { "type": "integer", "description": "Runs whose model has no price, so usd is a floor" },
+            "model_calls": { "type": "integer" },
+            "input_tokens": { "type": "integer" },
+            "output_tokens": { "type": "integer" }
+          }
+        },
+        "routes_visited": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "observed", "total_at_least", "unfound_at_least", "sample_coverage", "new_per_extra_run", "completed_runs", "routes_visited", "route_universe"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "unavailable": { "type": "string", "description": "Why coverage was not computed" },
+        "basis": { "type": "string" },
+        "observed": { "type": "integer", "description": "Distinct problems seen" },
+        "total_at_least": { "type": ["number", "null"], "description": "Chao2 lower bound on all distinct problems" },
+        "chao2_form": { "type": "string" },
+        "unfound_at_least": { "type": ["number", "null"], "description": "total_at_least less observed, never below zero" },
+        "sample_coverage": { "type": ["number", "null"] },
+        "new_per_extra_run": { "type": ["number", "null"] },
+        "completed_runs": { "type": "integer" },
+        "label": { "type": "string" },
+        "stopping_rule": { "type": "string" },
+        "routes_visited": { "type": "integer" },
+        "route_universe": { "type": "integer" },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "detail": { "type": "object", "description": "The full output of dummyrun coverage --format json" }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "fixed": { "type": "array", "items": { "$ref": "#/$defs/fixed" }, "description": "Problems in the baseline that this report did not find again" },
+    "axe": { "$ref": "#/$defs/axe" },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "date"],
+      "properties": { "title": { "type": "string" }, "date": { "type": "string" } }
+    },
+    "limits": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "What the report is not" },
+    "warnings": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "baselineStatus": { "enum": ["new", "still-present", "fixed"] },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "title", "severity", "kind", "evidence", "status", "personas", "runs", "of_runs", "reproduction", "instances"],
+      "properties": {
+        "fingerprint": { "type": "string", "description": "Empty for a record that has none" },
+        "title": { "type": "string" },
+        "severity": { "enum": ["blocker", "major", "minor", "info"] },
+        "kind": { "enum": ["bug", "permission", "friction", "accessibility", "question"] },
+        "symptom": { "type": "string" },
+        "route": { "type": "string" },
+        "locus": { "type": "string" },
+        "state": { "type": "string" },
+        "evidence": { "enum": ["measured", "code", "sourced", "inferred"] },
+        "status": { "enum": ["confirmed", "not-reviewed"] },
+        "reviewers": { "type": "array", "items": { "type": "string" } },
+        "reviewed_at": { "type": "string" },
+        "reason": { "type": "string" },
+        "wcag": { "type": "array", "items": { "type": "string", "pattern": "^[1-4]\\.[0-9]+\\.[0-9]+$" }, "description": "WCAG 2.2 success criteria where known" },
+        "help_url": { "type": "string" },
+        "baseline": { "enum": ["new", "still-present"] },
+        "personas": { "type": "array", "items": { "type": "string" } },
+        "runs": { "type": "integer", "description": "Runs that found the problem" },
+        "of_runs": { "type": "integer", "description": "Runs in the report" },
+        "reproduction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["run", "persona", "role", "device", "zoom_percent", "browser", "steps"],
+          "properties": {
+            "run": { "type": "string" },
+            "persona": { "type": "string" },
+            "role": { "type": "string" },
+            "device": { "type": "string" },
+            "zoom_percent": { "type": "integer" },
+            "browser": { "type": "string" },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["n", "action"],
+                "properties": {
+                  "n": { "type": "integer" },
+                  "action": { "type": "string" },
+                  "target": { "type": "string" },
+                  "route": { "type": "string" },
+                  "url": { "type": "string" },
+                  "note": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "screenshots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["run", "step", "path", "alt"],
+            "properties": {
+              "run": { "type": "string" },
+              "step": { "type": "integer" },
+              "path": { "type": "string", "description": "Path relative to the run record" },
+              "alt": { "type": "string" }
+            }
+          }
+        },
+        "instances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["run", "finding_id", "persona", "device", "browser", "steps", "status"],
+            "properties": {
+              "run": { "type": "string" },
+              "finding_id": { "type": "string" },
+              "persona": { "type": "string" },
+              "device": { "type": "string" },
+              "browser": { "type": "string" },
+              "steps": { "type": "array", "items": { "type": "integer" } },
+              "status": { "enum": ["confirmed", "not-reviewed"] }
+            }
+          }
+        }
+      }
+    },
+    "fixed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "title", "severity", "source"],
+      "properties": {
+        "fingerprint": { "type": "string" },
+        "title": { "type": "string" },
+        "severity": { "type": "string" },
+        "source": { "enum": ["persona", "axe"] }
+      }
+    },
+    "axeRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fingerprint", "rule", "impact", "help", "elements", "pages"],
+      "properties": {
+        "fingerprint": { "type": "string" },
+        "rule": { "type": "string" },
+        "impact": { "type": "string" },
+        "wcag": { "type": "array", "items": { "type": "string" } },
+        "help": { "type": "string" },
+        "help_url": { "type": "string" },
+        "elements": { "type": "integer" },
+        "baseline": { "enum": ["new", "still-present"] },
+        "pages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "targets", "settings"],
+            "properties": {
+              "url": { "type": "string" },
+              "targets": { "type": "array", "items": { "type": "string" } },
+              "settings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "axe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "browsers", "tags", "pages", "runs", "failing_elements", "allowed_elements", "page_errors", "rules", "needs_review"],
+      "properties": {
+        "tool": { "type": "string" },
+        "browsers": { "type": "array", "items": { "type": "string" } },
+        "axe_version": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "pages": { "type": "integer" },
+        "runs": { "type": "integer" },
+        "failing_elements": { "type": "integer" },
+        "allowed_elements": { "type": "integer" },
+        "page_errors": { "type": "integer" },
+        "rules": { "type": "array", "items": { "$ref": "#/$defs/axeRule" } },
+        "needs_review": { "type": "array", "items": { "$ref": "#/$defs/axeRule" } },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "setting", "message"],
+            "properties": { "url": { "type": "string" }, "setting": { "type": "string" }, "message": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}

@@ -151,7 +151,7 @@ func Build(run *record.Run) Plan {
 }
 
 func runStatus(outcome string) codes.Code {
-	if outcome == "errored" || outcome == "blocked" {
+	if outcome == "errored" || outcome == "blocked" || outcome == "provider_filtered" {
 		return codes.Error
 	}
 	return codes.Ok
@@ -173,8 +173,20 @@ func rootAttributes(run *record.Run) []attribute.KeyValue {
 	if run.Persona.Zoom != 0 {
 		attrs = append(attrs, attribute.Int("dummyrun.persona.zoom", run.Persona.Zoom))
 	}
+	if run.Persona.Dimensions != nil && run.Persona.Dimensions.AT != nil {
+		attrs = append(attrs, attribute.String("dummyrun.persona.at", *run.Persona.Dimensions.AT))
+	}
+	if run.Scenario.GoalMet != "" {
+		attrs = append(attrs, attribute.String("dummyrun.scenario.goal_met", run.Scenario.GoalMet))
+	}
+	if run.SchemaVersion >= 2 {
+		attrs = append(attrs, attribute.Int("dummyrun.repeat_index", run.RepeatIndex))
+	}
 	if run.Target.Commit != "" {
 		attrs = append(attrs, attribute.String("dummyrun.target.commit", run.Target.Commit))
+	}
+	if run.Target.BuildHash != "" {
+		attrs = append(attrs, attribute.String("dummyrun.target.build_hash", run.Target.BuildHash))
 	}
 	attrs = append(attrs,
 		attribute.String("url.full", run.Target.BaseURL),
@@ -204,6 +216,9 @@ func stepSpan(runID string, s record.Step) Span {
 	if s.URL != nil {
 		attrs = append(attrs, attribute.String("url.full", *s.URL))
 	}
+	if s.Route != nil {
+		attrs = append(attrs, attribute.String("dummyrun.step.route", *s.Route))
+	}
 	if s.Status != nil {
 		attrs = append(attrs, attribute.Int("http.response.status_code", *s.Status))
 	}
@@ -228,7 +243,7 @@ func stepSpan(runID string, s record.Step) Span {
 }
 
 func findingAttributes(f record.Finding) []attribute.KeyValue {
-	return []attribute.KeyValue{
+	attrs := []attribute.KeyValue{
 		attribute.String("dummyrun.finding.id", f.ID),
 		attribute.String("dummyrun.finding.kind", f.Kind),
 		attribute.String("dummyrun.finding.severity", f.Severity),
@@ -237,6 +252,15 @@ func findingAttributes(f record.Finding) []attribute.KeyValue {
 		attribute.String("dummyrun.finding.verdict", f.Verdict),
 		attribute.IntSlice("dummyrun.finding.steps", f.Steps),
 	}
+	for _, kv := range []struct{ key, val string }{
+		{"dummyrun.finding.class", f.Class}, {"dummyrun.finding.route", f.Route},
+		{"dummyrun.finding.symptom", f.Symptom}, {"dummyrun.finding.fingerprint", f.Fingerprint},
+	} {
+		if kv.val != "" {
+			attrs = append(attrs, attribute.String(kv.key, kv.val))
+		}
+	}
+	return attrs
 }
 
 func measurements(run *record.Run) []Measurement {

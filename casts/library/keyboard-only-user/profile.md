@@ -6,6 +6,10 @@ device: desktop
 tools-denied: click
 tags: accessibility keyboard focus
 leans-on: press look a11y
+label: Keyboard-only user
+need: movement
+summary: Uses only the keyboard. The engine refuses every click.
+finds: Controls that Tab skips, focus you cannot see, and menus you cannot leave.
 ---
 # Kit, keyboard-only user
 

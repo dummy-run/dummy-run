@@ -35,14 +35,18 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 |---|---|
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
 | `--persona ID`, `--scenario ID` | Which persona and which of its scenarios |
-| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment`. See `examples/targets/` |
+| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`; screenshots and the persona's report are under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
 | `--endpoint`, `--api-key-env`, `--project` | The provider's base URL, the name of the environment variable holding its API key, and the Google Cloud project for `vertex` |
 | `--reasoning-effort`, `--openai-api` | Reasoning effort, and `responses` to use the Responses API, for OpenAI-style models |
 | `--api-version V` | The Azure OpenAI API version. The default is `2025-04-01-preview` |
-| `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together |
+| `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together. The default is the date and the target's environment |
+| `--seed N` | A sampling seed, 0 or more. It is sent to providers that take one (see [PROVIDERS.md](PROVIDERS.md)) and recorded as `seed`. Where it is not sent the record has `seed: null` |
+| `--repeat-index N` | The run's `repeat_index`. The default counts the earlier records in `--out` with the same batch, persona, scenario and model |
+| `--session FILE` | Sign in from a saved session file in place of the login form. See [Sign in](#sign-in) |
+| `--universe sitemap` | Read the routes that exist from the target's `/sitemap.xml`, or from a sitemap URL, and write them to `target.route_universe` for route coverage |
 | `--steps N` | Step budget, up to 40. A scenario can also ask with a `Budget: 30 steps` line. The default is 25 |
 | `--tokens N` | Token budget for input plus output. The default is 1,500,000 |
 | `--headful` | Show the browser window |
@@ -72,7 +76,27 @@ same page (code: `internal/runner/patience.go`).
 | `press` | Press a key such as Enter, Escape or ArrowDown |
 | `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, wait up to 15 seconds |
 | `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. Only rule IDs and counts are recorded |
-| `finish` | End the run with a verdict, a report and findings that cite step numbers |
+| `finish` | End the run with a verdict, `goal_met`, a report and findings that cite step numbers |
+
+Each finding names a `symptom` from a closed list, and may name the control it is about by its `@12` number. The
+engine computes the finding's route, locus and fingerprint from the page. [COVERAGE.md](COVERAGE.md) explains
+the list and what the fingerprint is for. A symptom outside the list sends the model back to `finish` twice at
+most, and then the finding is dropped.
+
+## Browser cleanup
+
+The engine starts the driver and the browser in a process group of its own. Their profile is a temporary
+directory named `dummyrun-chrome-*` or `dummyrun-firefox-*` (code: `internal/bidi/launch.go` and
+`internal/bidi/cleanup.go`). When a run ends the engine closes the BiDi session and signals the group. It waits
+for the group to exit and kills what is left. It also stops any helper that still names the profile. Then it
+removes the profile. This happens when a run succeeds or fails. It also happens on a panic, a timeout, Ctrl-C
+and SIGTERM. A second process watches the engine and stops the browser group if the engine disappears without
+cleaning up, for example after SIGKILL.
+
+Use Chrome for Testing where you can. On macOS each running Google Chrome keeps a code-signing clone of the
+app of about 1.4 GB, and the engine looks for Chrome for Testing first. Set `DUMMYRUN_CHROME` and
+`DUMMYRUN_CHROMEDRIVER` to a matching pair. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/)
+lists the downloads.
 
 ## Persona and scenario settings
 
@@ -161,8 +185,13 @@ The outline has a budget of 600 tokens (`page.TreeTokens`). The engine counts 3 
 the limit is 1,800 characters. When a page has more, the landmarks and the focused element stay. Headings come next, then
 interactive elements in page order. A last line says how many entries were left out.
 
-The run record matches `schema/run-record.schema.json` and is validated before it is written. Findings
-start with the verdict `pending`; the reviewer is a later stage. Next to the record, `report.md` holds the
+The run record matches `schema/run-record.schema.json` (schema version 2) and is validated before it is written.
+Version 1 records, written by earlier releases, stay readable by `dummyrun coverage` and the Grafana exporter.
+A version 2 record adds the fingerprint of each finding and the route of each step. It also adds the persona's
+dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
+`internal/price/prices.json`. The cost is null for a model that is not in the table. A target without a `commit` gets one from a hash of its
+home page, which the engine fetches with one GET request outside the browser. Findings
+start with the verdict `pending`, and the Review section below shows how a person changes it. Next to the record, `report.md` holds the
 persona's own report and `steps.jsonl` holds the full observation for each step, including page text the
 reviewer can check quotes against.
 
@@ -171,15 +200,285 @@ Every request to the target carries a `baggage` header with the run and persona 
 and the step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md` describes
 (code: `internal/telemetry/telemetry.go`). The browser's user agent ends with `DummyRun/<version>`.
 
+## Review
+
+A paid report holds only findings that a person has confirmed. `dummyrun review` is where that person works. It reads a folder of run records, or the record files you name (code: `internal/review/store.go`). It lists the findings that are still `pending` and sets each one to `confirmed` or `rejected` (code: `Apply` in `internal/review/store.go`).
+
+List what is waiting. This changes nothing.
+
+<!-- doctest -->
+```sh
+dummyrun review examples/runs --list
+```
+
+Add `--json` for a script, or `--verdict all` to include findings that are already reviewed.
+
+### One finding at a time
+
+Run the command in a terminal with no other flag. It shows the problems one by one, most severe first. Each one lists the persona and the scenario. It also lists the title, the severity and the kind. The route, the symptom and the evidence tag follow. For every step the finding cites it shows the action, what the step saw, the element that had focus and the screenshot file. Open the screenshot yourself and then press a key and Enter.
+
+| Key | What it does |
+|---|---|
+| `c` | Confirm |
+| `r` | Reject. It asks for a short reason and does nothing if you leave it empty |
+| `e` | Change the severity or the title. The change is saved with your next `c` or `r` |
+| `s` | Skip. The finding stays `pending` |
+| `q` | Quit. Nothing is lost, because each decision is saved as you make it |
+
+A session looks like this. The screenshot path is shortened.
+
+```text
+2 problems to review, reviewer Pat Example. Type a key and press Enter.
+
+--- 1 of 2 ---
+minor  accessibility  evidence: measured  class: problem
+  The draft title field has no accessible name
+  fingerprint 87c7d46615a89adf  route /drafts  locus textbox:title  symptom a11y:label
+  persona sam-author (author)  scenario submit-draft  run 2026-10-15-sam-author-001
+  cited steps:
+    step 3  click Schedule
+      saw: status 200, route /drafts
+      focus: button "Schedule"
+      screenshot: runs/2026-10-15-sam-author-001/screens/003.png
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > e
+Severity (blocker major minor info, Enter keeps minor): major
+Title (Enter keeps it):
+The edit is applied with your next confirm or reject.
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > c
+confirmed: 1 finding in 1 run.
+
+--- 2 of 2 ---
+info  question  evidence: inferred  class: problem
+  The payment status 'settled' is unclear to a contributor
+  fingerprint 1718b75300702f7b  route /payments  locus region:payment status  symptom unclear-label
+  persona lin-contributor (contributor)  scenario check-payment  run 2026-10-16-lin-contributor-004
+  3 findings of this problem in all. One verdict covers the 2 still pending. The others:
+    2026-10-16-lin-contributor-002  persona lin-contributor  confirmed  payment-status-wording
+    2026-10-17-lin-contributor-008  persona lin-contributor  pending  payment-status-wording
+  cited steps:
+    step 9  visit
+      saw: status 200, route /payments
+[c]onfirm  [r]eject  [e]dit severity or title  [s]kip  [q]uit > r
+Reason for rejecting (empty cancels): The wording matches the product glossary
+rejected: 2 findings in 2 runs.
+
+Confirmed 1, rejected 1, skipped 0. 3 findings changed.
+```
+
+### Without a terminal
+
+A script or a CI job names the findings in flags. A selector is a fingerprint or a prefix of at least six characters, in either case. It can also be `run-id/finding-id`, or a finding ID that only one problem uses. The command checks every selector before it writes anything. If one is wrong it exits 2 and changes nothing.
+
+```sh
+dummyrun review runs/ --confirm 87c7d4 --reviewer "Pat Example"
+dummyrun review runs/ --reject 1718b7 --reason "The wording matches the product glossary"
+```
+
+A rejection needs `--reason`. A confirmation may have one. Give `--reason` once. It goes with every verdict in the command. `--reviewer` defaults to `git config user.name`, and the command stops if neither is set. The exit code is 0 when it wrote the verdicts, 1 when a write failed and 2 when the command line was wrong.
+
+### One problem is judged once
+
+Findings with the same fingerprint are one problem seen in several runs. You decide it once. The verdict reaches every finding with that fingerprint that is still `pending`, and the command says how many it changed. A finding that someone has already confirmed or rejected is never changed. An edit to the severity or the title reaches the same pending findings.
+
+### What a decision writes
+
+For each finding it changes, the command sets `verdict` and adds three optional fields from schema version 2.
+
+| Field | Content |
+|---|---|
+| `reviewer` | The `--reviewer` value or `git config user.name` |
+| `reviewed_at` | The time of the decision in UTC |
+| `reason` | Why. Required for a rejection |
+
+Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. If another reviewer saves the record in between, the command reads it again and applies your verdict to what is still pending. Where the system has a lock, two reviewers in the same folder take turns. The command holds the lock while it rewrites a record (code: `internal/review/lock_unix.go` and `internal/review/lock_windows.go`). That covers Linux, macOS, the BSDs and Windows. Windows keeps a `.review.lock` file in the folder. Other systems have no lock. There the command reads the record again just before the rename and starts over if it changed. Two reviewers can still collide in the instant between that check and the rename (code: `internal/review/lock_other.go`). A failure while the record is checked or replaced leaves the old record in place (code: `editOnce` in `internal/review/store.go`). It then adds one line to `review-log.jsonl` in the folder of the record. If that write fails, the records have already changed and the command says so (code: `Apply` in `internal/review/store.go`). The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
+
+Version 1 records have no fingerprint and no review fields. The command skips them and says so.
+
+### Reports and exports
+
+`dummyrun coverage` counts only confirmed findings unless you pass `--confirmed-only=false`. Review before you export. `dummyrun-otel` sends `verdict` with each finding, and it reads reviewed records without change. It does not update what it sent earlier, so sending a record again after a review duplicates its spans and log lines. [TELEMETRY.md](TELEMETRY.md) explains what a repeat does.
+
 ## Read-only policy
 
 A target with `"read_only": true` cannot be changed by a run. The engine intercepts every request the
 browser makes (code: `internal/policy/policy.go` and `internal/page/page.go`). A request to an allowed host with a method other than GET, HEAD or OPTIONS fails as a
 network error before it leaves the browser, and the step that caused it gets a note such as
 `blocked: POST https://example.test/subscribe (read-only target)`. A request to any host outside
-`allowed_hosts` fails the same way. The persona is told about the policy in its prompt as well, but the
+`allowed_hosts` fails the same way. The one exception is the sign-in request, described under [Sign in](#sign-in). The persona is told about the policy in its prompt as well, but the
 interception is what enforces it. `internal/page/tools_test.go` proves it with a form whose POST never
 reaches the test server, on both browsers (measured on Firefox 158.0 and Chrome 155.0.8059.80).
+
+An `allowed_hosts` entry is a host name or `host:port`. A bare host name matches the default port of the
+request's scheme, and also the port of `base_url` when it is the base URL's own host. Another port needs its own
+`host:port` entry. With a bare `127.0.0.1` entry and no `127.0.0.1:9000` entry, a page on `127.0.0.1:8080` cannot reach a service on `127.0.0.1:9000`. Matching
+is exact, so a subdomain needs its own entry (code: `internal/policy/policy.go`). A request or a `visit` that goes to a host outside the list is not
+followed. The step gets a `blocked:` note and the record gets an `off_origin_blocked` event.
+
+## Untrusted page content
+
+The page under test is input the model must not trust. [Threat model](THREAT-MODEL.md) lists the threats. The
+engine does these things about prompt injection (code: `internal/inject`, `internal/runner/inspect.go`).
+
+- Everything from the page that is sent to the model arrives between `<<<PAGE_CONTENT <id>` and `PAGE_CONTENT <id>>>>`
+  markers. The id is random for each run, so the page cannot close the fence. The system prompt says that text
+  inside the markers is data and never changes the task, the tools, the verdict or the findings.
+- Text that the browser does not render is not sent. That covers `display: none` and `visibility: hidden`.
+  Comments are not sent either. Text with zero size, zero opacity or `aria-hidden` is still in the page text. It can
+  reach the model. The scan flags it as hidden. `internal/page/look.js` collects all of that text and the
+  `aria-label`, `title`, `alt` and `placeholder` values. They go in `page.hidden` in `steps.jsonl`, for the scan and
+  for the reviewer (code: `internal/page/look.js`). Text that CSS only moves off the screen is still page text. The
+  model can see it, and the scan flags it as hidden text (code: `internal/runner/canary_browser_test.go`).
+- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such as
+  "ignore previous instructions", "system prompt" and "you are now". It looks for chat template tokens. It looks for
+  orders to report nothing or to call `finish`, and for claims that the site is fully accessible. It looks for
+  instructions to go to a host outside the allow list, and for invisible Unicode characters. Hidden text that talks to
+  an assistant and gives an order is flagged too. These are heuristics for a reviewer and not a filter.
+- A match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,
+  and one finding of kind `security` that cites every step with a match. The engine files the finding, so a
+  persona that obeys the page still leaves it behind. Its symptom is `misleading-copy`. Its severity is `major`
+  when the text was hidden or contained invisible characters and `minor` otherwise (code: `internal/runner/inspect.go`). Its verdict is `pending`.
+- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
+
+The record's `events` array is optional. Each event has a `kind` and a short `detail`. It has a `step` where one applies. For `suspected_injection` it also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
+The `detail` of such an event is page text. Treat it as data. `dummyrun-otel` does not export events (code: `integrations/grafana/exporter/internal/record/record.go`).
+A reader built from an earlier copy of `schema/run-record.schema.json` rejects a record that has `events`, the
+outcome `provider_filtered` or a finding of kind `security` (code: `schema/run-record.schema.json`). `dummyrun-otel` reads the outcome and the finding kind and ignores `events`.
+
+### When the provider refuses
+
+A model provider may refuse a call because its content filter objects to the page. The run stops. The record
+has the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding.
+`report.md` and the command's message say that the provider refused the call. The command exits with status 1.
+Every provider maps to this outcome through one error (code: `internal/provider/filter.go`). Azure OpenAI and the
+other OpenAI-compatible services report a content filter finish reason, a `refusal` message or an API error
+(code: `internal/provider/azure.go` and `internal/provider/openai_compat.go`). The Responses API reports a cut-off
+response or a `refusal` part (code: `internal/provider/responses.go`). Anthropic reports a `refusal` stop reason
+(code: `internal/provider/anthropic.go`). Gemini reports safety blocks (code: `internal/provider/gemini.go`).
+Bedrock reports a guardrail stop reason, and the call keeps its token counts (code: `internal/provider/bedrock.go`).
+
+## Sign in
+
+Some apps show nothing until a user signs in. The engine signs in before the persona starts. The harness
+does not give the credentials to the persona, so it cannot be asked for them. A signed-in page can still show the
+user name (see below). There are two ways. Both use a test account of
+your own that has no multi-factor step. Single sign-on and multi-factor prompts are out of scope. For those, sign in
+once by hand or with a test account and use a session file.
+
+### The target file
+
+A target file gains an optional `signin` block (code: `internal/policy/signin.go`).
+
+```json
+{
+  "adapter": "url",
+  "environment": "staging",
+  "base_url": "https://staging.example.test/",
+  "allowed_hosts": ["staging.example.test"],
+  "read_only": true,
+  "signin": {
+    "login_url": "/signin",
+    "username": { "selector": "#email" },
+    "password": { "label": "Password" },
+    "submit": { "selector": "form[action='/signin'] button[type=submit]" },
+    "allow_request": { "method": "POST", "url": "/signin" },
+    "success": { "selector": "form[action='/signout']" },
+    "block_paths": ["/logout"],
+    "credentials": {
+      "viewer": { "username_env": "STAGING_VIEWER_USER", "password_env": "STAGING_VIEWER_PASS" },
+      "admin": { "username_env": "STAGING_ADMIN_USER", "password_env": "STAGING_ADMIN_PASS" }
+    }
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `login_url` | The page with the form. A path is resolved against `base_url` |
+| `username`, `password`, `submit` | How to find each control. Give a CSS `selector` or the text of its `label`, not both |
+| `allow_request` | The form's own request, by `method` (default POST) and `url`. The query is ignored. This is the only request that would otherwise fail the read-only policy during the sign-in phase |
+| `success` | A `url_matches` regular expression, a `selector` or both. Make it specific to a signed-in page. Sign-in only counts when the request above was sent and this holds |
+| `block_paths` | Paths that sign the user out, such as `/logout`. A request to one fails for the whole run, whatever its method |
+| `credentials` | One entry for each role. It names the environment variables that hold the user name and password, or a `session_file` |
+
+The file never holds a credential. A value that is not a valid variable name is rejected. All hosts named
+in the block must be in `allowed_hosts`.
+
+### Which role signs in
+
+The first of these that is set decides.
+
+1. The scenario's `Sign in as: editor` line. `Sign in as: none` turns sign-in off.
+2. The persona's `signin: editor` front matter key. `none` turns it off.
+3. The persona's `role` key, when the target has credentials under that name. The library's `role-viewer`,
+   `role-editor` and `role-admin` use this. A target with credentials under those three names needs no more set-up.
+
+A role asked for by name that the target does not list is an error. So is a missing environment variable.
+Both stop the run before a browser starts. A persona whose role matches nothing runs signed out.
+
+### Method one: the login form
+
+The engine opens a tab of its own, loads the login page, fills the two fields from the environment and
+clicks submit. It waits for the declared request and the success check, then closes the tab. The persona's
+tab starts clean, with the session cookies in the browser and no history. The model is told which role it
+is signed in as, and that signing out is blocked.
+
+### Method two: a session file
+
+`dummyrun session save` signs in once through the form and writes the browser's cookies, and the local storage
+of the target's origin and of the sign-in page's origin, to a file (code: `internal/signin/session.go`).
+
+<!-- doctest -->
+```sh
+dummyrun session -h
+```
+
+```sh
+export STAGING_ADMIN_USER=... STAGING_ADMIN_PASS=...
+dummyrun session save --target staging.json --role admin --out sessions/admin.json
+dummyrun run --session sessions/admin.json ...
+dummyrun a11y --session sessions/admin.json https://staging.example.test/admin/
+```
+
+The file is in Playwright's `storageState` format, so a file saved by Playwright loads here and the reverse.
+Cookies for hosts outside `allowed_hosts` are skipped, and so are expired ones and cookies without the `Secure` flag on a host that is not local (code: `Session.Apply` in `internal/signin/session.go`). Local storage is set only for https origins of allowed hosts, and the port is not compared. A session that loads no cookie and no local storage is an error. Set a role's `session_file` in
+the target file to load it without the flag. A relative path starts at the target file's directory. The file holds
+live session cookies. It is written with mode 0600 (code: `Session.Save` in `internal/signin/session.go`). Treat it like a password and keep it out of version control.
+The engine does not check that a loaded session is still valid (code: `loadSession` in `internal/signin/session.go`). Save a fresh one when it expires.
+
+`dummyrun a11y --session FILE` loads the same file before the first page, so the sweep tests the pages as that user sees them.
+
+### The read-only exception
+
+The sign-in POST would be blocked by the read-only policy, so the policy has one exception. While the engine
+signs in by form, a gate is open. It lets through exactly one request, the one `allow_request` declares, by
+method and URL. A second matching request is blocked. Every other write is blocked as before. Hosts outside
+`allowed_hosts` stay blocked. The gate closes before the persona's first step and never opens again, so a persona that
+finds the login form and posts it is blocked like any other write. The exception applies only to targets
+with a `signin` block.
+
+Sign-out is blocked too. On a read-only target the usual sign-out button is a POST and fails like any write.
+`block_paths` also covers a sign-out link that is a GET.
+
+### What the record says
+
+The run record has an optional `signin` block, additive in schema version 2.
+
+```json
+"signin": { "method": "form", "role": "admin", "ok": true,
+  "allowed_request": { "method": "POST", "url": "https://staging.example.test/signin" }, "duration_ms": 850 }
+```
+
+`method` is `form` or `session`. `allowed_request` is the one request the exception let through, without its query,
+and null for a session. A failed sign-in has `ok: false` and an `error`, and the run is `errored` with no steps.
+The block holds the role name from the target file and never a user name or password.
+
+### Where credentials never go
+
+Credentials are read from the environment when the run starts. They are put into the form through the BiDi
+connection and nowhere else. The engine takes no screenshot during sign-in, so the password field is never
+captured. Errors are scrubbed of both values before they are recorded or logged. A test checks the model's requests and every file a run writes for the test password, on both browsers
+(`internal/runner/signin_browser_test.go`). It checks the log and the record for the user name too. A page can still show the user name, for example on a list of users, because the
+engine does not edit page text. See [SECURITY.md](../SECURITY.md) for the threat note.
 
 ## Providers
 
@@ -236,7 +535,30 @@ The site's own check is this command, run on Chrome and Firefox against the buil
 
 `go test ./...` runs the unit tests. Set `DUMMYRUN_BROWSERS=chrome,firefox` to also run the browser tests
 against a local test server. They cover the conformance suite (`internal/bidi`) and the tool suite
-(`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`) and the
-accessibility sweep (`internal/a11y`, on a fixture page with known violations). CI runs all of them on ubuntu-latest with pinned browsers.
+(`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`), the canary page of injection attempts
+(`internal/runner/testdata/canary.html`) and the accessibility sweep (`internal/a11y`, on a fixture page with known violations). The MCP server (`internal/mcpserver`) has a test that drives it through an in-process client. CI runs all of them on ubuntu-latest with pinned browsers.
 The conformance suite includes `browsingContext.setViewport` with `devicePixelRatio`, and the tool suite
 covers focus, the outline and zoom on both browsers.
+
+Every test that launches a browser closes it with `t.Cleanup`. Each test binary fails when a browser was
+launched and never closed. The conformance suite also fails when a browser's process or profile outlives its
+test. CI runs `dummyrun doctor` after the browser tests and fails when it finds anything.
+
+## Troubleshooting
+
+Leftover browsers fill the disk and the process table. To list the browsers and profile directories that
+earlier runs left behind, run this:
+
+```sh
+dummyrun doctor
+```
+
+It exits 1 when it finds any. Add `--stop` to stop them and remove the profile directories. Check first that
+no run is in progress, since a browser that belongs to a live run is listed too. Without the command, this
+lists the processes:
+
+```sh
+ps -axo pid=,args= | grep -E 'dummyrun-(chrome|firefox)-' | grep -v grep
+```
+
+The engine only removes directories that it made itself in the temporary directory with those prefixes.

@@ -14,6 +14,7 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/signin"
 )
 
 // Tags are the axe-core rule tags the sweep runs: WCAG 2.0, 2.1 and 2.2 at levels A and AA.
@@ -49,6 +50,9 @@ type Config struct {
 	Settle time.Duration
 	// Log receives one progress line per page. Nil is silent.
 	Log io.Writer
+	// Session, when set, is loaded into each browser before the first page, so the sweep sees the
+	// pages as a signed-in user does. Cookies for hosts that none of the URLs use are skipped.
+	Session *signin.Session
 }
 
 // Node is one element that failed a rule.
@@ -196,6 +200,11 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) er
 	}
 	defer b.Close()
 	rep.BrowserVersion = b.Version
+	if cfg.Session != nil {
+		if err := applySession(ctx, b.Conn, cfg); err != nil {
+			return err
+		}
+	}
 	cx, err := b.Conn.CreateContext(ctx)
 	if err != nil {
 		return fmt.Errorf("a11y: open a tab: %w", err)
@@ -225,6 +234,25 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) er
 				_, _ = fmt.Fprintf(cfg.Log, "%s %-7s %-5s %s: %s\n", cfg.Browser, vp.Name, scheme, u, status)
 			}
 		}
+	}
+	return nil
+}
+
+// applySession loads the session for the hosts the sweep will visit. A session that loads nothing is
+// an error, so a sweep never runs signed out by accident.
+func applySession(ctx context.Context, conn signin.StorageConn, cfg Config) error {
+	hosts := map[string]bool{}
+	for _, raw := range cfg.URLs {
+		if u, err := url.Parse(raw); err == nil {
+			hosts[strings.ToLower(u.Hostname())] = true
+		}
+	}
+	got, err := cfg.Session.Apply(ctx, conn, func(h string) bool { return hosts[strings.ToLower(h)] }, time.Now())
+	if err != nil {
+		return fmt.Errorf("a11y: load the session: %w", err)
+	}
+	if got.Cookies == 0 && got.Storage == 0 {
+		return errors.New("a11y: the session has no cookie or local storage that is unexpired and for a host in the URLs (a cookie also needs the Secure flag unless the host is local)")
 	}
 	return nil
 }

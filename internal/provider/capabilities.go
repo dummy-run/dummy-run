@@ -27,6 +27,9 @@ type Capabilities struct {
 	ResponsesAPI bool
 	// CachedTokens is true when the backend reports cached input tokens in usage.
 	CachedTokens bool
+	// Seed is true when Request.Seed is sent to the backend. Sampling with a seed is repeatable
+	// only as far as the vendor promises.
+	Seed bool
 	// DefaultRegion is what the run record gets when no region is given. Empty
 	// means the caller must say, because the backend cannot tell where it runs.
 	DefaultRegion string
@@ -46,11 +49,11 @@ type Capable interface {
 // named tool choice, so the finish step uses an instruction there, and images
 // go in user turns because the chat completions format has no image in a tool message.
 var capabilityTable = map[string]Capabilities{
-	"azure-foundry":     {ToolCalling: true, ForcedToolChoice: true, Images: true, StructuredOutput: true, ReasoningEffort: true, ResponsesAPI: true, CachedTokens: true},
-	"openai-compatible": {ToolCalling: true, Images: true, StructuredOutput: true, ReasoningEffort: true, ResponsesAPI: true, CachedTokens: true},
+	"azure-foundry":     {ToolCalling: true, Seed: true, ForcedToolChoice: true, Images: true, StructuredOutput: true, ReasoningEffort: true, ResponsesAPI: true, CachedTokens: true},
+	"openai-compatible": {ToolCalling: true, Seed: true, Images: true, StructuredOutput: true, ReasoningEffort: true, ResponsesAPI: true, CachedTokens: true},
 	"anthropic":         {ToolCalling: true, ImagesInToolResults: true, Images: true, StructuredOutput: true, CachedTokens: true, DefaultRegion: "global"},
-	"gemini-api":        {ToolCalling: true, ForcedToolChoice: true, Images: true, StructuredOutput: true, CachedTokens: true, DefaultRegion: "global"},
-	"vertex-gemini":     {ToolCalling: true, ForcedToolChoice: true, Images: true, StructuredOutput: true, CachedTokens: true, RegionSelectable: true},
+	"gemini-api":        {ToolCalling: true, Seed: true, ForcedToolChoice: true, Images: true, StructuredOutput: true, CachedTokens: true, DefaultRegion: "global"},
+	"vertex-gemini":     {ToolCalling: true, Seed: true, ForcedToolChoice: true, Images: true, StructuredOutput: true, CachedTokens: true, RegionSelectable: true},
 	"bedrock":           {ToolCalling: true, Images: true, StructuredOutput: true, CachedTokens: true, RegionSelectable: true, DefaultRegion: "eu-west-2"},
 }
 

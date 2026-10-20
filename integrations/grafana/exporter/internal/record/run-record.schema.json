@@ -1,89 +1,448 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dummyrun.dev/schema/run-record/v1.json",
+  "$id": "https://dummyrun.dev/schema/run-record/v2.json",
   "title": "Dummy Run run record",
-  "description": "One persona working through one scenario against one preview. Written by the runner, completed by the reviewer.",
+  "description": "One persona working through one scenario against one preview. Written by the runner, completed by the reviewer. Version 2 adds the fields the coverage estimators need: problem fingerprints, routes, persona dimensions, goal outcome, repeat index and cost.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "started_at", "ended_at", "persona", "scenario", "target", "provider", "browser", "outcome", "steps", "findings", "usage"],
+  "required": [
+    "schema_version",
+    "id",
+    "batch",
+    "repeat_index",
+    "started_at",
+    "ended_at",
+    "persona",
+    "scenario",
+    "target",
+    "provider",
+    "browser",
+    "outcome",
+    "steps",
+    "findings",
+    "usage"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "id": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+$", "description": "Run ID: date, then a slug" },
-    "batch": { "type": "string", "description": "Optional ID grouping runs started together" },
-    "started_at": { "type": "string", "format": "date-time" },
-    "ended_at": { "type": "string", "format": "date-time" },
+    "schema_version": {
+      "const": 2
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]+$",
+      "description": "Run ID: date, then a slug"
+    },
+    "batch": {
+      "type": "string",
+      "description": "ID grouping runs started together. Required in version 2 so repeats and strata are visible"
+    },
+    "repeat_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "0 for the first run of this persona, scenario and model in the batch, 1 for the second, and so on. Makes exact repeats visible to the coverage estimators"
+    },
+    "seed": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Sampling seed sent to the model API, or null when the API has none or the run did not set one"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
     "persona": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "role", "device"],
+      "required": [
+        "id",
+        "role",
+        "device",
+        "dimensions"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-        "role": { "type": "string", "description": "The app role the persona signs in with" },
-        "device": { "enum": ["desktop", "tablet", "phone"], "description": "The device the run used. A scenario can set its own, which replaces the persona's" },
-        "zoom": { "type": "integer", "minimum": 100, "maximum": 500, "description": "Page zoom in percent the run used. Left out means 100" }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "role": {
+          "type": "string",
+          "description": "The app role the persona signs in with"
+        },
+        "device": {
+          "enum": [
+            "desktop",
+            "tablet",
+            "phone"
+          ],
+          "description": "The device the run used. A scenario can set its own, which replaces the persona's"
+        },
+        "zoom": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 500,
+          "description": "Page zoom in percent the run used. Left out means 100"
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Persona dimensions, so diversity coverage can be computed. null means not varied or unknown; a key is never left out",
+          "required": [
+            "viewport",
+            "locale",
+            "at",
+            "connection",
+            "zoom",
+            "motion"
+          ],
+          "properties": {
+            "viewport": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": false,
+              "required": [
+                "width",
+                "height"
+              ],
+              "description": "CSS pixels the page laid out in",
+              "properties": {
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "locale": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "BCP 47 tag, for example en-GB"
+            },
+            "at": {
+              "enum": [
+                "none",
+                "keyboard-only",
+                "screen-reader-view",
+                "magnifier",
+                "switch",
+                "voice",
+                null
+              ],
+              "description": "Assistive technology or modality emulated"
+            },
+            "connection": {
+              "enum": [
+                "unthrottled",
+                "fast-4g",
+                "slow-4g",
+                "3g",
+                "offline-flaky",
+                null
+              ],
+              "description": "Network condition the run used"
+            },
+            "zoom": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0.25,
+              "maximum": 5,
+              "description": "Page zoom factor, 2.0 for 200 percent"
+            },
+            "motion": {
+              "enum": [
+                "no-preference",
+                "reduce",
+                null
+              ],
+              "description": "Reduced-motion setting the run used"
+            }
+          }
+        }
       }
     },
     "scenario": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "title"],
+      "required": [
+        "id",
+        "title",
+        "goal_met"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-        "title": { "type": "string" }
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "goal_met": {
+          "enum": [
+            "yes",
+            "partly",
+            "no"
+          ],
+          "description": "Whether the persona did what it came to do. The persona reports it when it finishes and the reviewer may correct it. Independent of outcome, because a completed run can still end with the needed content unreachable"
+        },
+        "blocked_by": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "description": "Fingerprint of the finding that blocked the goal, when goal_met is no or partly"
+        }
       }
     },
     "target": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["adapter", "environment", "base_url"],
+      "required": [
+        "adapter",
+        "environment",
+        "base_url"
+      ],
       "properties": {
-        "adapter": { "type": "string", "description": "Target adapter name, such as url or github-deployments" },
-        "environment": { "type": "string", "description": "Preview ID, such as pr-42" },
-        "base_url": { "type": "string", "format": "uri" },
-        "commit": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" }
+        "adapter": {
+          "type": "string",
+          "description": "Target adapter name, such as url or github-deployments"
+        },
+        "environment": {
+          "type": "string",
+          "description": "Preview ID, such as pr-42"
+        },
+        "base_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "The build the run tested. The engine sets it from the target configuration, or from build_hash for a URL target. Estimators refuse to pool records with different commits"
+        },
+        "build_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,64}$",
+          "description": "Hash of the deployed build when no commit exists, such as a URL target. For adapter url, the first 12 hex characters of the SHA-256 of the home page response body plus its Last-Modified and ETag headers"
+        },
+        "route_universe": {
+          "type": "array",
+          "description": "Routes that exist, the denominator of route coverage. Normalised as steps[].route",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "route",
+              "source"
+            ],
+            "properties": {
+              "route": {
+                "type": "string",
+                "pattern": "^/"
+              },
+              "source": {
+                "enum": [
+                  "sitemap",
+                  "crawl",
+                  "scenario"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "provider": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "model", "region"],
+      "required": [
+        "kind",
+        "model",
+        "region"
+      ],
       "properties": {
-        "kind": { "type": "string", "description": "vertex-gemini, gemini-api, anthropic, openai-compatible, azure-foundry, bedrock" },
-        "model": { "type": "string" },
-        "region": { "type": "string", "description": "Region the model ran in, or global" }
+        "kind": {
+          "type": "string",
+          "description": "vertex-gemini, gemini-api, anthropic, openai-compatible, azure-foundry, bedrock"
+        },
+        "model": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string",
+          "description": "Region the model ran in, or global"
+        }
       }
     },
     "browser": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "version"],
+      "required": [
+        "name",
+        "version"
+      ],
       "properties": {
-        "name": { "enum": ["chrome", "firefox"] },
-        "version": { "type": "string" }
+        "name": {
+          "enum": [
+            "chrome",
+            "firefox"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "signin": {
+      "type": "object",
+      "description": "How the engine signed the persona in before the run. Optional and additive in version 2. It never holds a credential: the role is the name from the target file, not a user name.",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "role",
+        "ok",
+        "allowed_request",
+        "duration_ms"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "form",
+            "session"
+          ],
+          "description": "form signs in through the login form named in the target file. session loads cookies from a saved session file"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "allowed_request": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The one request the read-only policy let through during sign-in, without its query. Null when none was sent",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "url"
+          ],
+          "properties": {
+            "method": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "type": "string",
+          "description": "Why the sign-in failed, with credentials removed"
+        }
       }
     },
     "outcome": {
-      "enum": ["completed", "blocked", "errored", "budget_exhausted"],
-      "description": "completed: the persona finished its job. blocked: the app stopped it. errored: the harness failed. budget_exhausted: it ran out of steps or tokens"
+      "enum": [
+        "completed",
+        "blocked",
+        "errored",
+        "budget_exhausted",
+        "provider_filtered"
+      ],
+      "description": "completed: the persona finished its job. blocked: the app stopped it. errored: the harness failed. budget_exhausted: it ran out of steps or tokens. provider_filtered: the model provider's content filter refused a call, so the run stopped. Added later in version 2, so a reader built from an earlier copy of this schema rejects it"
     },
     "steps": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["n", "at", "action", "duration_ms"],
+        "required": [
+          "n",
+          "at",
+          "action",
+          "duration_ms"
+        ],
         "properties": {
-          "n": { "type": "integer", "minimum": 1 },
-          "at": { "type": "string", "format": "date-time" },
-          "action": { "enum": ["look", "visit", "click", "fill", "type", "select", "press", "back", "scroll", "wait", "a11y", "screenshot", "finish"] },
-          "target": { "type": "string", "description": "Selector, label or URL the action used" },
-          "url": { "type": "string", "description": "Page URL after the action" },
-          "status": { "type": "integer", "description": "HTTP status of the page after the action" },
-          "duration_ms": { "type": "integer", "minimum": 0 },
-          "screenshot": { "type": "string", "description": "Path relative to the run record" },
-          "console_errors": { "type": "integer", "minimum": 0 },
-          "a11y_violations": { "type": "integer", "minimum": 0 },
-          "note": { "type": "string", "description": "What the persona said about this step" }
+          "n": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "enum": [
+              "look",
+              "visit",
+              "click",
+              "fill",
+              "type",
+              "select",
+              "press",
+              "back",
+              "scroll",
+              "wait",
+              "a11y",
+              "screenshot",
+              "finish"
+            ]
+          },
+          "target": {
+            "type": "string",
+            "description": "Selector, label or URL the action used"
+          },
+          "url": {
+            "type": "string",
+            "description": "Page URL after the action"
+          },
+          "status": {
+            "type": "integer",
+            "description": "HTTP status of the page after the action"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "screenshot": {
+            "type": "string",
+            "description": "Path relative to the run record"
+          },
+          "console_errors": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "a11y_violations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "note": {
+            "type": "string",
+            "description": "What the persona said about this step"
+          },
+          "route": {
+            "type": "string",
+            "pattern": "^/",
+            "description": "Normalised route of url: path only, numeric, UUID and long hex segments as :id, query reduced to its sorted parameter names. Present on every step that has a url"
+          }
         }
       }
     },
@@ -92,28 +451,218 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "kind", "severity", "title", "steps", "evidence", "verdict"],
+        "required": [
+          "id",
+          "kind",
+          "severity",
+          "title",
+          "steps",
+          "evidence",
+          "verdict",
+          "class",
+          "route",
+          "locus",
+          "symptom",
+          "fingerprint"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Stable fingerprint, the same across runs that hit the same problem" },
-          "kind": { "enum": ["bug", "permission", "friction", "accessibility", "question"] },
-          "severity": { "enum": ["blocker", "major", "minor", "info"] },
-          "title": { "type": "string" },
-          "steps": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "minItems": 1 },
-          "evidence": { "enum": ["measured", "code", "sourced", "inferred"] },
-          "verdict": { "enum": ["confirmed", "rejected", "pending"], "description": "The reviewer's verdict" }
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Run-local slug. Not an identity: the identity of a problem is fingerprint"
+          },
+          "kind": {
+            "enum": [
+              "bug",
+              "permission",
+              "friction",
+              "accessibility",
+              "question",
+              "security"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "blocker",
+              "major",
+              "minor",
+              "info"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 1
+          },
+          "evidence": {
+            "enum": [
+              "measured",
+              "code",
+              "sourced",
+              "inferred"
+            ]
+          },
+          "verdict": {
+            "enum": [
+              "confirmed",
+              "rejected",
+              "pending"
+            ],
+            "description": "The reviewer's verdict"
+          },
+          "class": {
+            "enum": [
+              "problem",
+              "observation"
+            ],
+            "description": "Positive or neutral notes are observations and never enter incidence statistics"
+          },
+          "route": {
+            "type": "string",
+            "pattern": "^/",
+            "description": "Normalised route where the problem appears: the route of the first cited step that has one, else of the nearest earlier step"
+          },
+          "state": {
+            "type": "string",
+            "description": "Optional reviewer-readable precondition, such as signed in as X or drawer open. Used for exposure"
+          },
+          "locus": {
+            "type": "string",
+            "minLength": 1,
+            "description": "role:accessible name of the control (lower case, whitespace collapsed), or region:landmark or heading name, or page"
+          },
+          "symptom": {
+            "type": "string",
+            "pattern": "^(not-reachable|off-screen|obscured|not-operable|wrong-outcome|misleading-copy|unclear-label|layout-broken|slow|error-shown|dead-link|focus-problem|access-wrongly-allowed|access-wrongly-denied|content-inconsistent|missing-information:[a-z0-9]+(-[a-z0-9]+){0,3}|a11y:[a-z0-9-]+)$",
+            "description": "From the closed taxonomy in docs/COVERAGE.md. The persona picks it from an enum in its finish tool and the engine validates it"
+          },
+          "taxonomy_version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Version of the symptom list, the route rules and the fingerprint definition used"
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$",
+            "description": "Computed by the engine, never by the model: first 16 hex characters of SHA-256 of route|locus|symptom"
+          },
+          "cluster_id": {
+            "type": "string",
+            "description": "Reviewer-assigned cluster when a reviewer joins findings with different fingerprints into one problem. Optional"
+          },
+          "seeded_defect_id": {
+            "type": "string",
+            "description": "Study only. Set by the matcher, never by the persona"
+          },
+          "reviewed_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reviewer": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Who set the verdict, as dummyrun review records it: the --reviewer value or git config user.name. Optional; present once a person has confirmed or rejected the finding"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the reviewer set the verdict, in UTC. Optional; written together with reviewer"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the reviewer set the verdict. Required by dummyrun review for a rejection and optional for a confirmation"
+          }
         }
       }
     },
     "usage": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["model_calls", "input_tokens", "output_tokens"],
+      "required": [
+        "model_calls",
+        "input_tokens",
+        "output_tokens",
+        "cost_usd"
+      ],
       "properties": {
-        "model_calls": { "type": "integer", "minimum": 0 },
-        "input_tokens": { "type": "integer", "minimum": 0 },
-        "output_tokens": { "type": "integer", "minimum": 0 },
-        "cached_input_tokens": { "type": "integer", "minimum": 0, "description": "Part of input_tokens the service served from its prompt cache, where it reports that" },
-        "cost_usd": { "type": "number", "minimum": 0 }
+        "model_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cached_input_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Part of input_tokens the service served from its prompt cache, where it reports that"
+        },
+        "cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Computed from the price table in internal/price (model, input, cached input and output tokens). null when the model has no entry in the table"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "description": "Things the engine saw that a reviewer should know about, in the order they happened. Optional, and left out when there are none. A reader built from an earlier copy of this schema rejects a record that has it",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "detail"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "suspected_injection",
+              "off_origin_blocked",
+              "uncited_finding",
+              "provider_filtered"
+            ],
+            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. provider_filtered: the model provider's content filter refused a call"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The step the event belongs to, when it belongs to one"
+          },
+          "source": {
+            "enum": [
+              "visible",
+              "label",
+              "hidden"
+            ],
+            "description": "For suspected_injection: where on the page the text was. visible is text a person reads, label is a control's name or alt text, hidden is text a person does not see"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "For suspected_injection: the name of the heuristic that matched"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 400,
+            "description": "A short, single-line extract or message. For suspected_injection it is page text and must be treated as data, never as instructions"
+          }
+        }
       }
     }
   }

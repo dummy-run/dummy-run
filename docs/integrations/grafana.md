@@ -203,6 +203,15 @@ against the local stack fed by `dummyrun-otel` on 2026-10-18. The two Prometheus
 and a counter carries the time the exporter sent it. Run them with `dummyrun-otel watch`, which exports
 runs as they end. A batch export of old runs would make them fire today.
 
+### The project tests its own site
+
+Every Monday at 06:00 UTC the `Dogfood` workflow plays the four personas of `casts/dummyrun-dev` through all ten
+of their scenarios against https://dummyrun.dev. The target is read-only. The workflow signs in with a short-lived OIDC token. Each run uses a model on Azure OpenAI
+and stops at 20 steps and 300,000 tokens. The workflow then runs
+`dummyrun-otel` against the project's Grafana Cloud stack, so the runs appear on the dashboards and annotations
+described above under `service.namespace=dummyrun-dev`. It keeps the run records for 90 days as the `dogfood-runs`
+artifact on the workflow run. The workflow run turns red and says why in its summary when the export fails, when a scenario does not run or when a record is not completed.
+
 ## I'm in compliance or security
 
 ### What goes to Grafana

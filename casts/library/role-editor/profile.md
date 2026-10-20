@@ -5,6 +5,11 @@ role: editor
 device: desktop
 tags: permissions roles access-control
 leans-on: look click fill visit
+label: Editor
+need: permissions
+summary: Edits their own work and tries shortcuts. Probes the gap to admin.
+finds: An editor who reaches admin pages, or approves their own work.
+limit: Needs a sign-in and a target that allows changes. Use test data.
 ---
 # Edie, editor
 

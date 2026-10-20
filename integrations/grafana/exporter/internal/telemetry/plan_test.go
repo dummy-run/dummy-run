@@ -76,13 +76,16 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 		attribute.String("dummyrun.persona.id", "ada-editor"),
 		attribute.String("dummyrun.persona.role", "editor"),
 		attribute.String("dummyrun.persona.device", "desktop"),
+		attribute.String("dummyrun.persona.at", "none"),
 		attribute.String("dummyrun.scenario.id", "reassign-draft"),
+		attribute.String("dummyrun.scenario.goal_met", "no"),
+		attribute.Int("dummyrun.repeat_index", 0),
 		attribute.String("dummyrun.target.adapter", "url"),
 		attribute.String("dummyrun.target.environment", "pr-41"),
-		attribute.String("dummyrun.target.commit", "e8147dc"),
+		attribute.String("dummyrun.target.commit", "a865ffd"),
 		attribute.String("url.full", "https://pr-41.inkwell.example"),
 		attribute.String("gen_ai.system", "vertex-gemini"),
-		attribute.String("gen_ai.request.model", "gemini-3.5-flash"),
+		attribute.String("gen_ai.request.model", "gemini-3.5-flash-lite"),
 		attribute.String("cloud.region", "europe-west2"),
 		attribute.String("browser.name", "chrome"),
 		attribute.String("dummyrun.outcome", "blocked"),
@@ -109,7 +112,8 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 		attribute.Int("dummyrun.step.n", 7),
 		attribute.String("dummyrun.step.action", "fill"),
 		attribute.String("dummyrun.step.target", "Submit"),
-		attribute.String("url.full", "https://pr-41.inkwell.example/drafts"),
+		attribute.String("dummyrun.step.route", "/issues"),
+		attribute.String("url.full", "https://pr-41.inkwell.example/issues"),
 		attribute.Int("http.response.status_code", 500),
 		attribute.Int("dummyrun.step.console_errors", 2),
 	})
@@ -120,6 +124,7 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 	attrsEqual(t, "step 3 (no target)", s3.Attributes, []attribute.KeyValue{
 		attribute.Int("dummyrun.step.n", 3),
 		attribute.String("dummyrun.step.action", "visit"),
+		attribute.String("dummyrun.step.route", "/drafts"),
 		attribute.String("url.full", "https://pr-41.inkwell.example/drafts"),
 		attribute.Int("http.response.status_code", 200),
 		attribute.Int("dummyrun.step.console_errors", 0),
@@ -143,6 +148,10 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 		attribute.String("dummyrun.finding.evidence", "measured"),
 		attribute.String("dummyrun.finding.verdict", "confirmed"),
 		attribute.IntSlice("dummyrun.finding.steps", []int{7}),
+		attribute.String("dummyrun.finding.class", "problem"),
+		attribute.String("dummyrun.finding.route", "/issues"),
+		attribute.String("dummyrun.finding.symptom", "error-shown"),
+		attribute.String("dummyrun.finding.fingerprint", "72be5e1e780d79bb"),
 	}
 	attrsEqual(t, "finding event", ev.Attributes, findingAttrs)
 
@@ -201,13 +210,13 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 		attrsEqual(t, "dummyrun.tokens input", tokens[0].Attributes, []attribute.KeyValue{
 			persona,
 			attribute.String("gen_ai.system", "vertex-gemini"),
-			attribute.String("gen_ai.request.model", "gemini-3.5-flash"),
+			attribute.String("gen_ai.request.model", "gemini-3.5-flash-lite"),
 			attribute.String("dummyrun.direction", "input"),
 		})
 		attrsEqual(t, "dummyrun.tokens output", tokens[1].Attributes, []attribute.KeyValue{
 			persona,
 			attribute.String("gen_ai.system", "vertex-gemini"),
-			attribute.String("gen_ai.request.model", "gemini-3.5-flash"),
+			attribute.String("gen_ai.request.model", "gemini-3.5-flash-lite"),
 			attribute.String("dummyrun.direction", "output"),
 		})
 	}
@@ -217,7 +226,7 @@ func TestBuildBlockedRunWithBugFinding(t *testing.T) {
 		attrsEqual(t, "dummyrun.cost.usd", m[0].Attributes, []attribute.KeyValue{
 			persona,
 			attribute.String("gen_ai.system", "vertex-gemini"),
-			attribute.String("gen_ai.request.model", "gemini-3.5-flash"),
+			attribute.String("gen_ai.request.model", "gemini-3.5-flash-lite"),
 		})
 	}
 

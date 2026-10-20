@@ -30,6 +30,8 @@ linters:
       ignore-rules:
         # DOM API values keep their American spelling.
         - center
+        # The standard library package image/color and its types.
+        - color
     gosec:
       excludes:
         # G304: file paths come from the command line or the cast directory on purpose.
