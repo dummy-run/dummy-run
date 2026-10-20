@@ -285,3 +285,48 @@ func TestScenarioSigninLine(t *testing.T) {
 		t.Error("a Sign in line with no role was accepted")
 	}
 }
+
+func TestTextScale(t *testing.T) {
+	cases := []struct {
+		name, profile, scenario string
+		want, zoom              int
+	}{
+		{"defaults", "", "Go.", 100, 100},
+		{"persona text scale", "text_scale: 200\n", "Go.", 200, 100},
+		{"with a percent sign", "text_scale: 150%\n", "Go.", 150, 100},
+		{"scenario replaces the persona's", "text_scale: 200\n", "Text scale: 300%", 300, 100},
+		{"scenario can put it back to normal", "text_scale: 200\n", "Text scale: 100", 100, 100},
+		{"words", "", "Text scale: 250 percent", 250, 100},
+		{"separate from zoom", "zoom: 200\n", "Text scale: 200%", 200, 200},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			p, err := Load(writePersona(t, c.profile, c.scenario), "kit")
+			if err != nil {
+				t.Fatal(err)
+			}
+			d := p.DisplayFor(p.Scenarios[0])
+			if d.TextScale != c.want || d.Zoom != c.zoom {
+				t.Errorf("DisplayFor = %+v, want text scale %d zoom %d", d, c.want, c.zoom)
+			}
+			if d.CSSWidth != (d.Width*100+d.Zoom/2)/d.Zoom {
+				t.Errorf("text scale must not change the viewport: %+v", d)
+			}
+		})
+	}
+	for scenario, want := range map[string]string{
+		"Text scale: 400%":       "outside 100 to 300",
+		"Text scale: 50":         "outside 100 to 300",
+		"Text scale: big":        "not a percentage",
+		"Text scale: 200% large": "not a percentage",
+	} {
+		if _, err := Load(writePersona(t, "", scenario), "kit"); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: error %v, want %q", scenario, err, want)
+		}
+	}
+	for profile, want := range map[string]string{"text_scale: 301\n": "outside 100 to 300", "text_scale: huge\n": "not a percentage"} {
+		if _, err := Load(writePersona(t, profile, "Go."), "kit"); err == nil || !strings.Contains(err.Error(), "text_scale") || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: error %v, want text_scale and %q", profile, err, want)
+		}
+	}
+}

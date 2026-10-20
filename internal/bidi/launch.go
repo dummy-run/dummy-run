@@ -39,8 +39,8 @@ type LaunchOptions struct {
 	Args []string
 	// FirefoxPrefs are extra Firefox preferences, written to the temporary profile.
 	FirefoxPrefs map[string]any
-	// ChromePrefs are extra Chrome preferences for the temporary profile, as a nested map such as
-	// {"webkit": {"webprefs": {"default_font_size": 32}}}. They are how a test simulates a larger system text size.
+	// ChromePrefs are extra Chrome profile preferences, as the nested map of the profile's Preferences file.
+	// They go to chromedriver's "prefs" option, which writes them before the browser starts.
 	ChromePrefs map[string]any
 }
 
@@ -346,7 +346,13 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 		args = append(args, "--no-sandbox", "--disable-dev-shm-usage")
 	}
 	args = append(args, opts.Args...)
-	chromeOpts := chromeOptions(args, chrome, opts.ChromePrefs)
+	chromeOpts := map[string]any{"args": args}
+	if len(opts.ChromePrefs) > 0 {
+		chromeOpts["prefs"] = opts.ChromePrefs
+	}
+	if chrome != "" {
+		chromeOpts["binary"] = chrome
+	}
 	body, _ := json.Marshal(map[string]any{"capabilities": map[string]any{"alwaysMatch": map[string]any{
 		"browserName":             "chrome",
 		"webSocketUrl":            true,
@@ -401,17 +407,4 @@ func waitHTTP(ctx context.Context, url string) error {
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
-}
-
-// chromeOptions builds the goog:chromeOptions capability. The prefs key is left out when there are none, and
-// the binary key when no Chrome path is known, so chromedriver uses its own.
-func chromeOptions(args []string, binary string, prefs map[string]any) map[string]any {
-	opts := map[string]any{"args": args}
-	if len(prefs) > 0 {
-		opts["prefs"] = prefs
-	}
-	if binary != "" {
-		opts["binary"] = binary
-	}
-	return opts
 }

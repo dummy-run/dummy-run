@@ -12,16 +12,17 @@
 // Optional persona keys:
 //
 //	zoom: 200                     page zoom in percent, 100 to 500
+//	text_scale: 200               system text size in percent, 100 to 300 (the browser's default font size)
 //	tools-allowed: press look     the only tools the persona may use (finish is always allowed)
 //	tools-denied: click           tools the persona may not use
 //
 // The persona key "signin: editor" and the scenario line "Sign in as: editor" pick which of the target's
 // credentials roles the engine signs in as before the run. "none" turns it off.
 //
-// A scenario file can set "Device: phone", "Zoom: 200%" and "Budget: 30 steps"
-// on lines of their own; Device and Zoom there replace the persona's. A Device
+// A scenario file can set "Device: phone", "Zoom: 200%", "Text scale: 200%" and "Budget: 30 steps"
+// on lines of their own; Device, Zoom and Text scale there replace the persona's. A Device
 // line may carry prose after the device name ("Device: desktop. Start at the
-// home page."); a Zoom value has the line to itself. A value that is not valid
+// home page."); a Zoom or Text scale value has the line to itself. A value that is not valid
 // is an error, never ignored.
 package cast
 
@@ -52,6 +53,8 @@ type Persona struct {
 	Signin string
 	// Zoom is the persona's page zoom in percent, or 0 for 100.
 	Zoom int
+	// TextScale is the persona's system text size in percent, or 0 for 100.
+	TextScale int
 	// ToolsAllowed, when not empty, lists the only tools the persona may use.
 	ToolsAllowed []string
 	// ToolsDenied lists tools the persona may not use.
@@ -74,6 +77,8 @@ type Scenario struct {
 	Device string
 	// Zoom is the page zoom in percent the scenario asked for, or 0 to use the persona's.
 	Zoom int
+	// TextScale is the system text size in percent the scenario asked for, or 0 to use the persona's.
+	TextScale int
 	// Signin is the role from a "Sign in as: ROLE" line, "none" for no sign-in, or "" to use the persona's.
 	Signin string
 	// Body is the whole Markdown file.
@@ -115,6 +120,9 @@ func Load(castDir, personaID string) (*Persona, error) {
 	}
 	if p.Zoom, err = ParseZoom(meta["zoom"]); err != nil {
 		return nil, fmt.Errorf("cast: %s/profile.md zoom: %w", personaID, err)
+	}
+	if p.TextScale, err = ParseTextScale(meta["text_scale"]); err != nil {
+		return nil, fmt.Errorf("cast: %s/profile.md text_scale: %w", personaID, err)
 	}
 	if p.ToolsAllowed, err = parseTools(meta["tools-allowed"]); err != nil {
 		return nil, fmt.Errorf("cast: %s/profile.md tools-allowed: %w", personaID, err)
@@ -163,12 +171,13 @@ func (p *Persona) Scenario(id string) (Scenario, error) {
 }
 
 var (
-	numberPrefix = regexp.MustCompile(`^[0-9]+-`)
-	budgetLine   = regexp.MustCompile(`(?m)^Budget:\s*([0-9]+)`)
-	titleLine    = regexp.MustCompile(`(?m)^#\s+(.+)$`)
-	deviceLine   = regexp.MustCompile(`(?mi)^Device:[ \t]*([^\s.]*)`)
-	signinLine   = regexp.MustCompile(`(?mi)^Sign in(?: as)?:[ \t]*([^\s.]*)`)
-	zoomLine     = regexp.MustCompile(`(?mi)^Zoom:[ \t]*([^\n]*)$`)
+	numberPrefix  = regexp.MustCompile(`^[0-9]+-`)
+	budgetLine    = regexp.MustCompile(`(?m)^Budget:\s*([0-9]+)`)
+	titleLine     = regexp.MustCompile(`(?m)^#\s+(.+)$`)
+	deviceLine    = regexp.MustCompile(`(?mi)^Device:[ \t]*([^\s.]*)`)
+	signinLine    = regexp.MustCompile(`(?mi)^Sign in(?: as)?:[ \t]*([^\s.]*)`)
+	zoomLine      = regexp.MustCompile(`(?mi)^Zoom:[ \t]*([^\n]*)$`)
+	textScaleLine = regexp.MustCompile(`(?mi)^Text[ _-]scale:[ \t]*([^\n]*)$`)
 )
 
 // Zoom limits in percent. Browsers offer 25 to 500; below 100 is not a
@@ -191,6 +200,29 @@ func ParseZoom(v string) (int, error) {
 	}
 	if n < MinZoom || n > MaxZoom {
 		return 0, fmt.Errorf("%d percent is outside %d to %d", n, MinZoom, MaxZoom)
+	}
+	return n, nil
+}
+
+// Text scale limits in percent. 100 is the browser's own size. Phones offer up to about 200 or 300.
+const (
+	MinTextScale = 100
+	MaxTextScale = 300
+)
+
+// ParseTextScale reads a system text size such as "200", "200%" or "200 percent". Empty means no
+// setting and gives 0.
+func ParseTextScale(v string) (int, error) {
+	v = strings.ToLower(strings.TrimSpace(v))
+	if v == "" {
+		return 0, nil
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(v, "percent"), "%")))
+	if err != nil {
+		return 0, fmt.Errorf("%q is not a percentage such as 200", v)
+	}
+	if n < MinTextScale || n > MaxTextScale {
+		return 0, fmt.Errorf("%d percent is outside %d to %d", n, MinTextScale, MaxTextScale)
 	}
 	return n, nil
 }
@@ -269,6 +301,9 @@ type Display struct {
 	Width, Height int
 	// Zoom is the page zoom in percent; 100 means none.
 	Zoom int
+	// TextScale is the system text size in percent; 100 means none. It changes the browser's default
+	// font size and leaves the viewport as it is.
+	TextScale int
 	// CSSWidth and CSSHeight are the viewport the page lays out in, the window divided by the zoom.
 	CSSWidth, CSSHeight int
 }
@@ -276,7 +311,7 @@ type Display struct {
 // DisplayFor resolves the device and zoom for a scenario: the scenario's own
 // setting if it has one, otherwise the persona's.
 func (p *Persona) DisplayFor(s Scenario) Display {
-	d := Display{Device: p.Device, Zoom: 100}
+	d := Display{Device: p.Device, Zoom: 100, TextScale: 100}
 	if s.Device != "" {
 		d.Device = s.Device
 	}
@@ -285,6 +320,12 @@ func (p *Persona) DisplayFor(s Scenario) Display {
 	}
 	if s.Zoom != 0 {
 		d.Zoom = s.Zoom
+	}
+	if p.TextScale != 0 {
+		d.TextScale = p.TextScale
+	}
+	if s.TextScale != 0 {
+		d.TextScale = s.TextScale
 	}
 	size := Devices[d.Device]
 	d.Width, d.Height = size[0], size[1]
@@ -333,6 +374,13 @@ func LoadScenario(path string) (Scenario, error) {
 			return Scenario{}, fmt.Errorf("cast: %s zoom: %w", path, err)
 		}
 		s.Zoom = z
+	}
+	if m := textScaleLine.FindStringSubmatch(s.Body); m != nil {
+		t, err := ParseTextScale(m[1])
+		if err != nil {
+			return Scenario{}, fmt.Errorf("cast: %s text scale: %w", path, err)
+		}
+		s.TextScale = t
 	}
 	return s, nil
 }

@@ -54,19 +54,18 @@ holds text a fixed `px` height or width. Use `min-height`, let buttons wrap thei
 flex children `min-width: 0` (`minmax(0, 1fr)` in grids) so they can shrink. Long words, URLs and emails wrap.
 Code blocks and tables scroll inside themselves, never the page.
 
-`internal/tools/textscale` checks it. With the built site served on port 1313, run this from the repository root:
+`dummyrun a11y --text-scale 100,200 --layout` checks it. With the built site served on port 1313, run this from
+the repository root:
 
+<!-- doctest site -->
 ```sh
-go run ./internal/tools/textscale --sitemap http://127.0.0.1:1313/sitemap.xml \
-  --rebase http://127.0.0.1:1313 --width 320 --font 32 http://127.0.0.1:1313/404.html
+dummyrun a11y --viewport phone --scheme light --text-scale 200 --layout --allow site/a11y-allow.txt http://127.0.0.1:1313/start/
 ```
 
-It opens each page in Chrome at 320 pixels wide with a 32 pixel default font, twice the normal 16, then opens
-the Menu and checks the header again. It fails when the page scrolls sideways, when a button or label clips its text or a link or field runs past
-the page edge, and when two controls overlap. `--zoom 200` sets the root font size as a percent. `--spacing` adds the WCAG 1.4.12 text spacing overrides.
-`--scheme both` adds dark. `--shots DIR` saves a full-page PNG of each page. Without `--sitemap` it tests only the URLs you give. It needs the same
-`DUMMYRUN_CHROME` and `DUMMYRUN_CHROMEDRIVER` as `dummyrun a11y`. The site workflow runs it after the
-accessibility checks.
+It opens each page in Chrome at phone width with the browser's default font size doubled. It fails when the
+page scrolls sideways. It fails when a button or label clips its text. It fails when two controls overlap. Add `--sitemap` and
+`--rebase` to test every page, and `--screenshots DIR` to save a crop of each fault. `docs/ENGINE.md` describes the
+rules. The site workflow runs it on every page in the sitemap.
 
 ## Social cards and structured data
 

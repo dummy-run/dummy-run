@@ -182,6 +182,9 @@ func rootAttributes(run *record.Run) []attribute.KeyValue {
 	if run.SchemaVersion >= 2 {
 		attrs = append(attrs, attribute.Int("dummyrun.repeat_index", run.RepeatIndex))
 	}
+	if run.Persona.TextScale != 0 {
+		attrs = append(attrs, attribute.Int("dummyrun.persona.text_scale", run.Persona.TextScale))
+	}
 	if run.Target.Commit != "" {
 		attrs = append(attrs, attribute.String("dummyrun.target.commit", run.Target.Commit))
 	}

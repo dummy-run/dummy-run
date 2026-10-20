@@ -1,2 +1,6 @@
 [files]
 extend-exclude = ["*.png", "*.svg", "LICENSES/*", "LICENSE", "internal/page/axe/*"]
+
+[default.extend-words]
+# Firefox language group "x-beng" (Bengali) in internal/bidi/textscale.go
+beng = "beng"

@@ -134,17 +134,12 @@ jobs:
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
           --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-firefox.json"
           http://127.0.0.1:1313/404.html
-      - name: Large text, Chrome, 320 pixels, 32 pixel default font, light and dark
+      - name: Large text, Chrome, phone width, 100 and 200 percent text, light and dark
         run: >-
-          go run ./internal/tools/textscale --scheme both
+          "$RUNNER_TEMP/dummyrun" a11y --browser chrome --viewport phone --text-scale 100,200 --layout
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
-          --width 320 --font 32 --shots "$RUNNER_TEMP/large-text"
-          http://127.0.0.1:1313/404.html
-      - name: Large text, Chrome, 320 pixels, 200 percent root size and WCAG text spacing
-        run: >-
-          go run ./internal/tools/textscale
-          --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
-          --width 320 --font 16 --zoom 200 --spacing
+          --allow site/a11y-allow.txt --screenshots "$RUNNER_TEMP/large-text"
+          --json "$RUNNER_TEMP/a11y-large-text.json"
           http://127.0.0.1:1313/404.html
       - name: No engine browser or profile directory is left behind
         if: ${{ !cancelled() }}

@@ -2,8 +2,8 @@
 title: Persona library
 wide: true
 mascot: dummy-friendly
-lead: Ten ready-made personas for the users every site has. Pick the ones that match your risks and run them.
-description: The Dummy Run persona library. Ten ready-made personas for the users every site has. Filter them by need and copy the command that runs each one.
+lead: Eleven ready-made personas for the users every site has. Pick the ones that match your risks and run them.
+description: The Dummy Run persona library. Eleven ready-made personas for the users every site has. Filter them by need and copy the command that runs each one.
 next:
   title: Adapt one to your app
   text: Copy a persona into your cast and write a scenario for a job in your product.
