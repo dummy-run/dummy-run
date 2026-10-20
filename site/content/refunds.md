@@ -8,7 +8,7 @@ short:
   - Paddle is our merchant of record for the full report and Watch and processes their refunds.
   - Full report. A full refund within 14 days of purchase if the report has not been generated. If it failed on our side you can have a refund or a re-run.
   - Watch. Cancel any time. Access continues to the end of the paid month. No refund of a part month unless the law requires it.
-  - Audits. We invoice audits ourselves. Refunds follow the order form for your audit, and we pay them back the same way you paid.
+  - Audits. Dummy Run invoices audits directly. Refunds follow the audit's order form, and Dummy Run issues them to the original payment method.
   - Nothing here removes your statutory rights.
 contact:
   - label: Ask for a refund
@@ -27,8 +27,8 @@ Cancel any time from your account or from the link on your Paddle receipt. Acces
 
 ## Audits
 
-Refunds follow the order form for your audit.
+Refunds follow the order form for your audit. Dummy Run issues them to the original payment method.
 
 ## How to ask
 
-Write to hello@dummyrun.dev with your order details. You can also ask Paddle through your receipt.
+For audit refunds, write to hello@dummyrun.dev with your order details. For full report and Watch purchases, ask Paddle through your receipt.

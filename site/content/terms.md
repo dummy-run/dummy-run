@@ -6,8 +6,8 @@ layout: legal
 updated: 2026-10-20
 short:
   - Dummy Run is the trading name of Joel Merrick, a sole trader in the United Kingdom.
-  - The full report and Watch are sold through Paddle as merchant of record. Paddle's buyer terms apply to the purchase.
-  - Audits are agreed and invoiced by us directly.
+  - Paddle sells the full report and Watch as merchant of record. That means Paddle handles payment, tax and refunds for them. Paddle's buyer terms apply to those purchases.
+  - Dummy Run agrees each audit's scope and invoices it directly.
   - The free scan only reads public pages. Its results are not an audit or a certification.
   - If you own a site and do not want it scanned, write to abuse@dummyrun.dev and we stop.
   - The law of England and Wales governs these terms. Your rights as a consumer are not limited.
@@ -30,7 +30,7 @@ These terms cover dummyrun.dev, the waitlist, the free scan and the paid service
 
 ## Paid services and Paddle
 
-The full report and Watch are sold through Paddle.com as merchant of record. Paddle's buyer terms apply to the purchase. Paddle handles payment, tax and refunds for them. Audits are not sold through Paddle. We agree each audit's scope by email, invoice it directly and handle its payment and any refund ourselves. Our [refund policy](refunds.md) sets out when you can have a refund.
+The full report and Watch are sold through Paddle.com as merchant of record. Paddle's buyer terms apply to those purchases. Paddle handles payment, tax and refunds for them. Audits are not sold through Paddle. Dummy Run agrees each audit's scope by email, invoices it directly and handles its payment and any refund. Our [refund policy](refunds.md) sets out when you can have a refund.
 
 ## The free scan
 

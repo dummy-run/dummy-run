@@ -36,7 +36,8 @@ If you ask for an audit we also collect:
 - your name and email address;
 - your organisation, if you give it;
 - the site address and what you need;
-- your preferred timing and how you heard of us, if you say.
+- your preferred timing and how you heard of us, if you say;
+- your choice to let us contact you about the request.
 
 We use it only to reply and agree the audit. It is sent to hello@dummyrun.dev, and we keep it for 24 months unless you become a client, when it becomes part of our business records.
 
@@ -46,7 +47,7 @@ We use it to send you a confirmation email and one email when the free scan open
 
 ## Our lawful basis
 
-For audit requests, steps you ask us to take before a contract, under Article 6(1)(b). For the waitlist, consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
+For audit requests, our lawful basis is taking steps you ask us to take before entering into a contract, under Article 6(1)(b). For the waitlist, consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
 
 ## How long we keep it
 
