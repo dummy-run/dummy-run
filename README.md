@@ -100,7 +100,7 @@ run it, follow [docs/INSTALL.md](docs/INSTALL.md).
 | Document | What it covers |
 |---|---|
 | [docs/INSTALL.md](docs/INSTALL.md) | Release binaries, the container image and how to verify a download |
-| [docs/ENGINE.md](docs/ENGINE.md) | Install the engine, run a persona, review findings, sign in, the read-only policy and the accessibility sweep |
+| [docs/ENGINE.md](docs/ENGINE.md) | Install the engine, run a persona, review findings, sign in, zoom and text size, the read-only policy, and the accessibility sweep with its layout checks |
 | [docs/MCP.md](docs/MCP.md) | Use Dummy Run from Claude Code, Cursor, VS Code or Codex through `dummyrun mcp` |
 | [docs/CLI.md](docs/CLI.md) | Every command and flag, from the built-in help |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, how to sign in to each and what each supports |

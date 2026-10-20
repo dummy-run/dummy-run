@@ -71,6 +71,7 @@ Root span attributes:
 | `dummyrun.persona.role` | `persona.role` |
 | `dummyrun.persona.device` | `persona.device` |
 | `dummyrun.persona.zoom` | `persona.zoom`, when present |
+| `dummyrun.persona.text_scale` | `persona.text_scale`, when present |
 | `dummyrun.persona.at` | `persona.dimensions.at`, when it is not null (version 2 records) |
 | `dummyrun.scenario.id` | `scenario.id` |
 | `dummyrun.scenario.goal_met` | `scenario.goal_met`, when present (version 2 records) |

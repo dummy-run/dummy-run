@@ -1,8 +1,8 @@
 # Personas
 
 A persona is a fictional user that the engine plays through a scenario. The library in
-[casts/library](../casts/library/README.md) has ten generic ones, for the kinds of user every site has. Copy
-the ones you need and adapt them to your product. The [persona library page](https://dummyrun.dev/personas/)
+[casts/library](../casts/library/README.md) has eleven generic ones, for the kinds of user every site has.
+Copy the ones you need and adapt them to your product. The [persona library page](https://dummyrun.dev/personas/)
 shows them as cards, each with the command to run it.
 
 What a persona can and can't tell you is in [ETHICS.md](ETHICS.md).
@@ -55,16 +55,18 @@ because the engine's own sign-in request is the one write it allows.
 
 ## Settings a persona can use
 
-The engine reads these keys from `profile.md`, and `Device:` and `Zoom:` lines from a scenario.
-[ENGINE.md](ENGINE.md) has the full rules.
+The engine reads these keys from `profile.md`, and `Device:`, `Zoom:` and `Text scale:` lines from a
+scenario. [ENGINE.md](ENGINE.md) has the full rules.
 
 | Setting | How the library uses it |
 |---|---|
 | `zoom: 200` | `low-vision-zoom` runs at 200 percent. A desktop window of 1400 pixels then gives the page 700 CSS pixels |
+| `text_scale: 200` | `large-text-phone` raises the browser's default font size to 200 percent and leaves the window alone, as a larger system text size does. Text set in `rem` or `em` grows, and text set in `px` doesn't. [ENGINE.md](ENGINE.md) compares it with zoom |
 | `signin: editor` | The credentials role the engine signs in as before the run. `none` turns sign-in off. Without the key, the persona's `role` is used when the target has credentials under that name |
 | `tools-denied: click` | `keyboard-only-user` can't click. The engine refuses the call and records a `blocked:` note |
 | Tool limits as a modality | The run record's `persona.dimensions.at` is `keyboard-only`. A persona that can't use `screenshot` records `screen-reader-view`. Other personas record `none` |
 | `tools-denied: screenshot` | `screen-reader-user` gets no screenshots. They're still saved for the reviewer |
+| `Text scale:` in a scenario | Replaces the persona's text size for that scenario. `Text scale: 100` sets it back to normal |
 | `Device:` in a scenario | Runs a persona on another device without a second copy of it |
 | `Sign in as:` in a scenario | Runs a persona as another role, or signed out with `Sign in as: none` |
 

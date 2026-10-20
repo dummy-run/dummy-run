@@ -162,6 +162,31 @@ func TestZoomIsOptionalAndRecorded(t *testing.T) {
 	}
 }
 
+func TestTextScaleIsOptionalAndRecorded(t *testing.T) {
+	r := sample()
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte("text_scale")) {
+		t.Error("a record without a text scale wrote one")
+	}
+	r.Persona.TextScale = 200
+	data, err = Marshal(r)
+	if err != nil {
+		t.Fatalf("text scale 200 rejected: %v", err)
+	}
+	if !bytes.Contains(data, []byte(`"text_scale": 200`)) {
+		t.Errorf("text_scale missing from %s", data)
+	}
+	for _, n := range []int{50, 99, 301, 500} {
+		r.Persona.TextScale = n
+		if _, err := Marshal(r); err == nil {
+			t.Errorf("text scale %d was accepted", n)
+		}
+	}
+}
+
 func TestWriteAndRead(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "runs")
 	r := sample()

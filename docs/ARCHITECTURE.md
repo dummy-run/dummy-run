@@ -57,9 +57,9 @@ the details.
 ## Browsers
 
 The engine drives Chrome and Firefox over WebDriver BiDi, so the same session code works in both. A
-persona's device sets the window size (desktop, tablet or phone), and a persona or scenario can set page
-zoom. The user agent is the browser's own with `DummyRun/<version>` on the end, and `--identify` adds a
-contact URL as well.
+persona's device sets the window size (desktop, tablet or phone). A persona or scenario can also set page
+zoom or a larger system text size. The user agent is the browser's own with `DummyRun/<version>` on the end,
+and `--identify` adds a contact URL as well.
 
 ## Deployment
 

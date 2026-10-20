@@ -50,7 +50,7 @@ To run the unit tests:
 go test ./...
 ```
 
-On a small machine, add `GOFLAGS=-p=2 GOMAXPROCS=2` to keep the build from taking every core.
+On a small machine, add `GOFLAGS=-p=2 GOMAXPROCS=2` to keep the build from taking every core. On a shared machine, run the browser tests for one browser at a time.
 
 The browser tests run only when `DUMMYRUN_BROWSERS` names the browsers. They start a local test server,
 and each needs the browser set up as the Install section of [docs/ENGINE.md](docs/ENGINE.md) describes. Firefox is found
@@ -62,10 +62,10 @@ DUMMYRUN_BROWSERS=chrome,firefox go test ./internal/bidi/ ./internal/page/ ./int
 
 | Package | What its tests cover |
 |---|---|
-| `internal/bidi` | Conformance with WebDriver BiDi, including `browsingContext.setViewport` with `devicePixelRatio` |
+| `internal/bidi` | Conformance with WebDriver BiDi, including `browsingContext.setViewport` with `devicePixelRatio`, and the font sizes a page ends up with at text scales of 100 and 200 percent |
 | `internal/page` | The persona's tools, with focus, the outline and zoom on both browsers |
 | `internal/runner` | A full run with a scripted model, and the canary page of injection attempts in `internal/runner/testdata/canary.html` |
-| `internal/a11y` | The accessibility sweep, on a fixture page with known violations |
+| `internal/a11y` | The accessibility sweep, on a fixture page with known violations, and the layout checks, on fixture pages with one overflow, one clipped control, one overlap and one small target |
 | `internal/mcpserver` | The MCP server, driven through an in-process client |
 | `internal/provider` | Every provider, plus one contract test each must pass. Replies are fixtures in `internal/provider/testdata/`, so no key is needed |
 | `examples/inkwell` | The rules for each role in the test app, each defect switch, every page with every switch on, and bad manifest files |

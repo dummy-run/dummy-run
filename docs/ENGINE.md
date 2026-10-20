@@ -129,16 +129,18 @@ for that persona.
 |---|---|
 | `device` | `desktop` (1400 x 1000), `tablet` (820 x 1180) or `phone` (390 x 844), in device pixels. Required |
 | `zoom` | Page zoom in percent, from 100 to 500. `200` and `200%` both work. The default is 100 |
+| `text_scale` | System text size in percent, from 100 to 300. `200` and `200%` both work. The default is 100. See Text scale below |
 | `tools-allowed` | The only tools the persona may use, separated by spaces or commas. `finish` is always allowed |
 | `tools-denied` | Tools the persona may not use. If you set both keys, a tool has to be allowed and not denied |
 
-To run one persona on several devices, set the device in the scenario instead. A scenario's `Device: phone`
-or `Zoom: 200%` line replaces the persona's setting. Scenario files usually open with a line such as
-`Device: desktop. Start at the home page.`, and the engine reads the device from it. A `Device:` line can
-carry other words after the device name, but a `Zoom:` value needs a line to itself. A `Budget: 30 steps`
-line works the same way.
+To run one persona on several devices, set the device in the scenario instead. A scenario's `Device: phone`,
+`Zoom: 200%` or `Text scale: 200%` line replaces the persona's setting. Scenario files usually open with a
+line such as `Device: desktop. Start at the home page.`, and the engine reads the device from it. A `Device:`
+line can carry other words after the device name, but a `Zoom:` or `Text scale:` value needs a line to
+itself. A `Budget: 30 steps` line works the same way.
 
-A run won't start with a device other than `desktop`, `tablet` or `phone`, or with a zoom outside 100 to 500.
+A run won't start with a device other than `desktop`, `tablet` or `phone`. It also won't start with a zoom
+outside 100 to 500, or a text scale outside 100 to 300.
 
 ### Tool limits
 
@@ -168,6 +170,61 @@ The run record holds the zoom in `persona.zoom`, and leaves it out at 100. The p
 keys, so a reader with an older copy of the schema rejects a record that has `persona.zoom`. Update that
 reader's copy of `schema/run-record.schema.json` first. The Grafana exporter in this repository already
 reads it.
+
+### Text scale
+
+Use text scale to see your app the way someone does who has turned up the text size on their phone or in
+their browser. That's different from zoom. With zoom, the page lays out in fewer CSS pixels and everything
+gets bigger, so media queries see a narrower window. With a larger text size, the window stays as it is and
+only text that follows the default font size grows.
+
+| | `zoom: 200` | `text_scale: 200` |
+|---|---|---|
+| Viewport in CSS pixels | Halved (a 390 px phone becomes 195 px) | Unchanged (390 px) |
+| `devicePixelRatio` | Doubled | Unchanged |
+| Media queries | See the narrower window | See the same window |
+| Text set in `rem`, `em` or `%`, and unstyled text | Doubles | Doubles, when the root and parent font sizes follow the browser default. A page that sets `html { font-size: 16px }` stops it |
+| Text set in `px` | Doubles | Stays the same |
+| Boxes, images and gaps set in `px` | Double | Stay the same |
+| What it finds | Reflow at a narrow width (WCAG 1.4.10) | Text that outgrows a fixed box, overlaps its neighbour or runs off the screen (WCAG 1.4.4) |
+
+The engine sets the browser's default font size when it starts the browser, the way a user would, so a
+scale of 200 turns the 16 px default into 32 px. On Chrome it writes `webkit.webprefs.default_font_size` and
+`default_fixed_font_size` into the profile through chromedriver's `prefs` option. On Firefox it writes
+`font.size.variable.<group>` and `font.size.monospace.<group>` into `user.js` for every language group,
+because Firefox picks the size from the page's `lang` attribute. Without that, a page in Russian, Japanese
+or Arabic would stay at normal size.
+
+There's no minimum font size, because a minimum would also lift text that a page sets in `px`. So a page
+that sizes its text in `px` looks only half enlarged, just as it does to the person. A real phone can
+differ. Android and iOS scale text by their own rules, and some Android browsers scale `px` text too. The
+`large-text-phone` persona says so.
+
+Each observation shows a `text size:` line, and no `zoom:` line unless zoom is set too. The system prompt
+tells the model the text size and that the page isn't zoomed. The run record holds the value in
+`persona.text_scale`, an optional key in schema version 2 that's left out at 100. A reader with an older copy
+of `schema/run-record.schema.json` rejects a record that has it, so update that copy first. The Grafana
+exporter already reads it and sends `dummyrun.persona.text_scale`.
+
+To sweep at a larger text size, run `dummyrun a11y --text-scale 200`. A list such as `--text-scale 100,200`
+runs both, with a fresh browser for each size, because the browser reads the setting from its profile when it
+starts.
+
+### Layout facts
+
+When the engine measures something wrong with the page's layout, the observation gets a `layout:` line. The
+engine measures in the browser, with no model call, and names controls by their `@number` so the persona can
+look at them:
+
+```text
+layout: the page scrolls sideways (120 px wider than the window); 2 pairs of controls overlap (@4 @7, @5 @6); text is cut off in 1 control (@9)
+```
+
+The line can appear in any run, not only at a larger text size. It reports three things: the page is wider
+than the window, interactive elements overlap, or an interactive element's text is cut off. Small targets are
+left out, because they're common on a phone and would be noise on every step. The line never repeats a
+selector or a label, since both come from the page. `dummyrun a11y` runs the same measurements as its layout
+checks.
 
 ### Device in the record
 
@@ -662,6 +719,37 @@ you can remove stale exceptions.
 
 The dummyrun.dev site is checked with this command on Chrome and Firefox, with the allow-list in
 `site/a11y-allow.txt`.
+
+### Layout checks
+
+To check layout as well as the axe rules, add `--layout`. Passing `--text-scale` turns the checks on too. They
+measure the page in the browser, with no model call, and report each problem as a finding next to the axe
+results. A layout finding fails the sweep like an axe violation, and the allow-list can accept it. The checks
+are off by default, so an existing sweep won't turn red until you ask for them.
+
+| Rule ID | Fails when | WCAG | Impact |
+|---|---|---|---|
+| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window | 1.4.10 | serious |
+| `dummyrun-clipped-text` | An interactive element, or an element inside it, hides part of its text with `overflow` or an ellipsis, or a parent that clips hides part of the element | 1.4.4 | serious |
+| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The finding lists both selectors, with an ampersand between them | 1.4.4, 1.4.10 | serious |
+| `dummyrun-target-size` | A visible, enabled interactive element is under 24 by 24 CSS px | 2.5.8 | moderate |
+
+The checks approximate what a person sees, and each node's `detail` says so. Overlap skips a control inside
+another control, a pair that something else covers where they meet, and a fixed bar against content below the
+window. Target size follows the two exceptions in WCAG 2.5.8 that can be measured. A link inside a sentence is
+exempt, and so is a small target with room around it: a 24 px circle on its centre must meet no other target
+and no other small target's circle. A checkbox or radio counts as large as its label. Disabled controls are
+skipped, and so are elements 1 px or smaller, which pages use to hide text from the eye. Overlap and clipping
+are the strongest signals, so check a target size finding by eye before you act on it.
+
+Each result in the JSON has `text_scale` (left out at 100) and `layout_checked`. Each node can have a `detail` and a
+`screenshot`. `--screenshots DIR` writes a PNG crop of each flagged element to `DIR`, up to 12 for each page and
+setting, and the reflow finding gets a shot of the window. The summary lists them. The settings in the summary and
+report end in `/text-200` when a text scale was used.
+
+```sh
+dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://example.com/
+```
 
 ## Troubleshooting
 

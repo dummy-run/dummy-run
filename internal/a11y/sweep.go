@@ -51,7 +51,15 @@ type Config struct {
 	Viewports []Viewport
 	Schemes   []string // light and/or dark
 	Allow     *AllowList
-	Headless  bool
+	// TextScales are the system text sizes to test, in percent. Empty means 100 only. Each size is a
+	// separate browser launch, because the browser reads the setting from its profile at start.
+	TextScales []int
+	// Layout adds the layout checks to each run: sideways overflow, clipped text, overlapping controls
+	// and small targets. A non-100 text scale turns it on.
+	Layout bool
+	// ScreenshotDir, when set, receives a PNG crop of each element the layout checks flag.
+	ScreenshotDir string
+	Headless      bool
 	// Identify adds a contact URL to the browser's user agent and to the requests for robots.txt.
 	Identify bool
 	// RespectRobots skips pages that the robots.txt of their origin disallows for DummyRun or *.
@@ -72,6 +80,10 @@ type Node struct {
 	Target  string `json:"target"`
 	Allowed bool   `json:"allowed,omitempty"`
 	Reason  string `json:"allowed_reason,omitempty"`
+	// Detail is a measurement in words, such as the size of a small target. Layout checks fill it.
+	Detail string `json:"detail,omitempty"`
+	// Screenshot is the path of a PNG crop of the element. Layout checks fill it when screenshots are on.
+	Screenshot string `json:"screenshot,omitempty"`
 }
 
 // Finding is one axe rule that failed, or needs review, on one page.
@@ -84,20 +96,33 @@ type Finding struct {
 	Nodes   []Node   `json:"nodes"`
 }
 
-// PageResult is one page in one browser, viewport and colour scheme.
+// PageResult is one page in one browser, viewport, colour scheme and text size.
 type PageResult struct {
 	URL      string `json:"url"`
 	Browser  string `json:"browser"`
 	Viewport string `json:"viewport"`
 	Width    int    `json:"width"`
 	Scheme   string `json:"scheme"`
-	Error    string `json:"error,omitempty"`
+	// TextScale is the system text size in percent the run used. Zero means 100 and is left out.
+	TextScale int `json:"text_scale,omitempty"`
+	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
+	LayoutChecked bool   `json:"layout_checked,omitempty"`
+	Error         string `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
 	Skipped      string    `json:"skipped,omitempty"`
 	Violations   []Finding `json:"violations"`
 	NeedsReview  []Finding `json:"needs_review"`
 	DurationMS   int64     `json:"duration_ms"`
 	SchemeActual string    `json:"scheme_applied,omitempty"`
+}
+
+// Setting names the browser, viewport and colour scheme of the run, and the text size when it is not 100.
+func (p PageResult) Setting() string {
+	s := fmt.Sprintf("%s/%s/%s", p.Browser, p.Viewport, p.Scheme)
+	if p.TextScale > 100 {
+		s += fmt.Sprintf("/text-%d", p.TextScale)
+	}
+	return s
 }
 
 // Failing counts the violating nodes that are not on the allow-list.
@@ -193,6 +218,17 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	if len(cfg.Schemes) == 0 {
 		cfg.Schemes = []string{Light, Dark}
 	}
+	if len(cfg.TextScales) == 0 {
+		cfg.TextScales = []int{100}
+	}
+	for _, n := range cfg.TextScales {
+		if n < bidi.MinTextScale || n > bidi.MaxTextScale {
+			return nil, fmt.Errorf("a11y: text scale %d percent is outside %d to %d", n, bidi.MinTextScale, bidi.MaxTextScale)
+		}
+		if n > 100 {
+			cfg.Layout = true
+		}
+	}
 	if cfg.Settle == 0 {
 		cfg.Settle = 300 * time.Millisecond
 	}
@@ -209,9 +245,11 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 			return rep, ErrRobotsDisallow
 		}
 	}
-	for _, scheme := range cfg.Schemes {
-		if err := sweepScheme(ctx, cfg, scheme, rep); err != nil {
-			return rep, err
+	for _, scale := range cfg.TextScales {
+		for _, scheme := range cfg.Schemes {
+			if err := sweepScheme(ctx, cfg, scheme, scale, rep); err != nil {
+				return rep, err
+			}
 		}
 	}
 	rep.Results = append(rep.Results, skipped...)
@@ -251,12 +289,16 @@ func filterRobots(ctx context.Context, cfg Config) (allowed []string, skipped []
 	return allowed, skipped, nil
 }
 
-func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) error {
+func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, rep *Report) error {
 	args, prefs, err := ColourSchemeLaunch(cfg.Browser, scheme)
 	if err != nil {
 		return err
 	}
-	b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: cfg.Browser, Headless: cfg.Headless, Args: args, FirefoxPrefs: prefs})
+	lo := bidi.LaunchOptions{Browser: cfg.Browser, Headless: cfg.Headless, Args: args, FirefoxPrefs: prefs}
+	if lo, err = bidi.WithTextScale(lo, textScale); err != nil {
+		return err
+	}
+	b, err := bidi.Launch(ctx, lo)
 	if err != nil {
 		return fmt.Errorf("a11y: launch %s: %w", cfg.Browser, err)
 	}
@@ -290,10 +332,10 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) er
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			res := testPage(ctx, b.Conn, cx, cfg, u, vp, scheme, rep)
+			res := testPage(ctx, b.Conn, cx, cfg, u, vp, scheme, textScale, rep)
 			if res.Error != "" && res.SchemeActual == "" && ctx.Err() == nil {
 				// A page can stall once on a busy machine. One more try separates that from a real fault.
-				res = testPage(ctx, b.Conn, cx, cfg, u, vp, scheme, rep)
+				res = testPage(ctx, b.Conn, cx, cfg, u, vp, scheme, textScale, rep)
 			}
 			rep.Results = append(rep.Results, res)
 			if cfg.Log != nil {
@@ -304,7 +346,11 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, rep *Report) er
 				case res.Failing() > 0:
 					status = fmt.Sprintf("%d failing", res.Failing())
 				}
-				_, _ = fmt.Fprintf(cfg.Log, "%s %-7s %-5s %s: %s\n", cfg.Browser, vp.Name, scheme, u, status)
+				shade := scheme
+				if textScale > 100 {
+					shade += fmt.Sprintf(" text %d%%", textScale)
+				}
+				_, _ = fmt.Fprintf(cfg.Log, "%s %-7s %-5s %s: %s\n", cfg.Browser, vp.Name, shade, u, status)
 			}
 		}
 	}
@@ -348,9 +394,9 @@ type axeOut struct {
 	Incomplete []axeRule `json:"incomplete"`
 }
 
-func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u string, vp Viewport, scheme string, rep *Report) (res PageResult) {
+func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u string, vp Viewport, scheme string, textScale int, rep *Report) (res PageResult) {
 	started := time.Now()
-	res = PageResult{URL: u, Browser: cfg.Browser, Viewport: vp.Name, Width: vp.Width, Scheme: scheme, Violations: []Finding{}, NeedsReview: []Finding{}}
+	res = PageResult{URL: u, Browser: cfg.Browser, Viewport: vp.Name, Width: vp.Width, Scheme: scheme, TextScale: textScaleField(textScale), Violations: []Finding{}, NeedsReview: []Finding{}}
 	defer func() { res.DurationMS = time.Since(started).Milliseconds() }()
 	pctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
@@ -389,7 +435,26 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	for _, r := range out.Incomplete {
 		res.NeedsReview = append(res.NeedsReview, finding(r, path, nil))
 	}
+	if cfg.Layout {
+		l, err := page.MeasureLayout(pctx, conn, cx)
+		if err != nil {
+			res.Error = "layout checks: " + firstLine(err.Error())
+			return res
+		}
+		res.LayoutChecked = true
+		found, boxes := layoutFindings(l, path, cfg.Allow)
+		res.Violations = append(res.Violations, found...)
+		shoot(pctx, conn, cx, cfg.ScreenshotDir, &res, boxes)
+	}
 	return res
+}
+
+// textScaleField is the value kept in a result: 100 is left out.
+func textScaleField(n int) int {
+	if n > 100 {
+		return n
+	}
+	return 0
 }
 
 func finding(r axeRule, path string, allow *AllowList) Finding {
