@@ -27,8 +27,9 @@ const (
 	colourAmber   = "#fbad18"
 	colourInk     = "#f3f1ec"
 	// Named Grafana colours for values the brand palette does not cover.
-	colourMinor   = "blue"
-	colourNeutral = "text"
+	colourMinor    = "blue"
+	colourNeutral  = "text"
+	colourFiltered = "purple"
 )
 
 // Prometheus names after the OTLP translation, verified against grafana/otel-lgtm 0.35.0
@@ -230,12 +231,13 @@ func colourOverride(name, hex string) (dashboard.MatcherConfig, []dashboard.Dyna
 	}
 }
 
-// outcomeColours maps the four run outcomes to colours.
+// outcomeColours maps the run outcomes to colours.
 var outcomeColours = map[string]string{
-	"completed":        colourPass,
-	"blocked":          colourBlocker,
-	"budget_exhausted": colourAmber,
-	"errored":          colourNeutral,
+	"completed":         colourPass,
+	"blocked":           colourBlocker,
+	"budget_exhausted":  colourAmber,
+	"errored":           colourNeutral,
+	"provider_filtered": colourFiltered,
 }
 
 var severityColours = map[string]string{
@@ -246,7 +248,7 @@ var severityColours = map[string]string{
 }
 
 // Ordered keys, so the generated JSON is stable.
-var outcomeOrder = []string{"completed", "blocked", "budget_exhausted", "errored"}
+var outcomeOrder = []string{"completed", "blocked", "budget_exhausted", "errored", "provider_filtered"}
 var severityOrder = []string{"blocker", "major", "minor", "info"}
 
 func valueMappings(colours map[string]string, order []string) []dashboard.ValueMapping {

@@ -3,7 +3,8 @@
 ## Reporting a vulnerability in Dummy Run
 
 Use [Report a vulnerability](https://github.com/dummy-run/dummy-run/security/advisories/new) on this
-repository's Security tab. Do not open a public issue. We reply within five working days and say what
+repository's Security tab. If you cannot use that, email
+[security@dummyrun.dev](mailto:security@dummyrun.dev). Do not open a public issue. We reply within five working days and say what
 happens next.
 
 We follow coordinated disclosure. We fix the problem in a private fork and then publish a GitHub
@@ -18,6 +19,10 @@ not.
 
 A finding in someone else's app belongs to its owner. Report it through their disclosure route, and keep
 it out of this project's issues, discussions and example data.
+
+## How Dummy Run treats hostile pages
+
+A page under test is untrusted input to the model (code: `internal/inject/inject.go` and `internal/runner/observe.go`). [Threat model](docs/THREAT-MODEL.md) lists the threats and the defences, and names the gaps.
 
 ## What this repository holds
 

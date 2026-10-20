@@ -56,6 +56,26 @@ type Record struct {
 	Steps     []Step    `json:"steps"`
 	Findings  []Finding `json:"findings"`
 	Usage     Usage     `json:"usage"`
+	// Events are things the engine saw that a reviewer should know about. Left out when there are none.
+	Events []Event `json:"events,omitempty"`
+}
+
+// Event kinds.
+const (
+	EventSuspectedInjection = "suspected_injection"
+	EventOffOriginBlocked   = "off_origin_blocked"
+	EventUncitedFinding     = "uncited_finding"
+	EventProviderFiltered   = "provider_filtered"
+)
+
+// Event is one thing the engine noticed. For a suspected injection Detail is text from the page, so a
+// reader that passes it to a model must treat it as data.
+type Event struct {
+	Kind    string `json:"kind"`
+	Step    int    `json:"step,omitempty"`
+	Source  string `json:"source,omitempty"`
+	Pattern string `json:"pattern,omitempty"`
+	Detail  string `json:"detail"`
 }
 
 // Persona identifies the persona and how it browsed in this run. Device and
@@ -167,6 +187,10 @@ type Finding struct {
 	ClusterID      string   `json:"cluster_id,omitempty"`
 	SeededDefectID string   `json:"seeded_defect_id,omitempty"`
 	ReviewedBy     []string `json:"reviewed_by,omitempty"`
+	// Reviewer, ReviewedAt and Reason are set by dummyrun review when a person confirms or rejects the finding.
+	Reviewer   string     `json:"reviewer,omitempty"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	Reason     string     `json:"reason,omitempty"`
 }
 
 // Usage is the model usage for the run.
@@ -182,20 +206,21 @@ type Usage struct {
 
 // Outcomes and other enumerations from the schema.
 const (
-	OutcomeCompleted       = "completed"
-	OutcomeBlocked         = "blocked"
-	OutcomeErrored         = "errored"
-	OutcomeBudgetExhausted = "budget_exhausted"
-	VerdictPending         = "pending"
-	ClassProblem           = "problem"
-	ClassObservation       = "observation"
+	OutcomeCompleted        = "completed"
+	OutcomeBlocked          = "blocked"
+	OutcomeErrored          = "errored"
+	OutcomeBudgetExhausted  = "budget_exhausted"
+	OutcomeProviderFiltered = "provider_filtered"
+	VerdictPending          = "pending"
+	ClassProblem            = "problem"
+	ClassObservation        = "observation"
 )
 
 // Actions lists the thirteen step actions.
 var Actions = []string{"look", "visit", "click", "fill", "type", "select", "press", "back", "scroll", "wait", "a11y", "screenshot", "finish"}
 
 // Kinds lists the finding kinds.
-var Kinds = []string{"bug", "permission", "friction", "accessibility", "question"}
+var Kinds = []string{"bug", "permission", "friction", "accessibility", "question", "security"}
 
 // Severities lists the finding severities.
 var Severities = []string{"blocker", "major", "minor", "info"}

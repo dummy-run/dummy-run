@@ -16,7 +16,7 @@
 > Pre-release, with no tagged version yet. The engine installs with
 > `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. It runs personas on six kinds of
 > model provider; [docs/ENGINE.md](docs/ENGINE.md) shows
-> how. The reviewer and the results board are not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
+> how. A person confirms findings with `dummyrun review`. The results board is not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
@@ -62,7 +62,7 @@ flowchart LR
 | Document | What it covers |
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
-| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, focus, the read-only policy and the accessibility sweep |
+| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, focus, reviewing findings, the read-only policy and the accessibility sweep |
 | [docs/CLI.md](docs/CLI.md) | The help text of each command, written from the code |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, their sign-in and what each can do |
 | [docs/PERSONAS.md](docs/PERSONAS.md) | The persona library in [casts/library](casts/library/README.md), and how to copy one into your cast |

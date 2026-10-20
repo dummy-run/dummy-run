@@ -380,6 +380,10 @@
       "locus": "link:rates",
       "evidence": "code",
       "status": "confirmed",
+      "reviewers": [
+        "example-reviewer"
+      ],
+      "reviewed_at": "2026-10-18T09:54:03Z",
       "personas": [
         "lin-contributor"
       ],
@@ -433,6 +437,10 @@
       "locus": "button:schedule",
       "evidence": "measured",
       "status": "confirmed",
+      "reviewers": [
+        "example-reviewer"
+      ],
+      "reviewed_at": "2026-10-17T15:34:26Z",
       "personas": [
         "ada-editor"
       ],
@@ -479,6 +487,10 @@
       "locus": "region:payment status",
       "evidence": "inferred",
       "status": "confirmed",
+      "reviewers": [
+        "example-reviewer"
+      ],
+      "reviewed_at": "2026-10-17T11:43:24Z",
       "personas": [
         "lin-contributor"
       ],
