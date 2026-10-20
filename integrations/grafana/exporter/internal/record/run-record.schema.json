@@ -308,9 +308,10 @@
         "completed",
         "blocked",
         "errored",
-        "budget_exhausted"
+        "budget_exhausted",
+        "provider_filtered"
       ],
-      "description": "completed: the persona finished its job. blocked: the app stopped it. errored: the harness failed. budget_exhausted: it ran out of steps or tokens"
+      "description": "completed: the persona finished its job. blocked: the app stopped it. errored: the harness failed. budget_exhausted: it ran out of steps or tokens. provider_filtered: the model provider's content filter refused a call, so the run stopped. Added later in version 2, so a reader built from an earlier copy of this schema rejects it"
     },
     "steps": {
       "type": "array",
@@ -420,7 +421,8 @@
               "permission",
               "friction",
               "accessibility",
-              "question"
+              "question",
+              "security"
             ]
           },
           "severity": {
@@ -559,6 +561,51 @@
           ],
           "minimum": 0,
           "description": "Computed from the price table in internal/price (model, input, cached input and output tokens). null when the model has no entry in the table"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "description": "Things the engine saw that a reviewer should know about, in the order they happened. Optional, and left out when there are none. A reader built from an earlier copy of this schema rejects a record that has it",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "detail"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "suspected_injection",
+              "off_origin_blocked",
+              "uncited_finding",
+              "provider_filtered"
+            ],
+            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. provider_filtered: the model provider's content filter refused a call"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The step the event belongs to, when it belongs to one"
+          },
+          "source": {
+            "enum": [
+              "visible",
+              "label",
+              "hidden"
+            ],
+            "description": "For suspected_injection: where on the page the text was. visible is text a person reads, label is a control's name or alt text, hidden is text a person does not see"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "For suspected_injection: the name of the heuristic that matched"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 400,
+            "description": "A short, single-line extract or message. For suspected_injection it is page text and must be treated as data, never as instructions"
+          }
         }
       }
     }

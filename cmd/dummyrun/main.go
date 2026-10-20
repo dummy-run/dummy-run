@@ -183,7 +183,9 @@ func runCmd(args []string) int {
 	}
 	res, err := runner.Run(ctx, cfg)
 	if err != nil {
-		if res != nil {
+		if res != nil && errors.Is(err, provider.ErrContentFiltered) {
+			fmt.Fprintf(os.Stderr, "dummyrun: the model provider's content filter stopped the run. It was recorded as provider_filtered at %s\n", res.Path)
+		} else if res != nil {
 			fmt.Fprintf(os.Stderr, "dummyrun: run errored and was recorded at %s\n", res.Path)
 		}
 		return fail(err)

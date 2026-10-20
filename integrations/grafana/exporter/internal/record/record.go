@@ -56,6 +56,9 @@ type Run struct {
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
 	Usage         Usage     `json:"usage"`
+	// Events are accepted so a record that has them loads. The exporter does not send them,
+	// because an event's detail is page text.
+	Events []json.RawMessage `json:"events,omitempty"`
 }
 
 // Persona is the fictional user who ran the scenario.
