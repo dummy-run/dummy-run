@@ -105,6 +105,9 @@ jobs:
         with:
           name: image-context
           path: image-context
+      # Artifacts lose the executable bit on download. The Dockerfile sets it too; this keeps local builds honest.
+      - name: Restore the executable bit
+        run: chmod 0755 image-context/linux/*/dummyrun
       - name: Image tags and build time
         run: |
           set -euo pipefail

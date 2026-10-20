@@ -65,7 +65,7 @@ COPY --from=browsers /opt/chromedriver /opt/chromedriver
 COPY --from=browsers /opt/firefox /opt/firefox
 ARG TARGETOS
 ARG TARGETARCH
-COPY ${TARGETOS}/${TARGETARCH}/dummyrun /usr/local/bin/dummyrun
+COPY --chmod=0755 ${TARGETOS}/${TARGETARCH}/dummyrun /usr/local/bin/dummyrun
 
 # The container is the sandbox, so the browsers' own sandboxes are off. See docs/INSTALL.md.
 ENV DUMMYRUN_CHROME=/opt/chrome/chrome \
