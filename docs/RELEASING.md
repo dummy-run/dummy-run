@@ -38,7 +38,7 @@ Homebrew token.
 
 6. Watch the run with `gh run watch`. If the environment has a required reviewer, approve the `release` job
    when it waits.
-7. Verify the artefacts with the commands in [Verify a download](INSTALL.md#verify-a-download) and [Verify the image](INSTALL.md#verify-the-image).
+7. Verify the artefacts with the commands under "Verify a download" and "Verify the image" in [INSTALL.md](INSTALL.md).
    - Download one archive and `checksums.txt`.
    - Run `cosign verify-blob` on the checksums file.
    - Run `sha256sum --ignore-missing -c` on the archive.

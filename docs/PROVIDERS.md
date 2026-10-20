@@ -1,7 +1,7 @@
 # Model providers
 
-The engine runs a persona on a model you choose. `--provider` picks the backend. Each backend needs
-tool calling and images. Code: `internal/provider/`.
+Dummy Run plays a persona with a model you choose. Pick the backend with `--provider`. Any model you use
+needs tool calling and must accept images.
 
 | `--provider` | Backend | Sign-in |
 |---|---|---|
@@ -12,16 +12,16 @@ tool calling and images. Code: `internal/provider/`.
 | `vertex` | Gemini on Vertex AI | Application Default Credentials, with `--project` and `--region` |
 | `bedrock` | Amazon Bedrock Converse | The AWS default credential chain |
 
-An API key is read from the environment when the run starts. It is never printed or written to a run
-record. The record stores the provider kind, the model and the region only.
+The engine reads your API key from the environment when the run starts. It never prints the key or writes
+it to a run record. The record keeps only the provider kind, the model and the region.
 
 ## What each backend can do
 
-The runner reads a capability table (`internal/provider/capabilities.go`) and never branches on a
-provider name. Two entries matter at run time. Where a backend cannot force a tool, the last step of a run
-sends an instruction to call `finish` and asks again if the model answers in prose. Where a backend takes
-images in tool results, the screenshot travels inside the tool result. Elsewhere it follows as a user message.
-The table is written from the code by `go generate ./cmd/dummyrun`, so edit the code and not the table.
+Backends differ in a few ways that change how a run behaves. If a backend can't force a tool call, the
+last step asks the model to call `finish`, and asks again if it answers in prose. If a backend takes images
+inside tool results, the screenshot goes there. Otherwise it follows as a separate user message.
+
+The table below is generated from the code, so it matches this version of the engine.
 
 <!-- docgen:providers begin -->
 
@@ -40,6 +40,9 @@ Every kind supports tool calling, images in user messages and structured output.
 
 ## OpenAI-compatible services
 
+To use a hosted service that speaks the OpenAI API, point `--endpoint` at its base URL and name the
+variable that holds your key:
+
 ```sh
 export SCW_SECRET_KEY=...        # the key stays in your environment
 dummyrun run ... --provider openai-compatible \
@@ -47,15 +50,15 @@ dummyrun run ... --provider openai-compatible \
   --model <model> --region fr-par
 ```
 
-`--endpoint` is the base URL. `--region` is where you know the service runs, as the record needs a value.
-Use `local` for a server on your machine. The engine sends `tool_choice: auto` and `max_tokens`.
-It sends `max_completion_tokens` only to `api.openai.com`. Ambient `OPENAI_API_KEY`, `OPENAI_ORG_ID` and
-`OPENAI_PROJECT_ID` values are ignored, so a key for one vendor never reaches another.
+The run record needs a region, so pass the one you know the service runs in, or `local` for a server on
+your machine. The engine sends `tool_choice: auto` and `max_tokens`, and adds `max_completion_tokens` only
+for `api.openai.com`. It ignores any `OPENAI_API_KEY`, `OPENAI_ORG_ID` or `OPENAI_PROJECT_ID` in your
+environment, so a key for one vendor never reaches another.
 
-The notes below come from each vendor's own page on the date the engine was written. Where a page did not
-say, the cell says so. Check the vendor before you rely on a detail, as models and regions change.
+Here's what each vendor's own docs say. Where a page didn't say, the cell tells you. Models and regions
+change, so check the vendor before you rely on a detail.
 
-| Service | Base URL | Tools and images | Data region | Source |
+| Service | Base URL | Tools and images | Data region | Vendor docs |
 |---|---|---|---|---|
 | OpenAI | `https://api.openai.com/v1` | Tools yes. Images are in the vision guide, not checked here | Not checked here | [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling) |
 | OpenRouter | `https://openrouter.ai/api/v1` | Tools and base64 images in user messages. Support varies by model | Not stated on the page | [OpenRouter API](https://openrouter.ai/docs/api-reference/overview) |
@@ -68,82 +71,80 @@ say, the cell says so. Check the vendor before you rely on a detail, as models a
 | DeepInfra | `https://api.deepinfra.com/v1/openai` | Lists `tools` and `tool_choice`. Vision has its own page | Not stated on the page | [DeepInfra chat](https://docs.deepinfra.com/chat/overview) |
 | Groq | `https://api.groq.com/openai/v1` | Tool use yes on most models. Chat images not covered on the page | Not stated on the page | [Groq OpenAI compatibility](https://console.groq.com/docs/openai) and [tool use](https://console.groq.com/docs/tool-use) |
 
-The Scaleway and OVHcloud rows are the least certain, because their pages did not show the base URL when
-fetched. Confirm both on the vendor page before a first run, and send a pull request with what you find.
+Scaleway's and OVHcloud's pages didn't show a base URL, so confirm both with the vendor before your
+first run.
 
 ### Local servers
 
-| Server | Base URL | Notes | Source |
+With a local server, your data stays on your machine.
+
+| Server | Base URL | Notes | Vendor docs |
 |---|---|---|---|
 | Ollama | `http://localhost:11434/v1` | Tools work. Images work as base64 only. The page lists `tool_choice` as unsupported, so the engine uses the finish instruction. Pick a model that lists `tools` and `vision` | [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility) |
 | vLLM | `http://localhost:8000/v1` | Start it with `--enable-auto-tool-choice` and a `--tool-call-parser` for the model | [vLLM tool calling](https://docs.vllm.ai/en/latest/features/tool_calling/) |
 | llama.cpp server | The host and `--port` you start it with, plus `/v1` | Tool calls need the `--jinja` flag. Images need a multimodal projector and are marked experimental | [llama.cpp server](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) |
 
-Data stays on your machine with a local server.
-
 ## Reasoning effort and the Responses API
 
-Some OpenAI models only take tool calls over chat completions when reasoning is off. Others need the
-Responses API for tools. OpenAI's function calling guide says GPT-6 Astra and GPT-6.1 Sol require it.
-Two flags cover both, for `openai-compatible` and `azure`:
+Some OpenAI models take tool calls over chat completions only when reasoning is off. Others need the
+Responses API for tools at all. OpenAI's function calling guide says GPT-6 Astra and GPT-6.1 Sol need it.
+Two flags cover both cases, for `openai-compatible` and `azure`:
 
 - `--reasoning-effort none|minimal|low|medium|high|xhigh` sets the effort. Leave it out to use the model's default.
-- `--openai-api responses` uses the Responses API instead of chat completions.
+- `--openai-api responses` switches from chat completions to the Responses API.
 
-With the Responses API the engine sends the whole conversation each call and sets `store` to false, so the
-service keeps nothing. Unless the effort is `none`, it asks for encrypted reasoning and passes it back next to
-the tool call it belongs to, as OpenAI's guide asks for reasoning models.
+On the Responses API the engine sends the whole conversation with each call and sets `store` to false, so
+the service doesn't store the responses for later use. That isn't the same as zero data retention, which each vendor
+controls separately. Unless the effort is `none`, it asks for encrypted reasoning and passes it back
+alongside the tool call it belongs to, as OpenAI asks for reasoning models.
 
-Check the model's own page for the setting it needs. A model that wants `none` for chat tool calls is a
-case for `--reasoning-effort none`. Azure uses the same API version setting as chat (`--api-version`).
+Check the model's page for the setting it needs. If a model wants reasoning off for chat tool calls, use
+`--reasoning-effort none`. On Azure, `--api-version` sets the API version for both APIs.
 
 ## Sampling seed
 
-`--seed N` is sent as the sampling seed to Azure OpenAI and OpenAI-compatible services over chat completions,
-and to Gemini on both the Developer API and Vertex AI. The Responses API, Anthropic and Bedrock do not take
-one, so the run record has `seed: null` there and the engine says so in its log. A seed makes sampling repeatable
-only as far as the vendor promises. Gemini takes seeds up to 2147483647 and the engine clamps larger ones.
+`--seed N` sends a sampling seed to Azure OpenAI and OpenAI-compatible services over chat completions, and
+to Gemini on both the Developer API and Vertex AI. The Responses API, Anthropic and Bedrock don't take one.
+On those, the run record has `seed: null` and the log says the seed wasn't sent. A seed makes sampling
+repeatable only as far as the vendor promises. Gemini accepts seeds up to 2147483647, and the engine clamps
+larger ones.
 
 ## Cached input tokens
 
-Usage in the run record has an optional `cached_input_tokens`. It is the part of `input_tokens` the service
-answered from its prompt cache. Compare it with `input_tokens` to see what caching saves. It is left out when a
-service does not report it.
+The usage block in a run record can include `cached_input_tokens`, the part of `input_tokens` that the
+service answered from its prompt cache. Compare the two to see what caching saves you. The field is left
+out when a service doesn't report it.
 
 ## Anthropic
 
-Uses the official Go SDK. `tool_choice` is always `auto`, with one tool at a time, because forced tool use
-returns 400 on current models. The last step sends an instruction to call `finish`. Screenshots go inside the
-tool result. Source: [Anthropic tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).
-The API has no region choice in the engine, so the record says `global` unless you pass `--region`.
+The engine uses the official Go SDK. It always sends `tool_choice: auto` with one tool at a time, because
+forcing a tool returns a 400 error on current models. So the last step asks the model to call `finish`.
+Screenshots go inside the tool result. See [Anthropic tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).
+You can't pick a region for this API, so the record says `global` unless you pass `--region`.
 
 ## Gemini
 
-`gemini` uses an API key and the Developer API. `vertex` uses Application Default Credentials (`gcloud auth
-application-default login`, a service account or workload identity) with `--project` and `--region`, such as
-`europe-west2`. Calls go to that region. Gemini 3 models return thought signatures with function calls. The engine
-keeps them and sends them back. Source: [Gemini function calling](https://ai.google.dev/gemini-api/docs/function-calling).
-An ambient `GOOGLE_API_KEY` or `GEMINI_API_KEY` can change how the SDK signs in, so unset them for `vertex`.
+`gemini` signs in with an API key and uses the Developer API. `vertex` uses Application Default Credentials
+from `gcloud auth application-default login`, a service account or workload identity. It also needs
+`--project` and `--region`, such as `europe-west2`, and calls go to that region. Gemini 3 models return thought signatures
+with function calls, and the engine keeps them and sends them back. See
+[Gemini function calling](https://ai.google.dev/gemini-api/docs/function-calling).
+
+If `GOOGLE_API_KEY` or `GEMINI_API_KEY` is set in your shell, the SDK may sign in with it instead. Unset
+both when you use `vertex`.
 
 ## Amazon Bedrock
 
-Uses the Converse API and the AWS default credential chain (environment, shared config, SSO or a role).
-`--region` defaults to `eu-west-2` (London). `--model` is a model ID or an inference profile ID. Some profiles
-route across regions, so check the profile's regions if residency matters. The engine does not force a tool on
-Bedrock and sends the finish instruction instead.
-Source: [Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html).
-This backend was tested against recorded replies only, as no AWS account was used.
+The engine uses the Converse API and the AWS default credential chain (environment, shared config, SSO or
+a role). `--region` defaults to `eu-west-2` (London). `--model` takes a model ID or an inference profile ID.
+Some profiles route across regions, so check a profile's regions if residency matters to you. Bedrock
+doesn't force a tool call, so the last step asks the model to call `finish`. See the
+[Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html).
+
+The Bedrock backend has been tested against recorded replies but not yet against a live AWS account. If
+something doesn't work, please open an issue.
 
 ## Azure OpenAI
 
-See `docs/ENGINE.md`. Azure takes `--reasoning-effort` and `--openai-api responses` as well.
-
-## Tests
-
-`go test ./internal/provider/` runs unit tests for every provider and one contract test that each must
-pass. Replies are fixtures in `internal/provider/testdata/`, served by a local test server, so CI needs no key.
-The OpenAI-compatible chat fixtures were recorded from a local Ollama. The others follow each vendor's
-documented format. `FuzzDecodeResponses` feeds random bytes to every decoder.
-
-To try a local model: `DUMMYRUN_OLLAMA_MODEL=gemma4:e4b go test -run TestOllamaLive -v ./internal/provider/`.
-The test is skipped when the variable is unset.
+[ENGINE.md](ENGINE.md) shows an Azure run from start to finish. Azure also takes `--reasoning-effort` and
+`--openai-api responses`.

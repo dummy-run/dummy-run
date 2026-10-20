@@ -29,23 +29,23 @@ timeout = "120s"
 [[params.docGroups]]
   key = "use"
   title = "Run it"
-  text = "Install the engine, pick a model provider, write personas, and every command."
+  text = "Install the engine, choose a model provider, write personas and read what a run finds."
 [[params.docGroups]]
   key = "understand"
-  title = "How it is built"
-  text = "What a run produces and the rules it follows."
+  title = "Under the hood"
+  text = "How a run is put together, what it sends where and what it guards against."
 [[params.docGroups]]
   key = "integrate"
   title = "Connect it"
   text = "Send runs to Grafana or any OpenTelemetry backend."
 [[params.docGroups]]
-  key = "project"
-  title = "The project"
-  text = "The plan, how to contribute, and how we write and design."
-[[params.docGroups]]
   key = "policy"
   title = "Licence, trademarks and security"
-  text = "What you may do with the code and the name, and how to report a problem."
+  text = "What you can do with the code and the name, and how to report a problem."
+[[params.docGroups]]
+  key = "project"
+  title = "Contributing"
+  text = "For people working on Dummy Run itself."
 
 [markup.goldmark.renderer]
   unsafe = false
