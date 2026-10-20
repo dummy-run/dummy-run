@@ -606,7 +606,7 @@ td code, th code { white-space: nowrap; }
 .prose .graphic, .prose .figure-block { margin: 0.75rem 0 1.5rem; }
 
 /* The whole flow: six steps joined by a path, lit one after another. Still and fully readable until site.js turns the motion on. */
-@property --n { syntax: "<integer>"; inherits: false; initial-value: 4; }
+@property --n { syntax: "<integer>"; inherits: false; initial-value: 9; }
 .flow { --cyc: 18s; --gap: 1.5rem; --lw: 4px; --lx: 2rem; --ly: 2rem; --g-paper: var(--paper); --g-ink: var(--ink); --g-muted: var(--ink-muted); --g-rule: var(--rule); margin: 1.75rem 0; }
 .flow.is-compact { --ly: 50%; }
 .flow-controls { margin: 0 0 1rem; }
@@ -762,7 +762,7 @@ td code, th code { white-space: nowrap; }
   @keyframes flow-snap { 0%, 2.5%, 6%, 100% { transform: none; } 3.2% { transform: scale(1.22); } 4.5% { transform: scale(0.95); } }
   @keyframes flow-fill { 0%, 1% { width: 8%; } 9%, 100% { width: 72%; } }
   @keyframes flow-count { 0%, 100% { transform: none; } 1% { transform: none; } 9.5% { transform: scale(1.08); } 11%, 99% { transform: none; } }
-  @keyframes flow-n { 0%, 1% { --n: 9; } 9%, 100% { --n: 4; } }
+  @keyframes flow-n { 0%, 1% { --n: 4; } 9%, 100% { --n: 9; } }
   @keyframes flow-spark { 0% { stroke-dashoffset: 1; } 6%, 100% { stroke-dashoffset: 0; } }
   @keyframes flow-wave { 0%, 9%, 100% { transform: none; } 1.5% { transform: translateY(-0.2rem) rotate(-14deg); } 3% { transform: translateY(0) rotate(14deg); } 4.5% { transform: translateY(-0.2rem) rotate(-14deg); } 6% { transform: translateY(0) rotate(10deg); } }
   @keyframes flow-cursor {
@@ -780,7 +780,7 @@ td code, th code { white-space: nowrap; }
   @keyframes flow-yes { 0%, 6.9% { background: var(--paper); color: var(--pass); } 7%, 100% { background: var(--pass); color: var(--paper); } }
   @keyframes flow-no { 0%, 12.9% { background: var(--paper); color: var(--blocker); } 13%, 100% { background: var(--blocker); color: var(--paper); } }
   @keyframes flow-tick { 0% { transform: scale(0); } 2% { transform: scale(1.5); } 3.5%, 100% { transform: none; } }
-  @keyframes flow-tk-h { 0%, 9% { opacity: 0; } 9.5% { opacity: 1; transform: none; } 15.8% { opacity: 1; margin-left: calc(var(--gap) - 0.45rem); } 16.4%, 100% { opacity: 0; margin-left: calc(var(--gap) - 0.45rem); } }
+  @keyframes flow-tk-h { 0%, 9% { opacity: 0; } 9.5% { opacity: 1; transform: none; margin-left: -0.45rem; } 15.8% { opacity: 1; margin-left: calc(var(--gap) - 0.45rem); } 16.4%, 100% { opacity: 0; margin-left: calc(var(--gap) - 0.45rem); } }
   @keyframes flow-tk-v { 0%, 9% { opacity: 0; } 9.5% { opacity: 1; margin-top: -0.45rem; } 15.8% { opacity: 1; margin-top: calc(var(--gap) - 0.45rem); } 16.4%, 100% { opacity: 0; margin-top: calc(var(--gap) - 0.45rem); } }
   @keyframes flow-tk-w {
     0%, 9% { opacity: 0; margin: -0.45rem 0 0 -0.45rem; }
