@@ -45,6 +45,14 @@ engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, an
 (`DUMMYRUN_CHROME`, `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
 to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a reason.
 
+## Social cards and structured data
+
+Each main page has a 1200 by 630 link-preview card in `static/social/`, named for the page path with
+hyphens, such as `for-qa-lead.png`. A page without its own card uses its section's card, then
+`brand/logo/social-card.png` (code: the card lookup in `site/layouts/_partials/head.html`). Run `go run ./internal/tools/socialcards` from the repository root. It does not work from `site`. It draws the cards from the list in
+that program and `-check` fails when one is out of date (code: `internal/tools/socialcards/main.go`). Add a card by adding a line to the list. The
+home page also carries JSON-LD that describes the software as free and open source.
+
 ## Typefaces
 
 Headings are Space Grotesk, the face of the wordmark. Body text is Atkinson Hyperlegible Next, which the
@@ -54,5 +62,7 @@ the SIL Open Font License 1.1, recorded in `REUSE.toml`.
 ## Headers
 
 `static/_headers` sets the Content Security Policy and the other security headers that Cloudflare Pages
-serves. The policy allows nothing from third parties. There are no inline scripts or styles, no
-analytics and no cookies.
+serves. The policy allows one third party: the Cloudflare Web Analytics script from
+`static.cloudflareinsights.com`, and its reports. The Pages setup reports to this site at `/cdn-cgi/rum`. A manual embed reports to `cloudflareinsights.com/cdn-cgi/rum`, so the policy allows that host too. Cloudflare
+injects that script on the next deployment after the owner turns analytics on for the Pages project (sourced: Cloudflare Web Analytics documentation, Get started). It sets no cookies and does not
+track individual visitors (sourced: the same documentation). There are no inline executable scripts or styles. The JSON-LD data block in the page head is not executable.

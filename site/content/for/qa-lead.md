@@ -5,7 +5,7 @@ icon: clipboard
 lead_short: Every role, every pull request
 weight: 10
 lead: Exploratory testing by role on every pull request, with evidence behind each finding.
-description: What a QA lead gets from Dummy Run. Exploratory testing by role on every pull request, how it sits beside a scripted suite, which browsers it drives and the evidence behind every finding.
+description: What you get from Dummy Run as a QA lead. Exploratory testing by role on every pull request, how it sits beside a scripted suite, which browsers it drives and the evidence behind every finding.
 next:
   title: Run one persona
   text: Install the command and run one persona against a site without changing anything.

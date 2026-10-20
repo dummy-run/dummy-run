@@ -3,6 +3,7 @@ package runner_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/png"
 	"io"
@@ -42,7 +43,7 @@ func (s *scripted) Chat(_ context.Context, req provider.Request) (provider.Respo
 	resp := provider.Response{Usage: provider.Usage{InputTokens: 1000, OutputTokens: 50}, FinishReason: "tool_calls"}
 	if req.ForceTool == "finish" || n >= len(s.calls) {
 		resp.ToolCalls = []provider.ToolCall{{ID: fmt.Sprintf("call_%d", n), Name: "finish", Args: json.RawMessage(
-			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}]}`)}}
+			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}],"observations":[{"text":"The home page loaded with its heading.","steps":[1]}]}`)}}
 		return resp, nil
 	}
 	c := s.calls[n]
@@ -151,6 +152,9 @@ func TestRunEndToEnd(t *testing.T) {
 			}
 			if rec.Outcome != record.OutcomeCompleted || res.Finish == nil || res.Finish.Verdict != "friction" {
 				t.Errorf("outcome %s finish %+v", rec.Outcome, res.Finish)
+			}
+			if len(rec.Observations) != 1 || rec.Observations[0].Steps[0] != 1 || len(rec.Findings) != 1 {
+				t.Errorf("observations %+v, findings %d: want one of each, kept apart", rec.Observations, len(rec.Findings))
 			}
 			if len(rec.Steps) != 7 {
 				t.Fatalf("%d steps: %+v", len(rec.Steps), rec.Steps)
@@ -399,6 +403,116 @@ func TestScenarioDeviceAndZoom(t *testing.T) {
 			}
 			if cfg.Width != 390 || cfg.Height != 844 {
 				t.Errorf("screenshot is %d by %d pixels, want the phone window 390 by 844", cfg.Width, cfg.Height)
+			}
+		})
+	}
+}
+
+func TestRobotsDisallowStopsBeforeTheBrowser(t *testing.T) {
+	var mu sync.Mutex
+	var hits []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		hits = append(hits, r.URL.Path+" "+r.Header.Get("User-Agent"))
+		mu.Unlock()
+		if r.URL.Path == "/robots.txt" {
+			_, _ = w.Write([]byte("User-agent: DummyRun\nDisallow: /\n"))
+		}
+	}))
+	defer srv.Close()
+	persona, err := cast.Load(writeCast(t), "reader")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := runner.Run(context.Background(), runner.Config{Persona: persona, Scenario: persona.Scenarios[0], Provider: &scripted{},
+		Browser: "chrome", Headless: true, OutDir: t.TempDir(),
+		Target: policy.Target{Adapter: "url", Environment: "local", BaseURL: srv.URL + "/", AllowedHosts: []string{"127.0.0.1"}, ReadOnly: true,
+			RespectRobots: true, Identify: true}})
+	if !errors.Is(err, runner.ErrRobotsDisallow) || res == nil {
+		t.Fatalf("res %v err %v", res, err)
+	}
+	rec := res.Record
+	if rec.Outcome != record.OutcomeBlocked || !strings.Contains(rec.OutcomeReason, "robots.txt") || len(rec.Steps) != 0 || !rec.Target.RespectRobots || !rec.Target.Identify {
+		t.Errorf("record %+v", rec)
+	}
+	if _, rerr := record.Read(res.Path); rerr != nil {
+		t.Errorf("record does not validate: %v", rerr)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	// With no commit the engine would hash the home page. It must not do that for a disallowed site.
+	if len(hits) != 1 || !strings.HasPrefix(hits[0], "/robots.txt ") || !strings.HasSuffix(hits[0], "(+https://dummyrun.dev/scanner/)") {
+		t.Errorf("requests %v", hits)
+	}
+}
+
+// TestIdentifyAndRobotsInBrowser runs a scripted persona on each browser in DUMMYRUN_BROWSERS against a site
+// whose robots.txt disallows /private for DummyRun. The site must see the identified user agent, the
+// disallowed page must be blocked in the browser, and the allowed page must load.
+func TestIdentifyAndRobotsInBrowser(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser test")
+	}
+	for _, browser := range strings.Split(browsers, ",") {
+		t.Run(browser, func(t *testing.T) {
+			var mu sync.Mutex
+			agents := map[string]string{}
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				agents[r.URL.Path] = r.Header.Get("User-Agent")
+				mu.Unlock()
+				switch r.URL.Path {
+				case "/robots.txt":
+					w.Header().Set("Content-Type", "text/plain")
+					_, _ = io.WriteString(w, "User-agent: *\nDisallow: /\n\nUser-agent: DummyRun\nDisallow: /private\n")
+				case "/docs", "/private":
+					w.Header().Set("Content-Type", "text/html")
+					_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Page</title><main><h1>Page</h1></main></html>`)
+				default:
+					w.Header().Set("Content-Type", "text/html")
+					_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Home</title><main><h1>Home</h1><a href="/docs">Docs</a> <a href="/private">Private</a></main></html>`)
+				}
+			}))
+			t.Cleanup(srv.Close)
+			persona, err := cast.Load(writeCast(t), "reader")
+			if err != nil {
+				t.Fatal(err)
+			}
+			prov := &scripted{calls: []provider.ToolCall{
+				{Name: "visit", Args: json.RawMessage(`{"url":"/docs"}`)},
+				{Name: "visit", Args: json.RawMessage(`{"url":"/private"}`)},
+			}}
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			res, err := runner.Run(ctx, runner.Config{Persona: persona, Scenario: persona.Scenarios[0], Provider: prov, Browser: browser,
+				Headless: true, OutDir: t.TempDir(),
+				Target: policy.Target{Adapter: "url", Environment: "local", BaseURL: srv.URL + "/", AllowedHosts: []string{"127.0.0.1"}, ReadOnly: true,
+					RespectRobots: true, Identify: true, Commit: "abcdef1"}})
+			if err != nil {
+				t.Fatalf("run: %v", err)
+			}
+			if !res.Record.Target.Identify || !res.Record.Target.RespectRobots {
+				t.Errorf("target %+v", res.Record.Target)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			for _, path := range []string{"/", "/docs"} {
+				if ua := agents[path]; !strings.HasSuffix(ua, "DummyRun/"+telemetry.Version+" (+https://dummyrun.dev/scanner/)") || !strings.Contains(ua, "Mozilla/5.0") {
+					t.Errorf("%s user agent %q", path, ua)
+				}
+			}
+			if _, seen := agents["/private"]; seen {
+				t.Error("the site received a request for the disallowed /private")
+			}
+			var noted bool
+			for _, st := range res.Record.Steps {
+				if strings.Contains(st.Note, "robots.txt disallows DummyRun") || strings.Contains(st.Note, "blocked") && strings.Contains(st.Note, "/private") {
+					noted = true
+				}
+			}
+			if !noted {
+				t.Errorf("no step noted the robots.txt block: %+v", res.Record.Steps)
 			}
 		})
 	}

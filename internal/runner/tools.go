@@ -43,19 +43,17 @@ var Tools = []provider.Tool{
 		Parameters: object(map[string]any{"seconds": map[string]any{"type": "integer", "minimum": 1, "maximum": 15}}, "seconds")},
 	{Name: "a11y", Description: "Run the accessibility check (axe-core, WCAG 2.2 AA) on this page. Once per run, on the page that matters most."},
 	{Name: "screenshot", Description: "See a screenshot of the page as it is now, when the text is not enough."},
-	{Name: "finish", Description: "End the run with your verdict, your report and your findings. Every finding cites step numbers from the results.",
+	{Name: "finish", Description: "End the run with your verdict, your report, your findings and your observations. Findings are problems only. Observations are what worked. Both cite step numbers from the results.",
 		Parameters: object(map[string]any{
 			"verdict": map[string]any{"type": "string", "enum": []string{"pass", "friction", "fail", "blocked"},
 				"description": "pass: you did the job. friction: you did it but something slowed or confused you. fail: the site stopped you. blocked: the set-up or the site's state stopped you before you could start."},
 			"goal_met": map[string]any{"type": "string", "enum": []string{"yes", "partly", "no"},
 				"description": "Did you do what you came to do? yes: all of it. partly: some of it or by a workaround. no: not at all."},
 			"report": str("Your report in Markdown: what you tried, what happened, what you would tell the team. Cite steps as 'step 4' or 'steps 6-8'."),
-			"findings": map[string]any{"type": "array", "description": "Each distinct problem or question, with evidence.",
+			"findings": map[string]any{"type": "array", "description": "Problems only: each distinct thing that is wrong, missing or confusing, with evidence. Leave out what worked. That goes in observations.",
 				"items": object(map[string]any{
 					"kind":     map[string]any{"type": "string", "enum": record.Kinds},
 					"severity": map[string]any{"type": "string", "enum": record.Severities},
-					"class": map[string]any{"type": "string", "enum": []string{record.ClassProblem, record.ClassObservation},
-						"description": "problem: something wrong or in the way. observation: a positive or neutral note. Leave out for a problem."},
 					"symptom": map[string]any{"type": "string", "enum": identity.Symptoms,
 						"description": "What is wrong, in the closest of these words. " + symptomHelp()},
 					"topic":   str("Only with symptom missing-information: what the missing content is about, at most four words, such as 'uk data residency'."),
@@ -66,6 +64,11 @@ var Tools = []provider.Tool{
 					"evidence": map[string]any{"type": "string", "enum": []string{"measured", "inferred"},
 						"description": "measured: you saw it in a step. inferred: your reasoning, labelled as such."},
 				}, "kind", "severity", "symptom", "title", "steps", "evidence")},
+			"observations": map[string]any{"type": "array", "description": "Things that worked and neutral notes, such as 'The home page accessibility check found no violations.' Not problems. Leave empty when there is nothing to note.",
+				"items": object(map[string]any{
+					"text":  str("One sentence: what worked or what was neutral"),
+					"steps": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "minItems": 1},
+				}, "text", "steps")},
 		}, "verdict", "goal_met", "report", "findings")},
 }
 
@@ -75,9 +78,20 @@ type Finish struct {
 	GoalMet  string          `json:"goal_met"`
 	Report   string          `json:"report"`
 	Findings []FinishFinding `json:"findings"`
+	// Observations are what worked. They never become findings.
+	Observations []FinishObservation `json:"observations"`
+	// Uncited holds the titles of findings that ParseFinish dropped because they cited no step in the run.
+	Uncited []string `json:"-"`
 }
 
-// FinishFinding is one finding as the persona reported it.
+// FinishObservation is one note that something worked, as the persona reported it.
+type FinishObservation struct {
+	Text  string `json:"text"`
+	Steps []int  `json:"steps"`
+}
+
+// FinishFinding is one finding as the persona reported it. Class is not in the tool any more. It is
+// read so that a model that still sends class observation has the finding moved to the observations.
 type FinishFinding struct {
 	Class    string `json:"class"`
 	Symptom  string `json:"symptom"`
@@ -140,16 +154,27 @@ func ParseFinish(args json.RawMessage, maxStep int) (Finish, error) {
 		}
 	}
 	kept := make([]FinishFinding, 0, len(f.Findings))
+	obs := make([]FinishObservation, 0, len(f.Observations))
+	for _, o := range f.Observations {
+		if o = cleanObservation(o, maxStep); o.Text != "" {
+			obs = append(obs, o)
+		}
+	}
 	for _, ff := range f.Findings {
+		if ff.Class == record.ClassObservation {
+			// A positive note in the findings list is an observation, whatever the persona called it.
+			if o := cleanObservation(FinishObservation{Text: ff.Title, Steps: ff.Steps}, maxStep); o.Text != "" {
+				obs = append(obs, o)
+			}
+			continue
+		}
 		if !contains(record.Kinds, ff.Kind) {
 			ff.Kind = "question"
 		}
 		if !contains(record.Severities, ff.Severity) {
 			ff.Severity = "info"
 		}
-		if ff.Class != record.ClassObservation {
-			ff.Class = record.ClassProblem
-		}
+		ff.Class = record.ClassProblem
 		if ff.Evidence != "measured" {
 			ff.Evidence = "inferred"
 		}
@@ -160,6 +185,10 @@ func ParseFinish(args json.RawMessage, maxStep int) (Finish, error) {
 			}
 		}
 		if len(steps) == 0 || strings.TrimSpace(ff.Title) == "" {
+			// A finding with no step to point at is not evidence. Say so, so a reviewer can see it was claimed.
+			if t := strings.TrimSpace(ff.Title); t != "" {
+				f.Uncited = append(f.Uncited, t)
+			}
 			continue
 		}
 		ff.Steps = steps
@@ -167,7 +196,34 @@ func ParseFinish(args json.RawMessage, maxStep int) (Finish, error) {
 		kept = append(kept, ff)
 	}
 	f.Findings = kept
+	f.Observations = obs
 	return f, nil
+}
+
+// cleanObservation trims the text and keeps the step numbers that exist. An observation with no
+// valid step has no evidence, so it comes back with empty text.
+func cleanObservation(o FinishObservation, maxStep int) FinishObservation {
+	steps := make([]int, 0, len(o.Steps))
+	for _, s := range o.Steps {
+		if s >= 1 && s <= maxStep && !containsInt(steps, s) {
+			steps = append(steps, s)
+		}
+	}
+	o.Text = strings.TrimSpace(o.Text)
+	if len(steps) == 0 {
+		o.Text = ""
+	}
+	o.Steps = steps
+	return o
+}
+
+// RecordObservations converts the persona's observations to run record observations.
+func RecordObservations(f Finish) []record.Observation {
+	var out []record.Observation
+	for _, o := range f.Observations {
+		out = append(out, record.Observation{Text: o.Text, Steps: o.Steps})
+	}
+	return out
 }
 
 // Problems lists what is wrong with the findings' symptoms, one message each.
@@ -217,7 +273,7 @@ func RecordFindings(f Finish, loc *Locator) []record.Finding {
 			continue
 		}
 		out = append(out, record.Finding{ID: id, Kind: ff.Kind, Severity: ff.Severity, Title: ff.Title,
-			Steps: ff.Steps, Evidence: ff.Evidence, Verdict: record.VerdictPending, Class: ff.Class,
+			Steps: ff.Steps, Evidence: ff.Evidence, Verdict: record.VerdictPending, Class: record.ClassProblem,
 			Route: route, Locus: locus, Symptom: symptom, TaxonomyVersion: identity.TaxonomyVersion, Fingerprint: fp})
 	}
 	return out

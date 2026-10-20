@@ -52,6 +52,8 @@ func TestCheckSafe(t *testing.T) {
 		"dummyrun-otel export --dry-run examples/runs | head -n 5",
 		"dummyrun coverage --runs examples/runs --build a865ffd",
 		"dummyrun coverage --runs examples/runs --build a865ffd --format json | head -n 20",
+		"dummyrun review examples/runs --list",
+		"dummyrun review examples/runs --list --json | head -n 20",
 		"dummyrun a11y --sitemap http://127.0.0.1:1313/sitemap.xml --allow site/a11y-allow.txt http://localhost:1313/404.html",
 	}
 	for _, c := range ok {
@@ -66,6 +68,13 @@ func TestCheckSafe(t *testing.T) {
 		"dummyrun a11y https://example.com/",
 		"dummyrun coverage --runs examples/runs --out report.md",
 		"dummyrun coverage --runs examples/runs --out=report.md",
+		"dummyrun review examples/runs",
+		"dummyrun review examples/runs --list --reviewer Pat --confirm=87c7d4",
+		"dummyrun review examples/runs --list -confirm 87c7d4",
+		"dummyrun review examples/runs --list --verdict",
+		"dummyrun review examples/runs --list=false --confirm 87c7d4",
+		"dummyrun review examples/runs --confirm 87c7d4 --reviewer Pat",
+		"dummyrun review examples/runs --list --reject 87c7d4",
 		"dummyrun version; rm -f x",
 		"dummyrun version && curl http://example.com",
 		"dummyrun version > out.txt",
