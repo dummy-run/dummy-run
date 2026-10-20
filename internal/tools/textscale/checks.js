@@ -1,5 +1,6 @@
-// Runs in the page. Returns the layout faults found at the current size, as plain data.
-(() => {
+// Runs in the page, as a function of the element to check. Returns the layout faults found at the current
+// size, as plain data. The page scroll test always covers the whole page.
+((scope) => {
   const vw = document.documentElement.clientWidth;
   const out = { overflow: [], clipped: [], overlaps: [] };
   const name = (el) => {
@@ -33,7 +34,7 @@
     out.pageScrollWidth = sw;
     out.viewportWidth = vw;
     const hits = [];
-    for (const el of document.body.querySelectorAll("*")) {
+    for (const el of scope.querySelectorAll("*")) {
       if (!visible(el) || insideScroller(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.right > vw + 1 || r.left < -1) hits.push([el, name(el) + " right=" + Math.round(r.right)]);
@@ -47,7 +48,7 @@
   }
 
   // 2. Text in a control must fit its box (WCAG 1.4.4 resize text).
-  const controls = [...document.querySelectorAll("a[href], button, label, input, select, textarea, summary, [role=button]")].filter(visible);
+  const controls = [...scope.querySelectorAll("a[href], button, label, input, select, textarea, summary, [role=button]")].filter(visible);
   for (const el of controls) {
     const cs = getComputedStyle(el);
     if (cs.display === "inline") {
@@ -88,4 +89,4 @@
     }
   }
   return out;
-})()
+})

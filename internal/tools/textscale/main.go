@@ -185,17 +185,18 @@ func check(ctx context.Context, conn *bidi.Conn, cx, u string, font, zoom int, s
 	if root < want-0.5 {
 		return res, fmt.Errorf("the root font size is %.1f px, not %.1f px: the browser did not apply the setting, or the page fixes its font size in px", root, want)
 	}
-	if err := conn.EvaluateJSON(ctx, cx, checksJS, &res); err != nil {
+	if err := conn.EvaluateJSON(ctx, cx, "("+checksJS+")(document.body)", &res); err != nil {
 		return res, err
 	}
-	// The menu is shut on a narrow screen, so open it and look again: its links are controls too.
+	// The menu is shut on a narrow screen, so open it and look at the header again: its links are controls too.
+	// Opening it only changes the header, so only the header is checked, and nothing is counted twice.
 	var opened bool
 	if err := conn.EvaluateJSON(ctx, cx, `(()=>{const b=document.querySelector(".nav-toggle");if(!b||b.hidden||b.getBoundingClientRect().width<1)return false;b.click();return b.getAttribute("aria-expanded")==="true"})()`, &opened); err != nil {
 		return res, err
 	}
 	if opened {
 		var open result
-		if err := conn.EvaluateJSON(ctx, cx, checksJS, &open); err != nil {
+		if err := conn.EvaluateJSON(ctx, cx, "("+checksJS+")(document.querySelector(\".masthead\"))", &open); err != nil {
 			return res, err
 		}
 		mergeOpen(&res, open)

@@ -62,11 +62,11 @@ go run ./internal/tools/textscale --sitemap http://127.0.0.1:1313/sitemap.xml \
 ```
 
 It opens each page in Chrome at 320 pixels wide with a 32 pixel default font, twice the normal 16, then opens
-the Menu and looks again. It fails when the page scrolls sideways, when a button or label clips its text or a link or field runs past
+the Menu and checks the header again. It fails when the page scrolls sideways, when a button or label clips its text or a link or field runs past
 the page edge, and when two controls overlap. `--zoom 200` sets the root font size as a percent. `--spacing` adds the WCAG 1.4.12 text spacing overrides.
 `--scheme both` adds dark. `--shots DIR` saves a full-page PNG of each page. Without `--sitemap` it tests only the URLs you give. It needs the same
 `DUMMYRUN_CHROME` and `DUMMYRUN_CHROMEDRIVER` as `dummyrun a11y`. The site workflow runs it after the
-accessibility checks. It is not a doctest block because the doctest tool runs only `dummyrun` commands.
+accessibility checks.
 
 ## Social cards and structured data
 
