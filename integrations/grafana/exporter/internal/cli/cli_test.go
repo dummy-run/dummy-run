@@ -207,6 +207,61 @@ func TestWatchRefusesAFileOlderThanTheStream(t *testing.T) {
 	}
 }
 
+func TestWatchGivesEachRecordAFreshAnnotationBudget(t *testing.T) {
+	old := annotationBudget
+	annotationBudget = 1500 * time.Millisecond
+	defer func() { annotationBudget = old }()
+	otlp := newFakeOTLP(http.StatusOK)
+	srv := httptest.NewServer(otlp)
+	defer srv.Close()
+	grafana := &limitedGrafana{refuse: -1}
+	gsrv := httptest.NewServer(grafana)
+	defer gsrv.Close()
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", srv.URL)
+	dir := t.TempDir()
+	sigs := make(chan os.Signal, 1)
+	var out, errb syncBuffer
+	done := make(chan int)
+	go func() {
+		done <- Main(context.Background(), []string{"watch", "--interval", "20ms", "--logs-max-age", "0", "--grafana-url", gsrv.URL, dir}, Env{
+			Stdout: &out, Stderr: &errb, Getenv: func(k string) string {
+				if k == "GRAFANA_TOKEN" {
+					return "glsa_test"
+				}
+				return os.Getenv(k)
+			}, Signals: sigs,
+		})
+	}()
+	time.Sleep(100 * time.Millisecond)
+	for _, name := range []string{"2026-10-15-sam-author-001.json", "2026-10-17-ravi-reviewer-005.json"} {
+		data, err := os.ReadFile(filepath.Join(examples, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The first record spends its whole budget on refused creates. The second must still try.
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		grafana.mu2.Lock()
+		n := grafana.posts
+		grafana.mu2.Unlock()
+		if n >= 2 {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	sigs <- os.Interrupt
+	<-done
+	grafana.mu2.Lock()
+	defer grafana.mu2.Unlock()
+	if grafana.posts < 2 {
+		t.Errorf("%d create calls, want one for each record; stderr %q", grafana.posts, errb.String())
+	}
+}
+
 // syncBuffer is a bytes.Buffer safe to read while another goroutine writes.
 type syncBuffer struct {
 	mu  sync.Mutex
