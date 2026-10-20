@@ -77,8 +77,8 @@ You can publish the files in three places: the `gh-pages` branch, a release or a
 ### The gh-pages branch
 
 This job rebuilds the badge and the report after your runs finish, and commits both to `gh-pages`. The job
-needs `contents: write`, and the `gh-pages` branch must already exist. Replace `VERSION` with a release tag
-you've reviewed.
+needs `contents: write`, and the `gh-pages` branch must already exist. Replace `VERSION` with a commit hash
+you've reviewed, and pin the actions to commit hashes in your copy.
 
 ```yaml
 publish-badge:
@@ -108,13 +108,13 @@ publish-badge:
 ```
 
 In the repository settings, set the Pages source to the `gh-pages` branch and the root folder. You only do
-this once. The badge is then at `https://OWNER.github.io/REPO/badge.svg`. Pin the actions to commit hashes if
-your policy asks for it.
+this once. The badge is then at `https://OWNER.github.io/REPO/badge.svg`.
 
 ### A release asset
 
 To attach the files to a release, create a release tagged `badges` once, then upload to it from the
-workflow with the GitHub CLI:
+workflow with the GitHub CLI. The release mustn't be immutable, because each upload replaces the files.
+In the workflow step, set `GH_TOKEN: ${{ github.token }}` and give the job `contents: write`.
 
 ```sh
 gh release create badges --title Badges --notes "Report badges"
@@ -128,7 +128,7 @@ redirect, so shields may need the final URL. Publishing to `gh-pages` avoids tha
 
 To use a gist, create it once by hand with `gh gist create badge.json` and note its ID. Then update it from
 the workflow and point shields at its raw URL. The workflow needs a token with the `gist` scope, stored as a
-secret.
+secret and passed to the step as `GH_TOKEN`, for example `GH_TOKEN: ${{ secrets.GIST_TOKEN }}`.
 
 ```sh
 gh gist edit GIST_ID --filename badge.json badge.json

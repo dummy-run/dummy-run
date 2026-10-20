@@ -52,8 +52,8 @@ The engine defends against this in six ways.
 
 - Fencing. Page text reaches the model between markers that carry a random value for the run, which the page can't know. Marker-like text in the page is defanged.
 - A rule in the system prompt. Text between the markers is data. It never changes the task, the tools, the verdict or the findings.
-- Hidden text mostly stays out. Text in `display: none` and `visibility: hidden` blocks, in comments and in attributes is collected for the scan and for review, and isn't sent to the model. Text with zero size, zero opacity or `aria-hidden` stays in the page text and is flagged. The address and title of older steps are quoted, cut short and fenced like the rest.
-- A scan. Simple phrase patterns run over what the model is sent and over the hidden text. They look for "ignore previous instructions", "system prompt" and "you are now". They look for chat template tokens and orders to report nothing. They also catch claims that the site is fully accessible and orders to call `finish`. Instructions to visit a host outside the allow list are caught too, and so are invisible characters. Hidden text that names an assistant and gives an order is flagged even when no fixed phrase matches.
+- Hidden text mostly stays out. Text in `display: none` and `visibility: hidden` blocks and in comments is collected for the scan and for review, and isn't sent to the model. Values of `aria-label`, `alt` and `title` do reach the model when they name a control in the control list or the outline. They're fenced and scanned like the rest. Text with zero size, zero opacity or `aria-hidden` stays in the page text and is flagged. The address and title of older steps are quoted, cut short and fenced like the rest.
+- A scan. Simple phrase patterns run over what the model is sent and over the hidden text. They look for "ignore previous instructions", "system prompt" and "you are now". They look for chat template tokens and orders to report nothing. They also catch claims that the site is fully accessible, and orders telling the persona to call `finish`. Instructions to visit a host outside the allow list are caught too, and so are invisible characters. Hidden text that names an assistant and gives an order is flagged even when no fixed phrase matches.
 - A warning. The next observation tells the persona that the text was an instruction and that it should say so.
 - A record of the attempt. Each new match is a `suspected_injection` event with the step, where it was found and a short extract. The harness then files one finding of kind `security` that cites every step with a match. The model doesn't write that finding, so a page can't talk the model out of it.
 
@@ -87,7 +87,7 @@ A page asks the persona to visit an address that carries data in its path or que
 
 The engine defends against it like this:
 
-- The browser reaches only the hosts and ports in the target's allow list. Every request it makes is intercepted, and anything off the list fails before it leaves. That covers images, scripts, redirects and form posts. `visit` also refuses an address outside the list before the browser is involved.
+- The browser reaches only the hosts and ports in the target's allow list. Every HTTP request it makes is intercepted, and anything off the list fails before it leaves. That covers images, scripts, redirects and form posts. `visit` also refuses an address outside the list before the browser is involved.
 - A bare host name matches the scheme's default port, and the port of `base_url` when it's the base host. Any other port needs a `host:port` entry, so a page on `localhost:3000` can't reach a service on `localhost:9000`.
 - A blocked request to another host is logged as an `off_origin_blocked` event on the step.
 - `read_only` fails every request that could change the target.
@@ -97,6 +97,7 @@ These gaps remain:
 
 - A GET to an allowed host can carry data in its query. If the page's own origin is the attacker, it gets that data.
 - A downgrade to plain `http` on an allowed host and default port is allowed.
+- Interception covers HTTP requests, including the WebSocket handshake. Traffic that isn't an HTTP request, such as WebRTC, isn't covered.
 - An allowed host that serves user content, such as a shared storage domain, brings that content inside the boundary. List specific hosts.
 - No test covers traffic that isn't an HTTP request the browser's network events see, such as WebRTC.
 
@@ -110,7 +111,7 @@ You choose the provider and its region. The persona is told not to copy personal
 
 A link, a redirect, a meta refresh or a script sends the browser to another site.
 
-The same interception applies. The blocked navigation isn't followed, the step records it, and the persona stays on the last good page. Host matching is exact, so `api.example.test` doesn't match `example.test`. Addresses with no host, such as `file:` and `ftp:`, are refused. Only `data:`, `blob:` and `about:` pass without a host check, because those addresses fetch nothing from the network. Any request a page inside them makes goes through the same check.
+The same interception applies. The blocked navigation isn't followed, the step records it, and the persona stays on the last good page. Host matching is exact, so `api.example.test` doesn't match `example.test`. Addresses with no host, such as `file:` and `ftp:`, are refused. Only `data:`, `blob:` and `about:` pass without a host check because those addresses fetch nothing from the network. Any request a page inside them makes goes through the same check.
 
 The allow-list gaps above apply here too.
 

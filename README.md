@@ -14,7 +14,8 @@
 </p>
 
 > Dummy Run is pre-release and has no tagged version yet. Install it with
-> `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`, then follow
+> `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`, which builds the newest commit on
+> `main`, so two installs a day apart can differ. Then follow
 > [docs/ENGINE.md](docs/ENGINE.md) to run your first persona. The website is [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
@@ -45,8 +46,8 @@ visit and how to sign in. Examples are in [examples/targets/](examples/targets/)
 The persona runs on a model provider you choose. That can be Azure OpenAI, Anthropic or Amazon Bedrock.
 It can also be Gemini, directly or on Vertex AI, or any OpenAI-compatible service such as a server on
 your own machine. Pick a provider and region in the market
-you need, such as the UK or the EU, and the model calls stay there. Telemetry goes wherever your
-OpenTelemetry backend is. [docs/PROVIDERS.md](docs/PROVIDERS.md) covers each one.
+you need, such as the UK or the EU, and the model calls stay there. If you turn on telemetry, it goes
+to your own OpenTelemetry backend. OpenTelemetry is the open standard for traces, metrics and logs. [docs/PROVIDERS.md](docs/PROVIDERS.md) covers each one.
 
 Nothing turns into a ticket on its own. You decide what goes in your tracker, either by copying a finding
 across or by scripting against the run record JSON.
