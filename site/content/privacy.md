@@ -47,7 +47,7 @@ We use it to send you a confirmation email and one email when the free scan open
 
 ## Our lawful basis
 
-For audit requests, our lawful basis is taking steps you ask us to take before entering into a contract, under Article 6(1)(b). For the waitlist, consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
+For audit requests, our lawful basis is taking steps you ask us to take before entering into a contract, under Article 6(1)(b). For the waitlist, our lawful basis is consent under Article 6(1)(a) of the UK GDPR. You agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
 
 ## How long we keep it
 
