@@ -76,11 +76,14 @@
 </section>
 
 <section class="band close" aria-labelledby="close-heading">
-  <h2 id="close-heading" class="u-title-sm">Run one persona today</h2>
-  <p class="band-lede">Install the command, point a persona at a site in read-only mode and read the run in Grafana.</p>
-  <p class="actions">
-    <a class="btn" href="/start/">Get started</a>
-    <a class="btn btn-quiet" href="{{ .Site.Params.repo }}">Open the repository</a>
-  </p>
+  <div class="close-copy">
+    <h2 id="close-heading" class="u-title-sm">Run one persona today</h2>
+    <p class="band-lede">Install the command, point a persona at a site in read-only mode and read the run in Grafana.</p>
+    <p class="actions">
+      <a class="btn" href="/start/">Get started</a>
+      <a class="btn btn-quiet" href="{{ .Site.Params.repo }}">Open the repository</a>
+    </p>
+  </div>
+  {{ partial "mascot.html" (dict "name" "dummy-friendly" "class" "close-mascot") }}
 </section>
 {{ end }}

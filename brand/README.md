@@ -20,9 +20,67 @@ Font License 1.1.
 
 ## Mascot
 
-The Dummy is an original crash-test dummy head with a target on its temple. Use it in docs, empty states
-and error pages, and keep it out of the logo. The files are in `mascot/`. The cautions about real
-crash-test dummies and their trademarks are in [docs/NAMING.md](../docs/NAMING.md).
+Dummy is a friendly amber crash-test dummy with a quartered target on its temple, the same target as the
+Viewfinder mark. Dummy is the persona's stand-in: curious, a little clumsy and always willing to try again.
+
+Use Dummy in docs, empty states and error pages. Keep it out of the logo. The files are in
+`mascot/`. The cautions about real crash-test dummies and their trademarks are in
+[docs/NAMING.md](../docs/NAMING.md).
+
+`docs/images/brand/mascot-sheet.png` is a contact sheet of every pose on light and dark backgrounds.
+
+### Poses
+
+| File | Use it for |
+|---|---|
+| `mascot/dummy-friendly.svg` | The default. Welcomes, home page, About |
+| `mascot/dummy-thinking.svg` | Loading, a run in progress, a question |
+| `mascot/dummy-found-it.svg` | A finding, a search result, a success after looking |
+| `mascot/dummy-oops.svg` | Errors and the 404 page. Sheepish, never hurt |
+| `mascot/dummy-thumbs-up.svg` | Success, such as a confirmed sign-up |
+| `mascot/dummy-reading.svg` | Reports, review and documentation |
+| `mascot/dummy-keyboard.svg` | Keyboard-only personas and loading states |
+| `mascot/dummy-head.svg` | Avatars, list bullets and anything under 64 pixels tall |
+| `mascot/dummy-friendly-mono-black.svg` and `-mono-white.svg` | One-colour printing and embossing |
+| `mascot/dummy-head-mono-black.svg` and `-mono-white.svg` | The head in one colour |
+| `mascot/dummy.svg`, `dummy-mono-black.svg`, `dummy-mono-white.svg` | Legacy. The first, deadpan head. Do not use in new work |
+
+The poses share one body, so they sit at the same size and can swap in place. Use one pose per page and
+keep Dummy beside the text and never behind it.
+
+### Sizes and clear space
+
+- Full-body poses: at least 96 pixels tall. Below that, use `dummy-head.svg`.
+- Head: at least 24 pixels wide. It is drawn to stay readable at that size.
+- Leave clear space on every side equal to the width of Dummy's hand, about a tenth of the figure's width.
+  Keep text and other graphics out of it. The sparkles and thought dots count as part of the figure.
+
+### Accessibility
+
+Dummy is decoration in nearly every use, so give the image an empty `alt=""`. Write alt text only when the
+picture adds meaning the surrounding text does not, for example "Dummy shrugging" next to a 404 message
+that says nothing of the sort. Each file has a `<title>` for when it is opened on its own.
+
+- As an image, `<img src="dummy-oops.svg" alt="">`, or a described `alt` when it adds meaning.
+- Inline, keep `role="img"` and `aria-labelledby` pointing at the `<title>`, and change the `id`
+  (`t` in the files) so two inlined copies do not clash. For decoration, drop the `<title>` and use
+  `aria-hidden="true"` instead.
+
+### Do and don't
+
+- Do keep the colours: amber `#fbad18`, its one darker shade `#db8a06`, ink `#24221e` and paper
+  `#f3f1ec`. The darker shade is for depth only.
+- Do keep the target on the temple. It is what makes Dummy a crash-test dummy.
+- Do tilt the head a few degrees for expression, as the poses do.
+- Don't make Dummy look injured, hurt or in pain. No bandages, cracks, bruises or tears. Oops is
+  sheepish and undamaged.
+- Don't use Dummy for anything that suggests a person was harmed, or for real accidents, injuries or
+  crashes.
+- Don't change the colours, add outlines or gradients, or recolour Dummy to match a theme. Use a
+  one-colour file when you need one colour.
+- Don't stretch, rotate the whole figure, or redraw the face.
+
+Dummy is a fictional character and stands for the personas. It does not stand for disabled people.
 
 ## Colour
 

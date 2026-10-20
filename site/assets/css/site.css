@@ -439,7 +439,14 @@ td code, th code { white-space: nowrap; }
 
 /* 404 */
 .not-found { padding: 3rem 0 4rem; max-width: var(--measure); }
-.not-found-mascot { width: 128px; height: 128px; margin-bottom: 1.5rem; }
+.not-found-mascot { width: 128px; height: auto; margin-bottom: 1.5rem; }
+
+/* Mascot: decorative, beside the text on wide screens and below it on narrow ones */
+.page-header:has(.page-mascot) { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem 2rem; }
+.page-header-text { flex: 1 1 24rem; min-width: 0; }
+.prose .page-mascot { flex: none; width: 112px; height: auto; border: 0; }
+.band.close:has(.close-mascot) { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1.5rem 2rem; }
+.close-mascot { flex: none; width: 128px; height: auto; }
 .not-found h1 { margin-bottom: 1rem; }
 
 /* Page footer line */
