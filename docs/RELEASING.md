@@ -38,7 +38,7 @@ Homebrew token.
 
 6. Watch the run with `gh run watch`. If the environment has a required reviewer, approve the `release` job
    when it waits.
-7. Verify the artefacts, as [INSTALL.md](INSTALL.md) describes. Download one archive and `checksums.txt`, then run
+7. Verify the artefacts with the commands in [Verify a download](INSTALL.md#verify-a-download) and [Verify the image](INSTALL.md#verify-the-image). Download one archive and `checksums.txt`, then run
    `cosign verify-blob`, `sha256sum --ignore-missing -c` and `gh attestation verify`. Run `cosign verify` and
    `gh attestation verify oci://...` on the image, then start it with `docker run --rm ghcr.io/dummy-run/dummyrun:0.1.0 version`.
 8. Check the release page. It shows the notes and 12 archives, which are 2 commands on 6 platforms. It also shows

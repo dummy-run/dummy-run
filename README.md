@@ -77,9 +77,11 @@ Download a binary from [GitHub Releases](https://github.com/dummy-run/dummy-run/
 image, or build from source. The image has Chrome for Testing and Firefox in it.
 
 ```sh
-docker run --rm ghcr.io/dummy-run/dummyrun:latest a11y https://example.com
-go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
+docker run --rm ghcr.io/dummy-run/dummyrun:VERSION a11y https://example.com
+go install github.com/dummy-run/dummy-run/cmd/dummyrun@vVERSION
 ```
+
+Replace `VERSION` with a release number from the releases page, such as `0.1.0`.
 
 Every release is signed with cosign and carries SLSA build provenance. [docs/INSTALL.md](docs/INSTALL.md) shows
 how to verify a download.
