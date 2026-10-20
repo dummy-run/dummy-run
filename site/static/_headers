@@ -1,9 +1,5 @@
 /*
-<<<<<<< HEAD
-  Content-Security-Policy: default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https://api.dummyrun.dev; frame-src https://challenges.cloudflare.com; base-uri 'none'; form-action https://api.dummyrun.dev; frame-ancestors 'none'; upgrade-insecure-requests
-=======
-  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com/beacon.min.js; style-src 'self'; connect-src 'self' https://cloudflareinsights.com/cdn-cgi/rum; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
->>>>>>> origin/main
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://static.cloudflareinsights.com/beacon.min.js https://challenges.cloudflare.com; style-src 'self'; connect-src 'self' https://cloudflareinsights.com/cdn-cgi/rum https://api.dummyrun.dev; frame-src https://challenges.cloudflare.com; img-src 'self'; font-src 'self'; base-uri 'none'; form-action https://api.dummyrun.dev; frame-ancestors 'none'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
