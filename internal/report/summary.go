@@ -99,10 +99,13 @@ func summaryText(rep *Report) []string {
 	return out
 }
 
-// whenText says when the runs happened, as "on 16 October 2026" or "between 16 and 17 October 2026".
+// whenText says when the runs happened, as "on 16 October 2026" or "between 16 October 2026 and 17 October 2026".
 func whenText(sc Scope) string {
 	a, b := longDate(sc.StartedAt), longDate(sc.EndedAt)
-	if a == b {
+	switch {
+	case a == "":
+		return "at an unrecorded time"
+	case a == b || b == "":
 		return "on " + a
 	}
 	return "between " + a + " and " + b

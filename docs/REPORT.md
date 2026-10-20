@@ -44,11 +44,11 @@ The HTML report is built to be read, handed on and printed. It uses the Dummy Ru
 
 **The axe sweep and layout checks.** One table lists each rule with its impact, WCAG criterion, the number of elements and a link to the fix guidance. A second shows where each rule failed. With `--baseline`, each finding and rule is labelled new or still present, and a section lists what was not seen again.
 
-**On paper.** Print to PDF from the browser. Each section starts on a new page, and the margins carry the report title, who it is for and the page number.
+**On paper.** Print to PDF from the browser. Each section starts on a new page, and in browsers that print page margins the margins carry the report title, who it is for and the page number. The first page, the cover, has none.
 
 ![The first three printed pages](images/report-print.png)
 
-The pictures are rebuilt by `examples/report/screenshot.sh`. The HTML makes no request to the network, and a test checks that every URL in it is a data URI. The Markdown format has the same parts as headings and tables.
+The pictures are rebuilt by `examples/report/screenshot.sh`. Opening the HTML makes no request to the network. A test checks that the fonts, logos, icon and images are data URIs. The links you click, such as the fix guidance, still go to the web. The Markdown format has the same parts as headings and tables.
 
 ## What is in it
 

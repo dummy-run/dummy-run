@@ -133,6 +133,7 @@ func commonFuncs() map[string]any {
 		"plural":       plural,
 		"pages":        pagesTested,
 		"upper":        upperFirst,
+		"cell":         mdCell,
 		"inc":          func(i int) int { return i + 1 },
 		"symptomText":  symptomText,
 		"placeText":    placeText,
@@ -199,4 +200,12 @@ func renderMarkdown(w io.Writer, rep *Report) error {
 	}
 	_, err = w.Write(buf.Bytes())
 	return err
+}
+
+// mdCell makes free text safe inside a Markdown table cell: a pipe would start a new column and a
+// newline would end the row.
+func mdCell(v any) string {
+	s := fmt.Sprint(v)
+	s = strings.NewReplacer("|", `\|`, "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
+	return s
 }

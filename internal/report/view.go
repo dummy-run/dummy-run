@@ -111,8 +111,11 @@ func period(sc Scope) string {
 func howSure(c CoverageSection) string {
 	switch {
 	case !c.Available:
-		return "These runs were not enough to say how much is left to find."
-	case c.UnfoundAtLeast != nil && *c.UnfoundAtLeast > 0 && c.CompletedRuns > 0:
+		if c.Unavailable != "" {
+			return "Coverage was not computed. " + c.Unavailable
+		}
+		return "Coverage was not computed, so there is no estimate of how much is left to find."
+	case c.UnfoundAtLeast != nil && c.CompletedRuns > 0:
 		s := fmt.Sprintf("From the pattern of repeats, at least %.1f more problems are still unfound. That is a floor, not a count, so there may be more.", *c.UnfoundAtLeast)
 		if c.Basis != BasisConfirmed {
 			s += " It counts findings that no person has confirmed, so it shows the method and is not an estimate."

@@ -80,7 +80,7 @@ func TestGolden(t *testing.T) {
 // shortenAssets replaces the inlined fonts and logos, which are large and tested on their own, so the
 // golden file stays readable.
 func shortenAssets(html string) string {
-	return regexp.MustCompile(`data:(font/woff2|image/svg\+xml);base64,[A-Za-z0-9+/=]+`).ReplaceAllString(html, "data:$1;base64,...")
+	return regexp.MustCompile(`data:(font/woff2|image/svg(?:\+|&#43;)xml);base64,(?:[A-Za-z0-9/=]|\+|&#43;)+`).ReplaceAllString(html, "data:$1;base64,...")
 }
 
 // The SVG files in assets/ are copies of the brand files and must not drift from them.
@@ -827,5 +827,17 @@ func TestFindingCardsAreInPlainWords(t *testing.T) {
 	}
 	if got := placeText("/payments", "link:rates"); got != "the Payments page, the Rates link" {
 		t.Errorf("place reads %q", got)
+	}
+}
+
+func TestMarkdownCellsHoldFreeText(t *testing.T) {
+	if got := mdCell("a | b\nc"); got != `a \| b c` {
+		t.Errorf("cell is %q", got)
+	}
+	if got := whenText(Scope{StartedAt: "2026-10-16T10:00:00Z"}); got != "on 16 October 2026" {
+		t.Errorf("a missing end gives %q", got)
+	}
+	if got := howSure(CoverageSection{Unavailable: "The runs span two builds."}); !strings.Contains(got, "two builds") {
+		t.Errorf("the reason is lost: %q", got)
 	}
 }
