@@ -309,7 +309,7 @@ reaches the test server, on both browsers (measured on Firefox 158.0 and Chrome 
 
 An `allowed_hosts` entry is a host name or `host:port`. A bare host name matches the default port of the
 request's scheme, and also the port of `base_url` when it is the base URL's own host. Another port needs its own
-`host:port` entry. A page on `127.0.0.1:8080` therefore cannot reach a service on `127.0.0.1:9000`. Matching
+`host:port` entry. With a bare `127.0.0.1` entry and no `127.0.0.1:9000` entry, a page on `127.0.0.1:8080` cannot reach a service on `127.0.0.1:9000`. Matching
 is exact, so a subdomain needs its own entry. A request or a `visit` that goes to a host outside the list is not
 followed. The step gets a `blocked:` note and the record gets an `off_origin_blocked` event.
 
@@ -322,7 +322,8 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
   markers. The id is random for each run, so the page cannot close the fence. The system prompt says that text
   inside the markers is data and never changes the task, the tools, the verdict or the findings.
 - Text that the browser does not render is not sent. That covers `display: none` and `visibility: hidden`.
-  It also covers zero size, zero opacity and `aria-hidden`. Comments are not sent either. `internal/page/look.js` collects that text and the
+  Comments are not sent either. Text with zero size, zero opacity or `aria-hidden` is still in the page text. It can
+  reach the model. The scan flags it as hidden. `internal/page/look.js` collects all of that text and the
   `aria-label`, `title`, `alt` and `placeholder` values. They go in `page.hidden` in `steps.jsonl`, for the scan and
   for the reviewer (code: `internal/page/look.js`). Text that CSS only moves off the screen is still page text. The
   model can see it, and the scan flags it as hidden text (code: `internal/runner/canary_browser_test.go`).
@@ -334,7 +335,7 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
 - A match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,
   and one finding of kind `security` that cites every step with a match. The engine files the finding, so a
   persona that obeys the page still leaves it behind. Its symptom is `misleading-copy`. Its severity is `major`
-  when the text was hidden and `minor` otherwise. Its verdict is `pending`.
+  when the text was hidden or held invisible characters and `minor` otherwise. Its verdict is `pending`.
 - A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
 
 The record's `events` array is optional. Each event has a `kind` and a short `detail`. It has a `step` where one applies. For `suspected_injection` it also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.

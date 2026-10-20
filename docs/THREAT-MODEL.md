@@ -1,6 +1,6 @@
 # Threat model
 
-Dummy Run points a model at a web page and lets the model act on what it reads. The page is therefore untrusted input to the model. This document says what the engine protects and where the trust boundaries are. It lists the threats and what stops each one today, and it names the gaps. To report a flaw in Dummy Run itself, follow [Security](../SECURITY.md).
+Dummy Run points a model at a web page and lets the model act on what it reads. The page is therefore untrusted input to the model (code: `internal/runner/observe.go` builds the prompt from page text). This document says what the engine protects and where the trust boundaries are. It lists the threats and what stops each one today, and it names the gaps. To report a flaw in Dummy Run itself, follow [Security](../SECURITY.md).
 
 ## Assets
 
@@ -141,11 +141,11 @@ There is no wall-clock limit on a whole run. A page that makes the browser very 
 
 ### The provider's content filter
 
-A provider may refuse a call because of the page. Azure's filter once blocked a page that held hidden injection text.
+A provider may refuse a call because of the page. A provider's content filter can block a page that holds hidden injection text (code: `provider_filtered` in `internal/provider/filter.go`).
 
 Today the run stops cleanly. The record has the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding. `report.md` and the command's message say what happened and that the engine is not at fault (code: `internal/provider/filter.go`, `internal/runner/runner.go`).
 
-A hostile page may be able to deny a run this way (inferred from the one block that Azure's filter made). The engine does not retry with the offending text removed.
+A hostile page may be able to deny a run this way (inferred from the filter behaviour above). The engine does not retry with the offending text removed.
 
 ### Poisoned run records
 
