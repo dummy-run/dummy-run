@@ -69,7 +69,7 @@ func run(args []string) int {
 		fmt.Fprintln(os.Stderr, "dummyrun audit: want \"a11y\"")
 		return 2
 	case "version":
-		fmt.Println("dummyrun", telemetry.Version)
+		fmt.Println(versionLine())
 		return 0
 	case "-h", "--help", "help":
 		usage()
@@ -79,6 +79,11 @@ func run(args []string) int {
 		usage()
 		return 2
 	}
+}
+
+// versionLine is what "dummyrun version" prints. A release build sets both values (see .goreleaser.yaml).
+func versionLine() string {
+	return fmt.Sprintf("dummyrun %s (commit %s)", telemetry.Version, telemetry.Commit)
 }
 
 func usage() {

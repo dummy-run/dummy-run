@@ -1,5 +1,6 @@
 {{/* Build the reference pages from the repository's own Markdown, so there is one source of truth. */}}
 {{ $pages := slice
+  (dict "src" "repo/docs/INSTALL.md" "path" "install" "group" "use" "weight" 0 "summary" "Binaries, the container image, and how to verify a release")
   (dict "src" "repo/docs/ENGINE.md" "path" "engine" "group" "use" "weight" 1 "summary" "Install the engine, run a persona, the read-only policy and the accessibility sweep")
   (dict "src" "repo/docs/MCP.md" "path" "mcp" "group" "use" "weight" 2 "title" "Dummy Run as an MCP server" "summary" "Use Dummy Run from Claude Code, Cursor, VS Code or Codex, with the limits on what it will test")
   (dict "src" "repo/docs/CLI.md" "path" "cli" "group" "use" "weight" 3 "summary" "Every command and flag, generated from the engine's own help text")
@@ -17,6 +18,7 @@
   (dict "src" "repo/CONTRIBUTING.md" "path" "contributing" "group" "project" "weight" 31 "summary" "Set up, run the checks and send a pull request")
   (dict "src" "repo/docs/STYLE.md" "path" "style" "group" "project" "weight" 32 "summary" "How the docs are written")
   (dict "src" "repo/docs/TYPOGRAPHY.md" "path" "typography" "group" "project" "weight" 33 "summary" "The type scale and minimum sizes for the site and reports")
+  (dict "src" "repo/docs/RELEASING.md" "path" "releasing" "group" "project" "weight" 36 "summary" "How to cut a release, and the one-time setup")
   (dict "src" "repo/brand/README.md" "path" "brand" "group" "project" "weight" 34 "summary" "The logo, mascot and colours")
   (dict "src" "repo/docs/LICENSING.md" "path" "licensing" "group" "policy" "weight" 40 "summary" "What the Apache-2.0 licence lets you do")
   (dict "src" "repo/TRADEMARKS.md" "path" "trademarks" "group" "policy" "weight" 41 "summary" "What you may do with the name and logo")

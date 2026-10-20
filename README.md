@@ -13,9 +13,8 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> Dummy Run is pre-release and has no tagged version yet. Install it with
-> `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`, which builds the newest commit on
-> `main`, so two installs a day apart can differ. Then follow
+> Dummy Run is pre-release. To try it, [install](#install) a release or build the newest commit on `main`
+> with `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. Then follow
 > [docs/ENGINE.md](docs/ENGINE.md) to run your first persona. The website is [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
@@ -45,9 +44,13 @@ visit and how to sign in. Examples are in [examples/targets/](examples/targets/)
 
 The persona runs on a model provider you choose. That can be Azure OpenAI, Anthropic or Amazon Bedrock.
 It can also be Gemini, directly or on Vertex AI, or any OpenAI-compatible service such as a server on
-your own machine. Pick a provider and region in the market
-you need, such as the UK or the EU, and the model calls stay there. If you turn on telemetry, it goes
-to your own OpenTelemetry backend. OpenTelemetry is the open standard for traces, metrics and logs. [docs/PROVIDERS.md](docs/PROVIDERS.md) covers each one.
+your own machine. To keep model calls in a market such as the UK
+or the EU, choose an endpoint or region there. On Vertex AI and Bedrock, `--region` picks where calls go.
+For the others, the endpoint you configure decides, and `--region` is only recorded.
+[docs/PROVIDERS.md](docs/PROVIDERS.md) covers each one.
+
+If you turn on telemetry, it goes to your own OpenTelemetry backend. OpenTelemetry is the open standard for
+traces, metrics and logs.
 
 Nothing turns into a ticket on its own. You decide what goes in your tracker, either by copying a finding
 across or by scripting against the run record JSON.
@@ -76,10 +79,26 @@ backend you configure. [docs/TELEMETRY.md](docs/TELEMETRY.md) lists every field.
 | Compliance and security | What each role can see or do beyond its rights, checked by a person before it's raised |
 | An executive | A report of what's broken, who it affects and the evidence |
 
+## Install
+
+Download a binary from [GitHub Releases](https://github.com/dummy-run/dummy-run/releases), or pull the
+container image, which comes with Chrome for Testing and Firefox. You can also build from source.
+
+```sh
+docker run --rm ghcr.io/dummy-run/dummyrun:VERSION a11y https://example.com
+go install github.com/dummy-run/dummy-run/cmd/dummyrun@vVERSION
+```
+
+Replace `VERSION` with a release number from the releases page, such as `0.1.0`.
+
+Every release is signed with cosign and comes with SLSA build provenance. To check a download before you
+run it, follow [docs/INSTALL.md](docs/INSTALL.md).
+
 ## Documentation
 
 | Document | What it covers |
 |---|---|
+| [docs/INSTALL.md](docs/INSTALL.md) | Release binaries, the container image and how to verify a download |
 | [docs/ENGINE.md](docs/ENGINE.md) | Install the engine, run a persona, review findings, sign in, the read-only policy and the accessibility sweep |
 | [docs/MCP.md](docs/MCP.md) | Use Dummy Run from Claude Code, Cursor, VS Code or Codex through `dummyrun mcp` |
 | [docs/CLI.md](docs/CLI.md) | Every command and flag, from the built-in help |
@@ -102,7 +121,8 @@ backend you configure. [docs/TELEMETRY.md](docs/TELEMETRY.md) lists every field.
 If you'd like to work on Dummy Run itself, start with [CONTRIBUTING.md](CONTRIBUTING.md). The project
 docs sit next to it in [docs/](docs/): [PLAN.md](docs/PLAN.md) for what's next and
 [STYLE.md](docs/STYLE.md) for how we write. [TYPOGRAPHY.md](docs/TYPOGRAPHY.md) has the type scale,
-[NAMING.md](docs/NAMING.md) the name, and [DECISIONS.md](docs/DECISIONS.md) the reasons behind past choices. The logo and mascot are in [brand/](brand/README.md), and the
+[NAMING.md](docs/NAMING.md) the name, and [DECISIONS.md](docs/DECISIONS.md) the reasons behind past choices.
+[RELEASING.md](docs/RELEASING.md) is the release checklist. The logo and mascot are in [brand/](brand/README.md), and the
 website source is in [site/](site/README.md).
 
 ## Licence
