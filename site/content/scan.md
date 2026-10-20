@@ -35,7 +35,7 @@ A persona is a model. It finds likely problems and a person should check each on
 - It is read-only. Only GET, HEAD and OPTIONS requests reach your site. The browser blocks every other request.
 - It is rate limited, with caps for each domain and for each email address, and a limit on pages for each scan.
 - It identifies itself in the user agent. [The scanner page](scanner.md) shows the string.
-- It honours robots.txt. If your file disallows `DummyRun`, no scan starts.
+- It honours robots.txt. It skips the pages your file disallows for `DummyRun`, and if your file disallows every page, no scan starts.
 - It stops when you object. Write to abuse@dummyrun.dev and scans of your domain stop.
 
 ## What happens to the data

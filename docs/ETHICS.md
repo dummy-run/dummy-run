@@ -28,4 +28,4 @@ A target with `"read_only": true` blocks every request that could change data an
 
 ## Findings about apps you do not own
 
-Do not sign in to a site you have no right to test, and do not run the permission personas on one. A read-only look at public pages, as the free scan does, loads only what any visitor can load. [Security](../SECURITY.md) explains how to report a problem in a site you do not own. If Dummy Run visited your site and you want it to stop, see [Dummy Run visited my site](/scanner/).
+Do not sign in to a site you have no right to test, and do not run the permission personas on one. A read-only look at public pages, as the free scan does, loads only what any visitor can load. [Security](../SECURITY.md) explains how to report a problem in a site you do not own. If Dummy Run visited your site and you want it to stop, see [Dummy Run visited my site](https://dummyrun.dev/scanner/).
