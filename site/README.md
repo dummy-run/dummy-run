@@ -56,5 +56,5 @@ the SIL Open Font License 1.1, recorded in `REUSE.toml`.
 `static/_headers` sets the Content Security Policy and the other security headers that Cloudflare Pages
 serves. The policy allows one third party: the Cloudflare Web Analytics script from
 `static.cloudflareinsights.com`, and its reports. The Pages setup reports to this site at `/cdn-cgi/rum`. A manual embed reports to `cloudflareinsights.com/cdn-cgi/rum`, so the policy allows that host too. Cloudflare
-injects that script on the next deployment after the owner turns analytics on for the Pages project (sourced: Cloudflare Web Analytics documentation). It sets no cookies and does not
-track individual visitors (sourced: the same documentation). The policy lives in `site/static/_headers` (code: `site/static/_headers`). There are no inline executable scripts or styles. The JSON-LD data block in the page head is not executable.
+injects that script on the next deployment after the owner turns analytics on for the Pages project (sourced: Cloudflare Web Analytics documentation, Get started). It sets no cookies and does not
+track individual visitors (sourced: the same documentation). There are no inline executable scripts or styles. The JSON-LD data block in the page head is not executable.
