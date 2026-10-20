@@ -916,7 +916,7 @@ td code, th code { white-space: nowrap; }
 
 /* Watch a run. All steps read as a list. With JavaScript one step shows at a time. */
 .rp-facts { display: grid; gap: 0.5rem 1.5rem; grid-template-columns: 1fr; margin: 1rem 0 0; padding: 1.1rem 1.3rem; border-radius: var(--radius); background: var(--panel); border-top: 5px solid var(--amber); font-size: var(--type-small); }
-@media (min-width: 70em) { .rp-facts { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 48em) { .rp-facts { grid-template-columns: 1fr 1fr; } }
 .rp-facts > div { display: grid; grid-template-columns: 6rem 1fr; gap: 0.75rem; }
 .rp-facts dt, .rp-detail dt { font-family: var(--font-heading); font-weight: 600; color: var(--ink-muted); }
 .rp-facts dd, .rp-detail dd { margin: 0; overflow-wrap: anywhere; }
@@ -964,7 +964,7 @@ td code, th code { white-space: nowrap; }
 .pricing-head .u-lead { margin: 1rem 0 0; }
 .plans { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 .plans > li { display: flex; margin: 0; }
-@media (min-width: 70em) { .plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 48em) { .plans { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 66em) { .plans { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .plan > article { position: relative; display: flex; flex-direction: column; gap: 0.85rem; width: 100%; padding: 1.4rem 1.3rem 1.5rem; border-radius: var(--radius); background: var(--panel); border: 1.5px solid var(--rule); border-top: 5px solid var(--rule); }
 .plan.is-pick > article { background: var(--paper); border: 2px solid var(--amber); border-top-width: 5px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--amber) 22%, transparent); }
