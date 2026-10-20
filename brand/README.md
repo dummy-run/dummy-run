@@ -74,8 +74,8 @@ that says nothing of the sort. Each file has a `<title>` for when it is opened o
 - Do tilt the head a few degrees for expression, as the poses do.
 - Don't make Dummy look injured, hurt or in pain. No bandages, cracks, bruises or tears. Oops is
   sheepish and undamaged.
-- Don't use Dummy for anything that suggests a person was harmed, or for real accidents, injuries or
-  crashes.
+- Don't use Dummy for anything that suggests a person was harmed.
+- Don't use Dummy for real accidents, injuries or crashes.
 - Don't change the colours, add outlines or gradients, or recolour Dummy to match a theme. Use a
   one-colour file when you need one colour.
 - Don't stretch, rotate the whole figure, or redraw the face.
