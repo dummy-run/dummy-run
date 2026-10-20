@@ -115,7 +115,7 @@ func (s *Server) seed() {
 		{3, "Winter notes", "Short pieces written by candlelight.", "sam", "approved", "ravi", 980},
 		{4, "A guide to letterpress", "How a small press sets type.", "lin", "published", "ravi", 1500},
 		{5, "Editor's letter", "A few words from the desk.", "ada", "approved", "ravi", 420},
-		{6, "Archive: the 1998 floods", "What the paper printed that week.", "sam", "draft", "", 1800},
+		{6, "Archive: the 1998 floods", "What the paper printed that week.", "sam", "in_review", "", 1800},
 		{7, "Notes on proofreading", "Marks that every writer should know.", "lin", "published", "ravi", 760},
 	}
 	s.reviews = []*Review{
