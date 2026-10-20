@@ -2,6 +2,7 @@ package runner
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/dummy-run/dummy-run/internal/identity"
@@ -37,17 +38,36 @@ func (r *run) inspect(s *Step) []inject.Hit {
 				continue
 			}
 			seen[key] = true
-			hits = append(hits, h)
+			detail := h.Excerpt
+			if h.Low {
+				// A weak match is an event for the reviewer. It does not warn the persona or file a finding.
+				detail = "low confidence: " + detail
+			} else {
+				hits = append(hits, h)
+			}
 			r.addEvent("injection:"+key, record.Event{Kind: record.EventSuspectedInjection, Step: s.N,
-				Source: h.Source, Pattern: h.Pattern, Detail: h.Excerpt})
+				Source: h.Source, Pattern: h.Pattern, Detail: detail})
 		}
 	}
-	scan(inject.SourceVisible, strings.Join(append([]string{p.Title, o.URL, p.Text}, concat(p.Headings, p.Alerts, o.ConsoleErrors)...), "\n"))
+	scan(inject.SourceVisible, withoutQuoted(strings.Join(append([]string{p.Title, o.URL, p.Text}, concat(p.Headings, p.Alerts, o.ConsoleErrors)...), "\n"), p.Quoted))
 	scan(inject.SourceLabel, strings.Join(append(controlLabels(p.Controls), focusName(p), p.Tree), "\n"))
 	for _, h := range p.Hidden {
 		scan(inject.SourceHidden, h)
 	}
 	return hits
+}
+
+// withoutQuoted removes the visible code and quoted examples from page text before the scan. Each one
+// becomes a gap, so words either side of it do not join into a phrase.
+func withoutQuoted(text string, quoted []string) string {
+	sorted := append([]string(nil), quoted...)
+	sort.Slice(sorted, func(i, j int) bool { return len(sorted[i]) > len(sorted[j]) })
+	for _, q := range sorted {
+		if q != "" {
+			text = strings.ReplaceAll(text, q, " . ")
+		}
+	}
+	return text
 }
 
 func concat(lists ...[]string) []string {

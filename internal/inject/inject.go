@@ -1,6 +1,7 @@
 // Package inject holds the engine's defences against prompt injection from the page under test. The page
 // is untrusted input to the model. This package fences page text so the prompt can label it as data,
 // removes characters a person cannot see, and looks for text that tries to instruct the persona.
+// Visible code and quoted examples are content, so the runner leaves them out of the scan.
 // The heuristics are a tripwire for a reviewer, never a filter that decides what the model may read.
 package inject
 
@@ -28,6 +29,9 @@ type Hit struct {
 	Source string `json:"source"`
 	// Excerpt is the matched text with its surroundings, shortened and stripped of control characters.
 	Excerpt string `json:"excerpt"`
+	// Low marks a weak match: a phrase that documentation about prompts uses all the time, found in
+	// visible text, with nothing stronger beside it. It is recorded as an event and files no finding.
+	Low bool `json:"low,omitempty"`
 }
 
 type rule struct {
@@ -85,6 +89,17 @@ func (s Scanner) Scan(source, text string) []Hit {
 	for _, r := range rules {
 		if loc := r.re.FindStringIndex(text); loc != nil {
 			add(r.name, around(text, loc))
+		}
+	}
+	// A visible phrase such as "system prompt" or "call finish" is how a page about prompts reads. On its
+	// own it is a weak sign. Hidden and label text, and any stronger match, keep full weight.
+	if source == SourceVisible && len(hits) > 0 {
+		weak := true
+		for _, h := range hits {
+			weak = weak && (h.Pattern == "system-prompt" || h.Pattern == "steer-finish")
+		}
+		for i := range hits {
+			hits[i].Low = weak
 		}
 	}
 	if s.HostAllowed != nil {

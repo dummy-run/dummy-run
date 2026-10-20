@@ -88,6 +88,30 @@
   }
   const walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT);
   for (let n = walker.nextNode(), c = 0; n && c < 200; n = walker.nextNode(), c++) keepHidden(n.nodeValue);
+  // Quoted examples: code, preformatted text, keys, sample output, block quotes and short quotes that a
+  // person can see in the normal flow of the page. A docs page that shows an example of an attack in a
+  // code block is content, so the injection scan leaves these out. Anything hidden, off screen or
+  // transparent does not count, nor does a quote inside such an element.
+  const quotedSel = "code, pre, kbd, samp, blockquote, q";
+  const inFlow = (el) => {
+    for (let e = el; e && e !== document.body; e = e.parentElement) {
+      const s = getComputedStyle(e);
+      if (unseen(e) || s.position === "absolute" || s.position === "fixed" || parseFloat(s.fontSize) < 4 || /rgba\(.*,\s*0\)$/.test(s.color) || s.color === "transparent" || s.clipPath !== "none" || parseFloat(s.textIndent) < -100) return false;
+    }
+    return true;
+  };
+  const quoted = [];
+  let quotedChars = 0;
+  for (const el of document.body.querySelectorAll(quotedSel)) {
+    if (quoted.length >= 200 || quotedChars > 60000) break;
+    if (el.parentElement && el.parentElement.closest(quotedSel)) continue;
+    if (!inFlow(el)) continue;
+    const t = (el.innerText || "").trim().slice(0, 20000);
+    if (t) {
+      quoted.push(t);
+      quotedChars += t.length;
+    }
+  }
   const main = document.querySelector("main") || document.body;
   const body = (main.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
   return {
@@ -102,5 +126,6 @@
     log_text: body.slice(0, logLimit),
     controls,
     hidden: [...hidden],
+    quoted,
   };
 }

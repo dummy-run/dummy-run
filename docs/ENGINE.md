@@ -344,7 +344,13 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
   orders to report nothing or to call `finish`, and for claims that the site is fully accessible. It looks for
   instructions to go to a host outside the allow list, and for invisible Unicode characters. Hidden text that talks to
   an assistant and gives an order is flagged too. These are heuristics for a reviewer and not a filter.
-- A match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,
+- Code you can see on the page does not count. The scan skips visible `code` and `pre` text, keys and sample
+  output (`kbd` and `samp`), and quotes (`blockquote` and `q`). A docs page that quotes an example attack is not flagged.
+  Quoted text that is hidden, off screen, transparent or inside `aria-hidden` is still scanned. So are `aria-label`,
+  `title`, `alt` and comments (code: `quoted` in `internal/page/look.js`). A lone "system prompt" or "call `finish`" in
+  visible prose is a weak match. It becomes an event with `low confidence:` in its detail. It does not warn
+  the persona and it does not file a finding.
+- A strong match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,
   and one finding of kind `security` that cites every step with a match. The engine files the finding, so a
   persona that obeys the page still leaves it behind. Its symptom is `misleading-copy`. Its severity is `major`
   when the text was hidden or contained invisible characters and `minor` otherwise (code: `internal/runner/inspect.go`). Its verdict is `pending`.
