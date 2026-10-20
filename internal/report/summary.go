@@ -29,13 +29,13 @@ func summaryText(rep *Report) []string {
 		if len(sc.Targets) == 1 && sc.Targets[0].BaseURL != "" {
 			target = sc.Targets[0].BaseURL
 		}
-		p := fmt.Sprintf("Dummy Run played %s in %s against %s between %s and %s.",
+		p := fmt.Sprintf("Dummy Run played %s in %s against %s %s.",
 			plural(len(sc.Personas), "fictional user", "fictional users"), plural(sc.Runs.Total, "run", "runs"),
-			target, sc.StartedAt[:10], sc.EndedAt[:10])
+			target, whenText(sc))
 		if len(sc.Targets) > 1 {
-			p = fmt.Sprintf("Dummy Run played %s in %s against %s between %s and %s.",
+			p = fmt.Sprintf("Dummy Run played %s in %s against %s %s.",
 				plural(len(sc.Personas), "fictional user", "fictional users"), plural(sc.Runs.Total, "run", "runs"),
-				plural(len(sc.Targets), "build", "builds"), sc.StartedAt[:10], sc.EndedAt[:10])
+				plural(len(sc.Targets), "build", "builds"), whenText(sc))
 		}
 		out = append(out, p)
 	}
@@ -94,7 +94,16 @@ func summaryText(rep *Report) []string {
 
 	if rep.Baseline != nil {
 		out = append(out, fmt.Sprintf("Against the baseline report of %s, %s new, %d still present and %d not seen again.",
-			rep.Baseline.Date, plural(s.New, "finding is", "findings are"), s.StillPresent, s.Fixed))
+			longDate(rep.Baseline.Date), plural(s.New, "finding is", "findings are"), s.StillPresent, s.Fixed))
 	}
 	return out
+}
+
+// whenText says when the runs happened, as "on 16 October 2026" or "between 16 and 17 October 2026".
+func whenText(sc Scope) string {
+	a, b := longDate(sc.StartedAt), longDate(sc.EndedAt)
+	if a == b {
+		return "on " + a
+	}
+	return "between " + a + " and " + b
 }

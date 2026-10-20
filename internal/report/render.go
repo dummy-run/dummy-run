@@ -124,12 +124,22 @@ func commonFuncs() map[string]any {
 		"statusText":   statusText,
 		"baselineText": baselineText,
 		"severities":   func() []string { return Severities },
+		"sevGroups":    sevGroups,
+		"segments":     segments,
+		"longDate":     longDate,
+		"period":       period,
+		"howSure":      howSure,
+		"impactSev":    impactSeverity,
+		"plural":       plural,
+		"pages":        pagesTested,
+		"lead":         lead,
 	}
 }
 
 func parseHTML() (*htmltemplate.Template, error) {
 	funcs := htmltemplate.FuncMap(commonFuncs())
 	funcs["shot"] = embedShot
+	funcs["asset"] = asset
 	return htmltemplate.New("report.html.tmpl").Funcs(funcs).ParseFS(templateFS, "templates/report.html.tmpl")
 }
 

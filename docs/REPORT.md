@@ -2,7 +2,7 @@
 
 `dummyrun report` turns run records into a report for someone who was not there. Add the results of `dummyrun a11y` and the report covers pages as well as personas. The report is a sample, so read the limits at the end before you share it.
 
-![The top of an example report: title, summary, severity counts and the start of the scope](images/report-example.png)
+![The cover of an example report with a logo, a title and a bar of problems by severity](images/report-example.png)
 
 ## Make a report
 
@@ -12,7 +12,7 @@ dummyrun report --runs examples/runs --build a865ffd \
   --title "Inkwell preview audit" --client "Inkwell Press" --out report.html
 ```
 
-The default format is one HTML file. It holds its own styles and screenshots and loads nothing from the network. Open it in a browser or print it to PDF. The print styles drop the contents list and ask the browser not to split a finding across pages.
+The default format is one HTML file. It holds its own styles and screenshots and loads nothing from the network. Open it in a browser or print it to PDF. The print styles start each section on a new page, keep a finding in one piece where it fits, and put the title and page numbers in the page margins in browsers that support it.
 
 | Flag | What it does |
 |---|---|
@@ -27,6 +27,28 @@ The default format is one HTML file. It holds its own styles and screenshots and
 | `--out FILE` | Write to a file instead of standard output |
 
 Rejected findings never appear in any format. Observations, which are notes that are not problems, do not appear either.
+
+## What is in your report
+
+The HTML report is built to be read, handed on and printed. It uses the Dummy Run typefaces, Space Grotesk and Atkinson Hyperlegible Next, which are embedded in the file. It has a light theme for print and screen, and a dark one on screen only when your system asks for it. The example is `examples/report/report.html`, and it is about 150 KB with its fonts, logo and one screenshot.
+
+**The cover.** It has the logo, the title and who the report is for (`--title` and `--client`). Under them are the target, the dates of the runs, the report date and which findings are counted. A short paragraph says in plain words what was run and what it found. A bar and four labelled chips count the problems by severity. The severity is always written out, so no one has to tell the colours apart. The cover leaves room for an agency logo: put it inside the element with the class `cover-brand` in your copy.
+
+**The summary.** Cards give the key numbers. They cover problems found, runs, personas and routes visited. They also cover the pages in the axe sweep and, with a baseline, what is new. "How sure you can be" says in plain words how many problems are still unfound, as a floor and not a count. The page also says what was tested and what worked. It ends with a short reminder that the report is a sample.
+
+![The summary page: key number cards and how sure you can be](images/report-summary.png)
+
+**The findings.** A contents list links to every finding, grouped by severity. Each finding is a card with a colour band and two badges for severity and review. It shows the route, who hit it and the WCAG criterion. It has numbered steps to reproduce, the screenshot with a caption and fix guidance.
+
+![One finding card with its badges, steps and screenshot](images/report-finding.png)
+
+**The axe sweep and layout checks.** One table lists each rule with its impact, WCAG criterion, the number of elements and a link to the fix guidance. A second shows where each rule failed. With `--baseline`, each finding and rule is labelled new or still present, and a section lists what was not seen again.
+
+**On paper.** Print to PDF from the browser. Each section starts on a new page, and the margins carry the report title, who it is for and the page number.
+
+![The first three printed pages](images/report-print.png)
+
+The pictures are rebuilt by `examples/report/screenshot.sh`. The HTML makes no request to the network, and a test checks that every URL in it is a data URI. The Markdown format has the same parts as headings and tables.
 
 ## What is in it
 
@@ -106,4 +128,4 @@ The report never says that the target passed or is compliant. A test in `interna
 
 ## Example
 
-`examples/report/` holds a report made from the synthetic runs in `examples/runs/` and a synthetic sweep. `examples/report/generate.sh` rebuilds it, and a test fails when the committed files are out of date. The records there have no screenshot files, so the HTML names the missing ones.
+`examples/report/` holds a report made from the synthetic runs in `examples/runs/` and a synthetic sweep. `examples/report/generate.sh` rebuilds it, and a test fails when the committed files are out of date. The records cite screenshots, and `examples/runs/screens/` holds the one the first finding uses, a capture of the Inkwell test app. The HTML names the others as missing.

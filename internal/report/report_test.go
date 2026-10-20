@@ -56,6 +56,9 @@ func TestGolden(t *testing.T) {
 	}
 	for format, file := range map[string]string{"html": "report.html", "md": "report.md", "json": "report.json", "sarif": "report.sarif", "junit": "report.junit.xml"} {
 		got := render(t, rep, format)
+		if format == "html" {
+			got = shortenAssets(got)
+		}
 		path := filepath.Join("testdata", "golden", file)
 		if *update {
 			if err := os.WriteFile(path, []byte(got), 0o644); err != nil { //nolint:gosec // test data
@@ -69,6 +72,34 @@ func TestGolden(t *testing.T) {
 		}
 		if got != string(want) {
 			t.Errorf("%s differs from %s. Run go test ./internal/report -update and read the diff", format, path)
+		}
+	}
+}
+
+// shortenAssets replaces the inlined fonts and logos, which are large and tested on their own, so the
+// golden file stays readable.
+func shortenAssets(html string) string {
+	return regexp.MustCompile(`data:(font/woff2|image/svg\+xml);base64,[A-Za-z0-9+/=]+`).ReplaceAllString(html, "data:$1;base64,...")
+}
+
+// The SVG files in assets/ are copies of the brand files and must not drift from them.
+func TestAssetsMatchBrand(t *testing.T) {
+	for name, src := range map[string]string{
+		"mark.svg":                   "../../brand/logo/mark.svg",
+		"lockup-horizontal.svg":      "../../brand/logo/lockup-horizontal.svg",
+		"lockup-horizontal-dark.svg": "../../brand/logo/lockup-horizontal-dark.svg",
+		"dummy-reading.svg":          "../../brand/mascot/dummy-reading.svg",
+	} {
+		want, err := os.ReadFile(src) //nolint:gosec // fixed paths
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := assetFS.ReadFile("assets/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Errorf("internal/report/assets/%s differs from %s: copy the brand file again", name, src)
 		}
 	}
 }
@@ -379,9 +410,17 @@ func TestHTMLIsSelfContained(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := render(t, rep, "html")
-	for _, bad := range []string{"<link", "<script", "@import", "url(", "<iframe", "<video", "<audio", "srcset"} {
+	for _, bad := range []string{"<script", "@import", "<iframe", "<video", "<audio"} {
 		if strings.Contains(out, bad) {
 			t.Errorf("the HTML contains %q, which could load something", bad)
+		}
+	}
+	// Fonts, logos and the icon are inlined, so every URL a style, link or image source holds is a data URI.
+	for _, re := range []string{`url\(["']?([^"')]*)`, `<link[^>]*href="([^"]*)"`, `srcset="([^"]*)"`, `<img[^>]*src="([^"]*)"`} {
+		for _, m := range regexp.MustCompile(re).FindAllStringSubmatch(out, -1) {
+			if !strings.HasPrefix(m[1], "data:") {
+				t.Errorf("the HTML loads %q", m[1])
+			}
 		}
 	}
 	for _, m := range regexp.MustCompile(`(?:src|action|poster|data)=["'](https?:)?//[^"']*`).FindAllString(out, -1) {

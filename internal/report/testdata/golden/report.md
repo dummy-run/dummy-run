@@ -1,10 +1,15 @@
 # Inkwell audit
 
-Prepared for Inkwell Press. Report date 2026-10-19. Made with dummyrun 0.0.0-test. Findings included: confirmed findings and findings not reviewed.
+*Audit report*
 
-## Summary
+- Prepared for: Inkwell Press
+- Target: https://pr-41.inkwell.example
+- Tested: 16 October 2026 to 17 October 2026
+- Report date: 19 October 2026
+- Findings included: confirmed findings and findings not reviewed
+- Made with: dummyrun 0.0.0-test
 
-Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 2026-10-16 and 2026-10-17.
+Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 16 October 2026 and 17 October 2026.
 
 The runs found 4 distinct problems: 2 major, 1 minor, 1 info. A person has confirmed 3 of them. 1 is marked not reviewed. No person has checked it yet.
 
@@ -12,16 +17,170 @@ The axe sweep tested 2 pages and found 2 failing elements on 2 rules. 1 setting 
 
 There are too few repeated findings to estimate how many problems are still unfound.
 
-| Severity | Distinct problems |
-|---|---|
+## Summary
+
+| Severity | Problems found |
+|---|---:|
 | Blocker | 0 |
 | Major | 2 |
 | Minor | 1 |
 | Info | 1 |
 
-Not reviewed: 1. A model reported these findings and no person has checked them against the evidence.
+Not reviewed: 1 finding. A model reported what it found and no person has checked the evidence.
 
-## Scope and method
+### The key numbers
+
+| Measure | Value |
+|---|---:|
+| Problems found | 4 (3 confirmed by a person) |
+| Runs | 4 (3 completed) |
+| Personas | 2 |
+| Routes visited | 4 |
+| Pages in the axe sweep | 2 (2 failing elements) |
+
+### How sure you can be
+
+Too few findings repeated to estimate how many problems are still unfound.
+
+### What was tested
+
+- Target: https://pr-41.inkwell.example, build `a865ffd` (commit), pr-41
+- Personas: ada-editor (editor), lin-contributor (contributor)
+- Scenarios: Check a payment status; Send a first pitch; Reassign a stalled draft
+- Browsers: chrome 148.0, firefox 146.0
+- Axe sweep: 2 pages in 3 settings
+
+> **Read this as a sample.** This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. See [What this report is not](#what-this-report-is-not).
+
+## Findings
+
+The findings are sorted by severity, then by the number of runs that found them. Each is a distinct problem, and one found in several runs appears once.
+
+### Major (2 findings)
+
+#### A contributor can open the rates table for all writers
+
+**Major**. Confirmed by a reviewer.
+
+| | |
+|---|---|
+| Where | `/payments`, link:rates |
+| Who hit it | lin-contributor, in 1 of 4 runs |
+| WCAG 2.2 | No criterion recorded for this finding |
+| Review | Confirmed by example-reviewer on 18 October 2026. Reason: Reproduced on the preview with a contributor account. |
+| Fix guidance | None recorded for this finding |
+| Kind | permission |
+| Symptom | access-wrongly-allowed |
+| Evidence | code |
+| Fingerprint | `933d06cb3cee90e4` |
+
+**How to reproduce.** Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.
+
+7. Look on /payments.
+
+*Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /payments.* The file is `screens/008-07.png`, next to the run record.
+
+#### Scheduling an issue for a past date returns a server error
+
+**Major**. Confirmed by a reviewer.
+
+| | |
+|---|---|
+| Where | `/issues`, button:schedule |
+| Who hit it | ada-editor, in 1 of 4 runs |
+| WCAG 2.2 | No criterion recorded for this finding |
+| Review | Confirmed |
+| Fix guidance | None recorded for this finding |
+| Kind | bug |
+| Symptom | error-shown |
+| Evidence | measured |
+| Fingerprint | `72be5e1e780d79bb` |
+
+**How to reproduce.** Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.
+
+7. Fill Submit on /issues.
+
+### Minor (1 finding)
+
+#### The hint under the schedule field is too faint to read
+
+**Minor**. Not reviewed.
+
+| | |
+|---|---|
+| Where | `/issues`, region:schedule form |
+| Who hit it | ada-editor, in 1 of 4 runs |
+| WCAG 2.2 | 1.4.3 |
+| Review | Not reviewed. No person has checked this finding |
+| Fix guidance | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
+| Kind | accessibility |
+| Symptom | a11y:color-contrast |
+| Evidence | measured |
+| Fingerprint | `64afd5191821762c` |
+
+**How to reproduce.** Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.
+
+3. Visit on /drafts.
+
+*Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts.* The file is `screens/003-03.png`, next to the run record.
+
+### Info (1 finding)
+
+#### The payment status 'settled' is unclear to a contributor
+
+**Info**. Confirmed by a reviewer.
+
+| | |
+|---|---|
+| Where | `/payments`, region:payment status |
+| Who hit it | lin-contributor, in 3 of 4 runs |
+| WCAG 2.2 | No criterion recorded for this finding |
+| Review | Confirmed |
+| Fix guidance | None recorded for this finding |
+| Kind | question |
+| Symptom | unclear-label |
+| Evidence | inferred |
+| Fingerprint | `1718b75300702f7b` |
+
+**How to reproduce.** Run 2026-10-16-lin-contributor-002: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in chrome 148.0.
+
+7. Click Submit on /payments.
+
+Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).
+
+## Axe sweep and layout checks
+
+The sweep ran axe-core 4.13.0 with dummyrun a11y on 2 pages in 3 settings (browser, viewport and colour scheme), on chrome 148.0.7778.97. It checked the rules with these tags: `wcag21a` `wcag21aa` `wcag22aa` `wcag2a` `wcag2aa`. It found 2 failing elements and set aside 1 on the allow-list.
+
+### Rules that failed
+
+| Rule | What it checks | Impact | WCAG 2.2 | Elements | Fix guidance |
+|---|---|---|---|---:|---|
+| `button-name` | Buttons must have discernible text | Critical | 4.1.2 | 1 | https://dequeuniversity.com/rules/axe/4.13/button-name |
+| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | Serious | 1.4.3 | 1 | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
+
+### Where each rule failed
+
+| Rule | Page | Elements | Settings |
+|---|---|---|---|
+| `button-name` | https://pr-41.inkwell.example/issues | `#menu-toggle` | chrome/desktop/light |
+| `color-contrast` | https://pr-41.inkwell.example/issues | `.hint` | chrome/desktop/light, chrome/phone/light |
+
+### Needs a person to check
+
+Axe cannot decide these rules alone. A person has to look.
+
+| Rule | What it checks | WCAG 2.2 | Pages |
+|---|---|---|---|
+| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | 1.4.3 | https://pr-41.inkwell.example/issues |
+
+### Pages that could not be tested
+
+| Page | Setting | Error |
+|---|---|---|
+| https://pr-41.inkwell.example/payments | chrome/desktop/light | the page did not load within 30 seconds |
+
+## How it was tested
 
 Each run signs one fictional user, called a persona, in to the app in a real browser. The persona works through a scenario and reports what broke, what confused it and what its role should not have seen. Findings are folded together when they share a fingerprint, which is a hash of the route, the control and the kind of symptom.
 
@@ -31,33 +190,31 @@ Each run signs one fictional user, called a persona, in to the app in a real bro
 - Routes visited: 4 (`/drafts` `/issues` `/payments` `/reviews`)
 
 | Address | Environment | Build | Adapter | Runs |
-|---|---|---|---|---|
+|---|---|---|---|---:|
 | https://pr-41.inkwell.example | pr-41 | `a865ffd` (commit) | url | 4 |
 
 | Persona | Role | Device | Dimensions | Runs |
-|---|---|---|---|---|
+|---|---|---|---|---:|
 | ada-editor | editor | desktop | viewport 1400x1000 | 1 |
 | lin-contributor | contributor | tablet at 200 percent zoom | viewport 410x590 | 3 |
 
 | Scenario | Runs | Goal met | Partly | Not met | Not recorded |
-|---|---|---|---|---|---|
+|---|---:|---:|---:|---:|---:|
 | Check a payment status | 2 | 1 | 1 | 0 | 0 |
 | Send a first pitch | 1 | 1 | 0 | 0 | 0 |
 | Reassign a stalled draft | 1 | 0 | 0 | 1 | 0 |
 
 | Browser | Version | Runs |
-|---|---|---|
+|---|---|---:|
 | chrome | 148.0 | 2 |
 | firefox | 146.0 | 2 |
 
 | Model | Provider | Region | Runs |
-|---|---|---|---|
+|---|---|---|---:|
 | claude-sonnet-5-5 | anthropic | global | 2 |
 | gemini-3.5-flash-lite | vertex-gemini | europe-west2 | 2 |
 
-The axe sweep ran dummyrun a11y with axe-core 4.13.0 on chrome 148.0.7778.97. It tested 2 pages in 3 settings.
-
-## Coverage
+### Coverage
 
 These numbers come from `dummyrun coverage` over the same runs. They say how much the sample can tell you.
 
@@ -83,125 +240,6 @@ Cautions:
 - T=3 completed runs: Chao recommends at least 5, so read the interval as decorative.
 - Stratum desktop has 0 completed runs; remaining-problem estimates need enough runs per stratum (at least 4).
 - Stratum tablet has 3 completed runs; remaining-problem estimates need enough runs per stratum (at least 4).
-
-## Findings
-
-Findings are sorted by severity, then by the number of runs that found them. Each one is a distinct problem. A problem found in several runs appears once.
-
-### Major: A contributor can open the rates table for all writers
-
-- Status: Confirmed by a reviewer
-- Kind: permission
-- Symptom: access-wrongly-allowed
-- Route: `/payments`
-- Control or region: link:rates
-- Evidence: code
-- Found by: lin-contributor in 1 of 4 runs
-- WCAG 2.2 criterion: not recorded for this finding
-- Review: confirmed by example-reviewer on 2026-10-18T09:30:00Z. Reason: Reproduced on the preview with a contributor account.
-- Fingerprint: `933d06cb3cee90e4`
-
-How to reproduce. Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.
-
-7. Look on /payments.
-
-Screenshot from run 2026-10-17-lin-contributor-008, step 7: look on /payments. The file is `screens/008-07.png`, next to the run record.
-
-### Major: Scheduling an issue for a past date returns a server error
-
-- Status: Confirmed by a reviewer
-- Kind: bug
-- Symptom: error-shown
-- Route: `/issues`
-- Control or region: button:schedule
-- Evidence: measured
-- Found by: ada-editor in 1 of 4 runs
-- WCAG 2.2 criterion: not recorded for this finding
-- Review: confirmed
-- Fingerprint: `72be5e1e780d79bb`
-
-How to reproduce. Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.
-
-7. Fill Submit on /issues.
-
-### Minor: The hint under the schedule field is too faint to read
-
-- Status: Not reviewed
-- Kind: accessibility
-- Symptom: a11y:color-contrast
-- Route: `/issues`
-- Control or region: region:schedule form
-- Evidence: measured
-- Found by: ada-editor in 1 of 4 runs
-- WCAG 2.2 criterion: 1.4.3
-- Review: not reviewed. No person has checked this finding
-- Fix guidance: https://dequeuniversity.com/rules/axe/4.13/color-contrast
-- Fingerprint: `64afd5191821762c`
-
-How to reproduce. Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.
-
-3. Visit on /drafts.
-
-Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts. The file is `screens/003-03.png`, next to the run record.
-
-### Info: The payment status 'settled' is unclear to a contributor
-
-- Status: Confirmed by a reviewer
-- Kind: question
-- Symptom: unclear-label
-- Route: `/payments`
-- Control or region: region:payment status
-- Evidence: inferred
-- Found by: lin-contributor in 3 of 4 runs
-- WCAG 2.2 criterion: not recorded for this finding
-- Review: confirmed
-- Fingerprint: `1718b75300702f7b`
-
-How to reproduce. Run 2026-10-16-lin-contributor-002: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in chrome 148.0.
-
-7. Click Submit on /payments.
-
-Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).
-
-## Axe sweep
-
-The sweep ran axe-core 4.13.0 on 2 pages in 3 settings (browser, viewport and colour scheme). It checked the rules with these tags: `wcag21a` `wcag21aa` `wcag22aa` `wcag2a` `wcag2aa`. It found 2 failing elements and set aside 1 on the allow-list.
-
-### Critical: Buttons must have discernible text
-
-- Rule: `button-name`
-- WCAG 2.2 criterion: 4.1.2
-- Elements: 1
-- Fix guidance: https://dequeuniversity.com/rules/axe/4.13/button-name
-
-| Page | Elements | Settings |
-|---|---|---|
-| https://pr-41.inkwell.example/issues | `#menu-toggle` | chrome/desktop/light |
-
-### Serious: Elements must meet minimum color contrast ratio thresholds
-
-- Rule: `color-contrast`
-- WCAG 2.2 criterion: 1.4.3
-- Elements: 1
-- Fix guidance: https://dequeuniversity.com/rules/axe/4.13/color-contrast
-
-| Page | Elements | Settings |
-|---|---|---|
-| https://pr-41.inkwell.example/issues | `.hint` | chrome/desktop/light, chrome/phone/light |
-
-### Needs a person to check
-
-Axe cannot decide these rules alone. A person has to look.
-
-| Rule | What it checks | WCAG 2.2 criterion | Pages |
-|---|---|---|---|
-| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | 1.4.3 | https://pr-41.inkwell.example/issues |
-
-### Pages that could not be tested
-
-| Page | Setting | Error |
-|---|---|---|
-| https://pr-41.inkwell.example/payments | chrome/desktop/light | the page did not load within 30 seconds |
 
 ## What this report is not
 

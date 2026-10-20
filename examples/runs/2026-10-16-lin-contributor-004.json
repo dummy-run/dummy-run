@@ -198,5 +198,20 @@
     "input_tokens": 125020,
     "output_tokens": 6776,
     "cost_usd": 0.0544
-  }
+  },
+  "observations": [
+    {
+      "text": "The review page gave clear feedback after the submit button was pressed",
+      "steps": [
+        3
+      ]
+    },
+    {
+      "text": "Every page kept the same navigation in the same place",
+      "steps": [
+        4,
+        9
+      ]
+    }
+  ]
 }
