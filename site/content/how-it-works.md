@@ -53,11 +53,11 @@ Pending findings in schema version 2 records wait for a person to review them (c
 
 ## After review
 
-Nothing is posted for you. A person reads the findings and decides what becomes a ticket. Today you copy a finding into your tracker by hand, or write a script that reads the run record JSON.
+No ticket is created automatically. A person reads the findings and decides what becomes a ticket. Today you copy a finding into your tracker by hand, or write a script that reads the run record JSON.
 
 ## What leaves the network
 
-Screenshots and page text go to the model provider you choose, because the persona is a model that reads what the browser shows. Telemetry carries step URLs, control labels and finding titles, and it carries no screenshots (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). A title can quote a few words from the page. It goes only to the OpenTelemetry backend you configure, so it lives wherever that backend lives. [Telemetry](../../docs/TELEMETRY.md) lists what it carries.
+Screenshots and page text go to the model provider you choose, because the persona is a model that reads what the browser shows. Telemetry carries step URLs, control labels and finding titles, and it carries no screenshots (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). A title can quote a few words from the page. It goes only to the OpenTelemetry backend you configure. If you pass `--grafana-url`, Grafana also receives annotations. The telemetry lives wherever that backend lives. [Telemetry](../../docs/TELEMETRY.md) lists what it carries.
 
 ## Words we use
 

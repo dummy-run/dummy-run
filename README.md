@@ -44,7 +44,7 @@ flowchart LR
 - **Model providers.** Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service
   works too, such as a local server. Choose one per market to keep runs inside a
   jurisdiction such as the UK or the EU.
-- **After review.** Nothing is posted for you. A person reads the findings and decides what becomes a ticket.
+- **After review.** No ticket is created automatically. A person reads the findings and decides what becomes a ticket.
   Today you copy a finding into your tracker by hand, or write a script that reads the run record JSON.
 
 ## Does it replace a scripted regression suite?
