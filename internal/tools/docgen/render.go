@@ -122,6 +122,7 @@ func renderCLI(bins *repo.Binaries, root string) (string, error) {
 		{"dummyrun a11y", "Check pages for WCAG 2.2 A and AA failures with no model. `dummyrun audit a11y` is the same command.", bins.DummyRun, root, []string{"a11y", "-h"}},
 		{"dummyrun doctor", "List browsers and profile directories that an earlier run left behind, and stop them with `--stop`.", bins.DummyRun, root, []string{"doctor", "-h"}},
 		{"dummyrun session", "Sign in once through a target's login form and save the session for reuse. See [ENGINE.md](ENGINE.md).", bins.DummyRun, root, []string{"session", "-h"}},
+		{"dummyrun mcp", "Serve Dummy Run to a coding agent over the Model Context Protocol. See [MCP.md](MCP.md).", bins.DummyRun, root, []string{"mcp", "-h"}},
 		{"dummyrun-otel", "Send run records to an OpenTelemetry backend and Grafana.", bins.OTel, exporter, []string{"--help"}},
 		{"dummyrun-otel export", "Send the records in some files or directories once.", bins.OTel, exporter, []string{"export", "-h"}},
 		{"dummyrun-otel watch", "Send each new record in a directory as it appears.", bins.OTel, exporter, []string{"watch", "-h"}},

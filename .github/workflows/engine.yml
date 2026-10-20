@@ -124,7 +124,7 @@ jobs:
       - name: Run the conformance suite, the tool suite and the end-to-end run on both browsers
         env:
           DUMMYRUN_BROWSERS: chrome,firefox
-        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd|TestLaunchAndClose' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/
+        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd|TestLaunchAndClose|TestServerWithRealBrowsers' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/ ./internal/mcpserver/
       - name: No engine browser or profile directory is left behind
         if: always()
         run: go run ./cmd/dummyrun doctor

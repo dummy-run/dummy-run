@@ -536,7 +536,7 @@ The site's own check is this command, run on Chrome and Firefox against the buil
 `go test ./...` runs the unit tests. Set `DUMMYRUN_BROWSERS=chrome,firefox` to also run the browser tests
 against a local test server. They cover the conformance suite (`internal/bidi`) and the tool suite
 (`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`), the canary page of injection attempts
-(`internal/runner/testdata/canary.html`) and the accessibility sweep (`internal/a11y`, on a fixture page with known violations). CI runs all of them on ubuntu-latest with pinned browsers.
+(`internal/runner/testdata/canary.html`) and the accessibility sweep (`internal/a11y`, on a fixture page with known violations). The MCP server (`internal/mcpserver`) has a test that drives it through an in-process client. CI runs all of them on ubuntu-latest with pinned browsers.
 The conformance suite includes `browsingContext.setViewport` with `devicePixelRatio`, and the tool suite
 covers focus, the outline and zoom on both browsers.
 

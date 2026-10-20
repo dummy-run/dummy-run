@@ -58,6 +58,8 @@ func run(args []string) int {
 		return doctorCmd(args[1:])
 	case "session":
 		return sessionCmd(args[1:])
+	case "mcp":
+		return mcpCmd(args[1:])
 	case "audit":
 		if len(args) > 1 && args[1] == "a11y" {
 			return a11yCmd(args[2:])
@@ -91,9 +93,10 @@ func usage() {
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE]
   dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
   dummyrun doctor [--stop]
+  dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
