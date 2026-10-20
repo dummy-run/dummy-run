@@ -1,4 +1,4 @@
-// Command textscale renders the built site in Chrome with a larger text size and fails when the layout breaks. It checks three faults at each page:
+// Command textscale renders the built site in Chrome with a larger text size and fails when the layout breaks. It checks these faults at each page:
 //
 //   - the page scrolls sideways (WCAG 1.4.10 reflow),
 //   - text is clipped inside a button or label, or a link or field runs past the page edge (WCAG 1.4.4 resize text),
