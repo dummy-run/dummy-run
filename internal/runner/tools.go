@@ -80,6 +80,8 @@ type Finish struct {
 	Findings []FinishFinding `json:"findings"`
 	// Observations are what worked. They never become findings.
 	Observations []FinishObservation `json:"observations"`
+	// Uncited holds the titles of findings that ParseFinish dropped because they cited no step in the run.
+	Uncited []string `json:"-"`
 }
 
 // FinishObservation is one note that something worked, as the persona reported it.
@@ -183,6 +185,10 @@ func ParseFinish(args json.RawMessage, maxStep int) (Finish, error) {
 			}
 		}
 		if len(steps) == 0 || strings.TrimSpace(ff.Title) == "" {
+			// A finding with no step to point at is not evidence. Say so, so a reviewer can see it was claimed.
+			if t := strings.TrimSpace(ff.Title); t != "" {
+				f.Uncited = append(f.Uncited, t)
+			}
 			continue
 		}
 		ff.Steps = steps

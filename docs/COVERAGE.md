@@ -50,7 +50,7 @@ output and nothing about a real product.
 The estimates of unfound problems need three things. Without them the command still prints, but it labels the
 figures as a demonstration and warns.
 
-- Reviewer-confirmed findings. A pending finding is a claim nobody has checked. The default is `--confirmed-only`, which counts only confirmed ones. With `--confirmed-only=false` pending findings count too and the report says it is a demonstration on unreviewed findings. Rejected findings never count. Observations are not findings, so they never count either (see below).
+- Reviewer-confirmed findings. `dummyrun review` sets the verdict (see the Review section of [ENGINE.md](ENGINE.md)). A pending finding is a claim nobody has checked. The default is `--confirmed-only`, which counts only confirmed ones. With `--confirmed-only=false` pending findings count too and the report says it is a demonstration on unreviewed findings. Rejected findings and observations never count (code: `internal/coverage/report.go`, the instance loop, and `internal/review/store.go`).
 - Enough runs per stratum. The stopping rule needs 4 completed runs in each stratum, and Chao advises at least 5 samples for the estimator. The report warns for every stratum below the minimum.
 - A measured identity rule. Every count assumes two findings are the same problem when their fingerprints match. Give two reviewers' groupings with `--clusters` to measure how far people agree with each other. Below a kappa of 0.6 only the observed count is printed.
 

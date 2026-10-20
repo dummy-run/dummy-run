@@ -52,12 +52,16 @@ type Run struct {
 	Target        Target    `json:"target"`
 	Provider      Provider  `json:"provider"`
 	Browser       Browser   `json:"browser"`
+	Signin        *Signin   `json:"signin,omitempty"`
 	Outcome       string    `json:"outcome"`
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
+	Usage         Usage     `json:"usage"`
 	// Observations are read so that the strict decoder accepts them. The exporter does not send them.
 	Observations []Observation `json:"observations,omitempty"`
-	Usage        Usage         `json:"usage"`
+	// Events are accepted so a record that has them loads. The exporter does not send them,
+	// because an event's detail is page text.
+	Events []json.RawMessage `json:"events,omitempty"`
 }
 
 // Observation is a note that something worked. It is not a finding and the exporter ignores it.
@@ -126,6 +130,23 @@ type Provider struct {
 	Region string `json:"region"`
 }
 
+// Signin is how the engine signed the persona in before the run. It holds no credential. The
+// exporter reads it so that a record with the block is accepted, and sends nothing from it.
+type Signin struct {
+	Method         string         `json:"method"`
+	Role           string         `json:"role"`
+	OK             bool           `json:"ok"`
+	AllowedRequest *SigninRequest `json:"allowed_request"`
+	DurationMS     int            `json:"duration_ms"`
+	Error          string         `json:"error,omitempty"`
+}
+
+// SigninRequest is the one request let through during sign-in.
+type SigninRequest struct {
+	Method string `json:"method"`
+	URL    string `json:"url"`
+}
+
 // Browser is the browser the persona used.
 type Browser struct {
 	Name    string `json:"name"`
@@ -168,6 +189,10 @@ type Finding struct {
 	ClusterID       string   `json:"cluster_id,omitempty"`
 	SeededDefectID  string   `json:"seeded_defect_id,omitempty"`
 	ReviewedBy      []string `json:"reviewed_by,omitempty"`
+	// Reviewer, ReviewedAt and Reason are set by dummyrun review when a person confirms or rejects the finding.
+	Reviewer   string     `json:"reviewer,omitempty"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	Reason     string     `json:"reason,omitempty"`
 }
 
 // Usage is what the run cost in model calls, tokens and money.
