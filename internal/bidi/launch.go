@@ -209,6 +209,12 @@ var firefoxPrefs = map[string]any{
 	"remote.active-protocols":                    1, // BiDi only
 }
 
+// noSandbox reports whether the browsers' own sandboxes are switched off. It is true on CI, and when
+// DUMMYRUN_NO_SANDBOX is set, as it is in the container image, where the container is the sandbox.
+func noSandbox() bool {
+	return os.Getenv("CI") != "" || os.Getenv("DUMMYRUN_NO_SANDBOX") != ""
+}
+
 func launchFirefox(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	bin := firstExisting(opts.FirefoxPath, os.Getenv("DUMMYRUN_FIREFOX"),
 		"/Applications/Firefox.app/Contents/MacOS/firefox", "firefox", "firefox-esr")
@@ -258,7 +264,7 @@ func launchFirefox(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	if runtime.GOOS == "linux" {
 		// A clean config home keeps the system Firefox's settings out of the run.
 		cmd.Env = append(cmd.Env, "XDG_CONFIG_HOME="+profile)
-		if os.Getenv("CI") != "" {
+		if noSandbox() {
 			// The GitHub runner's user namespaces stop the content sandbox from starting.
 			cmd.Env = append(cmd.Env, "MOZ_DISABLE_CONTENT_SANDBOX=1")
 		}
@@ -336,7 +342,7 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	if opts.UserAgent != "" {
 		args = append(args, "--user-agent="+opts.UserAgent)
 	}
-	if os.Getenv("CI") != "" {
+	if noSandbox() {
 		args = append(args, "--no-sandbox", "--disable-dev-shm-usage")
 	}
 	args = append(args, opts.Args...)
