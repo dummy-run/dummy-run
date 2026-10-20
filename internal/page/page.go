@@ -5,8 +5,10 @@ package page
 
 import (
 	"context"
+	"crypto/rand"
 	_ "embed"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,7 +18,6 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
-	"github.com/dummy-run/dummy-run/internal/inject"
 )
 
 //go:embed look.js
@@ -567,7 +568,10 @@ func (p *Page) settle(ctx context.Context) {
 
 func (p *Page) observe(ctx context.Context, obs *Observation) {
 	var snap Snapshot
-	if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit, inject.NewNonce()+inject.NewNonce()); err == nil {
+	mark, merr := lookMark()
+	if merr != nil {
+		obs.Error = "could not read the page: " + merr.Error()
+	} else if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit, mark); err == nil {
 		snap.Zoom = p.zoom
 		obs.Snapshot = &snap
 		obs.URL = snap.URL
@@ -758,4 +762,14 @@ func (p *Page) SetUserAgent(ctx context.Context, ua string) error {
 	}
 	p.browser.UserAgent = ua
 	return nil
+}
+
+// lookMark returns the random value that look.js puts in the markers around quoted text. It is made here,
+// outside the page, so a page script cannot predict it. It fails when no randomness is available.
+func lookMark() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("no random value for the page markers: %w", err)
+	}
+	return hex.EncodeToString(b), nil
 }

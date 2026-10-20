@@ -98,7 +98,11 @@
   const inFlow = (el) => {
     for (let e = el; e && e !== document.body; e = e.parentElement) {
       const s = getComputedStyle(e);
-      if (s.display === "contents") continue; // no box of its own, so it hides nothing
+      if (s.display === "contents") {
+        // No box of its own, so only these two can hide what is inside.
+        if (e.getAttribute("aria-hidden") === "true" || s.opacity === "0") return false;
+        continue;
+      }
       const r = e.getBoundingClientRect();
       if (unseen(e) || r.bottom + scrollY <= 0 || s.position === "absolute" || s.position === "fixed" || parseFloat(s.fontSize) < 4 || /rgba\(.*,\s*0\)$/.test(s.color) || s.color === "transparent" || s.clipPath !== "none" || parseFloat(s.textIndent) < -100) return false;
     }
