@@ -29,7 +29,7 @@ Flags:
   --scheme NAME     light, dark or both (default both)
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
-                    so rem and em text grows and px text may not. Turns on --layout
+                    so rem and em text grows and px text may not. A size above 100 turns on --layout
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
@@ -194,6 +194,9 @@ func parseTextScales(v string) ([]int, error) {
 		}
 		if n == 0 {
 			return nil, fmt.Errorf("%q is empty; want a percentage such as 200", v)
+		}
+		if slices.Contains(out, n) {
+			return nil, fmt.Errorf("%d is given twice", n)
 		}
 		out = append(out, n)
 	}

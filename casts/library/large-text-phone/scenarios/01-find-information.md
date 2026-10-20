@@ -4,7 +4,7 @@ Device: phone. Start at the home page.
 
 ## Given
 
-Ivy wants one fact about [the product] and reads slowly at 200 percent text size.
+Ivy wants one fact about [the product] and has her text size at 200 percent.
 
 ## Goal
 

@@ -361,18 +361,18 @@ func TestPersonaTextScaleIsExportedWhenPresent(t *testing.T) {
 	if large.Persona.TextScale != 200 {
 		t.Fatalf("the example run has text scale %d, want 200", large.Persona.TextScale)
 	}
-	attr := func(run *record.Run) int64 {
+	attr := func(run *record.Run) (int64, bool) {
 		for _, kv := range Build(run).Root.Attributes {
 			if kv.Key == "dummyrun.persona.text_scale" {
-				return kv.Value.AsInt64()
+				return kv.Value.AsInt64(), true
 			}
 		}
-		return 0
+		return 0, false
 	}
-	if got := attr(large); got != 200 {
-		t.Errorf("dummyrun.persona.text_scale = %d, want 200", got)
+	if got, ok := attr(large); !ok || got != 200 {
+		t.Errorf("dummyrun.persona.text_scale = %d (present %v), want 200", got, ok)
 	}
-	if got := attr(load(t, "2026-10-17-ravi-reviewer-005.json")); got != 0 {
+	if got, ok := attr(load(t, "2026-10-17-ravi-reviewer-005.json")); ok {
 		t.Errorf("a record without text_scale exported %d", got)
 	}
 }

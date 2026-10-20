@@ -56,6 +56,21 @@ func TestTextScalePrefs(t *testing.T) {
 	}
 }
 
+func TestWithTextScaleKeepsOtherChromePrefs(t *testing.T) {
+	in := bidi.LaunchOptions{Browser: "chrome", ChromePrefs: map[string]any{"webkit": map[string]any{"webprefs": map[string]any{"minimum_logical_font_size": 6}}, "intl": "x"}}
+	out, err := bidi.WithTextScale(in, 150)
+	if err != nil {
+		t.Fatal(err)
+	}
+	web := out.ChromePrefs["webkit"].(map[string]any)["webprefs"].(map[string]any)
+	if web["minimum_logical_font_size"] != 6 || web["default_font_size"] != 24 || out.ChromePrefs["intl"] != "x" {
+		t.Errorf("prefs %v", out.ChromePrefs)
+	}
+	if _, set := in.ChromePrefs["webkit"].(map[string]any)["webprefs"].(map[string]any)["default_font_size"]; set {
+		t.Error("the caller's nested map was changed")
+	}
+}
+
 func TestWithTextScaleKeepsOtherPrefs(t *testing.T) {
 	in := bidi.LaunchOptions{Browser: "firefox", FirefoxPrefs: map[string]any{"layout.css.prefers-color-scheme.content-override": 0}}
 	out, err := bidi.WithTextScale(in, 200)

@@ -80,6 +80,13 @@ func mergePrefs(base, extra map[string]any) map[string]any {
 		out[k] = v
 	}
 	for k, v := range extra {
+		// A nested map, such as Chrome's webkit.webprefs, is merged and not replaced.
+		if bm, ok := out[k].(map[string]any); ok {
+			if em, ok := v.(map[string]any); ok {
+				out[k] = mergePrefs(bm, em)
+				continue
+			}
+		}
 		out[k] = v
 	}
 	return out

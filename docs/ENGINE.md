@@ -167,7 +167,7 @@ text that follows the default font size grows.
 | Viewport in CSS pixels | Halved (a 390 px phone becomes 195 px) | Unchanged (390 px) |
 | `devicePixelRatio` | Doubled | Unchanged |
 | Media queries | See the narrower window | See the same window |
-| Text set in `rem`, `em` or `%`, and unstyled text | Doubles | Doubles |
+| Text set in `rem`, `em` or `%`, and unstyled text | Doubles | Doubles, when the root and parent font sizes follow the browser default. A page that sets `html { font-size: 16px }` stops it |
 | Text set in `px` | Doubles | Stays the same |
 | Boxes, images and gaps set in `px` | Double | Stay the same |
 | What it finds | Reflow at a narrow width (WCAG 1.4.10) | Text that outgrows a fixed box, overlaps its neighbour or runs off the screen (WCAG 1.4.4) |
@@ -621,7 +621,7 @@ turn a passing sweep red.
 |---|---|---|---|
 | `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window | 1.4.10 | serious |
 | `dummyrun-clipped-text` | An interactive element, or an element inside it, hides part of its text with `overflow` or an ellipsis, or a parent that clips hides part of the element | 1.4.4 | serious |
-| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The node names both selectors, with an ampersand between them | 1.4.4, 1.4.10 | serious |
+| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The finding lists both selectors, with an ampersand between them | 1.4.4, 1.4.10 | serious |
 | `dummyrun-target-size` | A visible, enabled interactive element is under 24 by 24 CSS px | 2.5.8 | moderate |
 
 The checks are an approximation of what a person sees, and they say so in the `detail` of each node. Overlap

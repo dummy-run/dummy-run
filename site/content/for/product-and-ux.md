@@ -23,7 +23,7 @@ Findings have five kinds. Friction, question and accessibility are about the exp
 
 {{< graphic name="persona-card" who="sam-author" >}}
 
-The device sets the window size, so the same scenario on a phone and a desktop can produce different findings. A persona or a scenario can also set page zoom, which narrows the page. It can set a larger system text size instead, which leaves the window as it is and enlarges only the text. Every persona trait needs a source, and the [writing guide](../../../docs/STYLE.md) removes traits without one.
+The device sets the window size, so the same scenario on a phone and a desktop can produce different findings. A persona or a scenario can also set page zoom, which narrows the page. It can set a larger system text size instead, which leaves the window as it is and enlarges the text and whatever the page sizes from it. Every persona trait needs a source, and the [writing guide](../../../docs/STYLE.md) removes traits without one.
 
 ## Questions are findings too
 
