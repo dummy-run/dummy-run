@@ -637,7 +637,7 @@ td code, th code { white-space: nowrap; }
 .t-pause-input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 .t-window { overflow-x: auto; }
 .t-window:focus-visible { outline: 3px solid var(--amber); outline-offset: -3px; }
-.terminal pre.t-body { margin: 0; padding: 1rem 1.15rem 1.15rem; background: none; border-radius: 0; color: inherit; font-size: var(--type-caption); line-height: 1.7; white-space: pre; overflow: visible; min-width: max-content; }
+.terminal pre.t-body { margin: 0; padding: 1rem 1.15rem 1.15rem; background: none; border-radius: 0; color: inherit; font-size: var(--type-small); line-height: 1.7; white-space: pre; overflow: visible; min-width: max-content; }
 .terminal pre.t-body code { display: block; }
 .t-line { display: block; }
 .t-cmd { width: fit-content; color: var(--stage-ink); }
