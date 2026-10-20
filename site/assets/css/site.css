@@ -660,7 +660,7 @@ td code, th code { white-space: nowrap; }
 
 /* Trust strip: facts the product can back, one line under the hero */
 .trust { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin: 0; padding: 1rem 0; border-block: 1px solid var(--rule); list-style: none; font-family: var(--font-heading); font-weight: 500; font-size: var(--type-small); color: var(--ink-muted); }
-.trust li { display: inline-flex; align-items: center; gap: 0.5rem; }
+.trust li { min-width: 0; max-width: 100%; overflow-wrap: anywhere; display: inline-flex; align-items: center; gap: 0.5rem; }
 .trust li::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--amber); flex: none; }
 
 /* Call to action note under the closing buttons */
@@ -704,7 +704,7 @@ td code, th code { white-space: nowrap; }
 .t-prompt { color: var(--amber); user-select: none; -webkit-user-select: none; }
 .t-out { padding-left: 2ch; text-indent: -2ch; color: var(--stage-muted); }
 .t-out.t-wide { padding-left: 0; text-indent: 0; white-space: pre; overflow-wrap: normal; }
-.t-bar { flex-wrap: wrap; row-gap: 0.4rem; }
+.t-bar { flex-wrap: wrap; row-gap: 1.4rem; }
 .t-title { min-width: 0; }
 .terminal .copy-button { flex: none; white-space: nowrap; }
 .t-note { padding: 0.6rem 1rem 0.75rem; border-top: 1px solid var(--stage-rule); font-size: var(--type-caption); color: var(--stage-muted); }

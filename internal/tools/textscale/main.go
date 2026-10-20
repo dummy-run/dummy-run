@@ -191,6 +191,27 @@ func check(ctx context.Context, conn *bidi.Conn, cx, u string, font, zoom int, s
 	if err := conn.EvaluateJSON(ctx, cx, checksJS, &res); err != nil {
 		return res, err
 	}
+	// The menu is shut on a narrow screen, so open it and look again: its links are controls too.
+	var opened bool
+	if err := conn.EvaluateJSON(ctx, cx, `(()=>{const b=document.querySelector(".nav-toggle");if(!b||b.hidden||b.getBoundingClientRect().width<1)return false;b.click();return b.getAttribute("aria-expanded")==="true"})()`, &opened); err != nil {
+		return res, err
+	}
+	if opened {
+		var open result
+		if err := conn.EvaluateJSON(ctx, cx, checksJS, &open); err != nil {
+			return res, err
+		}
+		res.Overflow = append(res.Overflow, prefix("menu open: ", open.Overflow)...)
+		res.Clipped = append(res.Clipped, prefix("menu open: ", open.Clipped)...)
+		res.Overlaps = append(res.Overlaps, prefix("menu open: ", open.Overlaps)...)
+		if open.PageScrollWidth > open.ViewportWidth && res.PageScrollWidth <= res.ViewportWidth {
+			res.Overflow = append(res.Overflow, fmt.Sprintf("menu open: the page scrolls sideways: %d px in a %d px window", open.PageScrollWidth, open.ViewportWidth))
+		}
+		// Shut it again, so a screenshot shows the page as a visitor first sees it.
+		if _, err := conn.Evaluate(ctx, cx, `document.querySelector(".nav-toggle").click()`); err != nil {
+			return res, err
+		}
+	}
 	if shots != "" {
 		var out struct {
 			Data string `json:"data"`
@@ -222,4 +243,12 @@ func shotName(raw, scheme string) string {
 		s = "home"
 	}
 	return s + "-" + scheme + ".png"
+}
+
+func prefix(p string, in []string) []string {
+	out := make([]string, 0, len(in))
+	for _, s := range in {
+		out = append(out, p+s)
+	}
+	return out
 }
