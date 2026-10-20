@@ -5,7 +5,7 @@ icon: buildings
 lead_short: Every client, in its market
 weight: 30
 lead: One cast run against every client's preview, with each client's data kept in its market.
-description: What you get from Dummy Run as an agency. One cast of personas runs against every client's preview, data residency per market, and a licence that allows client work.
+description: What you get from Dummy Run as an agency. One cast of personas runs against every client's preview. Data stays in each market, and the licence allows client work.
 next:
   title: Check the licence first
   text: Apache-2.0 lets you run Dummy Run for clients with no conditions. The trademark policy covers the name.
