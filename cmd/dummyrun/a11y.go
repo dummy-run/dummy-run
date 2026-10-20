@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -33,7 +34,8 @@ Flags:
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
                     allow-list can accept them
-  --screenshots DIR write a PNG crop of each element the layout checks flag into DIR
+  --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
+                    setting
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
@@ -99,8 +101,8 @@ func a11yCmd(args []string) int {
 		fmt.Fprintf(os.Stderr, "dummyrun a11y: --text-scale: %v\n", err)
 		return 2
 	}
-	if *shotDir != "" && !*layout && len(scales) == 0 {
-		fmt.Fprintln(os.Stderr, "dummyrun a11y: --screenshots needs --layout or --text-scale, which run the checks that take them")
+	if *shotDir != "" && !*layout && !slices.ContainsFunc(scales, func(n int) bool { return n > 100 }) {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y: --screenshots needs --layout, or a --text-scale above 100, which run the checks that take them")
 		return 2
 	}
 	if *sitemap == "" && len(urls) == 0 {

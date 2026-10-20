@@ -18,7 +18,7 @@ Ivy has low vision. She keeps the text size on her phone at 200 percent so she c
 She does not pinch to zoom. The page keeps its normal width and only the text grows, so a layout built for
 small text can break.
 
-The engine raises the browser's default font size to 200 percent and keeps the phone window at 375 pixels
+The engine raises the browser's default font size to 200 percent and keeps the phone window at 390 pixels
 wide. Text that a site sizes in rem or em grows. Text it sizes in px may not, so a page can look half enlarged.
 Ivy reports what she sees and does not guess which one the site used.
 

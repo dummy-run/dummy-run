@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"regexp"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
@@ -124,6 +125,9 @@ type LayoutNote struct {
 	ClippedRefs []string `json:"clipped_refs,omitempty"`
 }
 
+// refPattern is the @number the engine gives a control: digits only.
+var refPattern = regexp.MustCompile(`^[0-9]{1,4}$`)
+
 // Note reduces the layout to the facts an observation shows. It returns nil when there are none.
 // Small targets are left out: on a phone they are common and would be noise on every step.
 func (l *Layout) Note() *LayoutNote {
@@ -135,12 +139,12 @@ func (l *Layout) Note() *LayoutNote {
 		n.OverflowPx = int(l.Overflow.Excess + 0.5)
 	}
 	for _, o := range l.Overlaps {
-		if len(n.OverlapRefs) < 5 && o.A.Ref != "" && o.B.Ref != "" {
+		if len(n.OverlapRefs) < 5 && refPattern.MatchString(o.A.Ref) && refPattern.MatchString(o.B.Ref) {
 			n.OverlapRefs = append(n.OverlapRefs, "@"+o.A.Ref+" @"+o.B.Ref)
 		}
 	}
 	for _, c := range l.Clipped {
-		if len(n.ClippedRefs) < 5 && c.Ref != "" {
+		if len(n.ClippedRefs) < 5 && refPattern.MatchString(c.Ref) {
 			n.ClippedRefs = append(n.ClippedRefs, "@"+c.Ref)
 		}
 	}

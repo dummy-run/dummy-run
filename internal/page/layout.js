@@ -35,7 +35,8 @@
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
   const label = (el) =>
     squash(el.getAttribute("aria-label") || el.innerText || el.value || el.title || el.getAttribute("alt") || "").slice(0, 60);
-  const refOf = (el) => el.getAttribute("data-dummyrun-ref") || undefined;
+  // Only the number the engine wrote counts. A page could change the attribute afterwards.
+  const refOf = (el) => (/^[0-9]{1,4}$/.test(el.getAttribute("data-dummyrun-ref") || "") ? el.getAttribute("data-dummyrun-ref") : undefined);
   const box = (r) => ({ x: round(r.left + scrollX), y: round(r.top + scrollY), width: round(r.width), height: round(r.height) });
 
   const visible = (el) => {
@@ -210,6 +211,11 @@
       const o = boxes[j];
       const dx = Math.max(o.left - cx, 0, cx - o.right), dy = Math.max(o.top - cy, 0, cy - o.bottom);
       if (dx * dx + dy * dy < rad * rad) crowded = true;
+      // Another undersized target counts when the two circles meet, so their centres are under a diameter apart.
+      if (!crowded && (o.width < minTarget - 0.01 || o.height < minTarget - 0.01)) {
+        const ox = o.left + o.width / 2 - cx, oy = o.top + o.height / 2 - cy;
+        if (ox * ox + oy * oy < minTarget * minTarget) crowded = true;
+      }
     }
     if (!crowded) continue;
     smallTotal++;

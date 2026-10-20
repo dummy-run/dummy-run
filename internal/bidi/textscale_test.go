@@ -30,6 +30,12 @@ func TestTextScalePrefs(t *testing.T) {
 	if firefox["font.size.variable.x-western"] != 24 || firefox["font.size.monospace.x-western"] != 20 {
 		t.Errorf("firefox sizes %v, want 24 and 20", firefox)
 	}
+	for k, want := range map[string]int{"font.size.variable.x-cyrillic": 24, "font.size.variable.ja": 24, "font.size.variable.ar": 24,
+		"font.size.variable.el": 24, "font.size.monospace.zh-CN": 20} {
+		if firefox[k] != want {
+			t.Errorf("%s = %v, want %d: every language group needs the size, or pages in that language stay at normal size", k, firefox[k], want)
+		}
+	}
 	for k := range firefox {
 		if k == "font.minimum-size.x-western" {
 			t.Error("firefox must not set a minimum font size")

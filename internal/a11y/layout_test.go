@@ -39,6 +39,10 @@ var layoutPages = map[string]string{
 	"/small": layoutHead + `<h1>Small</h1>
 <button id="s1" style="width:14px;height:14px;margin:0 2px 20px 8px;padding:0"></button><button id="s2" style="width:14px;height:14px;margin:0;padding:0"></button>
 <button id="ok" class="btn">Fine</button>` + layoutTail,
+	// Two 10 px buttons 8 px apart: neither has another target in its 24 px circle, but the circles of the
+	// two meet, so both fail.
+	"/spaced": layoutHead + `<h1>Spaced</h1><div style="margin:40px">
+<button id="pa" style="width:10px;height:10px;padding:0;margin:0 8px 0 0"></button><button id="pb" style="width:10px;height:10px;padding:0;margin:0"></button></div>` + layoutTail,
 	// Sized in rem and in px: text that follows the default font size grows, the px text does not.
 	"/scale": layoutHead + `<h1>Scale</h1>
 <p id="rem" style="font-size:1rem">Rem text</p><p id="px" style="font-size:16px">Px text</p>
@@ -150,6 +154,11 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 			if f := layoutFinding(res, RuleOverlap); f == nil || len(f.Nodes) != 1 || strings.Contains(targets(f), "touch") {
 				t.Errorf("overlap nodes %v, want only the pair #one and #two", f)
 			}
+			// Spacing: two undersized targets whose circles meet both fail, even with no box inside the other's circle.
+			res = layoutRun(t, browser, srv.URL+"/spaced", nil, "")[0]
+			if f := layoutFinding(res, RuleTargetSize); f == nil || !strings.Contains(targets(f), "pa") || !strings.Contains(targets(f), "pb") {
+				t.Errorf("spaced targets %v, want both #pa and #pb", f)
+			}
 			// Spacing: the isolated 12 px button is exempt, the crowded pair is not.
 			res = layoutRun(t, browser, srv.URL+"/small", nil, "")[0]
 			f := layoutFinding(res, RuleTargetSize)
@@ -249,6 +258,21 @@ func TestLayoutFindingsFromMeasurements(t *testing.T) {
 	}
 	if list2, _ := layoutFindings(&page.Layout{}, "/", nil); len(list2) != 0 {
 		t.Errorf("an empty measurement made findings: %+v", list2)
+	}
+}
+
+func TestScreenshotNamesDoNotCollide(t *testing.T) {
+	// Two addresses that share their first 60 characters, or differ only in punctuation, must not share a file.
+	l := &page.Layout{Clipped: []page.LayoutClipped{{LayoutElement: page.LayoutElement{Selector: "#c"}, Box: page.LayoutBox{Width: 10, Height: 10}}}}
+	names := map[string]bool{}
+	for _, u := range []string{"http://x.test/a/b", "http://x.test/a-b", "http://x.test/" + strings.Repeat("p", 70) + "1", "http://x.test/" + strings.Repeat("p", 70) + "2"} {
+		list, _ := layoutFindings(l, "/", nil)
+		res := PageResult{URL: u, Browser: "chrome", Viewport: "phone", Scheme: "light", Violations: list}
+		name := screenshotName("", &res, RuleClippedText, 0)
+		if names[name] {
+			t.Errorf("%s collides with an earlier address: %s", u, name)
+		}
+		names[name] = true
 	}
 }
 

@@ -16,7 +16,7 @@ Ivy wants one fact about [the product] and reads slowly at 200 percent text size
 2. Open the menu if there is one and say whether every item is readable.
 3. Follow the link to the fact.
 4. Read the page from top to bottom, scrolling only down.
-5. Run `a11y` and keep the layout rule IDs. Finish.
+5. Run `a11y` and keep the rule IDs. Finish.
 
 ## Success looks like
 
@@ -25,4 +25,4 @@ Ivy wants one fact about [the product] and reads slowly at 200 percent text size
 
 ## What to report
 
-Pages that needed sideways scrolling. Controls that overlapped or lost words. The `layout:` lines and the `a11y` rule IDs.
+Pages that needed sideways scrolling. Controls that overlapped or lost words. The `layout:` lines, the screenshot you saw them on and the `a11y` rule IDs.

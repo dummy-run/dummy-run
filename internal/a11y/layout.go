@@ -2,7 +2,9 @@ package a11y
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -110,11 +112,6 @@ func shoot(ctx context.Context, conn *bidi.Conn, cx, dir string, res *PageResult
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return
 	}
-	base := unsafeName.ReplaceAllString(strings.TrimPrefix(strings.TrimPrefix(res.URL, "https://"), "http://"), "-")
-	if len(base) > 60 {
-		base = base[:60]
-	}
-	setting := strings.ReplaceAll(res.Setting(), "/", "-")
 	taken := 0
 	for fi := range res.Violations {
 		f := &res.Violations[fi]
@@ -146,7 +143,7 @@ func shoot(ctx context.Context, conn *bidi.Conn, cx, dir string, res *PageResult
 			if err != nil {
 				continue
 			}
-			name := filepath.Join(dir, fmt.Sprintf("%s-%s-%s-%d.png", base, setting, strings.TrimPrefix(f.Rule, "dummyrun-"), ni+1))
+			name := screenshotName(dir, res, f.Rule, ni)
 			if err := os.WriteFile(name, png, 0o600); err != nil {
 				continue
 			}
@@ -159,6 +156,18 @@ func shoot(ctx context.Context, conn *bidi.Conn, cx, dir string, res *PageResult
 			taken++
 		}
 	}
+}
+
+// screenshotName is the file for the ni-th node of a rule on one page and setting. It ends in a short hash
+// of the address, because two addresses can share their first 60 characters or differ only in punctuation.
+func screenshotName(dir string, res *PageResult, rule string, ni int) string {
+	base := unsafeName.ReplaceAllString(strings.TrimPrefix(strings.TrimPrefix(res.URL, "https://"), "http://"), "-")
+	if len(base) > 60 {
+		base = base[:60]
+	}
+	sum := sha256.Sum256([]byte(res.URL))
+	setting := strings.ReplaceAll(res.Setting(), "/", "-")
+	return filepath.Join(dir, fmt.Sprintf("%s-%s-%s-%s-%d.png", base, hex.EncodeToString(sum[:4]), setting, strings.TrimPrefix(rule, "dummyrun-"), ni+1))
 }
 
 // clipAround pads a box so the crop shows what surrounds the element, and keeps it inside the page.

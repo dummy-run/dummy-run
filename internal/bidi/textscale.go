@@ -38,13 +38,23 @@ func TextScalePrefs(browser string, percent int) (chrome, firefox map[string]any
 		if percent == MinTextScale {
 			return nil, nil, nil
 		}
-		// x-western covers pages in Latin script. x-unicode is what Firefox uses when a page names no language.
-		return nil, map[string]any{
-			"font.size.variable.x-western": variable, "font.size.monospace.x-western": fixed,
-			"font.size.variable.x-unicode": variable, "font.size.monospace.x-unicode": fixed,
-		}, nil
+		// Firefox keeps a default size for each language group, chosen from the page's lang attribute.
+		// x-western is Latin script and x-unicode is what a page with no language gets.
+		prefs := make(map[string]any, 2*len(firefoxFontGroups))
+		for _, g := range firefoxFontGroups {
+			prefs["font.size.variable."+g] = variable
+			prefs["font.size.monospace."+g] = fixed
+		}
+		return nil, prefs, nil
 	}
 	return nil, nil, fmt.Errorf("browser %q: want chrome or firefox", browser)
+}
+
+// firefoxFontGroups are the language groups of Firefox's font preferences. A page's lang attribute picks one.
+var firefoxFontGroups = []string{
+	"x-western", "x-unicode", "x-cyrillic", "x-central-euro", "x-baltic", "el", "tr", "he", "ar", "th",
+	"ja", "ko", "zh-CN", "zh-HK", "zh-TW", "x-armn", "x-beng", "x-cans", "x-devanagari", "x-ethi",
+	"x-geor", "x-gujr", "x-guru", "x-khmr", "x-knda", "x-mlym", "x-orya", "x-sinh", "x-tamil", "x-telu", "x-tibt",
 }
 
 func scaled(px, percent int) int { return (px*percent + 50) / 100 }

@@ -174,8 +174,8 @@ text that follows the default font size grows.
 
 The engine sets it the way a user does, as the browser's default font size, when it starts the browser. On
 Chrome it writes `webkit.webprefs.default_font_size` and `default_fixed_font_size` into the profile through
-chromedriver's `prefs` option. On Firefox it writes `font.size.variable.x-western` and `font.size.monospace.x-western`
-into `user.js`, with the `x-unicode` pair for pages that name no language. A scale of 200 turns the 16 px default into 32 px.
+chromedriver's `prefs` option. On Firefox it writes `font.size.variable.<group>` and `font.size.monospace.<group>` into `user.js` for every language group.
+Firefox picks the size from the page's `lang` attribute. A page in Russian, Japanese or Arabic would otherwise stay at normal size. A scale of 200 turns the 16 px default into 32 px.
 The engine does not set a minimum font size. A minimum would also lift text that a page sets in `px` to the same
 floor, which a larger default size does not do. A page that sizes its text in `px` therefore looks half enlarged,
 as it does to the person. A real phone can differ: Android and iOS scale text by their own rules, and some
@@ -627,7 +627,7 @@ turn a passing sweep red.
 The checks are an approximation of what a person sees, and they say so in the `detail` of each node. Overlap
 skips a control inside another control, a pair that something else covers where they meet, and a fixed bar against
 content below the window. Target size follows the two exceptions in WCAG 2.5.8 that can be measured. A link inside
-a sentence is exempt, and so is a small target with no other target within 12 px of its centre. A checkbox or radio counts as
+a sentence is exempt, and so is a small target with room around it. A 24 px circle on its centre must meet no other target, and no circle of another small target. A checkbox or radio counts as
 large as its label. Disabled controls and elements 1 px or smaller, which pages use to hide text from the eye,
 are skipped. Overlap and clipping are the strongest signals. Check a target size finding by eye before you act on it.
 
