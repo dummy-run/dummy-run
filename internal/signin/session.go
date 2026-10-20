@@ -194,7 +194,9 @@ func (s *Session) Apply(ctx context.Context, conn StorageConn, hostOK func(host 
 	}
 	for _, o := range s.Origins {
 		u, err := url.Parse(o.Origin)
-		if err != nil || u.Host == "" || !hostOK(u.Hostname()) {
+		// Local storage is set only for https origins, or a local one, so a session file cannot plant
+		// values in a plain http origin of an allowed host.
+		if err != nil || u.Host == "" || !hostOK(u.Hostname()) || !secureAddress(o.Origin) {
 			out.Skipped += len(o.LocalStorage)
 			continue
 		}
@@ -228,16 +230,7 @@ const readStorageJS = `() => ({ origin: location.origin, items: Object.keys(loca
 // Capture reads the browser's cookies, and the local storage of the target's origin, into a session.
 func Capture(ctx context.Context, p *page.Page, t policy.Target) (*Session, error) {
 	conn := p.Conn()
-	cks, err := conn.GetCookies(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("read the cookies: %w", err)
-	}
 	s := &Session{Cookies: []SessionCookie{}, Origins: []SessionOrigin{}}
-	for _, ck := range cks {
-		if t.HostAllowed(strings.TrimPrefix(ck.Domain, ".")) {
-			s.Cookies = append(s.Cookies, fromBiDi(ck))
-		}
-	}
 	cx, err := conn.CreateContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("open a tab: %w", err)
@@ -269,6 +262,16 @@ func Capture(ctx context.Context, p *page.Page, t policy.Target) (*Session, erro
 		if len(ls.Items) > 0 && !seen[ls.Origin] {
 			seen[ls.Origin] = true
 			s.Origins = append(s.Origins, SessionOrigin{Origin: ls.Origin, LocalStorage: ls.Items})
+		}
+	}
+	// Cookies are read last, because visiting a page can refresh a session cookie.
+	cks, err := conn.GetCookies(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("read the cookies: %w", err)
+	}
+	for _, ck := range cks {
+		if t.HostAllowed(strings.TrimPrefix(ck.Domain, ".")) {
+			s.Cookies = append(s.Cookies, fromBiDi(ck))
 		}
 	}
 	if len(s.Cookies) == 0 && len(s.Origins) == 0 {

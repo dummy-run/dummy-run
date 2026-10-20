@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -68,7 +69,35 @@ func openLoginTab(ctx context.Context, p *page.Page, t policy.Target) (string, e
 		closeTab(p, cx)
 		return "", fmt.Errorf("load the login page %s: %w", t.LoginURL(), err)
 	}
+	// A redirect may have moved the page off https. The password is never typed into such a page.
+	var href string
+	if err := conn.CallFunctionJSON(ctx, cx, "() => location.href", &href); err != nil {
+		closeTab(p, cx)
+		return "", fmt.Errorf("read the login page address: %w", err)
+	}
+	if !secureAddress(href) {
+		closeTab(p, cx)
+		return "", fmt.Errorf("the login page ended up at %s, which is not https", hostOnly(href))
+	}
 	return cx, nil
+}
+
+// secureAddress reports whether an address uses https, or is a local address where http is accepted.
+func secureAddress(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	return u.Scheme == "https" || u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"
+}
+
+// hostOnly returns scheme and host without the path or query, which can hold tokens.
+func hostOnly(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "an address that cannot be read"
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 func closeTab(p *page.Page, cx string) {

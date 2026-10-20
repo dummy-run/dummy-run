@@ -110,3 +110,29 @@ func TestScrubErrorKeepsTheCause(t *testing.T) {
 		t.Error("the scrubbed error does not unwrap to the cancellation")
 	}
 }
+
+func TestApplySkipsStorageForAPlainHTTPOrigin(t *testing.T) {
+	s := &Session{Origins: []SessionOrigin{
+		{Origin: "http://app.test", LocalStorage: []StorageItem{{Name: "a", Value: "1"}}},
+		{Origin: "https://app.test", LocalStorage: []StorageItem{{Name: "b", Value: "2"}}},
+	}}
+	conn := &fakeConn{}
+	got, err := s.Apply(context.Background(), conn, func(string) bool { return true }, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Storage != 1 || len(conn.visited) != 1 || conn.visited[0] != "https://app.test/" {
+		t.Errorf("applied %+v and visited %v, want only the https origin", got, conn.visited)
+	}
+}
+
+func TestSecureAddress(t *testing.T) {
+	for raw, want := range map[string]bool{
+		"https://app.test/login": true, "http://app.test/login": false,
+		"http://localhost:3000/": true, "http://127.0.0.1:3000/": true, "ftp://app.test": false,
+	} {
+		if got := secureAddress(raw); got != want {
+			t.Errorf("secureAddress(%q) = %v, want %v", raw, got, want)
+		}
+	}
+}
