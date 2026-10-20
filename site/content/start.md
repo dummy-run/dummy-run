@@ -52,7 +52,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
   --browser firefox --provider azure --model <deployment> --region uksouth
 ```
 
-The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`. To use another provider, change `--provider`, `--model` and the sign-in. The [command line reference](../../docs/CLI.md) lists every flag.
+The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`. To try a persona on an app you are free to break, start [Inkwell](../../docs/INKWELL.md) with `go run ./examples/inkwell -test-login`. To use another provider, change `--provider`, `--model` and the sign-in. The [command line reference](../../docs/CLI.md) lists every flag.
 
 Every finding starts as `pending`. Check each one against its screenshots, then confirm or reject it with `dummyrun review ~/.local/share/dummyrun/runs/dummyrun-dev`. Confirmed findings count in a report by default. The option `--confirmed-only=false` also counts pending ones and marks the report as a demonstration (code: `internal/coverage/report.go`). The Review section of the [engine guide](../../docs/ENGINE.md) has the keys and the flags for scripts.
 
