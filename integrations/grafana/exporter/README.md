@@ -60,7 +60,7 @@ The OTLP token needs the `metrics:write`, `logs:write` and `traces:write` scopes
 separate service account token on the Grafana instance, because annotations use Grafana's HTTP API
 rather than OTLP.
 
-Grafana Cloud can answer HTTP 429 when annotations come too fast (inferred from the 429 answers the exporter has seen). The exporter waits half a second between
+Grafana Cloud can answer HTTP 429 when annotations come too fast (inferred from the 429 answers the exporter has seen). The exporter waits at least half a second between
 calls to the Grafana API. It retries a call that gets HTTP 429 up to five times. A lookup also retries on a 5xx error, but a create does not, because Grafana may have stored it. It waits
 for the `Retry-After` time when Grafana sends one. Without it the wait starts at one second and doubles each time.
 No single wait is longer than two minutes. If a call still fails, the exporter notes the annotation and
