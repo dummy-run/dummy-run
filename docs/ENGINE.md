@@ -491,7 +491,7 @@ Anyone running the engine can leave them off. The code is in `internal/robots`, 
   `DummyRun/<version> (+https://dummyrun.dev/scanner/)`. The browser's own text stays in front so sites render as they do for
   the browser. Both `run` and `a11y` set it through WebDriver BiDi (`emulation.setUserAgentOverride`) on Chrome and Firefox. The
   engine's own requests, such as `robots.txt` and the sitemap, carry the same suffix.
-- **`--respect-robots`.** The engine fetches `/robots.txt` from the target's origin once, before anything else, including the home-page hash and the browser. It reads
+- **`--respect-robots`.** The engine fetches `/robots.txt` from the target's origin before anything else, including the home-page hash and the browser. It reads
   the group for the token `DummyRun` and, if there is none, the group for `*`. It follows RFC 9309. Paths and patterns are compared after percent-encoding normalisation. The longest matching rule
   wins and `Allow` wins a tie. `*` and a final `$` work in patterns. `Crawl-delay` is ignored. A `4xx` answer means there are
   no rules. A `5xx` answer or a network failure means the whole site is off limits.

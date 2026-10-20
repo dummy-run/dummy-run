@@ -3,6 +3,7 @@ package a11y
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -80,6 +81,24 @@ func FetchSitemap(ctx context.Context, client *http.Client, loc string, allowed 
 			return nil
 		}
 		return allowed(ctx, l)
+	}
+	if allowed != nil {
+		// A redirect is a new request, so it is checked before it is followed.
+		c := *client
+		prev := c.CheckRedirect
+		c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			if err := check(req.URL.String()); err != nil {
+				return err
+			}
+			if prev != nil {
+				return prev(req, via)
+			}
+			if len(via) >= 10 {
+				return errors.New("stopped after 10 redirects")
+			}
+			return nil
+		}
+		client = &c
 	}
 	if err := check(loc); err != nil {
 		return nil, err
