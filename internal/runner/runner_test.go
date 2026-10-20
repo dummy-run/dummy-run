@@ -1,12 +1,16 @@
 package runner
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
@@ -54,16 +58,16 @@ func TestPatienceGivesUpAfterThreeFailedTries(t *testing.T) {
 }
 
 func TestParseFinishRepairsBadValues(t *testing.T) {
-	args := json.RawMessage(`{"verdict":"meh","report":"r","findings":[
-	  {"kind":"oops","severity":"huge","title":" The thing broke ","steps":[0,2,2,9],"evidence":"guess"},
+	args := json.RawMessage(`{"verdict":"meh","goal_met":"sort of","report":"r","findings":[
+	  {"kind":"oops","severity":"huge","symptom":"error-shown","title":" The thing broke ","steps":[0,2,2,9],"evidence":"guess"},
 	  {"kind":"bug","severity":"major","title":"","steps":[1],"evidence":"measured"},
 	  {"kind":"bug","severity":"major","title":"No steps","steps":[],"evidence":"measured"}]}`)
 	f, err := ParseFinish(args, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Verdict != "blocked" {
-		t.Errorf("verdict %q", f.Verdict)
+	if f.Verdict != "blocked" || f.GoalMet != "no" {
+		t.Errorf("verdict %q, goal_met %q", f.Verdict, f.GoalMet)
 	}
 	if len(f.Findings) != 1 {
 		t.Fatalf("findings %+v", f.Findings)
@@ -76,9 +80,9 @@ func TestParseFinishRepairsBadValues(t *testing.T) {
 		t.Error("accepted bad JSON")
 	}
 	recs := RecordFindings(Finish{Findings: []FinishFinding{
-		{Kind: "bug", Severity: "major", Title: "Same thing", Steps: []int{1}, Evidence: "measured"},
-		{Kind: "bug", Severity: "minor", Title: "Same thing!", Steps: []int{2}, Evidence: "measured"},
-	}})
+		{Kind: "bug", Severity: "major", Symptom: "error-shown", Title: "Same thing", Steps: []int{1}, Evidence: "measured"},
+		{Kind: "bug", Severity: "minor", Symptom: "error-shown", Title: "Same thing!", Steps: []int{2}, Evidence: "measured"},
+	}}, NewLocator([]Step{sampleStep(1, "look", ""), sampleStep(2, "look", "")}))
 	if len(recs) != 1 || recs[0].ID != "bug-same-thing" || recs[0].Verdict != record.VerdictPending {
 		t.Errorf("record findings %+v", recs)
 	}
@@ -118,7 +122,7 @@ func TestRenderAndSummary(t *testing.T) {
 		t.Error("missing snapshot not explained")
 	}
 	sum := Summary(sampleStep(2, "visit", "timeout"))
-	if !strings.HasPrefix(sum, "step 2: visit @1 · now at https://t.test/ · Home · error: timeout") {
+	if !strings.HasPrefix(sum, `step 2: visit @1 · now at https://t.test/ · title "Home" · error: timeout`) {
 		t.Errorf("summary %q", sum)
 	}
 }
@@ -176,5 +180,181 @@ func TestToolsCoverTheSchemaActions(t *testing.T) {
 	}
 	if len(Tools) != 13 {
 		t.Errorf("%d tools, want 13", len(Tools))
+	}
+}
+
+func TestGoalMetFallsBackToTheVerdict(t *testing.T) {
+	for verdict, want := range map[string]string{"pass": "yes", "friction": "partly", "fail": "no", "blocked": "no"} {
+		f, err := ParseFinish(json.RawMessage(`{"verdict":"`+verdict+`","report":"r","findings":[]}`), 3)
+		if err != nil || f.GoalMet != want {
+			t.Errorf("%s: goal_met %q (%v), want %q", verdict, f.GoalMet, err, want)
+		}
+	}
+	f, _ := ParseFinish(json.RawMessage(`{"verdict":"fail","goal_met":"partly","report":"r","findings":[]}`), 3)
+	if f.GoalMet != "partly" {
+		t.Errorf("goal_met the persona gave was replaced: %q", f.GoalMet)
+	}
+}
+
+func TestSymptomsAreBuiltAndValidated(t *testing.T) {
+	ok := map[string]FinishFinding{
+		"off-screen":                       {Symptom: "off-screen"},
+		"missing-information:uk-data-home": {Symptom: "missing-information", Topic: "UK data home!"},
+		"a11y:image-alt":                   {Symptom: "a11y", Rule: " Image-Alt "},
+	}
+	for want, ff := range ok {
+		ff.Title = "t"
+		got, err := ff.FullSymptom()
+		if err != nil || got != want {
+			t.Errorf("FullSymptom(%+v) = %q, %v; want %q", ff, got, err, want)
+		}
+	}
+	for _, ff := range []FinishFinding{{Symptom: "weird"}, {Symptom: ""}, {Symptom: "missing-information"}, {Symptom: "a11y"}, {Symptom: "a11y", Rule: "has space"}} {
+		if _, err := ff.FullSymptom(); err == nil {
+			t.Errorf("accepted %+v", ff)
+		}
+	}
+	f := Finish{Findings: []FinishFinding{{Symptom: "off-screen", Title: "a"}, {Symptom: "weird", Title: "b"}}}
+	if len(f.Problems()) != 1 {
+		t.Errorf("problems %v", f.Problems())
+	}
+	if n := f.DropInvalid(); n != 1 || len(f.Findings) != 1 || f.Findings[0].Title != "a" {
+		t.Errorf("DropInvalid dropped %d, left %+v", n, f.Findings)
+	}
+}
+
+func TestFinishToolOffersTheClosedSymptomList(t *testing.T) {
+	var finish map[string]any
+	for _, tool := range Tools {
+		if tool.Name == "finish" {
+			finish = tool.Parameters
+		}
+	}
+	props := finish["properties"].(map[string]any)
+	if _, ok := props["goal_met"]; !ok {
+		t.Error("finish has no goal_met")
+	}
+	item := props["findings"].(map[string]any)["items"].(map[string]any)
+	enum := item["properties"].(map[string]any)["symptom"].(map[string]any)["enum"].([]string)
+	if len(enum) != 17 {
+		t.Errorf("%d symptoms in the tool", len(enum))
+	}
+	required := item["required"].([]string)
+	if !contains(required, "symptom") {
+		t.Errorf("symptom is not required: %v", required)
+	}
+}
+
+func locatorSteps() []Step {
+	tree := "  banner\n  main\n    heading 1 \"Docs\"\n    navigation \"Docs menu\"\n      link \"Assessment taking too long\" @3\n      button (no name) @4\n    heading 2 \"Setup\"\n    button \"Save changes\" @5 [disabled]"
+	s1 := Step{N: 1, Obs: page.Observation{Action: "visit", URL: "https://x.test/users/12345/orders/?b=2&a=1",
+		Snapshot: &page.Snapshot{Headings: []string{"Docs", "Setup"}, Tree: tree, Controls: []page.Control{{Ref: "9", Tag: "input", Type: "checkbox", Label: "Remember me"}}}}}
+	s2 := Step{N: 2, Obs: page.Observation{Action: "click"}}
+	s3 := Step{N: 3, Obs: page.Observation{Action: "look", URL: "https://x.test/docs", Snapshot: &page.Snapshot{}}}
+	return []Step{s1, s2, s3}
+}
+
+func TestLocatorRoute(t *testing.T) {
+	l := NewLocator(locatorSteps())
+	for cited, want := range map[string]string{"1": "/users/:id/orders?a&b", "2": "/users/:id/orders?a&b", "3": "/docs", "2,3": "/docs", "3,1": "/users/:id/orders?a&b"} {
+		var steps []int
+		for _, p := range strings.Split(cited, ",") {
+			n := int(p[0] - '0')
+			steps = append(steps, n)
+		}
+		if got := l.Route(steps); got != want {
+			t.Errorf("Route(%v) = %q, want %q", steps, got, want)
+		}
+	}
+	if got := NewLocator(nil).Route([]int{4}); got != "/" {
+		t.Errorf("no steps: %q", got)
+	}
+}
+
+func TestLocatorLocus(t *testing.T) {
+	l := NewLocator(locatorSteps())
+	for _, c := range []struct {
+		control string
+		steps   []int
+		want    string
+	}{
+		{"@3", []int{1}, "link:assessment taking too long"},
+		{"3", []int{1}, "link:assessment taking too long"},
+		{"@4", []int{1}, "region:docs menu"}, // no name: the nearest landmark above
+		{"@5", []int{1}, "button:save changes"},
+		{"@9", []int{1}, "checkbox:remember me"}, // not in the outline: from the control list
+		{"", []int{1}, "region:docs"},            // no control: the first heading
+		{"@77", []int{1}, "region:docs"},         // a control the page does not have
+		{"@3", []int{3}, "page"},                 // a page with nothing to name
+		{"", nil, "page"},
+	} {
+		if got := l.Locus(c.steps, c.control); got != c.want {
+			t.Errorf("Locus(%v, %q) = %q, want %q", c.steps, c.control, got, c.want)
+		}
+	}
+}
+
+func TestRecordedFindingGetsEngineIdentity(t *testing.T) {
+	l := NewLocator(locatorSteps())
+	recs := RecordFindings(Finish{Findings: []FinishFinding{
+		{Kind: "friction", Severity: "major", Symptom: "off-screen", Control: "@3", Title: "Link off screen", Steps: []int{1}, Evidence: "measured", Class: record.ClassProblem},
+		{Kind: "bug", Severity: "minor", Symptom: "not-a-symptom", Title: "Dropped", Steps: []int{1}, Evidence: "measured"},
+	}}, l)
+	if len(recs) != 1 {
+		t.Fatalf("%+v", recs)
+	}
+	f := recs[0]
+	want, _ := identity.Fingerprint("/users/:id/orders?a&b", "link:assessment taking too long", "off-screen")
+	if f.Fingerprint != want || f.Route != "/users/:id/orders?a&b" || f.Symptom != "off-screen" || f.TaxonomyVersion != identity.TaxonomyVersion || f.Class != "problem" {
+		t.Errorf("%+v, want fingerprint %s", f, want)
+	}
+}
+
+func TestBuildHash(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		w.Header().Set("ETag", `"v1"`)
+		_, _ = w.Write([]byte("<html>home</html>"))
+	}))
+	defer srv.Close()
+	a, err := BuildHash(context.Background(), nil, srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := BuildHash(context.Background(), nil, srv.URL)
+	if len(a) != 12 || a != b || calls != 2 {
+		t.Errorf("hashes %q %q, %d calls", a, b, calls)
+	}
+	bad := httptest.NewServer(http.NotFoundHandler())
+	defer bad.Close()
+	if _, err := BuildHash(context.Background(), nil, bad.URL); err == nil {
+		t.Error("hashed a 404")
+	}
+}
+
+func TestCountRepeats(t *testing.T) {
+	dir := t.TempDir()
+	mk := func(id, batch, model string) {
+		r := &record.Record{SchemaVersion: record.SchemaVersion, ID: id, Batch: batch,
+			StartedAt: time.Now(), EndedAt: time.Now(),
+			Persona:  record.Persona{ID: "p", Role: "r", Device: "desktop", Dimensions: &record.Dimensions{}},
+			Scenario: record.Scenario{ID: "s", Title: "S", GoalMet: "yes"},
+			Target:   record.Target{Adapter: "url", Environment: "e", BaseURL: "https://t.test"},
+			Provider: record.Provider{Kind: "k", Model: model, Region: "g"}, Browser: record.Browser{Name: "chrome", Version: "1"},
+			Outcome: record.OutcomeCompleted, Steps: []record.Step{}, Findings: []record.Finding{}, Usage: record.Usage{}}
+		if _, err := record.Write(dir, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mk("2026-10-19-p-s-a", "b", "m")
+	mk("2026-10-19-p-s-b", "b", "m")
+	mk("2026-10-19-p-s-c", "b", "other")
+	mk("2026-10-19-p-s-d", "other", "m")
+	if got := CountRepeats(dir, "b", "p", "s", "m", "2026-10-19-p-s-new"); got != 2 {
+		t.Errorf("repeats %d, want 2", got)
+	}
+	if got := CountRepeats(dir, "b", "p", "s", "m", "2026-10-19-p-s-a"); got != 1 {
+		t.Errorf("repeats leaving out itself %d, want 1", got)
 	}
 }

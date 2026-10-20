@@ -1,0 +1,18 @@
+{{- /* An image in a page rendered from the repository's Markdown is written as a relative path, so it resolves on GitHub. This hook finds the file among the mounted repository docs and publishes it with the site. Anything else is written as it is. */ -}}
+{{- $src := .Destination -}}
+{{- $res := "" -}}
+{{- with .Page.Params.sourcedir -}}
+  {{- if not (or (hasPrefix $src "http") (hasPrefix $src "/")) -}}
+    {{- $res = resources.Get (path.Join "repo" . $src) -}}
+  {{- end -}}
+{{- end -}}
+{{- if $res -}}
+{{- /* Hugo cannot read the size of an SVG, so a vector image gets no width and height here. */ -}}
+{{- if eq $res.MediaType.SubType "svg" -}}
+<img src="{{ $res.RelPermalink }}" alt="{{ .PlainText }}" loading="lazy">
+{{- else -}}
+<img src="{{ $res.RelPermalink }}" alt="{{ .PlainText }}" width="{{ $res.Width }}" height="{{ $res.Height }}" loading="lazy">
+{{- end -}}
+{{- else -}}
+<img src="{{ $src | safeURL }}" alt="{{ .PlainText }}"{{ with .Title }} title="{{ . }}"{{ end }}>
+{{- end -}}

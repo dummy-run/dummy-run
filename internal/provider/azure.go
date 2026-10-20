@@ -82,6 +82,9 @@ func (a *Azure) Chat(ctx context.Context, req Request) (Response, error) {
 	completion, err := a.client.Chat.Completions.New(ctx, params)
 	if err != nil {
 		var apiErr *openai.Error
+		if errors.As(err, &apiErr) && isFilterAPIError(apiErr.Code, apiErr.Message) {
+			return Response{}, filtered("azure", apiErr.Message, err)
+		}
 		if errors.As(err, &apiErr) && apiErr.Message != "" {
 			return Response{}, fmt.Errorf("provider: azure: %d %s: %s (%w)", apiErr.StatusCode, apiErr.Code, apiErr.Message, err)
 		}
@@ -91,7 +94,11 @@ func (a *Azure) Chat(ctx context.Context, req Request) (Response, error) {
 }
 
 // Capabilities reads the capability table.
-func (a *Azure) Capabilities() Capabilities { return capabilityTable[a.Kind()] }
+func (a *Azure) Capabilities() Capabilities {
+	c := capabilityTable[a.Kind()]
+	c.Seed = c.Seed && a.api != APIResponses // the Responses API has no seed
+	return c
+}
 
 // chatParams maps a Request onto the chat completions API for Azure, which is
 // told to call a tool every turn.
@@ -141,6 +148,9 @@ func chatParamsWith(model string, req Request, choice string) openai.ChatComplet
 	if req.MaxOutputTokens > 0 {
 		params.MaxCompletionTokens = openai.Int(int64(req.MaxOutputTokens))
 	}
+	if req.Seed != nil {
+		params.Seed = openai.Int(*req.Seed)
+	}
 	for _, tool := range req.Tools {
 		def := shared.FunctionDefinitionParam{Name: tool.Name, Description: openai.String(tool.Description)}
 		if tool.Parameters != nil {
@@ -169,6 +179,12 @@ func fromCompletion(c *openai.ChatCompletion) (Response, error) {
 	}
 	choice := c.Choices[0]
 	resp.FinishReason = choice.FinishReason
+	if isFilterReason(choice.FinishReason) {
+		return resp, filtered("chat completions", "finish reason "+choice.FinishReason, nil)
+	}
+	if strings.TrimSpace(choice.Message.Refusal) != "" && len(choice.Message.ToolCalls) == 0 {
+		return resp, filtered("chat completions", "the model refused to answer", nil)
+	}
 	resp.Text = choice.Message.Content
 	for _, tc := range choice.Message.ToolCalls {
 		if tc.Type != "function" && tc.Type != "" {

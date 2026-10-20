@@ -31,7 +31,7 @@ flowchart TB
 | LLM provider | Play the persona; review claims. Separate models for the two jobs | Azure OpenAI, Anthropic, Gemini on Vertex AI or the Developer API, Amazon Bedrock and any OpenAI-compatible service, all built. See [PROVIDERS.md](PROVIDERS.md) |
 | Runner host | Where the browser runs | Laptop; GitHub Actions; Kubernetes job (Helm); Cloud Run jobs; Azure Container Apps jobs |
 | Results store | Where run records and the board live | Local directory; object storage (GCS, Azure Blob, S3); the board is always static files on top |
-| Secrets | Test-user credentials and provider keys | OS keychain; CI secrets; Secret Manager; Key Vault |
+| Secrets | Test-user credentials and provider keys | Environment variables, filled from the OS keychain, CI secrets, Secret Manager or Key Vault. Test-user credentials are read by name from the target file's `signin` block |
 
 An adapter declares the regions it can run in. A market profile (for example `uk`) lists the regions
 that satisfy it (`europe-west2`, `uksouth`, `ukwest`). A run refuses to start if any adapter in the chain
@@ -50,13 +50,13 @@ carries one of four tags:
 | sourced | Stated in an issue or document |
 | inferred | Our reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them.
+High-severity findings wait for a person to confirm them. The page is untrusted input. The engine fences its text (code: `internal/inject/inject.go` and `internal/runner/observe.go`). It flags text that tries to instruct the persona (code: `internal/inject/inject.go` and `internal/runner/inspect.go`). It files a `security` finding for that text (code: `internal/runner/inspect.go`). See [Threat model](THREAT-MODEL.md).
 
 ## Browsers
 
 Chrome and Firefox are driven through WebDriver BiDi, so the same session code drives both. A persona's
 device sets the window size (desktop, tablet or phone), and a persona or scenario may set page zoom. The
-user agent is the browser's own, with `DummyRun/<version>` added at the end. Real devices will come
+user agent is the browser's own, with `DummyRun/<version>` added at the end (`--identify` also adds a contact URL). Real devices will come
 through an adapter for a hosted browser grid.
 
 ## Deployment

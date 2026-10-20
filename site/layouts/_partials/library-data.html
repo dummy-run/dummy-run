@@ -1,0 +1,41 @@
+{{- /* The persona library, read from casts/library at build time so the page cannot drift from the personas. Returns a slice of dicts. */ -}}
+{{- $needs := dict
+  "vision" "Vision" "movement" "Movement" "understanding" "Understanding"
+  "language" "Language" "device" "Device" "permissions" "Permissions" -}}
+{{- $order := slice "vision" "movement" "understanding" "language" "device" "permissions" -}}
+{{- $out := slice -}}
+{{- range resources.Match "repo/casts/library/*/profile.md" -}}
+  {{- $dir := path.Dir .Name -}}
+  {{- $id := path.Base $dir -}}
+  {{- $parts := split (replaceRE `\r` "" .Content) "\n---\n" -}}
+  {{- if lt (len $parts) 2 }}{{ errorf "library: %s has no front matter" .Name }}{{ end -}}
+  {{- $meta := dict -}}
+  {{- range split (strings.TrimPrefix "---\n" (index $parts 0)) "\n" -}}
+    {{- $kv := split . ":" -}}
+    {{- if gt (len $kv) 1 }}{{ $meta = merge $meta (dict (trim (index $kv 0) " ") (trim (delimit (after 1 $kv) ":") " ")) }}{{ end -}}
+  {{- end -}}
+  {{- range slice "name" "label" "need" "summary" "finds" "device" "role" -}}
+    {{- if not (index $meta .) }}{{ errorf "library: %s/profile.md needs %q" $id . }}{{ end -}}
+  {{- end -}}
+  {{- $need := $meta.need -}}
+  {{- if not (index $needs $need) }}{{ errorf "library: %s has the unknown need %q" $id $need }}{{ end -}}
+  {{- $rank := 0 -}}
+  {{- range $i, $k := $order }}{{ if eq $k $need }}{{ $rank = $i }}{{ end }}{{ end -}}
+  {{- $title := "" -}}
+  {{- with findRESubmatch `(?m)^# (.+)$` (index $parts 1) 1 }}{{ $title = index (index . 0) 1 }}{{ end -}}
+  {{- $scen := slice -}}
+  {{- range resources.Match (printf "repo/casts/library/%s/scenarios/*.md" $id) -}}
+    {{- $sid := replaceRE `^\d+-` "" (strings.TrimSuffix ".md" (path.Base .Name)) -}}
+    {{- $st := "" -}}
+    {{- with findRESubmatch `(?m)^# (.+)$` .Content 1 }}{{ $st = index (index . 0) 1 }}{{ end -}}
+    {{- $scen = $scen | append (dict "id" $sid "title" $st) -}}
+  {{- end -}}
+  {{- $out = $out | append (dict
+    "id" $id "name" $meta.name "title" $title "label" $meta.label
+    "need" $need "order" $rank "needLabel" (index $needs $need)
+    "summary" $meta.summary "finds" $meta.finds "limit" $meta.limit
+    "device" $meta.device "role" $meta.role "zoom" $meta.zoom
+    "denied" (index $meta "tools-denied") "leans" (split (index $meta "leans-on") " ")
+    "scenarios" $scen) -}}
+{{- end -}}
+{{- return (sort (sort $out "id") "order") -}}

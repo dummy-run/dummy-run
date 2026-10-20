@@ -5,6 +5,11 @@ role: admin
 device: desktop
 tags: permissions roles access-control
 leans-on: look click fill visit
+label: Admin
+need: permissions
+summary: Manages one organisation. Probes what even an admin should not see or do.
+finds: Data from other organisations, secrets shown in full, and removing the last admin.
+limit: Needs a sign-in and a target that allows changes. Use test data.
 ---
 # Ada, admin
 

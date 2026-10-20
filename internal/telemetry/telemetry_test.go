@@ -98,11 +98,22 @@ func TestHeaders(t *testing.T) {
 }
 
 func TestUserAgent(t *testing.T) {
-	ua := UserAgent("Mozilla/5.0 Firefox/158.0")
+	ua := UserAgent("Mozilla/5.0 Firefox/158.0", false)
 	if !strings.HasSuffix(ua, "DummyRun/"+Version) {
 		t.Errorf("got %q", ua)
 	}
-	if UserAgent(ua) != ua {
+	if UserAgent(ua, false) != ua {
 		t.Error("suffix added twice")
+	}
+	id := UserAgent("Mozilla/5.0 Firefox/158.0", true)
+	want := "Mozilla/5.0 Firefox/158.0 DummyRun/" + Version + " (+https://dummyrun.dev/scanner/)"
+	if id != want {
+		t.Errorf("identified user agent %q, want %q", id, want)
+	}
+	if UserAgent(id, true) != id {
+		t.Error("identified suffix added twice")
+	}
+	if RequestUserAgent(true) != IdentifiedSuffix() || RequestUserAgent(false) != "DummyRun/"+Version {
+		t.Error("request user agent")
 	}
 }

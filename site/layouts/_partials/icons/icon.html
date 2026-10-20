@@ -13,6 +13,13 @@
   "tick" `<path d="M5 12.5l4.5 4.5L19 7.5"/>`
   "cross" `<path d="M6 6l12 12M18 6 6 18"/>`
   "out" `<path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/>`
+  "vision" `<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>`
+  "movement" `<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7.5 14.5h9"/>`
+  "understanding" `<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>`
+  "language" `<path d="M4 6h9M8.5 4v2M6 6c.5 3 2.5 5.500 5.500 7M11.500 6c-.5 3-3 6-7 7.500"/><path d="M13 20l4-10 4 10M14.500 17h5"/>`
+  "device" `<rect x="7" y="2.500" width="10" height="19" rx="2.500"/><path d="M11 18.500h2"/>`
+  "copy" `<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>`
+  "permissions" `<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v2"/>`
   "lock" `<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>`
 -}}
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"{{ with .class }} class="{{ . }}"{{ end }}>{{ index $d .name | safeHTML }}</svg>

@@ -15,6 +15,9 @@
 //	tools-allowed: press look     the only tools the persona may use (finish is always allowed)
 //	tools-denied: click           tools the persona may not use
 //
+// The persona key "signin: editor" and the scenario line "Sign in as: editor" pick which of the target's
+// credentials roles the engine signs in as before the run. "none" turns it off.
+//
 // A scenario file can set "Device: phone", "Zoom: 200%" and "Budget: 30 steps"
 // on lines of their own; Device and Zoom there replace the persona's. A Device
 // line may carry prose after the device name ("Device: desktop. Start at the
@@ -44,6 +47,9 @@ type Persona struct {
 	Device string
 	// Name is a display name from the front matter, optional.
 	Name string
+	// Signin is the credentials role the persona signs in as, from the front matter key "signin".
+	// "none" means the persona never signs in. Empty means the target decides: see SigninRole.
+	Signin string
 	// Zoom is the persona's page zoom in percent, or 0 for 100.
 	Zoom int
 	// ToolsAllowed, when not empty, lists the only tools the persona may use.
@@ -68,6 +74,8 @@ type Scenario struct {
 	Device string
 	// Zoom is the page zoom in percent the scenario asked for, or 0 to use the persona's.
 	Zoom int
+	// Signin is the role from a "Sign in as: ROLE" line, "none" for no sign-in, or "" to use the persona's.
+	Signin string
 	// Body is the whole Markdown file.
 	Body string
 }
@@ -95,7 +103,7 @@ func Load(castDir, personaID string) (*Persona, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cast: %s/profile.md: %w", personaID, err)
 	}
-	p := &Persona{ID: meta["id"], Role: meta["role"], Device: meta["device"], Name: meta["name"], Profile: body}
+	p := &Persona{ID: meta["id"], Role: meta["role"], Device: meta["device"], Name: meta["name"], Signin: strings.ToLower(meta["signin"]), Profile: body}
 	if p.ID != personaID {
 		return nil, fmt.Errorf("cast: %s/profile.md has id %q", personaID, p.ID)
 	}
@@ -159,6 +167,7 @@ var (
 	budgetLine   = regexp.MustCompile(`(?m)^Budget:\s*([0-9]+)`)
 	titleLine    = regexp.MustCompile(`(?m)^#\s+(.+)$`)
 	deviceLine   = regexp.MustCompile(`(?mi)^Device:[ \t]*([^\s.]*)`)
+	signinLine   = regexp.MustCompile(`(?mi)^Sign in(?: as)?:[ \t]*([^\s.]*)`)
 	zoomLine     = regexp.MustCompile(`(?mi)^Zoom:[ \t]*([^\n]*)$`)
 )
 
@@ -201,6 +210,22 @@ func parseTools(v string) ([]string, error) {
 	return out, nil
 }
 
+// SigninRole says which credentials role to sign in as for a scenario, and whether the choice was
+// explicit. The scenario's "Sign in as:" line comes first, then the persona's "signin" key. With
+// neither, the persona's role is used when the target has credentials for it (the caller checks),
+// so the library's role-admin signs in as admin on a target that has an admin. "none" gives "".
+func (p *Persona) SigninRole(s Scenario) (role string, explicit bool) {
+	for _, v := range []string{s.Signin, p.Signin} {
+		if v == "none" {
+			return "", true
+		}
+		if v != "" {
+			return v, true
+		}
+	}
+	return strings.ToLower(p.Role), false
+}
+
 // Allows reports whether the persona may call the tool. finish is always
 // allowed: it is how a run ends.
 func (p *Persona) Allows(tool string) bool {
@@ -211,6 +236,19 @@ func (p *Persona) Allows(tool string) bool {
 		return false
 	}
 	return len(p.ToolsAllowed) == 0 || slices.Contains(p.ToolsAllowed, tool)
+}
+
+// AT is the assistive technology or modality the persona's tool limits emulate, as the run record's
+// persona.dimensions.at names it: keyboard-only when the persona cannot click, screen-reader-view when
+// it is not sent screenshots, otherwise none. Nothing else is emulated.
+func (p *Persona) AT() string {
+	switch {
+	case !p.Allows("click"):
+		return "keyboard-only"
+	case !p.Allows("screenshot"):
+		return "screen-reader-view"
+	}
+	return "none"
 }
 
 // Refused lists the tools from names that the persona may not use, in the order given.
@@ -282,6 +320,12 @@ func LoadScenario(path string) (Scenario, error) {
 		if _, ok := Devices[s.Device]; !ok {
 			return Scenario{}, fmt.Errorf("cast: %s device %q must be desktop, tablet or phone", path, m[1])
 		}
+	}
+	if m := signinLine.FindStringSubmatch(s.Body); m != nil {
+		if m[1] == "" {
+			return Scenario{}, fmt.Errorf("cast: %s has a Sign in line with no role; write \"Sign in as: admin\" or \"Sign in as: none\"", path)
+		}
+		s.Signin = strings.ToLower(m[1])
 	}
 	if m := zoomLine.FindStringSubmatch(s.Body); m != nil {
 		z, err := ParseZoom(m[1])

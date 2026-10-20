@@ -1,0 +1,63 @@
+{{- /* The audit request form. Until site.Params.audit_form_enabled is true it shows an email fallback and nothing from the page reaches the API or Cloudflare Turnstile. Without JavaScript the form posts to the API and the API redirects to /audit/thanks/ or /audit/problem/. */ -}}
+{{- if site.Params.audit_form_enabled -}}
+<form class="req-form" method="post" action="{{ site.Params.audit_endpoint }}" data-audit>
+  <div class="field">
+    <label for="audit-name">Your name</label>
+    <input id="audit-name" name="name" type="text" maxlength="100" autocomplete="name" required>
+  </div>
+  <div class="field">
+    <label for="audit-email">Email address</label>
+    <input id="audit-email" name="email" type="email" autocomplete="email" required>
+  </div>
+  <div class="field">
+    <label for="audit-organisation">Organisation <span class="field-hint">(optional)</span></label>
+    <input id="audit-organisation" name="organisation" type="text" maxlength="150" autocomplete="organization">
+  </div>
+  <div class="field">
+    <label for="audit-website">Website to audit</label>
+    <input id="audit-website" name="site_url" type="text" inputmode="url" autocomplete="url" placeholder="example.com" required>
+  </div>
+  <div class="field">
+    <label for="audit-needs">What do you need?</label>
+    <textarea id="audit-needs" name="need" rows="6" maxlength="2000" required></textarea>
+  </div>
+  <div class="field">
+    <label for="audit-timing">Preferred timing</label>
+    <select id="audit-timing" name="timing" required>
+      <option value="" selected disabled>Choose one</option>
+      <option value="asap">As soon as possible</option>
+      <option value="within_month">Within a month</option>
+      <option value="later">Later</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="audit-heard">How did you hear about us? <span class="field-hint">(optional)</span></label>
+    <input id="audit-heard" name="heard_from" type="text" maxlength="200">
+  </div>
+  <div class="field field-check">
+    <input id="audit-consent" name="consent" type="checkbox" value="on" required>
+    <label for="audit-consent">Contact me about this request</label>
+  </div>
+  {{- with site.Params.waitlist_turnstile_sitekey }}
+  <div class="cf-turnstile" data-sitekey="{{ . }}" data-theme="auto"></div>
+  {{- end }}
+  <button class="btn" type="submit">Send the request</button>
+  <p id="audit-status" class="form-status" role="status" aria-live="polite"></p>
+</form>
+<noscript><p class="field-hint">Without JavaScript the human check may not show. If it does not, email <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p></noscript>
+<p class="field-hint">This form loads Cloudflare Turnstile, a human check. <a href="/privacy/">Privacy</a>. You can also write to <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p>
+{{- with site.Params.waitlist_turnstile_sitekey }}
+{{- /* nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare says not to pin Turnstile with SRI, because the script must update itself. */}}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{{- end }}
+{{- else -}}
+<div class="req-fallback">
+  <p>The request form is not open yet. Email <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a> instead and tell us:</p>
+  <ul>
+    <li>the website to audit</li>
+    <li>what you need</li>
+    <li>when you would like it done</li>
+  </ul>
+  <p class="actions"><a class="btn" href="mailto:hello@dummyrun.dev?subject=Audit%20request">Email hello@dummyrun.dev</a></p>
+</div>
+{{- end -}}

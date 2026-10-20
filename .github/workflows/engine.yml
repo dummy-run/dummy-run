@@ -63,7 +63,10 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - name: Embedded schema matches the repository copy
-        run: cmp internal/record/run-record.schema.json schema/run-record.schema.json
+        run: |
+          cmp internal/record/run-record.schema.json schema/run-record.schema.json
+          cmp internal/record/run-record.v1.schema.json schema/run-record.v1.schema.json
+          cmp internal/report/report.schema.json schema/report.schema.json
       - name: go vet
         run: go vet ./...
       - name: go test with the race detector and coverage
@@ -121,4 +124,7 @@ jobs:
       - name: Run the conformance suite, the tool suite and the end-to-end run on both browsers
         env:
           DUMMYRUN_BROWSERS: chrome,firefox
-        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/
+        run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd|TestLaunchAndClose|TestServerWithRealBrowsers' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/ ./internal/mcpserver/
+      - name: No engine browser or profile directory is left behind
+        if: always()
+        run: go run ./cmd/dummyrun doctor

@@ -229,3 +229,59 @@ func TestDisplay(t *testing.T) {
 		t.Errorf("zoom: big gave %v", err)
 	}
 }
+
+func TestATFollowsTheToolLimits(t *testing.T) {
+	for _, c := range []struct {
+		p    Persona
+		want string
+	}{
+		{Persona{}, "none"},
+		{Persona{ToolsDenied: []string{"click"}}, "keyboard-only"},
+		{Persona{ToolsAllowed: []string{"press", "look"}}, "keyboard-only"},
+		{Persona{ToolsDenied: []string{"screenshot"}}, "screen-reader-view"},
+		{Persona{ToolsDenied: []string{"scroll"}}, "none"},
+	} {
+		if got := c.p.AT(); got != c.want {
+			t.Errorf("%+v: AT %q, want %q", c.p, got, c.want)
+		}
+	}
+}
+
+func TestSigninRole(t *testing.T) {
+	p := &Persona{ID: "x", Role: "Admin"}
+	if r, explicit := p.SigninRole(Scenario{}); r != "admin" || explicit {
+		t.Errorf("default %q %v", r, explicit)
+	}
+	p.Signin = "editor"
+	if r, explicit := p.SigninRole(Scenario{}); r != "editor" || !explicit {
+		t.Errorf("persona key %q %v", r, explicit)
+	}
+	if r, explicit := p.SigninRole(Scenario{Signin: "viewer"}); r != "viewer" || !explicit {
+		t.Errorf("scenario line %q %v", r, explicit)
+	}
+	if r, explicit := p.SigninRole(Scenario{Signin: "none"}); r != "" || !explicit {
+		t.Errorf("none %q %v", r, explicit)
+	}
+}
+
+func TestScenarioSigninLine(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	s, err := LoadScenario(write("01-a.md", "# A\n\nSign in as: Editor\n\nDo it.\n"))
+	if err != nil || s.Signin != "editor" {
+		t.Fatalf("%+v %v", s, err)
+	}
+	s, err = LoadScenario(write("02-b.md", "# B\n\nSign in: none.\n"))
+	if err != nil || s.Signin != "none" {
+		t.Fatalf("%+v %v", s, err)
+	}
+	if _, err := LoadScenario(write("03-c.md", "# C\n\nSign in as:\n")); err == nil {
+		t.Error("a Sign in line with no role was accepted")
+	}
+}

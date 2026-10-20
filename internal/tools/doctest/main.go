@@ -5,8 +5,8 @@
 //	<!-- doctest site -->
 //
 // The commands run against dummyrun and dummyrun-otel built from the working tree, from the repository
-// root. Only safe commands are allowed: version, help, dummyrun-otel export --dry-run and dummyrun a11y
-// on a site served on this machine. A block marked "site" needs the built site served on port 1313 and
+// root. Only safe commands are allowed: version, help, dummyrun-otel export --dry-run, dummyrun coverage
+// without --out, and dummyrun a11y on a site served on this machine. A block marked "site" needs the built site served on port 1313 and
 // runs only with -site. Use it from CI after the site is built.
 //
 //	go run ./internal/tools/doctest         run the blocks that need nothing else

@@ -72,6 +72,8 @@ jobs:
       - name: Install the check tools
         working-directory: site
         run: npm ci --no-audit --no-fund
+      - name: Social cards are up to date
+        run: go run ./internal/tools/socialcards -check
       - name: Build
         working-directory: site
         run: hugo --gc --minify --panicOnWarning --printPathWarnings --printUnusedTemplates
@@ -126,6 +128,9 @@ jobs:
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
           --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-firefox.json"
           http://127.0.0.1:1313/404.html
+      - name: No engine browser or profile directory is left behind
+        if: ${{ !cancelled() }}
+        run: '"$RUNNER_TEMP/dummyrun" doctor'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:

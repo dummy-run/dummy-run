@@ -69,6 +69,9 @@ type Request struct {
 	ForceTool string
 	// MaxOutputTokens caps the reply.
 	MaxOutputTokens int
+	// Seed is the sampling seed for backends whose Capabilities.Seed is true, or nil. Backends
+	// without a seed ignore it.
+	Seed *int64
 }
 
 // Usage is the token count of one call.

@@ -2,6 +2,7 @@ package record
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,6 +41,22 @@ func TestExamplesLoad(t *testing.T) {
 		if f.Run.EndedAt.Before(f.Run.StartedAt) {
 			t.Errorf("%s: ends before it starts", f.Path)
 		}
+	}
+}
+
+// A record that dummyrun review has edited still loads, and the exporter reads the verdict the reviewer set.
+func TestReviewedFindingsLoad(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := v.LoadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := run.Findings[0]
+	if f.Verdict != "confirmed" || f.Reviewer == "" || f.ReviewedAt == nil || run.ConfirmedFindings() != 1 {
+		t.Errorf("reviewed finding: %+v", f)
 	}
 }
 
@@ -187,4 +204,108 @@ func record(fs []Finding, id string) Finding {
 		}
 	}
 	return Finding{}
+}
+
+func TestVersionOneRecordsStillLoad(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	// Turn the version 2 example into a version 1 record by removing what version 2 added.
+	m["schema_version"] = 1
+	delete(m, "repeat_index")
+	delete(m, "seed")
+	delete(m["persona"].(map[string]any), "dimensions")
+	delete(m["scenario"].(map[string]any), "goal_met")
+	delete(m["usage"].(map[string]any), "cost_usd")
+	for _, s := range m["steps"].([]any) {
+		delete(s.(map[string]any), "route")
+	}
+	for _, f := range m["findings"].([]any) {
+		for _, k := range []string{"class", "route", "locus", "symptom", "taxonomy_version", "fingerprint", "reviewer", "reviewed_at"} {
+			delete(f.(map[string]any), k)
+		}
+	}
+	v1, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := v.Parse(v1)
+	if err != nil {
+		t.Fatalf("version 1 record rejected: %v", err)
+	}
+	if run.SchemaVersion != 1 || run.Findings[0].Fingerprint != "" {
+		t.Errorf("%+v", run)
+	}
+	// A version 1 record must not carry version 2 fields, and an unknown version is refused.
+	m["repeat_index"] = 0
+	bad, _ := json.Marshal(m)
+	if _, err := v.Parse(bad); err == nil {
+		t.Error("version 1 record with repeat_index accepted")
+	}
+	m["schema_version"] = 3
+	bad, _ = json.Marshal(m)
+	if _, err := v.Parse(bad); err == nil {
+		t.Error("schema_version 3 accepted")
+	}
+}
+
+func TestRecordWithSigninBlockLoads(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	m["signin"] = map[string]any{"method": "form", "role": "editor", "ok": true, "duration_ms": 700,
+		"allowed_request": map[string]any{"method": "POST", "url": "https://example.test/signin"}}
+	b, _ := json.Marshal(m)
+	run, err := v.Parse(b)
+	if err != nil {
+		t.Fatalf("a record with a sign-in block was rejected: %v", err)
+	}
+	if run.Signin == nil || run.Signin.Role != "editor" || run.Signin.AllowedRequest == nil {
+		t.Errorf("signin %+v", run.Signin)
+	}
+}
+
+func TestRecordsWithEventsLoad(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	m["events"] = []any{map[string]any{"kind": "suspected_injection", "detail": "ignore previous instructions", "step": 1, "source": "hidden", "pattern": "ignore-previous"}}
+	withEvents, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := v.Parse(withEvents)
+	if err != nil {
+		t.Fatalf("a record with events must load: %v", err)
+	}
+	if len(run.Events) != 1 {
+		t.Errorf("%d events kept, want 1", len(run.Events))
+	}
 }

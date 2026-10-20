@@ -2,12 +2,14 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -173,4 +175,88 @@ func keys(m map[string]Finding) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+func robotsServer(t *testing.T, robots string) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/robots.txt" {
+			_, _ = fmt.Fprint(w, robots)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, fixtureBad)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestRobotsSiteWideDisallowStartsNoBrowser(t *testing.T) {
+	srv := robotsServer(t, "User-agent: DummyRun\nDisallow: /\n")
+	rep, err := Run(context.Background(), Config{URLs: []string{srv.URL + "/", srv.URL + "/a"}, Browser: "chrome", Headless: true, RespectRobots: true})
+	if !errors.Is(err, ErrRobotsDisallow) {
+		t.Fatalf("err = %v, want ErrRobotsDisallow", err)
+	}
+	if rep.Summary.Skipped != 2 || rep.Summary.Runs != 0 || rep.Failed() || !rep.RespectRobots {
+		t.Errorf("summary %+v", rep.Summary)
+	}
+	if !strings.Contains(rep.Results[0].Skipped, "robots.txt") {
+		t.Errorf("skipped %q", rep.Results[0].Skipped)
+	}
+}
+
+func TestFilterRobotsSkipsOnlyDisallowedPages(t *testing.T) {
+	srv := robotsServer(t, "User-agent: *\nDisallow: /private\n")
+	ok, skipped, err := filterRobots(context.Background(), Config{URLs: []string{srv.URL + "/", srv.URL + "/private/x", srv.URL + "/blog"}, Identify: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ok) != 2 || len(skipped) != 1 || skipped[0].URL != srv.URL+"/private/x" {
+		t.Errorf("allowed %v skipped %+v", ok, skipped)
+	}
+}
+
+// TestIdentifyAndRobotsInBrowser sweeps two pages on each browser in DUMMYRUN_BROWSERS with both settings on.
+// The disallowed page is skipped without a request and the other arrives with the identified user agent.
+func TestIdentifyAndRobotsInBrowser(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser test")
+	}
+	var mu sync.Mutex
+	agents := map[string]string{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		agents[r.URL.Path] = r.Header.Get("User-Agent")
+		mu.Unlock()
+		if r.URL.Path == "/robots.txt" {
+			_, _ = fmt.Fprint(w, "User-agent: DummyRun\nDisallow: /private\n")
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, fixtureGood)
+	}))
+	t.Cleanup(srv.Close)
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/open", srv.URL + "/private"}, Browser: browser,
+				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Identify: true, RespectRobots: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rep.Summary.Skipped != 1 || rep.Summary.Runs != 1 || rep.Summary.PageErrors != 0 || !rep.Identify || !rep.RespectRobots {
+				t.Errorf("summary %+v", rep.Summary)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if ua := agents["/open"]; !strings.Contains(ua, "Mozilla/5.0") || !strings.HasSuffix(ua, " (+https://dummyrun.dev/scanner/)") || !strings.Contains(ua, "DummyRun/") {
+				t.Errorf("user agent %q", ua)
+			}
+			if _, seen := agents["/private"]; seen {
+				t.Error("the disallowed page was requested")
+			}
+		})
+	}
 }

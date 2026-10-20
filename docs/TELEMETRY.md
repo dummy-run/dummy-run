@@ -4,8 +4,11 @@ Dummy Run describes every run in OpenTelemetry. Any OpenTelemetry backend can st
 integration in `integrations/grafana/` uses Tempo, Loki and Prometheus or Mimir. This page is the contract
 between the runner, the exporter and the dashboards. Change it here first.
 
-The source of truth is the run record, defined by `schema/run-record.schema.json`. Synthetic examples
-are in `examples/runs/`.
+The source of truth is the run record, defined by `schema/run-record.schema.json` (schema version 2).
+Synthetic examples are in `examples/runs/`. The exporter also reads version 1 records, which have none of
+the version 2 fields, so the attributes marked "version 2" are left out for them.
+`dummyrun.cost.usd` is present when the model is in the price table, and the record has `cost_usd: null`
+otherwise.
 
 ## Resource
 
@@ -14,6 +17,8 @@ are in `examples/runs/`.
 | `service.name` | `dummyrun` |
 | `service.version` | The Dummy Run version |
 | `service.namespace` | Optional. Set it to the target app's name to group runs by app |
+
+The exporter does not map the optional record fields `target.identify`, `target.respect_robots` and `outcome_reason`. Records that leave them out stay valid, because they are optional in schema version 2.
 
 ## Traces
 
@@ -36,10 +41,14 @@ Root span attributes:
 | `dummyrun.persona.role` | `persona.role` |
 | `dummyrun.persona.device` | `persona.device` |
 | `dummyrun.persona.zoom` | `persona.zoom`, when present |
+| `dummyrun.persona.at` | `persona.dimensions.at`, when it is not null (version 2 records) |
 | `dummyrun.scenario.id` | `scenario.id` |
+| `dummyrun.scenario.goal_met` | `scenario.goal_met`, when present (version 2 records) |
+| `dummyrun.repeat_index` | `repeat_index` (version 2 records) |
 | `dummyrun.target.adapter` | `target.adapter` |
 | `dummyrun.target.environment` | `target.environment` |
 | `dummyrun.target.commit` | `target.commit`, when present |
+| `dummyrun.target.build_hash` | `target.build_hash`, when present |
 | `url.full` | `target.base_url` |
 | `gen_ai.system` | `provider.kind` |
 | `gen_ai.request.model` | `provider.model` |
@@ -51,11 +60,11 @@ Root span attributes:
 | `dummyrun.cost.usd` | `usage.cost_usd`, when present |
 | `dummyrun.steps.count` | The number of entries in `steps` |
 
-The root span status is `ERROR` when the outcome is `errored` or `blocked`, and `OK` otherwise.
+The root span status is `ERROR` when the outcome is `errored`, `blocked` or `provider_filtered`, and `OK` otherwise (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). A record's `events` are not exported, because the exporter's record type has no `events` field (code: `integrations/grafana/exporter/internal/record/record.go`). The `security` kind appears as the value of `dummyrun.finding.kind` (code: `integrations/grafana/exporter/internal/telemetry/plan.go`).
 
 Step span attributes are `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun.step.target`. When
 present they add `url.full`, `http.response.status_code`, `dummyrun.step.console_errors` and
-`dummyrun.step.a11y_violations`. A step with a status of 500 or more has status `ERROR`.
+`dummyrun.step.a11y_violations`. Version 2 records add `dummyrun.step.route`, the normalised route. A step with a status of 500 or more has status `ERROR`.
 
 Each finding is a span event named `dummyrun.finding` on the root span. The event time is the `at`
 time of the finding's first step.
@@ -69,6 +78,12 @@ time of the finding's first step.
 | `dummyrun.finding.evidence` | `evidence` |
 | `dummyrun.finding.verdict` | `verdict` |
 | `dummyrun.finding.steps` | `steps`, as an integer array |
+| `dummyrun.finding.class` | `class`, when present (version 2 records) |
+| `dummyrun.finding.route` | `route`, when present |
+| `dummyrun.finding.symptom` | `symptom`, when present |
+| `dummyrun.finding.fingerprint` | `fingerprint`, when present. The same problem has the same fingerprint in every run |
+
+The verdict is the one the record holds at the moment of the export. `dummyrun review` changes it, so review first and export after. It adds `reviewer`, `reviewed_at` and `reason` to the record, and the exporter reads them without sending them. Sending a reviewed record again does not update what Grafana holds. It adds a second set of spans, lines and metric points, as the exporter guide says. Panels that count confirmed findings are then right only for runs exported after review.
 
 ## Metrics
 
@@ -133,13 +148,20 @@ annotations with the same tags and times. It skips the run if one exists. The te
 
 Dashboards for the app under test can show these annotations to mark when personas were active.
 
+Grafana can answer HTTP 429 when annotations come too fast. The exporter waits at least half a second between
+calls. It retries a call that gets a 429 up to five times and honours `Retry-After`. A lookup also retries on a 5xx, but a create does not, because Grafana may have stored the annotation. One export spends at most ten minutes on annotations (code: `integrations/grafana/exporter/internal/cli/cli.go`). If an
+annotation still fails, the exporter goes on with the telemetry of every run and flushes it.
+It then lists the failed annotations and exits with code 3. Code 3 means that some
+annotations could not be created. Any selected telemetry was sent first, and with `--signals annotations` there is none. Code 1 means the telemetry failed. `--signals annotations` sends only the
+annotations, so a second export fills the gaps without repeating spans, metrics or logs.
+
 ## Linking to the app's own telemetry
 
 The runner adds two things to every request it sends to the target's hosts. The first is a W3C `baggage`
 header carrying `dummyrun.run.id` and `dummyrun.persona.id`. The second is a `traceparent` header for
 the step span. An app instrumented with OpenTelemetry then joins the persona's trace, and its spans
-carry the baggage. The browser's user agent also ends with `DummyRun/<version>`, so frontend tools such
-as Grafana Faro can filter persona sessions.
+carry the baggage. The browser's user agent also carries `DummyRun/<version>`, so frontend tools such
+as Grafana Faro can filter persona sessions. Filters should match the `DummyRun/<version>` token and not require it to be last: with `--identify` the user agent ends with `DummyRun/<version> (+https://dummyrun.dev/scanner/)`.
 
 The page's own instrumentation may already set a `traceparent`, for example Faro or OpenTelemetry JS
 on a `fetch` call. The runner then keeps that header and adds only the baggage. Faro's client span stays

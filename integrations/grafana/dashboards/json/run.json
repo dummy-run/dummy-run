@@ -208,6 +208,10 @@
                       "errored": {
                         "color": "text",
                         "index": 3
+                      },
+                      "provider_filtered": {
+                        "color": "purple",
+                        "index": 4
                       }
                     }
                   }
@@ -375,6 +379,10 @@
                       "errored": {
                         "color": "text",
                         "index": 3
+                      },
+                      "provider_filtered": {
+                        "color": "purple",
+                        "index": 4
                       }
                     }
                   }
