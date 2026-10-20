@@ -1,12 +1,13 @@
 {{- /* A transcript of one real run, from data/start-session.json. The full text is in the page. site.js plays it (typing, then output in chunks) unless the visitor prefers reduced motion. bin/check-start-session checks every output line against the raw capture. */ -}}
 {{- $s := index hugo.Data "start-session" -}}
+{{- $p := partial "persona-who.html" (dict "id" $s.persona "scenario" $s.scenario) -}}
 <figure class="terminal" data-terminal>
   <div class="t-bar">
     <span class="t-dots" aria-hidden="true"><i></i><i></i><i></i></span>
     <span class="t-title">Terminal</span>
     <button type="button" class="t-pause" hidden>Pause</button>
   </div>
-  <div class="t-window" tabindex="0" role="group" aria-label="Terminal transcript of a real run">
+  <div class="t-window" tabindex="0" role="group" aria-label="{{ $p.name }}&rsquo;s run in the terminal">
 <pre class="t-body" data-copy=".t-text"><code>
 {{- range $s.transcript -}}
 {{- if eq .t "cmd" -}}
@@ -17,5 +18,5 @@
 {{- end -}}
 </code></pre>
   </div>
-  <figcaption class="t-note">A real run against dummyrun.dev on {{ time.Format "2 January 2006" $s.date }}. One persona, {{ $s.steps }} steps, {{ $s.findings }} findings, ${{ printf "%.2f" $s.cost_usd }} in model costs. Lines left out are marked with …. You can select any of the text. <a href="https://github.com/dummy-run/dummy-run/blob/main/site/data/start-session.json">See the full capture</a>.</figcaption>
+  <figcaption class="t-note">{{ $p.who }}, {{ if $p.question }}wanted to know &ldquo;{{ $p.task }}?&rdquo;{{ else if $p.task }}set out to {{ $p.task }}{{ else }}tried this site{{ end }}. It took {{ $s.steps }} steps and turned up {{ $s.findings }} {{ cond (eq (int $s.findings) 1) "thing" "things" }} worth a look, for ${{ printf "%.2f" $s.cost_usd }} in model costs. From a real run on dummyrun.dev. <a href="https://github.com/dummy-run/dummy-run/blob/main/site/data/start-session.json">See the full output</a>.</figcaption>
 </figure>

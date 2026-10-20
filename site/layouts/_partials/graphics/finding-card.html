@@ -1,12 +1,12 @@
 {{- $kind := .kind | default "friction" -}}
 {{- if eq $kind "permission" -}}
-<div class="graphic finding" role="group" aria-label="A permission finding">
+<div class="graphic finding" role="group" aria-label="A contributor could open every writer&rsquo;s rates">
   <div class="finding-tags"><span class="g-tag is-kind">permission</span><span class="g-tag is-major">major</span><span class="g-tag is-evidence">code</span><span class="g-tag is-confirmed">confirmed</span></div>
   <div class="finding-title">A contributor can open the rates table for all writers</div>
   <div class="finding-evidence"><div class="thumb is-desktop is-flag" aria-hidden="true"></div><div class="g-meta">Step 7 of run <span class="g-code">2026-10-17-lin-contributor-008</span>. Confirmed after a person traced the route to <span class="g-code">app/policies/rate_policy.rb</span>.</div></div>
 </div>
 {{- else -}}
-<div class="graphic finding" role="group" aria-label="A friction finding">
+<div class="graphic finding" role="group" aria-label="On a phone, the keyboard hid the Submit button">
   <div class="finding-tags"><span class="g-tag is-kind">friction</span><span class="g-tag is-major">major</span><span class="g-tag is-evidence">measured</span><span class="g-tag is-confirmed">confirmed</span></div>
   <div class="finding-title">On a phone the Submit button sits under the keyboard</div>
   <div class="finding-evidence"><div class="thumb is-flag" aria-hidden="true"></div><div class="g-meta">Step 6 of run <span class="g-code">2026-10-17-sam-author-006</span>, screenshot <span class="g-code">step-06.png</span>. Seen again in run 007.</div></div>

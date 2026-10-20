@@ -1,9 +1,10 @@
 {{- $r := hugo.Data.replay -}}
 {{- $total := len $r.steps -}}
+{{- $p := partial "persona-who.html" (dict "id" $r.persona "scenario" $r.scenario_id) -}}
 <div class="rp">
   <h2 id="rp-facts-h">The run</h2>
   <dl class="rp-facts">
-    <div><dt>Persona</dt><dd>{{ $r.persona }} ({{ $r.device }})</dd></div>
+    <div><dt>Persona</dt><dd>{{ $p.who }}, on a {{ $r.device }}</dd></div>
     <div><dt>Scenario</dt><dd>{{ $r.scenario }}</dd></div>
     <div><dt>Date</dt><dd><time datetime="{{ $r.date }}">{{ time.Format "2 January 2006" $r.date }}</time></dd></div>
     <div><dt>Model</dt><dd>{{ $r.model }} ({{ $r.region }})</dd></div>
@@ -48,7 +49,7 @@
     <li class="rp-step" id="step-{{ .n }}">
       <h3 id="step-{{ .n }}-h" class="rp-step-h">Step {{ .n }}: {{ .action }}{{ with .target }} <span class="rp-target">{{ . }}</span>{{ end }}</h3>
       <figure class="rp-shot">
-        <img src="/replay/{{ printf "%03d" (int .n) }}.webp" width="1000" height="714" loading="{{ if le .n 1 }}eager{{ else }}lazy{{ end }}" decoding="async" alt="What the persona saw at step {{ .n }}: the page titled {{ .title }}{{ with .headings }}, with the heading {{ index . 0 | strings.TrimRight "." }}{{ end }}.">
+        <img src="/replay/{{ printf "%03d" (int .n) }}.webp" width="1000" height="714" loading="{{ if le .n 1 }}eager{{ else }}lazy{{ end }}" decoding="async" alt="What {{ $p.name }} saw at step {{ .n }}: the {{ with index (split .title " | ") 0 }}{{ if eq . "Dummy Run" }}home{{ else }}{{ . }}{{ end }}{{ end }} page{{ with .headings }}, with the heading {{ index . 0 | strings.TrimRight "." }}{{ end }}.">
       </figure>
       <dl class="rp-detail">
         <div><dt>Page</dt><dd>{{ .title }} <span class="rp-muted">{{ .url }} · {{ .status }} · {{ .ms }} ms</span></dd></div>

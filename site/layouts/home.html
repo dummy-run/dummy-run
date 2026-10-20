@@ -16,21 +16,23 @@
   {{- $last := index $f.steps (sub (len $f.steps) 1) -}}
   {{- $title := "" -}}
   {{- range $r.steps }}{{ if eq .n $last }}{{ $title = .title }}{{ end }}{{ end -}}
+  {{- $page := index (split $title " | ") 0 -}}
+  {{- $p := partial "persona-who.html" (dict "id" $r.persona "scenario" $r.scenario_id) -}}
   <div class="hero-scene">
     <div class="frame">
       <span class="frame-inner"></span>
       <div class="scene is-real">
-        <img class="scene-shot" src="/replay/{{ printf "%03d" (int $last) }}.webp" width="1000" height="714" decoding="async" alt="A screenshot from step {{ $last }} of a real run. The persona is reading the page titled {{ $title }}.">
+        <img class="scene-shot" src="/replay/{{ printf "%03d" (int $last) }}.webp" width="1000" height="714" decoding="async" alt="The {{ $page }} page, where {{ $p.name }} found browser details in an example but no list of supported browsers.">
         <div class="scene-finding">
-          <div class="graphic finding" role="group" aria-label="A finding from the same run">
-            <div class="finding-tags"><span class="g-tag is-kind">{{ $f.kind }}</span><span class="g-tag is-{{ $f.severity }}">{{ $f.severity }}</span><span class="g-tag is-evidence">{{ $f.evidence }}</span><span class="g-tag is-{{ $f.verdict }}">{{ if eq $f.verdict "pending" }}not reviewed{{ else }}{{ $f.verdict }}{{ end }}</span></div>
+          <div class="graphic finding" role="group" aria-label="What {{ $p.name }} flagged">
+            <div class="finding-tags"><span class="g-tag is-kind">{{ $f.kind }}</span><span class="g-tag is-{{ $f.severity }}">{{ $f.severity }}</span><span class="g-tag is-{{ $f.verdict }}">{{ if eq $f.verdict "pending" }}not reviewed{{ else }}{{ $f.verdict }}{{ end }}</span></div>
             <div class="finding-title">{{ $f.title }}</div>
-            <div class="g-meta">{{ if eq (len $f.steps) 1 }}Step{{ else }}Steps{{ end }} {{ delimit $f.steps ", " " and " }} of the run.</div>
+            <div class="g-meta">Noticed at {{ if eq (len $f.steps) 1 }}step{{ else }}steps{{ end }} {{ delimit $f.steps ", " " and " }}, on the {{ $page }} page.</div>
           </div>
         </div>
       </div>
     </div>
-    <p class="hero-caption">A real step from a run on {{ time.Format "2 January 2006" $r.date }}. The persona was reading this website. <a href="/watch-a-run/">Watch the whole run</a>.</p>
+    <p class="hero-caption">{{ $p.who }}, wanted to know which browsers Dummy Run supports. She found Firefox in an example run but no list anywhere, so she flagged it. From a real run on dummyrun.dev. <a href="/watch-a-run/">Watch the whole run</a>.</p>
   </div>
 </section>
 
@@ -93,11 +95,11 @@
   <h2 id="get-heading" class="u-title-sm">What you get back</h2>
   <p class="band-lede">These examples come from Inkwell, a made-up publishing app you can run yourself and try personas on.</p>
   <div class="trio">
-    <figure>{{ partial "example.html" (dict "name" "persona-card" "who" "sam-author") }}<figcaption>Sam is an author on a phone. Sam can write drafts but can&rsquo;t approve them.</figcaption></figure>
-    <figure>{{ partial "example.html" (dict "name" "run-timeline") }}<figcaption>One run is Sam trying one job, with every step and how long it took.</figcaption></figure>
-    <figure>{{ partial "example.html" (dict "name" "finding-card" "kind" "permission") }}<figcaption>A finding points at the step and screenshot where it happened, so you can check it before you act on it.</figcaption></figure>
+    <figure>{{ partial "example.html" (dict "name" "persona-card" "who" "sam-author") }}<figcaption>Sam writes for Inkwell from a phone. Sam can draft and reply to reviews, but can&rsquo;t approve or schedule anything.</figcaption></figure>
+    <figure>{{ partial "example.html" (dict "name" "run-timeline") }}<figcaption>Sam spent eleven steps replying to a review. At step 6 the keyboard covered the Submit button.</figcaption></figure>
+    <figure>{{ partial "example.html" (dict "name" "finding-card" "kind" "permission") }}<figcaption>Lin, a contributor, could open the rates table for every writer. A person traced it in the code and confirmed it.</figcaption></figure>
   </div>
-  <figure class="wide-figure">{{ partial "example.html" (dict "name" "board") }}<figcaption>Coming soon, a results board that gathers confirmed findings from every run into static pages you host yourself. You still decide what becomes a ticket.</figcaption></figure>
+  <figure class="wide-figure">{{ partial "example.html" (dict "name" "board") }}<figcaption>Five problems the Inkwell personas found, from a contributor seeing every writer&rsquo;s rates to a payment status a contributor couldn&rsquo;t make sense of. A results board like this, gathering every run into pages you host yourself, is coming soon.</figcaption></figure>
 </section>
 
 <section class="band" aria-labelledby="library-heading">

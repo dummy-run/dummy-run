@@ -30,8 +30,8 @@
       {{- with resources.Get "repo/docs/images/report-example.png" }}
       {{- $crop := .Fill "1100x720 Top q90" }}
       <figure class="scan-example">
-        <img src="{{ $crop.RelPermalink }}" width="{{ $crop.Width }}" height="{{ $crop.Height }}" alt="The top of an example report: a title, a summary, counts of findings by severity and the start of the scope." loading="lazy">
-        <figcaption>The top of an example report from the open-source engine. The one we email you is shorter.</figcaption>
+        <img src="{{ $crop.RelPermalink }}" width="{{ $crop.Width }}" height="{{ $crop.Height }}" alt="A report opening with a short summary and a count of problems at each severity, before the list of what was tested." loading="lazy">
+        <figcaption>You see at a glance how many problems there are and how serious they are, before the detail. The report we email you is shorter.</figcaption>
       </figure>
       {{- end }}
     </div>
