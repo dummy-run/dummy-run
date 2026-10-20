@@ -26,7 +26,7 @@ We use it to send you a confirmation email and one email when the free scan open
 
 ## Our lawful basis
 
-Consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
+For the waitlist, consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
 
 ## How long we keep it
 
@@ -41,11 +41,11 @@ Consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and s
 
 ## Analytics
 
-We count visits with Cloudflare Web Analytics. It sets no cookies and uses no local storage. Cloudflare processes your IP address to receive the request. It does not use it to track individuals.
+We count visits with Cloudflare Web Analytics. It sets no cookies and uses no local storage. Cloudflare processes your IP address to receive the request. It does not use it to track individuals. Our lawful basis is legitimate interests under Article 6(1)(f): we want to know which pages people read. We keep no personal data from it ourselves. Cloudflare shows us only totals.
 
 ## Payments
 
-Paid services are sold through Paddle.com, which is the merchant of record. Paddle takes your payment details and sends us your name, email address and country and what you bought. We never see your card number. Paddle is also a controller of that data. Read [Paddle's privacy notice](https://www.paddle.com/legal/privacy).
+Paid services are sold through Paddle.com, which is the merchant of record. Paddle takes your payment details and sends us your name, email address and country and what you bought. We never see your card number. Our lawful basis is contract under Article 6(1)(b) and legal obligation under Article 6(1)(c) for tax records. We keep order records for as long as the law requires them for tax. Paddle is also a controller of that data. Read [Paddle's privacy notice](https://www.paddle.com/legal/privacy).
 
 ## Your rights
 

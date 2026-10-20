@@ -8,7 +8,7 @@ Last updated: 20 October 2026.
 
 ## Who we are
 
-Dummy Run is the trading name of Joel Merrick, a sole trader in the United Kingdom ("we", "us"). Contact: hello@dummyrun.dev. Privacy: privacy@dummyrun.dev. Reports of abuse: abuse@dummyrun.dev.
+Dummy Run is the trading name of Joel Merrick, a sole trader in the United Kingdom ("we", "us"). Write to hello@dummyrun.dev for anything general. Write to privacy@dummyrun.dev about personal data and to abuse@dummyrun.dev to report abuse.
 
 ## What these terms cover
 
@@ -20,7 +20,7 @@ Paid services are sold through Paddle.com as merchant of record. Paddle's buyer 
 
 ## The free scan
 
-The free scan loads public pages of a site you give us. It only reads. It does not log in, submit forms or change anything. It takes a sample of pages and may stop early. The scanner identifies itself as DummyRun and honours robots.txt. Details are at dummyrun.dev/scanner/.
+The free scan loads public pages of a site you give us. It only reads. It does not log in, submit forms or change anything. It takes a sample of pages and may stop early. The scanner will identify itself as DummyRun and honour robots.txt.
 
 Results are for information. They are not an audit. They are not a certification or a statement that a site meets WCAG or any law. A clean result does not mean a site is accessible. A finding may be wrong.
 

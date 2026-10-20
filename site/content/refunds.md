@@ -10,7 +10,7 @@ Paddle is our merchant of record and processes every refund. Nothing here remove
 
 ## Full report
 
-You can have a full refund within 14 days of purchase if the report has not been generated. If the report failed for a reason on our side you can have a refund or a re-run. Tell us which you prefer.
+These terms are in addition to your statutory rights. You can have a full refund within 14 days of purchase if the report has not been generated. If the report failed for a reason on our side you can have a refund or a re-run. Tell us which you prefer.
 
 ## Watch
 
