@@ -466,7 +466,7 @@ func TestSignInRedirectsToALocalNext(t *testing.T) {
 	e := newEnv(t, nil)
 	c := e.client("")
 	form := f("email", "ada@inkwell.test", "password", TestPassword, "next", "/drafts/2?page=1")
-	req, err := http.NewRequest("POST", e.srv.URL+"/signin", strings.NewReader(form.Encode()))
+	req, err := http.NewRequest(http.MethodPost, e.srv.URL+"/signin", strings.NewReader(form.Encode()))
 	if err != nil {
 		t.Fatal(err)
 	}
