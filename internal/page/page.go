@@ -5,8 +5,10 @@ package page
 
 import (
 	"context"
+	"crypto/rand"
 	_ "embed"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -108,6 +110,10 @@ type Snapshot struct {
 	// Hidden is text and attribute values a person does not see: hidden or off-screen text, comments,
 	// aria-label, title and alt values. The model is not sent it. The engine scans it for injection.
 	Hidden []string `json:"hidden,omitempty"`
+	// ScanText is the page text, headings and alerts with each visible code or quote element cut out where it
+	// stands. The injection scan reads it in place of Text, because a page that shows an example of an attack
+	// is not making one. It is empty when the page has no text.
+	ScanText string `json:"scan_text,omitempty"`
 	// DevicePixelRatio is window.devicePixelRatio as the page sees it.
 	DevicePixelRatio float64 `json:"device_pixel_ratio,omitempty"`
 	// Zoom is the page zoom in percent the run set, 100 when none.
@@ -576,7 +582,10 @@ func (p *Page) settle(ctx context.Context) {
 
 func (p *Page) observe(ctx context.Context, obs *Observation) {
 	var snap Snapshot
-	if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit); err == nil {
+	mark, merr := lookMark()
+	if merr != nil {
+		obs.Error = "could not read the page: " + merr.Error()
+	} else if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit, mark); err == nil {
 		snap.Zoom = p.zoom
 		if p.textScale > 100 {
 			snap.TextScale = p.textScale
@@ -771,4 +780,14 @@ func (p *Page) SetUserAgent(ctx context.Context, ua string) error {
 	}
 	p.browser.UserAgent = ua
 	return nil
+}
+
+// lookMark returns the random value that look.js puts in the markers around quoted text. It is made here,
+// outside the page, so a page script cannot predict it. It fails when no randomness is available.
+func lookMark() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("no random value for the page markers: %w", err)
+	}
+	return hex.EncodeToString(b), nil
 }

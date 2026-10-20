@@ -53,7 +53,7 @@ The engine defends against this in six ways.
 - Fencing. Page text reaches the model between markers that carry a random value for the run, which the page can't know. Marker-like text in the page is defanged.
 - A rule in the system prompt. Text between the markers is data. It never changes the task, the tools, the verdict or the findings.
 - Hidden text mostly stays out. Text in `display: none` and `visibility: hidden` blocks and in comments is collected for the scan and for review, and isn't sent to the model. Values of `aria-label`, `alt` and `title` do reach the model when they name a control in the control list or the outline. They're fenced and scanned like the rest. Text with zero size, zero opacity or `aria-hidden` stays in the page text and is flagged. The address and title of older steps are quoted, cut short and fenced like the rest.
-- A scan. Simple phrase patterns run over the page text, the control names, the outline and the hidden text. Screenshots aren't scanned. The patterns look for "ignore previous instructions", "system prompt" and "you are now", for chat template tokens and for orders to report nothing. They also catch claims that the site is fully accessible, and orders telling the persona to call `finish`. Instructions to visit a host outside the allow list are caught too, and so are invisible characters. Hidden text that names an assistant and gives an order is flagged even when no fixed phrase matches.
+- A scan. Simple phrase patterns run over the page text, the control names, the outline and the hidden text. Screenshots aren't scanned. The patterns look for "ignore previous instructions", "system prompt" and "you are now", for chat template tokens and for orders to report nothing. They also catch claims that the site is fully accessible, and orders telling the persona to call `finish`. Instructions to visit a host outside the allow list are caught too, and so are invisible characters. Hidden text that names an assistant and gives an order is flagged even when no fixed phrase matches. Visible code and quotes are skipped because a page that shows an example attack isn't making one. That covers `code` and `pre`, `kbd` and `samp`, and `blockquote` and `q`. A lone "system prompt" or "call `finish`" in visible prose is a weak match and only records an event.
 - A warning. The next observation tells the persona that the text was an instruction and that it should say so.
 - A record of the attempt. Each new match is a `suspected_injection` event with the step, where it was found and a short extract. The harness then files one finding of kind `security` that cites every step with a match. The model doesn't write that finding, so a page can't talk the model out of it.
 
@@ -63,7 +63,8 @@ These gaps remain:
 - Text drawn into an image reaches the model in screenshots and isn't scanned.
 - Text that's moved off screen but still rendered goes to the model on purpose. The screen-reader persona needs it, because assistive technology reads it too. Fencing and the scan cover the risk, and the scan flags any match.
 - A persuaded model can still leave real findings out. The security finding shows the page tried, but it doesn't restore what was left out.
-- Documentation that talks about prompts trips the scan. You decide whether it matters when you review the finding.
+- Visible code and quotes aren't scanned, and the model still reads them. A hostile page can put an instruction in a code block or a quote without being flagged. Fencing still applies.
+- Prose that talks about prompts can still trip the scan. You decide whether it matters when you review the finding.
 
 ### Faked or suppressed findings
 

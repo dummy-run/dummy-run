@@ -461,10 +461,17 @@ the threats. Here is what the engine does about prompt injection.
   Instructions to go to a host outside the allow list are flagged, and so are invisible Unicode characters. Hidden text that
   addresses an assistant and gives an order is flagged too. These are heuristics to help a reviewer. They
   don't filter anything.
-- A match adds a `HARNESS WARNING` line to that step's result and a `suspected_injection` event to the run
-  record. It also adds one finding of kind `security` that cites every step with a match. The engine files this
-  finding itself, so it's there even if the persona obeyed the page. Its symptom is `misleading-copy` and its
-  verdict is `pending`. Its severity is `major` when the text was hidden or held invisible characters, and
+- Code and quotes you can see on the page don't count, so a docs page that quotes an example attack isn't
+  flagged. The scan skips visible `code` and `pre` text, keys and sample output (`kbd` and `samp`), and quotes
+  (`blockquote` and `q`). Quoted text is still scanned when it's hidden, off screen or transparent, or sits
+  inside `aria-hidden`. So are `aria-label`, `title`, `alt` and comments. The model still receives the skipped text, so a
+  hostile page can hide an instruction in a visible code element without being flagged. Fencing still applies.
+- A lone "system prompt" or "call `finish`" in visible prose is a weak match. It becomes an event with
+  `low confidence:` in its detail, and it neither warns the persona nor files a finding.
+- A strong match adds a `HARNESS WARNING` line to that step's result and a `suspected_injection` event to the
+  run record. It also adds one finding of kind `security` that cites every step with a match. The engine files
+  this finding itself, so it's there even if the persona obeyed the page. Its symptom is `misleading-copy` and
+  its verdict is `pending`. Its severity is `major` when the text was hidden or held invisible characters, and
   `minor` otherwise.
 - A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
 
