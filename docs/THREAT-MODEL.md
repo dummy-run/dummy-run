@@ -61,7 +61,7 @@ These gaps remain.
 
 - The patterns are a tripwire. A paraphrase, another language or a homoglyph gets past them.
 - Text drawn into an image reaches the model in screenshots and is not scanned.
-- Text moved off screen but still rendered is part of the page text, so the model reads it. It is scanned and flagged.
+- Text moved off screen but still rendered goes to the model on purpose. The screen-reader persona needs it, because assistive technology reads that text too. Fencing and the scan cover the injection risk. The scan flags a match.
 - A model that is persuaded can still leave real findings out. The security finding shows that the page tried, and it does not restore what was left out.
 - The scan flags documentation that talks about prompts. The reviewer decides.
 
