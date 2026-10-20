@@ -5,7 +5,7 @@ icon: chart
 lead_short: One board, with evidence
 weight: 60
 lead: One board showing what is broken, who it affects and the evidence.
-description: What an executive gets from Dummy Run. One results board with evidence behind each finding, the cost of each run, and an Apache-2.0 licence.
+description: What you get from Dummy Run as an executive. One results board with evidence behind each finding, the cost of each run, and an Apache-2.0 licence.
 next:
   title: See the five stages
   text: How a persona becomes a finding on the board.

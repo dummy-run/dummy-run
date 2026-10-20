@@ -9,6 +9,10 @@ next:
   href: /personas/
 ---
 
+{{< terminal >}}
+
+{{< try-scan >}}
+
 ## What you need
 
 - Go 1.27.1 or later
@@ -52,7 +56,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
   --browser firefox --provider azure --model <deployment> --region uksouth
 ```
 
-The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`. To use another provider, change `--provider`, `--model` and the sign-in. The [command line reference](../../docs/CLI.md) lists every flag.
+The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`. To try a persona on an app you are free to break, start [Inkwell](../../docs/INKWELL.md) with `go run ./examples/inkwell -test-login`. To use another provider, change `--provider`, `--model` and the sign-in. The [command line reference](../../docs/CLI.md) lists every flag.
 
 Every finding starts as `pending`. Check each one against its screenshots, then confirm or reject it with `dummyrun review ~/.local/share/dummyrun/runs/dummyrun-dev`. Confirmed findings count in a report by default. The option `--confirmed-only=false` also counts pending ones and marks the report as a demonstration (code: `internal/coverage/report.go`). The Review section of the [engine guide](../../docs/ENGINE.md) has the keys and the flags for scripts.
 
@@ -68,6 +72,10 @@ Open `http://localhost:3000` and sign in as `admin` with the password `admin`. P
 ## 4. Read the record {#read}
 
 Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The [Grafana guide](../../docs/integrations/grafana.md) covers the dashboards and alerts.
+
+To hand the runs to someone else, run `dummyrun report --runs examples/runs --build a865ffd --include pending --out report.html`. It writes one HTML file with the findings, the scope and what the report does not claim. The [report guide](../../docs/REPORT.md) explains each part.
+
+{{< waitlist >}}
 
 ## Sources
 

@@ -1,0 +1,15 @@
+{{- /* The free-scan waitlist section. Renders nothing unless site.Params.waitlist_enabled is true. Pass the page path as the source. */ -}}
+{{- if site.Params.waitlist_enabled -}}
+{{- $source := .RelPermalink | default "/" -}}
+<section class="band waitlist" aria-labelledby="waitlist-heading" data-waitlist>
+  <div class="panel">
+    <h2 id="waitlist-heading" class="u-title-sm">Get the free scan first</h2>
+    <p class="band-lede">The free scan is a quick check of the public pages of your site. Join the list and we send you one email when it opens. You can unsubscribe at any time.</p>
+    {{ partial "waitlist-form.html" (dict "source" $source "prefix" "waitlist") }}
+  </div>
+  {{- with site.Params.waitlist_turnstile_sitekey }}
+  {{- /* nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare says not to pin Turnstile with SRI, because the script must update itself. */}}
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  {{- end }}
+</section>
+{{- end -}}

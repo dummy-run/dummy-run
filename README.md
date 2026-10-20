@@ -44,7 +44,21 @@ flowchart LR
 - **Model providers.** Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service
   works too, such as a local server. Choose one per market to keep runs inside a
   jurisdiction such as the UK or the EU.
-- **Nothing is posted for you.** Findings go to the board. A person decides what becomes a ticket.
+- **After review.** No ticket is created automatically. A person reads the findings and decides what becomes a ticket.
+  Today you copy a finding into your tracker by hand, or write a script that reads the run record JSON.
+
+## Does it replace a scripted regression suite?
+
+No. Keep your suite. A script checks the steps you wrote, the same way every time. A persona explores
+like a user and can find what nobody wrote a script for (inferred: the model chooses its own actions, see `internal/runner/runner.go`). When a persona finds a problem you want guarded for
+good, write the test for it.
+
+## What leaves your network
+
+Screenshots and page text go to the model provider you choose, because the persona is a model that reads
+what the browser shows (inferred: the persona reads page text and screenshots). Telemetry holds no screenshots. It holds step URLs, control labels and finding titles, which can quote a few words from the page. It goes only to the
+OpenTelemetry backend you configure, so it lives wherever that backend lives (code: `integrations/grafana/exporter/internal/telemetry/plan.go`).
+[docs/TELEMETRY.md](docs/TELEMETRY.md) lists what it does carry.
 
 ## Who it is for
 
@@ -63,13 +77,17 @@ flowchart LR
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
 | [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, focus, reviewing findings, the read-only policy and the accessibility sweep |
+| [docs/MCP.md](docs/MCP.md) | Using Dummy Run from Claude Code, Cursor, VS Code or Codex through `dummyrun mcp`, and what each tool costs |
 | [docs/CLI.md](docs/CLI.md) | The help text of each command, written from the code |
 | [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, their sign-in and what each can do |
 | [docs/PERSONAS.md](docs/PERSONAS.md) | The persona library in [casts/library](casts/library/README.md), and how to copy one into your cast |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
 | [docs/COVERAGE.md](docs/COVERAGE.md) | What `dummyrun coverage` measures and when to trust each number |
+| [docs/REPORT.md](docs/REPORT.md) | What `dummyrun report` puts in an audit report, how to read it and what it does not claim |
+| [docs/BADGES.md](docs/BADGES.md) | The SVG badge and shields.io endpoint from `dummyrun report`, what they say and how to publish them from GitHub Actions |
 | [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
+| [schema/report.schema.json](schema/report.schema.json) | The format of the report in JSON, with an example report in [examples/report/](examples/report/) |
 | [docs/integrations/grafana.md](docs/integrations/grafana.md) | Sending runs to Grafana, linking them to your app's traces, and alerts |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the automated checks, and the rules on evidence and privacy |
 | [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and findings about apps you do not own |

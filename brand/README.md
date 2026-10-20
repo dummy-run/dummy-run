@@ -47,11 +47,12 @@ Use Dummy in docs, empty states and error pages. Keep it out of the logo. The fi
 
 On the site, Dummy appears at most once a page and never in legal text. It sits beside a heading or a step, at 80 to 160 pixels, and is decorative. The pages are:
 
-- 404 and audit problem: oops
-- Audit thanks: thumbs up
-- Pricing, persona library, About and the home page: friendly
-- Docs: reading
-- Get started: keyboard
+- 404, audit problem and waitlist problem: oops
+- Audit thanks and waitlist confirmed: thumbs up
+- Home free-scan section, free scan and About: friendly
+- Pricing open-source band and persona library: friendly
+- Docs landing: reading
+- Get started, beside the install step: keyboard
 
 The poses share one body, so they sit at the same size and can swap in place. Use one pose per page and
 keep Dummy beside the text and never behind it.
@@ -67,17 +68,17 @@ keep Dummy beside the text and never behind it.
 
 Dummy is decoration in nearly every use, so give the image an empty `alt=""`. Write alt text only when the
 picture adds meaning the surrounding text does not, for example "Dummy shrugging" next to a 404 message
-that says nothing of the sort. Each file has a `<title>` for when it is opened on its own.
+that says nothing of the sort. Each new mascot file has a `<title>` for when it is opened on its own. The three legacy files do not.
 
 - As an image, `<img src="dummy-oops.svg" alt="">`, or a described `alt` when it adds meaning.
-- Inline, keep `role="img"` and `aria-labelledby` pointing at the `<title>`, and change the `id`
+- When inlining a new mascot file, keep `role="img"` and `aria-labelledby` pointing at the `<title>`, and change the `id`
   (`t` in the files) so two inlined copies do not clash. For decoration, drop the `<title>` and use
   `aria-hidden="true"` instead.
 
 ### Do and don't
 
-- Do keep the colours: amber `#fbad18`, its one darker shade `#db8a06`, ink `#24221e` and paper
-  `#f3f1ec`. The darker shade is for depth only.
+- Do keep the mascot colours: amber `#fbad18`, its one darker shade `#db8a06`, mascot ink `#24221e` and
+  mascot paper `#f3f1ec`. The darker shade is for depth only.
 - Do keep the target on the temple. It is what makes Dummy a crash-test dummy.
 - Do tilt the head a few degrees for expression, as the poses do.
 - Don't make Dummy look injured, hurt or in pain. No bandages, cracks, bruises or tears. Oops is

@@ -1,0 +1,70 @@
+{{ define "main" }}
+<div class="scan-page">
+  <section class="scan-top" aria-labelledby="scan-title" data-waitlist>
+    <div>
+      {{ partial "breadcrumbs.html" . }}
+      <p class="scan-badge">Opening soon</p>
+      <div class="scan-title-row">
+        <h1 id="scan-title" class="u-display-sm">{{ .Title }}</h1>
+        {{ partial "mascot.html" (dict "name" "dummy-friendly" "class" "scan-title-mascot") }}
+      </div>
+      <p class="u-lead">{{ .Params.lead }}</p>
+    </div>
+    {{- if site.Params.waitlist_enabled }}
+    <div class="scan-join" id="join">
+      <h2 class="scan-facts-title">Get an email when it opens</h2>
+      {{ partial "waitlist-form.html" (dict "source" .RelPermalink "prefix" "scan-top" "button" "Join the waitlist") }}
+    </div>
+    {{- end }}
+  </section>
+
+  <section class="band" aria-labelledby="steps-heading">
+    <h2 id="steps-heading" class="u-title-sm">How it works</h2>
+    {{ partial "scan-steps.html" . }}
+  </section>
+
+  <section class="band" aria-labelledby="get-heading">
+    <div class="panel scan-split">
+      <div>
+        <h2 id="get-heading" class="u-title-sm">What the report holds</h2>
+        <p class="band-lede">The report opens with a summary and a count of findings by severity. Each finding comes with its evidence.</p>
+        {{ partial "scan-facts.html" (dict "h" 3) }}
+      </div>
+      {{- with resources.Get "repo/docs/images/report-example.png" }}
+      {{- $crop := .Fill "1100x720 Top q90" }}
+      <figure class="scan-example">
+        <img src="{{ $crop.RelPermalink }}" width="{{ $crop.Width }}" height="{{ $crop.Height }}" alt="The top of an example report: a title, a summary, counts of findings by severity and the start of the scope." loading="lazy">
+        <figcaption>The top of an example report from the open-source engine. The emailed report will be shorter.</figcaption>
+      </figure>
+      {{- end }}
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="care-heading">
+    <h2 id="care-heading" class="u-title-sm">How it treats your site</h2>
+    <ul class="scan-care">
+      <li>It loads only the public pages of your site and never signs in.</li>
+      <li>It is read-only. Only GET, HEAD and OPTIONS requests reach your site.</li>
+      <li>It is rate limited, with a cap on pages for each scan.</li>
+      <li>It identifies itself in the user agent and it honours your robots.txt.</li>
+      <li>It stops when you ask. <a href="/scanner/">Dummy Run visited my site</a> says how.</li>
+    </ul>
+    <p class="band-note">The text and screenshots of the pages it visits on your site go to the model that plays the persona. The privacy page covers the waitlist today. <a href="/privacy/">Read the privacy page</a></p>
+  </section>
+
+  {{- if site.Params.waitlist_enabled }}
+  <section class="band" aria-labelledby="end-heading" data-waitlist>
+    <div class="panel">
+      <h2 id="end-heading" class="u-title-sm">Get the free scan first</h2>
+      <p class="band-lede">Join the waitlist and we send you one email when it opens. You can unsubscribe at any time.</p>
+      {{ partial "waitlist-form.html" (dict "source" .RelPermalink "prefix" "scan-end" "button" "Join the waitlist") }}
+      <p class="band-more">Do not want to wait? <a href="/start/">Run the open-source engine yourself</a>.</p>
+    </div>
+  </section>
+  {{ partial "waitlist-script.html" . }}
+  {{- end }}
+  <section class="band prose scan-sources">
+    {{ .Content }}
+  </section>
+</div>
+{{ end }}

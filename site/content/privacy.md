@@ -15,7 +15,7 @@ contact:
     email: privacy@dummyrun.dev
 ---
 
-This page covers this site, the waitlist for the free scan and purchases. The free scan will get its own notice before it opens. This site sets no cookies and uses no local storage.
+This page covers this site, the waitlist for the free scan, audit requests and purchases. The free scan will get its own notice before it opens. This site sets no cookies. If you change the light or dark theme, your browser stores that choice in its local storage. It never leaves your device.
 
 ## Who is responsible
 
@@ -31,19 +31,29 @@ Joel Merrick, trading as Dummy Run, decides why and how your data is used. He is
 
 We also use your IP address to limit repeated sign-ups. We keep only a one-way hash of it, in a counter that counts for one hour and is deleted within a day. We do not store it with your entry.
 
+If you ask for an audit we also collect:
+
+- your name and email address;
+- your organisation, if you give it;
+- the site address and what you need;
+- your preferred timing and how you heard of us, if you say;
+- your choice to let us contact you about the request.
+
+We use it only to reply and agree the audit. It is sent to hello@dummyrun.dev, and we keep it for 24 months unless you become a client, when it becomes part of our business records.
+
 ## Why we use it
 
 We use it to send you a confirmation email and one email when the free scan opens. We do not use it for anything else. We do not sell it or share it for advertising.
 
 ## Our lawful basis
 
-For the waitlist, consent. Under Article 6(1)(a) of the UK GDPR you agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
+For audit requests, our lawful basis is taking steps you ask us to take before entering into a contract, under Article 6(1)(b). For the waitlist, our lawful basis is consent under Article 6(1)(a) of the UK GDPR. You agree by ticking the box and selecting the link in the confirmation email. You can withdraw consent at any time.
 
 ## How long we keep it
 
 - An entry you have not confirmed is deleted 9 days after you sign up. The link lasts 48 hours and we keep the entry 7 days longer.
 - A confirmed entry is deleted 24 months after you confirm, unless you reconfirm when we ask.
-- When you unsubscribe we delete your entry. We keep a salted one-way hash of your address so that we do not email you again. It cannot be turned back into your address.
+- When you unsubscribe we delete your entry. We keep a salted one-way hash of your address so that we can recognise it and not email you again. Someone who already has your address could check it against the hash.
 
 ## Who else handles it
 

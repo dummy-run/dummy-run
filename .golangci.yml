@@ -30,12 +30,19 @@ linters:
       ignore-rules:
         # DOM API values keep their American spelling.
         - center
+        # The standard library package image/color and its types.
+        - color
     gosec:
       excludes:
         # G304: file paths come from the command line or the cast directory on purpose.
         - G304
   exclusions:
     rules:
+      # CSS property names keep their American spelling.
+      - path: examples/inkwell/(templates|inkwell_test)\.go
+        linters:
+          - misspell
+        text: '`color` is a misspelling'
       - path: _test\.go
         linters:
           - gosec

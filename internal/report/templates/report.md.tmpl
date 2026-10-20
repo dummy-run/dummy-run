@@ -1,0 +1,209 @@
+# {{.Title}}
+
+{{if .Client}}Prepared for {{.Client}}. {{end}}Report date {{.Date}}. Made with dummyrun {{.ToolVersion}}. Findings included: {{.Basis}}.
+
+## Summary
+
+{{range .Summary.Text}}{{.}}
+
+{{end}}| Severity | Distinct problems |
+|---|---|
+{{- range $sev := severities}}
+| {{cap $sev}} | {{index $.Summary.BySeverity $sev}} |
+{{- end}}
+
+{{if .Summary.NotReviewed}}Not reviewed: {{.Summary.NotReviewed}}. A model reported these findings and no person has checked them against the evidence.
+
+{{end}}{{range .Warnings}}{{.}}
+
+{{end}}## Scope and method
+
+Each run signs one fictional user, called a persona, in to the app in a real browser. The persona works through a scenario and reports what broke, what confused it and what its role should not have seen. Findings are folded together when they share a fingerprint, which is a hash of the route, the control and the kind of symptom.
+
+{{if .Scope.Runs.Total -}}
+- Period: {{.Scope.StartedAt}} to {{.Scope.EndedAt}}
+- Runs: {{.Scope.Runs.Total}} in total: {{.Scope.Runs.Completed}} completed, {{.Scope.Runs.Blocked}} blocked, {{.Scope.Runs.Errored}} errored and {{.Scope.Runs.BudgetExhausted}} out of budget
+- Model cost: {{usd .Scope.Cost.USD}} over {{.Scope.Cost.ModelCalls}} model calls ({{.Scope.Cost.InputTokens}} input and {{.Scope.Cost.OutputTokens}} output tokens){{if .Scope.Cost.UnpricedRuns}}. {{.Scope.Cost.UnpricedRuns}} runs used a model with no price, so the cost is a floor{{end}}
+- Routes visited: {{len .Scope.Routes}}{{if .Scope.Routes}} ({{codes .Scope.Routes}}){{end}}
+
+| Address | Environment | Build | Adapter | Runs |
+|---|---|---|---|---|
+{{- range .Scope.Targets}}
+| {{.BaseURL}} | {{.Environment}} | `{{.Build}}` ({{.BuildKind}}) | {{.Adapter}} | {{.Runs}} |
+{{- end}}
+
+| Persona | Role | Device | Dimensions | Runs |
+|---|---|---|---|---|
+{{- range .Scope.Personas}}
+| {{.ID}} | {{.Role}} | {{join .Devices}} | {{if .Dimensions}}{{join .Dimensions}}{{else}}None recorded{{end}} | {{.Runs}} |
+{{- end}}
+
+| Scenario | Runs | Goal met | Partly | Not met | Not recorded |
+|---|---|---|---|---|---|
+{{- range .Scope.Scenarios}}
+| {{.Title}} | {{.Runs}} | {{.GoalMet}} | {{.GoalPartly}} | {{.GoalNotMet}} | {{.GoalUnknown}} |
+{{- end}}
+
+| Browser | Version | Runs |
+|---|---|---|
+{{- range .Scope.Browsers}}
+| {{.Name}} | {{.Version}} | {{.Runs}} |
+{{- end}}
+
+| Model | Provider | Region | Runs |
+|---|---|---|---|
+{{- range .Scope.Models}}
+| {{.Model}} | {{.Kind}} | {{.Region}} | {{.Runs}} |
+{{- end}}
+{{else}}No persona runs were given. This report holds the axe sweep only.
+{{end}}
+{{- if .Axe}}
+The axe sweep ran {{.Axe.Tool}} with axe-core {{.Axe.AxeVersion}} on {{join .Axe.Browsers}}. It tested {{.Axe.Pages}} pages in {{.Axe.Runs}} settings.
+{{end}}
+## Coverage
+
+{{if .Coverage.Available -}}
+These numbers come from `dummyrun coverage` over the same runs. They say how much the sample can tell you.
+
+- Counted: {{.Coverage.Basis}}
+- Completed runs: {{.Coverage.CompletedRuns}}
+- Distinct problems seen: {{.Coverage.Observed}}
+- Still unfound: {{if .Coverage.UnfoundAtLeast}}at least {{f1 .Coverage.UnfoundAtLeast}} (Chao2 lower bound of {{f1 .Coverage.TotalAtLeast}} in total, {{.Coverage.Form}} form){{else}}not estimable from these runs{{end}}
+- Sample coverage: {{if .Coverage.SampleCoverage}}{{f2 .Coverage.SampleCoverage}}{{else}}not estimable{{end}}
+- New problems per extra run: {{if .Coverage.NewPerExtraRun}}{{f2 .Coverage.NewPerExtraRun}}{{else}}not estimable{{end}}
+{{- if .Coverage.RouteUniverse}}
+- Routes visited: {{.Coverage.RoutesVisited}} of {{.Coverage.RouteUniverse}} known routes
+{{- end}}
+- Stopping rule: {{.Coverage.StoppingRule}}
+
+How to read these numbers:
+
+- The Chao2 figure is a floor. The real number of problems is at least that high. It is never a count of what remains.
+- Sample coverage is the share of the chance of finding a problem that sits in problems already found. Below 0.50 do not extrapolate from it.
+- New problems per extra run is how many new problems one more run is expected to find. A low figure suggests more runs will add little.
+- With fewer than 5 completed runs the estimates are weak. The stopping rule needs 4 completed runs in each group.
+{{if .Coverage.Warnings}}
+Cautions:
+
+{{range .Coverage.Warnings}}- {{.}}
+{{end}}{{end -}}
+{{else -}}
+Coverage was not computed. {{.Coverage.Unavailable}}
+{{end}}
+## Findings
+
+Findings are sorted by severity, then by the number of runs that found them. Each one is a distinct problem. A problem found in several runs appears once.
+
+{{if not .Findings}}This report has no persona findings.
+
+{{end}}
+{{- range $i, $f := .Findings}}### {{cap $f.Severity}}: {{$f.Title}}
+
+- Status: {{statusText $f.Status}}{{if $f.Baseline}}. {{baselineText $f.Baseline}}{{end}}
+- Kind: {{$f.Kind}}
+{{- if $f.Symptom}}
+- Symptom: {{$f.Symptom}}
+{{- end}}
+{{- if $f.Route}}
+- Route: `{{$f.Route}}`
+{{- end}}
+{{- if $f.Locus}}
+- Control or region: {{$f.Locus}}
+{{- end}}
+{{- if $f.State}}
+- Precondition: {{$f.State}}
+{{- end}}
+- Evidence: {{$f.Evidence}}
+- Found by: {{join $f.Personas}} in {{$f.Runs}} of {{$f.OfRuns}} runs
+- WCAG 2.2 criterion: {{if $f.WCAG}}{{join $f.WCAG}}{{else}}not recorded for this finding{{end}}
+- Review: {{if eq $f.Status "confirmed"}}confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{$f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}not reviewed. No person has checked this finding{{end}}
+{{- if $f.HelpURL}}
+- Fix guidance: {{$f.HelpURL}}
+{{- end}}
+- Fingerprint: `{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}`
+
+How to reproduce. Run {{$f.Reproduction.Run}}: persona {{$f.Reproduction.Persona}} signed in as {{$f.Reproduction.Role}} on a {{$f.Reproduction.Device}}{{if ne $f.Reproduction.Zoom 100}} at {{$f.Reproduction.Zoom}} percent zoom{{end}} in {{$f.Reproduction.Browser}}.
+
+{{if $f.Reproduction.Steps}}{{range $f.Reproduction.Steps}}{{.N}}. {{stepText .}}{{if .Note}} The persona said: {{.Note}}{{end}}
+{{end}}{{else}}The record cites no step.
+{{end}}
+{{- if gt (len $f.Instances) 1}}
+Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.
+{{end}}
+{{- range $f.Screenshots}}
+{{.Alt}}. The file is `{{.Path}}`, next to the run record.
+{{end}}
+{{end}}
+{{- if .Worked}}## What worked
+
+Personas also reported what worked. These notes are claims by a model. No person has checked them, and they are not findings.
+
+{{range .Worked -}}
+- {{.Text}} ({{.Runs}} of {{$.Scope.Runs.Total}} runs; {{join .Personas}})
+{{end}}
+{{end -}}
+{{- if .Axe}}## Axe sweep
+
+The sweep ran axe-core {{.Axe.AxeVersion}} on {{.Axe.Pages}} pages in {{.Axe.Runs}} settings (browser, viewport and colour scheme). It checked the rules with these tags: {{codes .Axe.Tags}}. It found {{.Axe.FailingNodes}} failing elements{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.
+
+{{if .Axe.Rules -}}
+{{range .Axe.Rules}}### {{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}: {{.Help}}
+
+- Rule: `{{.Rule}}`
+{{- if .Baseline}}
+- Since the baseline: {{baselineText .Baseline}}
+{{- end}}
+- WCAG 2.2 criterion: {{if .WCAG}}{{join .WCAG}}{{else}}not recorded for this rule{{end}}
+- Elements: {{.Elements}}
+- Fix guidance: {{if .HelpURL}}{{.HelpURL}}{{else}}none recorded{{end}}
+
+| Page | Elements | Settings |
+|---|---|---|
+{{- range .Pages}}
+| {{.URL}} | {{range $k, $t := .Targets}}{{if $k}}, {{end}}`{{$t}}`{{end}} | {{join .Settings}} |
+{{- end}}
+
+{{end -}}
+{{else -}}
+No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.
+
+{{end -}}
+{{- if .Axe.NeedsReview}}### Needs a person to check
+
+Axe cannot decide these rules alone. A person has to look.
+
+| Rule | What it checks | WCAG 2.2 criterion | Pages |
+|---|---|---|---|
+{{- range .Axe.NeedsReview}}
+| `{{.Rule}}` | {{.Help}} | {{if .WCAG}}{{join .WCAG}}{{else}}not recorded{{end}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{$p.URL}}{{end}} |
+{{- end}}
+
+{{end -}}
+{{- if .Axe.Errors}}### Pages that could not be tested
+
+| Page | Setting | Error |
+|---|---|---|
+{{- range .Axe.Errors}}
+| {{.URL}} | {{.Setting}} | {{.Message}} |
+{{- end}}
+
+{{end -}}
+{{end -}}
+{{- if .Baseline}}## Since the baseline
+
+The baseline is the report titled {{.Baseline.Title}} of {{.Baseline.Date}}. Findings are matched by fingerprint. A fixed finding is one that the baseline had and this report did not find again. A sample can miss a problem that is still there.
+
+{{if .Fixed -}}
+| Severity | Problem | Source |
+|---|---|---|
+{{- range .Fixed}}
+| {{cap .Severity}} | {{.Title}} | {{if eq .Source "axe"}}Axe sweep{{else}}Persona run{{end}} |
+{{- end}}
+{{else -}}
+Nothing from the baseline is missing from this report.
+{{end}}
+{{end -}}
+## What this report is not
+
+{{range .Limits}}- {{.}}
+{{end}}

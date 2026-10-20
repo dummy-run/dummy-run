@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "name": "example: two defects",
+  "defects": [
+    {
+      "id": "EX-1",
+      "kind": "permission",
+      "severity": "major",
+      "route": "/drafts/{id}/edit",
+      "state": "signed in as viewer",
+      "locus": "page",
+      "symptom": "access-wrongly-allowed",
+      "condition": "role:viewer",
+      "depth": 2,
+      "switch": "perm-viewer-edit",
+      "description": "A viewer can open the edit form for any draft by its address and save it."
+    },
+    {
+      "id": "EX-2",
+      "kind": "bug",
+      "severity": "minor",
+      "route": "/help",
+      "state": "any",
+      "locus": "link:full style guide",
+      "symptom": "dead-link",
+      "condition": "any",
+      "depth": 1,
+      "switch": "bug-dead-link",
+      "description": "The link to the full style guide goes to a page that does not exist."
+    }
+  ]
+}

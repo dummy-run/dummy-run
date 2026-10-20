@@ -148,7 +148,8 @@ lists every field.
 
 - Each step has a `route`.
 - Each finding has a `route`, a `locus` and a `symptom`.
-- Each finding also has the `fingerprint` the engine computes from them, a `class` of problem or observation, and a `taxonomy_version`.
+- Each finding also has the `fingerprint` the engine computes from them, a `class` and a `taxonomy_version`. The engine writes `class: problem` for every finding.
+- A record may have an `observations` list of `text` and `steps`. These are things that worked, kept apart from the findings. Nothing in this document counts them, and they have no fingerprint. Records from before the lists were separated can hold a finding with `class: observation`, and the estimators skip those too.
 - `scenario.goal_met` says whether the persona did what it came to do. The persona reports it when it finishes.
 - `persona.dimensions` records six things: the viewport, the assistive technology and the connection. It also holds the zoom, the locale and the motion setting. The assistive technology is `keyboard-only` when the persona cannot click and `screen-reader-view` when it is sent no screenshots.
 - `repeat_index` counts earlier runs of the same persona, scenario and model in the batch, and `seed` is the sampling seed when the provider takes one. `--repeat-index` and `--seed` set them.

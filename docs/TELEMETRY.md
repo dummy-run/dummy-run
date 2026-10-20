@@ -10,6 +10,18 @@ the version 2 fields, so the attributes marked "version 2" are left out for them
 `dummyrun.cost.usd` is present when the model is in the price table, and the record has `cost_usd: null`
 otherwise.
 
+## What leaves the network
+
+Dummy Run sends data to up to three places. You choose the model provider and the Grafana address. The OpenTelemetry endpoint comes from your environment.
+
+- The model provider you pick with `--provider` receives screenshots and page text. The persona is a model that reads what the browser shows. [Ethics and limits](ETHICS.md) covers what providers keep.
+- The OpenTelemetry backend you configure receives the telemetry on this page. The exporter sends it to the endpoint in `OTEL_EXPORTER_OTLP_ENDPOINT`, or to a per-signal variable such as `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` when one is set. With neither set it uses the local collector address. It sends telemetry nowhere else (code: `integrations/grafana/exporter/internal/otelsetup/otelsetup.go`).
+- Grafana receives annotations at `--grafana-url`, through the Grafana HTTP API and not through OTLP, when you pass the flag (code: `integrations/grafana/exporter/internal/annotations/annotations.go`).
+
+Telemetry has no screenshots and no copy of the persona's report. Telemetry includes run IDs and outcomes. It includes each step's action, page URL and control label. It includes the model, its region, the token counts and the cost. It includes each finding's title and its evidence label. The label is one of measured, code, sourced or inferred. The persona writes the title of its own findings. The engine writes the title of a security finding. A title can quote a few words from the page. A URL can hold personal data if the app puts it there. The run record and its screenshots stay where you run Dummy Run.
+
+Where telemetry lives is wherever your own backend is. The market profile in [ARCHITECTURE.md](ARCHITECTURE.md) checks the adapters of a run. It does not check your backend, so host the backend in the market you need.
+
 ## Resource
 
 | Attribute | Value |
@@ -17,6 +29,8 @@ otherwise.
 | `service.name` | `dummyrun` |
 | `service.version` | The Dummy Run version |
 | `service.namespace` | Optional. Set it to the target app's name to group runs by app |
+
+The exporter does not map the optional record fields `target.identify`, `target.respect_robots` and `outcome_reason`. Records that leave them out stay valid, because they are optional in schema version 2.
 
 ## Traces
 
@@ -58,7 +72,7 @@ Root span attributes:
 | `dummyrun.cost.usd` | `usage.cost_usd`, when present |
 | `dummyrun.steps.count` | The number of entries in `steps` |
 
-The root span status is `ERROR` when the outcome is `errored` or `blocked`, and `OK` otherwise.
+The root span status is `ERROR` when the outcome is `errored`, `blocked` or `provider_filtered`, and `OK` otherwise (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). A record's `events` are not exported, because the exporter's record type has no `events` field (code: `integrations/grafana/exporter/internal/record/record.go`). The `security` kind appears as the value of `dummyrun.finding.kind` (code: `integrations/grafana/exporter/internal/telemetry/plan.go`).
 
 Step span attributes are `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun.step.target`. When
 present they add `url.full`, `http.response.status_code`, `dummyrun.step.console_errors` and
@@ -76,12 +90,14 @@ time of the finding's first step.
 | `dummyrun.finding.evidence` | `evidence` |
 | `dummyrun.finding.verdict` | `verdict` |
 | `dummyrun.finding.steps` | `steps`, as an integer array |
-| `dummyrun.finding.class` | `class`, when present (version 2 records) |
+| `dummyrun.finding.class` | `class`, when present (version 2 records). Always `problem` in records from the current engine |
 | `dummyrun.finding.route` | `route`, when present |
 | `dummyrun.finding.symptom` | `symptom`, when present |
 | `dummyrun.finding.fingerprint` | `fingerprint`, when present. The same problem has the same fingerprint in every run |
 
 The verdict is the one the record holds at the moment of the export. `dummyrun review` changes it, so review first and export after. It adds `reviewer`, `reviewed_at` and `reason` to the record, and the exporter reads them without sending them. Sending a reviewed record again does not update what Grafana holds. It adds a second set of spans, lines and metric points, as the exporter guide says. Panels that count confirmed findings are then right only for runs exported after review.
+
+A record may hold an `observations` list of things that worked. The exporter reads it so that the record passes validation. It sends nothing for it. The findings metric does not count it.
 
 ## Metrics
 
@@ -146,13 +162,20 @@ annotations with the same tags and times. It skips the run if one exists. The te
 
 Dashboards for the app under test can show these annotations to mark when personas were active.
 
+Grafana can answer HTTP 429 when annotations come too fast. The exporter waits at least half a second between
+calls. It retries a call that gets a 429 up to five times and honours `Retry-After`. A lookup also retries on a 5xx, but a create does not, because Grafana may have stored the annotation. One export spends at most ten minutes on annotations (code: `integrations/grafana/exporter/internal/cli/cli.go`). If an
+annotation still fails, the exporter goes on with the telemetry of every run and flushes it.
+It then lists the failed annotations and exits with code 3. Code 3 means that some
+annotations could not be created. Any selected telemetry was sent first, and with `--signals annotations` there is none. Code 1 means the telemetry failed. `--signals annotations` sends only the
+annotations, so a second export fills the gaps without repeating spans, metrics or logs.
+
 ## Linking to the app's own telemetry
 
 The runner adds two things to every request it sends to the target's hosts. The first is a W3C `baggage`
 header carrying `dummyrun.run.id` and `dummyrun.persona.id`. The second is a `traceparent` header for
 the step span. An app instrumented with OpenTelemetry then joins the persona's trace, and its spans
-carry the baggage. The browser's user agent also ends with `DummyRun/<version>`, so frontend tools such
-as Grafana Faro can filter persona sessions.
+carry the baggage. The browser's user agent also carries `DummyRun/<version>`, so frontend tools such
+as Grafana Faro can filter persona sessions. Filters should match the `DummyRun/<version>` token and not require it to be last: with `--identify` the user agent ends with `DummyRun/<version> (+https://dummyrun.dev/scanner/)`.
 
 The page's own instrumentation may already set a `traceparent`, for example Faro or OpenTelemetry JS
 on a `fetch` call. The runner then keeps that header and adds only the baggage. Faro's client span stays

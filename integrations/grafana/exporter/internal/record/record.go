@@ -52,10 +52,22 @@ type Run struct {
 	Target        Target    `json:"target"`
 	Provider      Provider  `json:"provider"`
 	Browser       Browser   `json:"browser"`
+	Signin        *Signin   `json:"signin,omitempty"`
 	Outcome       string    `json:"outcome"`
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
 	Usage         Usage     `json:"usage"`
+	// Observations are read so that the strict decoder accepts them. The exporter does not send them.
+	Observations []Observation `json:"observations,omitempty"`
+	// Events are accepted so a record that has them loads. The exporter does not send them,
+	// because an event's detail is page text.
+	Events []json.RawMessage `json:"events,omitempty"`
+}
+
+// Observation is a note that something worked. It is not a finding and the exporter ignores it.
+type Observation struct {
+	Text  string `json:"text"`
+	Steps []int  `json:"steps"`
 }
 
 // Persona is the fictional user who ran the scenario.
@@ -116,6 +128,23 @@ type Provider struct {
 	Kind   string `json:"kind"`
 	Model  string `json:"model"`
 	Region string `json:"region"`
+}
+
+// Signin is how the engine signed the persona in before the run. It holds no credential. The
+// exporter reads it so that a record with the block is accepted, and sends nothing from it.
+type Signin struct {
+	Method         string         `json:"method"`
+	Role           string         `json:"role"`
+	OK             bool           `json:"ok"`
+	AllowedRequest *SigninRequest `json:"allowed_request"`
+	DurationMS     int            `json:"duration_ms"`
+	Error          string         `json:"error,omitempty"`
+}
+
+// SigninRequest is the one request let through during sign-in.
+type SigninRequest struct {
+	Method string `json:"method"`
+	URL    string `json:"url"`
 }
 
 // Browser is the browser the persona used.
