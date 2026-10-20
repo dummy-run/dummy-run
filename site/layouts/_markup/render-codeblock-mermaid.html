@@ -4,5 +4,5 @@
 {{- if templates.Exists (printf "_partials/%s" $tpl) -}}
 {{ partial $tpl . }}
 {{- else -}}
-<pre class="diagram-source"><code>{{ .Inner }}</code></pre>
+<pre class="diagram-source" tabindex="0"><code>{{ .Inner }}</code></pre>
 {{- end -}}

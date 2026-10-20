@@ -1,0 +1,581 @@
+{
+ "run_id": "2026-10-19-priya-qa-lead-does-it-replace-my-suite-31099a2c8c853e8f",
+ "date": "2026-10-19",
+ "started_at": "2026-10-19T20:35:42.31845Z",
+ "ended_at": "2026-10-19T20:39:18.45627Z",
+ "persona": "priya-qa-lead",
+ "device": "desktop",
+ "scenario": "Does it replace my scripted suite",
+ "scenario_id": "does-it-replace-my-suite",
+ "model": "gpt-5-4-mini-global",
+ "region": "global",
+ "browser": "firefox 158.0",
+ "outcome": "completed",
+ "build": "54614bce6ce2",
+ "input_tokens": 242949,
+ "output_tokens": 1247,
+ "cached": 52224,
+ "calls": 23,
+ "steps": [
+  {
+   "n": 1,
+   "action": "visit",
+   "target": "https://dummyrun.dev/",
+   "url": "https://dummyrun.dev/",
+   "status": 200,
+   "ms": 656,
+   "title": "Dummy Run",
+   "headings": [
+    "AI plays your users and tries your app before your customers do.",
+    "Start with your job",
+    "How a run works",
+    "What you get back",
+    "A persona library for every site",
+    "Straight answers"
+   ],
+   "focus": null,
+   "outline": "link \"Skip to content\" @1\nbanner\n  link \"Dummy Run\" @2 [current]\n  navigation \"Site\"\n    link \"How it works\" @3\n    link \"Who it is for\" @4\n    link \"Persona library\" @5\n    link \"Docs\" @6\n    link \"GitHub\" @7\n  link \"Get started\" @8\n  button \"Switch to light theme\" @9\nmain\n  heading 1 \"AI plays your users and tries your app before your customers do.\"\n  link \"Get started\" @10\n  link \"See how a run works\" @11\n  region \"Start with your job\"\n    heading 2 \"Start with your job\"\n    link \"QA lead Every role, every pull request\" @12\n    link \"Developer Your laptop or CI\" @13\n    link \"Agency Every client, in its market\" @14\n    link \"Product and UX Friction, with the screenshot\" @15\n    link \"Compliance and security What each role can reach\" @16\n    link \"Executive One board, with evidence\" @17\n  region \"How a run works\"\n    heading 2 \"How a run works\"\n    link \"Read how it works\" @18\n  region \"What you get back\"\n    heading 2 \"What you get back\"\n  region \"A persona library for every site\"\n    heading 2 \"A persona library for every site\"\n    link \"Browse the persona library\" @19\n  region \"Straight answers\"\n    heading 2 \"Straight answers\"\n    link \"Beside your scripted suite\" @20\n    link \"The browser table\" @21\n    link \"What goes where\" @22\n    link \"Get started\" @23\n  region \"Every run in Grafana\"\n    heading 2 \"Every run in Grafana\"\n    link \"See the dashboards\" @24\n...",
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 2,
+   "action": "look",
+   "target": "",
+   "url": "https://dummyrun.dev/",
+   "status": 200,
+   "ms": 285,
+   "title": "Dummy Run",
+   "headings": [
+    "AI plays your users and tries your app before your customers do.",
+    "Start with your job",
+    "How a run works",
+    "What you get back",
+    "A persona library for every site",
+    "Straight answers"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": "I read the home page and confirmed the product positioning: Dummy Run is about running personas through scenarios against a preview, with a runner and a reviewer in the loop.",
+   "note": null
+  },
+  {
+   "n": 3,
+   "action": "click",
+   "target": "Read how it works",
+   "url": "https://dummyrun.dev/how-it-works/",
+   "status": 200,
+   "ms": 821,
+   "title": "How it works | Dummy Run",
+   "headings": [
+    "How it works",
+    "Targets and models",
+    "Evidence",
+    "Words we use",
+    "Product",
+    "Docs"
+   ],
+   "focus": null,
+   "outline": "link \"Skip to content\" @1\nbanner\n  link \"Dummy Run\" @2\n  navigation \"Site\"\n    link \"How it works\" @3 [current]\n    link \"Who it is for\" @4\n    link \"Persona library\" @5\n    link \"Docs\" @6\n    link \"GitHub\" @7\n  link \"Get started\" @8\n  button \"Switch to light theme\" @9\nmain\n  navigation \"Breadcrumb\"\n    link \"Home\" @10\n  heading 1 \"How it works\"\n  heading 2 \"Targets and models\"\n  heading 2 \"Evidence\"\n  heading 2 \"Words we use\"\n  link \"persona library\" @13\n  link \"mascot\" @14\n  link \"How the name was chosen\" @15\n  complementary \"Next step\"\n    link \"Get started\" @16\n  link \"site/content/how-it-works.md\" @17\ncontentinfo\n  navigation \"Footer\"\n    heading 2 \"Product\"\n    link \"How it works\" @18\n    link \"Who it is for\" @19\n    link \"Persona library\" @20\n    link \"Get started\" @21\n    heading 2 \"Docs\"\n    link \"All docs\" @22\n    link \"Architecture\" @23\n    link \"Run record\" @24\n    link \"Telemetry\" @25\n    link \"Grafana\" @26\n    heading 2 \"Project\"\n    link \"GitHub\" @27\n    link \"Contributing\" @28\n...",
+   "said": "I followed the How it works path to understand the flow.",
+   "note": null
+  },
+  {
+   "n": 4,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/how-it-works/",
+   "status": 200,
+   "ms": 290,
+   "title": "How it works | Dummy Run",
+   "headings": [
+    "How it works",
+    "Targets and models",
+    "Evidence",
+    "Words we use",
+    "Product",
+    "Docs"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 5,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/how-it-works/",
+   "status": 200,
+   "ms": 300,
+   "title": "How it works | Dummy Run",
+   "headings": [
+    "How it works",
+    "Targets and models",
+    "Evidence",
+    "Words we use",
+    "Product",
+    "Docs"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 6,
+   "action": "click",
+   "target": "Architecture",
+   "url": "https://dummyrun.dev/docs/architecture/",
+   "status": 200,
+   "ms": 634,
+   "title": "Architecture | Dummy Run",
+   "headings": [
+    "Architecture",
+    "Stages",
+    "Adapters",
+    "The evidence rule",
+    "Browsers",
+    "Deployment"
+   ],
+   "focus": null,
+   "outline": "link \"Skip to content\" @1\nbanner\n  link \"Dummy Run\" @2\n  navigation \"Site\"\n    link \"How it works\" @3\n    link \"Who it is for\" @4\n    link \"Persona library\" @5\n    link \"Docs\" @6 [current]\n    link \"GitHub\" @7\n  link \"Get started\" @8\n  button \"Switch to light theme\" @9\nmain\n  navigation \"Breadcrumb\"\n    link \"Home\" @10\n    link \"Docs\" @11\n  heading 1 \"Architecture\"\n  heading 2 \"Stages\"\n  heading 2 \"Adapters\"\n  link \"PROVIDERS.md\" @13\n  heading 2 \"The evidence rule\"\n  heading 2 \"Browsers\"\n  heading 2 \"Deployment\"\n  complementary \"Next step\"\n    link \"Read Run record\" @15\n  link \"docs/ARCHITECTURE.md\" @16\n  navigation \"Docs\"\n    link \"Docs\" @17\n    link \"The engine\" @18\n    link \"Command line reference\" @19\n    link \"Model providers\" @20\n    link \"Personas\" @21\n    link \"Coverage\" @22\n    link \"Architecture\" @23 [current]\n    link \"Run record\" @24\n    link \"Telemetry\" @25\n    link \"Grafana dashboards\" @26\n    link \"Grafana guide\" @27\n    link \"Plan\" @28\n    link \"Contributing to Dummy Run\" @29\n    link \"Writing and citation guide\" @30\n...",
+   "said": "I opened Architecture and saw that the system has a runner, a reviewer, a results board, and telemetry and exporter pieces. That gave me the basic operating model.",
+   "note": null
+  },
+  {
+   "n": 7,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/architecture/",
+   "status": 200,
+   "ms": 355,
+   "title": "Architecture | Dummy Run",
+   "headings": [
+    "Architecture",
+    "Stages",
+    "Adapters",
+    "The evidence rule",
+    "Browsers",
+    "Deployment"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 8,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/architecture/",
+   "status": 200,
+   "ms": 290,
+   "title": "Architecture | Dummy Run",
+   "headings": [
+    "Architecture",
+    "Stages",
+    "Adapters",
+    "The evidence rule",
+    "Browsers",
+    "Deployment"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 9,
+   "action": "click",
+   "target": "Read Run record",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 842,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": "link \"Skip to content\" @1\nbanner\n  link \"Dummy Run\" @2\n  navigation \"Site\"\n    link \"How it works\" @3\n    link \"Who it is for\" @4\n    link \"Persona library\" @5\n    link \"Docs\" @6 [current]\n    link \"GitHub\" @7\n  link \"Get started\" @8\n  button \"Switch to light theme\" @9\nmain\n  navigation \"Breadcrumb\"\n    link \"Home\" @10\n    link \"Docs\" @11\n  heading 1 \"Run record\"\n  link \"telemetry\" @12\n  heading 2 \"Fields\"\n  heading 3 \"Top level\"\n  heading 3 \"persona\"\n  heading 3 \"scenario\"\n  heading 3 \"target\"\n  heading 3 \"provider\"\n  heading 3 \"browser\"\n  heading 3 \"usage\"\n  heading 3 \"persona.dimensions\"\n  heading 3 \"target.route_universe, each item\"\n  heading 3 \"steps, each item\"\n  heading 3 \"findings, each item\"\n  heading 2 \"An example record\"\n  button \"Show the record (200 lines of JSON)\" @24 [collapsed]\n  complementary \"Next step\"\n    link \"Read Telemetry\" @26\n  link \"site/content/docs/run-record.md\" @27\n  navigation \"Docs\"\n    link \"Docs\" @28\n    link \"The engine\" @29\n    link \"Command line reference\" @30\n    link \"Model providers\" @31\n    link \"Personas\" @32\n...",
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 10,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 325,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 11,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 323,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 12,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 390,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 13,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 305,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 14,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 315,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 15,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 326,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 16,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 314,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 17,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 369,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 18,
+   "action": "look",
+   "target": "",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 280,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 19,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 349,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 20,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 287,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": null,
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 21,
+   "action": "click",
+   "target": "Show the record (200 lines of JSON)",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 349,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": "button \"Show the record (200 lines of JSON)\"",
+   "outline": "link \"Skip to content\" @1\nbanner\n  link \"Dummy Run\" @2\n  navigation \"Site\"\n    link \"How it works\" @3\n    link \"Who it is for\" @4\n    link \"Persona library\" @5\n    link \"Docs\" @6 [current]\n    link \"GitHub\" @7\n  link \"Get started\" @8\n  button \"Switch to light theme\" @9\nmain\n  navigation \"Breadcrumb\"\n    link \"Home\" @10\n    link \"Docs\" @11\n  heading 1 \"Run record\"\n  link \"telemetry\" @12\n  heading 2 \"Fields\"\n  heading 3 \"Top level\"\n  heading 3 \"persona\"\n  heading 3 \"scenario\"\n  heading 3 \"target\"\n  heading 3 \"provider\"\n  heading 3 \"browser\"\n  heading 3 \"usage\"\n  heading 3 \"persona.dimensions\"\n  heading 3 \"target.route_universe, each item\"\n  heading 3 \"steps, each item\"\n  heading 3 \"findings, each item\"\n  heading 2 \"An example record\"\n  button \"Show the record (200 lines of JSON)\" @24 [expanded]  <- focus\n  complementary \"Next step\"\n    link \"Read Telemetry\" @26\n  link \"site/content/docs/run-record.md\" @27\n  navigation \"Docs\"\n    link \"Docs\" @28\n    link \"The engine\" @29\n    link \"Command line reference\" @30\n    link \"Model providers\" @31\n    link \"Personas\" @32\n...",
+   "said": "On Run record, I found the strongest evidence for how findings are checked: the page says the run record is the source of truth, the runner writes it, and the reviewer completes it.",
+   "note": null
+  },
+  {
+   "n": 22,
+   "action": "scroll",
+   "target": "down",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 353,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": "button \"Show the record (200 lines of JSON)\"",
+   "outline": null,
+   "said": null,
+   "note": null
+  },
+  {
+   "n": 23,
+   "action": "look",
+   "target": "",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 322,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": "button \"Show the record (200 lines of JSON)\"",
+   "outline": null,
+   "said": "The run shown in the example uses a Firefox browser, and the fields table says browser is part of the record.",
+   "note": null
+  },
+  {
+   "n": 24,
+   "action": "finish",
+   "target": "pass",
+   "url": "https://dummyrun.dev/docs/run-record/",
+   "status": 200,
+   "ms": 287,
+   "title": "Run record | Dummy Run",
+   "headings": [
+    "Run record",
+    "Fields",
+    "An example record",
+    "Product",
+    "Docs",
+    "Project"
+   ],
+   "focus": "button \"Show the record (200 lines of JSON)\"",
+   "outline": null,
+   "said": null,
+   "note": "verdict: pass"
+  }
+ ],
+ "findings": [
+  {
+   "id": "question-the-home-page-and-how-it-works-explain-dummy-run-as-a-person",
+   "kind": "question",
+   "severity": "info",
+   "title": "The home page and How it works explain Dummy Run as a persona-based exploratory testing tool",
+   "steps": [
+    2,
+    3
+   ],
+   "evidence": "measured",
+   "verdict": "pending",
+   "route": "/"
+  },
+  {
+   "id": "question-the-docs-say-the-runner-writes-the-run-record-and-the-review",
+   "kind": "question",
+   "severity": "info",
+   "title": "The docs say the runner writes the run record and the reviewer completes it, which is the closest thing to a verification gate",
+   "steps": [
+    6,
+    21
+   ],
+   "evidence": "measured",
+   "verdict": "pending",
+   "route": "/docs/architecture"
+  },
+  {
+   "id": "question-the-run-record-example-shows-firefox-as-a-supported-browser",
+   "kind": "question",
+   "severity": "info",
+   "title": "The run record example shows Firefox as a supported browser in the recorded run",
+   "steps": [
+    21,
+    23
+   ],
+   "evidence": "measured",
+   "verdict": "pending",
+   "route": "/docs/run-record"
+  },
+  {
+   "id": "question-i-found-browser-details-in-the-schema-example-but-not-a-dedi",
+   "kind": "question",
+   "severity": "minor",
+   "title": "I found browser details in the schema/example, but not a dedicated supported-browsers list",
+   "steps": [
+    21,
+    23
+   ],
+   "evidence": "measured",
+   "verdict": "pending",
+   "route": "/docs/run-record"
+  }
+ ],
+ "cost_usd": 0.152572,
+ "cost_note": "Worked out afterwards from the token counts and the engine's price table, because the record was written before this model was priced."
+}

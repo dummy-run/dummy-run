@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/signin"
 )
 
 const a11yUsage = `Usage:
@@ -26,6 +27,8 @@ Flags:
   --scheme NAME     light, dark or both (default both)
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
+                    tested signed in. The file holds cookies: keep it private
   --headful         show the browser window
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
@@ -41,6 +44,7 @@ func a11yCmd(args []string) int {
 	scheme := fs.String("scheme", "both", "light, dark or both")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
+	sessionPath := fs.String("session", "", "saved session file to load before the sweep")
 	headful := fs.Bool("headful", false, "show the browser window")
 	// Flags may come after the URLs, so parse in a loop that peels off positional arguments.
 	var urls []string
@@ -91,6 +95,13 @@ func a11yCmd(args []string) int {
 			return fail(fmt.Errorf("%s: %w", *allowPath, err))
 		}
 	}
+	var session *signin.Session
+	if *sessionPath != "" {
+		var err error
+		if session, err = signin.LoadSession(*sessionPath); err != nil {
+			return fail(err)
+		}
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if *sitemap != "" {
@@ -108,7 +119,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11y.Run(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		Headless: !*headful, Log: os.Stderr,
+		Headless: !*headful, Log: os.Stderr, Session: session,
 	})
 	if err != nil {
 		return fail(err)

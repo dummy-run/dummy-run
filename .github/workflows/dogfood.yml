@@ -1,0 +1,229 @@
+name: Dogfood
+
+# Every Monday the engine plays the dummyrun.dev cast against the live site. The run records go to
+# Grafana Cloud and to a workflow artifact. The site is public and the target is read-only.
+on:
+  # A change to the workflow, the cast or the target runs it straight away, so a broken run shows
+  # up on merge rather than on the next Monday.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/dogfood.yml"
+      - "casts/dummyrun-dev/**"
+      - "examples/targets/dummyrun-dev.json"
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The same pinned Chrome for Testing as the Engine and Site workflows. Keep the three in step.
+  CHROME_FOR_TESTING: 155.0.8059.12
+  # Azure OpenAI deployment. Key auth is off, so the run signs in with Entra. The endpoint is the
+  # variable DUMMYRUN_AZURE_ENDPOINT of the production environment, not a value in this file.
+  DUMMYRUN_MODEL: gpt-5-4-mini-global
+  # Cost cap for each run. Ten scenarios at most, each with 20 steps and 300,000 tokens.
+  DUMMYRUN_STEPS: "20"
+  DUMMYRUN_TOKENS: "300000"
+
+# One dogfood run at a time. A newer one waits instead of cancelling the one in progress.
+concurrency:
+  group: dogfood
+  cancel-in-progress: false
+
+jobs:
+  dogfood:
+    name: The cast visits dummyrun.dev and the records go to Grafana
+    # Scheduled runs always use the default branch. A manual run from another branch is skipped,
+    # and the production environment refuses it too.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Ten scenarios of up to 15 minutes each take 150 minutes. The rest is setup, export and upload.
+    timeout-minutes: 180
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Build the engine and the exporter
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          go build -o "$RUNNER_TEMP/bin/dummyrun" ./cmd/dummyrun
+          (cd integrations/grafana/exporter && go build -o "$RUNNER_TEMP/bin/dummyrun-otel" ./cmd/dummyrun-otel)
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Install Chrome for Testing and chromedriver
+        env:
+          VERSION: ${{ env.CHROME_FOR_TESTING }}
+        run: |
+          set -euo pipefail
+          base="https://storage.googleapis.com/chrome-for-testing-public/${VERSION}/linux64"
+          curl -fsSLo chrome.zip "${base}/chrome-linux64.zip"
+          curl -fsSLo chromedriver.zip "${base}/chromedriver-linux64.zip"
+          unzip -q chrome.zip -d "$HOME/cft"
+          unzip -q chromedriver.zip -d "$HOME/cft"
+          echo "DUMMYRUN_CHROME=$HOME/cft/chrome-linux64/chrome" >> "$GITHUB_ENV"
+          echo "DUMMYRUN_CHROMEDRIVER=$HOME/cft/chromedriver-linux64/chromedriver" >> "$GITHUB_ENV"
+          "$HOME/cft/chrome-linux64/chrome" --version
+          "$HOME/cft/chromedriver-linux64/chromedriver" --version
+      - name: Sign in to Azure with the workflow's OIDC token
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Play every scenario of the cast
+        id: runs
+        env:
+          BATCH: dogfood-${{ github.run_id }}
+          DUMMYRUN_AZURE_ENDPOINT: ${{ vars.DUMMYRUN_AZURE_ENDPOINT }}
+        run: |
+          set -uo pipefail
+          if [ -z "$DUMMYRUN_AZURE_ENDPOINT" ]; then
+            echo "::error::The production environment has no DUMMYRUN_AZURE_ENDPOINT variable"
+            exit 1
+          fi
+          out="$RUNNER_TEMP/runs"
+          mkdir -p "$out"
+          echo "RUNS_DIR=$out" >> "$GITHUB_ENV"
+          failed=0
+          total=0
+          for scenario_file in casts/dummyrun-dev/*/scenarios/*.md; do
+            persona="$(basename "$(dirname "$(dirname "$scenario_file")")")"
+            scenario="$(basename "$scenario_file" .md)"
+            scenario="${scenario#[0-9][0-9]-}"
+            total=$((total + 1))
+            echo "::group::${persona} ${scenario}"
+            if ! timeout 900 dummyrun run \
+              --cast casts/dummyrun-dev --persona "$persona" --scenario "$scenario" \
+              --target examples/targets/dummyrun-dev.json --out "$out" \
+              --browser chrome --provider azure --model "$DUMMYRUN_MODEL" --region global \
+              --steps "$DUMMYRUN_STEPS" --tokens "$DUMMYRUN_TOKENS" --batch "$BATCH"; then
+              echo "::error title=Run failed::${persona} ${scenario} did not produce a run record"
+              failed=$((failed + 1))
+            fi
+            echo "::endgroup::"
+          done
+          records="$(find "$out" -maxdepth 1 -name '*.json' | wc -l | tr -d ' ')"
+          # A run that is blocked or runs out of budget still exits 0 and writes a record, so the
+          # outcome in the record is the only sign of it.
+          non_completed=0
+          if [ "$records" -gt 0 ]; then
+            non_completed="$(jq -rs '[.[] | select(.outcome != "completed")] | length' "$out"/*.json)"
+          fi
+          {
+            echo "## Dogfood runs"
+            echo
+            echo "${records} run records from ${total} scenarios. ${failed} scenarios failed to run. ${non_completed} records were not completed."
+          } >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "failed=${failed}"
+            echo "non_completed=${non_completed}"
+            echo "records=${records}"
+          } >> "$GITHUB_OUTPUT"
+      - name: Summarise every run and finding
+        if: always() && steps.runs.outputs.records != '' && steps.runs.outputs.records != '0'
+        run: |
+          set -euo pipefail
+          {
+            echo
+            echo "| Persona | Scenario | Outcome | Steps | Findings | Tokens in / out | Cost (USD) |"
+            echo "|---|---|---|---|---|---|---|"
+            jq -rs 'sort_by(.persona.id, .scenario.id)[] |
+              "| \(.persona.id) | \(.scenario.title // .scenario.id) | \(.outcome) | \(.steps | length) | \(.findings | length) | \(.usage.input_tokens) / \(.usage.output_tokens) | \(.usage.cost_usd // "n/a") |"' \
+              "$RUNS_DIR"/*.json
+            echo
+            echo "Total cost (USD): $(jq -s '[.[].usage.cost_usd // 0] | add | . * 10000 | round / 10000' "$RUNS_DIR"/*.json)"
+            echo
+            echo "## Findings"
+            echo
+            echo "| Persona | Scenario | Severity | Kind | Finding | Evidence |"
+            echo "|---|---|---|---|---|---|"
+            jq -rs '[.[] | . as $r | .findings[] | {p: $r.persona.id, s: $r.scenario.id, f: .}] |
+              sort_by(.f.severity, .p)[] |
+              "| \(.p) | \(.s) | \(.f.severity) | \(.f.kind) | \(.f.title | gsub("\\|"; "/")) | \(.f.evidence) |"' \
+              "$RUNS_DIR"/*.json
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Export the run records to Grafana Cloud
+        id: export
+        if: always() && steps.runs.outputs.records != '' && steps.runs.outputs.records != '0'
+        env:
+          GRAFANA_INSTANCE_ID: ${{ vars.GRAFANA_INSTANCE_ID }}
+          GRAFANA_OTLP_TOKEN: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+          GRAFANA_OTLP_ENDPOINT: ${{ vars.GRAFANA_OTLP_ENDPOINT }}
+          GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+          GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+        run: |
+          set -uo pipefail
+          basic="$(printf '%s:%s' "$GRAFANA_INSTANCE_ID" "$GRAFANA_OTLP_TOKEN" | base64 | tr -d '\n')"
+          echo "::add-mask::${basic}"
+          export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+          export OTEL_EXPORTER_OTLP_ENDPOINT="$GRAFANA_OTLP_ENDPOINT"
+          export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic ${basic}"
+          export OTEL_RESOURCE_ATTRIBUTES=service.namespace=dummyrun-dev
+          # --verify-loki is left out: it needs the Loki URL and a token that can read logs, and the
+          # production environment holds only a token that writes them.
+          # The step runs with -e. Turn it off so a failed export reaches the status check below.
+          set +e
+          dummyrun-otel export --grafana-url "$GRAFANA_URL" "$RUNS_DIR" 2>&1 | tee "$RUNNER_TEMP/export.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          # Exit code 3 means every trace, metric and log arrived and some annotations did not.
+          # Any other code means the telemetry failed.
+          if [ "$status" -eq 3 ]; then
+            echo "::warning title=Some Grafana annotations failed::The traces, metrics and logs arrived. The run records are in the dogfood-runs artifact."
+            {
+              echo "## Some Grafana annotations failed"
+              echo
+              echo "dummyrun-otel exited with 3. The traces, metrics and logs of every run arrived. Add the missing annotations by setting GRAFANA_TOKEN and running \`dummyrun-otel export --signals annotations --grafana-url <Grafana URL>\` on the run records in the dogfood-runs artifact."
+              echo
+              echo '```text'
+              tail -n 40 "$RUNNER_TEMP/export.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$status" -ne 0 ]; then
+            echo "::error title=Grafana export failed::dummyrun-otel exited with ${status}. The run records are in the dogfood-runs artifact."
+            {
+              echo "## Grafana export failed"
+              echo
+              echo "dummyrun-otel exited with ${status}. The run records are in the dogfood-runs artifact, and the output is below."
+              echo "Some spans and metrics may have arrived. Check Grafana before you export the records again, because a repeat duplicates them. To send only what is missing, use --signals."
+              echo
+              echo '```text'
+              tail -n 40 "$RUNNER_TEMP/export.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+      - name: Upload the run records
+        if: always() && steps.runs.outputs.records != '' && steps.runs.outputs.records != '0'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dogfood-runs
+          path: ${{ runner.temp }}/runs
+          retention-days: 90
+          if-no-files-found: error
+      - name: Fail the job when a run or the export failed
+        if: always()
+        env:
+          RUNS_FAILED: ${{ steps.runs.outputs.failed }}
+          RECORDS: ${{ steps.runs.outputs.records }}
+          NON_COMPLETED: ${{ steps.runs.outputs.non_completed }}
+          EXPORT_STATUS: ${{ steps.export.outputs.status }}
+        run: |
+          problems=0
+          if [ -z "$RECORDS" ] || [ "$RECORDS" = "0" ]; then echo "::error::No run records were written"; problems=1; fi
+          if [ "${RUNS_FAILED:-0}" != "0" ]; then echo "::error::${RUNS_FAILED} scenarios failed to run"; problems=1; fi
+          if [ "${NON_COMPLETED:-0}" != "0" ]; then echo "::error::${NON_COMPLETED} run records were not completed"; problems=1; fi
+          # Status 3 is annotations only. The export step has already raised a warning for it.
+          if [ "${EXPORT_STATUS:-0}" != "0" ] && [ "${EXPORT_STATUS:-0}" != "3" ]; then echo "::error::The Grafana export failed"; problems=1; fi
+          exit "$problems"

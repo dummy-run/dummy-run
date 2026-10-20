@@ -157,6 +157,9 @@ func fromBedrock(out *bedrockruntime.ConverseOutput) (Response, error) {
 			resp.Usage.OutputTokens = int(*u.OutputTokens)
 		}
 	}
+	if isFilterReason(resp.FinishReason) {
+		return resp, filtered("bedrock", "stop reason "+resp.FinishReason, nil)
+	}
 	msg, ok := out.Output.(*types.ConverseOutputMemberMessage)
 	if !ok || msg == nil {
 		return resp, ErrNoChoice

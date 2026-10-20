@@ -42,6 +42,11 @@ four scenarios that try obvious things a curious user would try, such as an edit
 admin page for an editor. Run them only on a test environment with test data and test accounts. A finding where
 a role can do something it should not is usually the most useful one a run produces.
 
+These three sign in as the role named in their `role` key. Give the target file a `signin` block with credentials
+for those roles, or for your renamed ones. The engine then signs each persona in before it starts. The persona never sees the password. [ENGINE.md](ENGINE.md) has the block, under Sign in, and the two methods.
+Use a test account that has no multi-factor step, or a saved session file. A target that is read-only still
+works, because the engine's own sign-in request is the one write it allows.
+
 ## Settings a persona can use
 
 The engine reads these keys from `profile.md`, and `Device:` and `Zoom:` lines from a scenario. [ENGINE.md](ENGINE.md)
@@ -50,10 +55,12 @@ has the full rules.
 | Setting | Use in the library |
 |---|---|
 | `zoom: 200` | `low-vision-zoom` runs at 200 percent. A desktop window of 1400 pixels then gives the page 700 CSS pixels |
+| `signin: editor` | The credentials role the engine signs in as before the run. `none` turns it off. Without the key the persona's `role` is used when the target has credentials under that name |
 | `tools-denied: click` | `keyboard-only-user` cannot click. The engine refuses the call and records a `blocked:` note |
 | Tool limits as a modality | The run record's `persona.dimensions.at` is `keyboard-only`. A persona that may not use `screenshot` records `screen-reader-view`. Other personas record `none` |
 | `tools-denied: screenshot` | `screen-reader-user` is not sent screenshots. They are still saved for the reviewer |
 | `Device:` in a scenario | Runs one persona on another device without a second copy of the persona |
+| `Sign in as:` in a scenario | Runs one persona as another role, or signed out with `Sign in as: none` |
 
 ## Format gaps
 
@@ -65,6 +72,4 @@ around each one in the prompt, and the engine code is unchanged.
 |---|---|
 | No network throttling or latency | `phone-slow-connection` gives up early in the prompt. The page loads at full speed |
 | No screen reader | `screen-reader-user` works from the text view, the accessibility outline and `a11y` results. The outline is computed from the page and only approximates what a screen reader says |
-| No sign-in step, per-role credentials or secrets file | The permission trio assumes the scenario can sign in through the form. Test credentials have no safe place to live |
-| A read-only target blocks sign-in because sign-in is a POST | The permission trio needs a target that allows changes |
 | Front matter is flat `key: value` | `tags` and `leans-on` are space-separated strings and nothing reads them yet. The website reads `label`, `need`, `summary`, `finds` and `limit` |
