@@ -5,7 +5,6 @@ description: What data Dummy Run collects for the free scan waitlist and why. Ho
 layout: legal
 updated: 2026-10-20
 short:
-  - This site sets no cookies and uses no local storage.
   - For the waitlist we keep your email and any answers you choose to give. We use them to confirm your sign-up and to tell you once when the free scan opens.
   - We do not sell your data or share it for advertising.
   - An unconfirmed entry is deleted after 9 days. A confirmed entry is deleted 24 months after you confirm unless you reconfirm. Unsubscribing deletes your entry. We keep only a one-way hash of your address so that we do not email you again.

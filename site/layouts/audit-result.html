@@ -14,7 +14,10 @@
       {{- end }}
     </ul>
     {{- end }}
-    <p class="actions"><a class="btn btn-quiet" href="/pricing/">Back to pricing</a></p>
+    <p class="actions">
+      {{- with .Params.back }}<a class="btn" href="{{ .href }}">{{ .label }}</a>{{ end }}
+      <a class="btn btn-quiet" href="/pricing/">Back to pricing</a>
+    </p>
   </article>
 </div>
 {{ end }}
