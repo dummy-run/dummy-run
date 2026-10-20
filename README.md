@@ -50,14 +50,14 @@ flowchart LR
 ## Does it replace a scripted regression suite?
 
 No. Keep your suite. A script checks the steps you wrote, the same way every time. A persona explores
-like a user and finds what nobody wrote a script for. When a persona finds a problem you want guarded for
+like a user and can find what nobody wrote a script for (inferred: the model chooses its own actions, see `internal/runner/runner.go`). When a persona finds a problem you want guarded for
 good, write the test for it.
 
 ## What leaves your network
 
 Screenshots and page text go to the model provider you choose, because the persona is a model that reads
-what the browser shows. Telemetry holds no screenshots and no page text. It goes only to the
-OpenTelemetry backend you configure, so it lives wherever that backend lives.
+what the browser shows (inferred: the persona reads page text and screenshots). Telemetry holds no screenshots. It holds step URLs, control labels and finding titles, which can quote a few words from the page. It goes only to the
+OpenTelemetry backend you configure, so it lives wherever that backend lives (code: `integrations/grafana/exporter/internal/telemetry/plan.go`).
 [docs/TELEMETRY.md](docs/TELEMETRY.md) lists what it does carry.
 
 ## Who it is for
