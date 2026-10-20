@@ -35,7 +35,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 |---|---|
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
 | `--persona ID`, `--scenario ID` | Which persona and which of its scenarios |
-| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/` and [Read-only policy](#read-only-policy) |
+| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`; screenshots and the persona's report are under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
@@ -45,6 +45,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together. The default is the date and the target's environment |
 | `--seed N` | A sampling seed, 0 or more. It is sent to providers that take one (see [PROVIDERS.md](PROVIDERS.md)) and recorded as `seed`. Where it is not sent the record has `seed: null` |
 | `--repeat-index N` | The run's `repeat_index`. The default counts the earlier records in `--out` with the same batch, persona, scenario and model |
+| `--session FILE` | Sign in from a saved session file in place of the login form. See [Sign in](#sign-in) |
 | `--universe sitemap` | Read the routes that exist from the target's `/sitemap.xml`, or from a sitemap URL, and write them to `target.route_universe` for route coverage |
 | `--steps N` | Step budget, up to 40. A scenario can also ask with a `Budget: 30 steps` line. The default is 25 |
 | `--tokens N` | Token budget for input plus output. The default is 1,500,000 |
@@ -303,7 +304,7 @@ A target with `"read_only": true` cannot be changed by a run. The engine interce
 browser makes (code: `internal/policy/policy.go` and `internal/page/page.go`). A request to an allowed host with a method other than GET, HEAD or OPTIONS fails as a
 network error before it leaves the browser, and the step that caused it gets a note such as
 `blocked: POST https://example.test/subscribe (read-only target)`. A request to any host outside
-`allowed_hosts` fails the same way. The persona is told about the policy in its prompt as well, but the
+`allowed_hosts` fails the same way. The one exception is the sign-in request, described under [Sign in](#sign-in). The persona is told about the policy in its prompt as well, but the
 interception is what enforces it. `internal/page/tools_test.go` proves it with a form whose POST never
 reaches the test server, on both browsers (measured on Firefox 158.0 and Chrome 155.0.8059.80).
 
@@ -354,6 +355,130 @@ other OpenAI-compatible services report a content filter finish reason, a `refus
 response or a `refusal` part (code: `internal/provider/responses.go`). Anthropic reports a `refusal` stop reason
 (code: `internal/provider/anthropic.go`). Gemini reports safety blocks (code: `internal/provider/gemini.go`).
 Bedrock reports a guardrail stop reason, and the call keeps its token counts (code: `internal/provider/bedrock.go`).
+
+## Sign in
+
+Some apps show nothing until a user signs in. The engine signs in before the persona starts. The harness
+does not give the credentials to the persona, so it cannot be asked for them. A signed-in page can still show the
+user name (see below). There are two ways. Both use a test account of
+your own that has no multi-factor step. Single sign-on and multi-factor prompts are out of scope. For those, sign in
+once by hand or with a test account and use a session file.
+
+### The target file
+
+A target file gains an optional `signin` block (code: `internal/policy/signin.go`).
+
+```json
+{
+  "adapter": "url",
+  "environment": "staging",
+  "base_url": "https://staging.example.test/",
+  "allowed_hosts": ["staging.example.test"],
+  "read_only": true,
+  "signin": {
+    "login_url": "/signin",
+    "username": { "selector": "#email" },
+    "password": { "label": "Password" },
+    "submit": { "selector": "form[action='/signin'] button[type=submit]" },
+    "allow_request": { "method": "POST", "url": "/signin" },
+    "success": { "selector": "form[action='/signout']" },
+    "block_paths": ["/logout"],
+    "credentials": {
+      "viewer": { "username_env": "STAGING_VIEWER_USER", "password_env": "STAGING_VIEWER_PASS" },
+      "admin": { "username_env": "STAGING_ADMIN_USER", "password_env": "STAGING_ADMIN_PASS" }
+    }
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `login_url` | The page with the form. A path is resolved against `base_url` |
+| `username`, `password`, `submit` | How to find each control. Give a CSS `selector` or the text of its `label`, not both |
+| `allow_request` | The form's own request, by `method` (default POST) and `url`. The query is ignored. This is the only request that would otherwise fail the read-only policy during the sign-in phase |
+| `success` | A `url_matches` regular expression, a `selector` or both. Make it specific to a signed-in page. Sign-in only counts when the request above was sent and this holds |
+| `block_paths` | Paths that sign the user out, such as `/logout`. A request to one fails for the whole run, whatever its method |
+| `credentials` | One entry for each role. It names the environment variables that hold the user name and password, or a `session_file` |
+
+The file never holds a credential. A value that is not a valid variable name is rejected. All hosts named
+in the block must be in `allowed_hosts`.
+
+### Which role signs in
+
+The first of these that is set decides.
+
+1. The scenario's `Sign in as: editor` line. `Sign in as: none` turns sign-in off.
+2. The persona's `signin: editor` front matter key. `none` turns it off.
+3. The persona's `role` key, when the target has credentials under that name. The library's `role-viewer`,
+   `role-editor` and `role-admin` use this. A target with credentials under those three names needs no more set-up.
+
+A role asked for by name that the target does not list is an error. So is a missing environment variable.
+Both stop the run before a browser starts. A persona whose role matches nothing runs signed out.
+
+### Method one: the login form
+
+The engine opens a tab of its own, loads the login page, fills the two fields from the environment and
+clicks submit. It waits for the declared request and the success check, then closes the tab. The persona's
+tab starts clean, with the session cookies in the browser and no history. The model is told which role it
+is signed in as, and that signing out is blocked.
+
+### Method two: a session file
+
+`dummyrun session save` signs in once through the form and writes the browser's cookies, and the local storage
+of the target's origin and of the sign-in page's origin, to a file (code: `internal/signin/session.go`).
+
+<!-- doctest -->
+```sh
+dummyrun session -h
+```
+
+```sh
+export STAGING_ADMIN_USER=... STAGING_ADMIN_PASS=...
+dummyrun session save --target staging.json --role admin --out sessions/admin.json
+dummyrun run --session sessions/admin.json ...
+dummyrun a11y --session sessions/admin.json https://staging.example.test/admin/
+```
+
+The file is in Playwright's `storageState` format, so a file saved by Playwright loads here and the reverse.
+Cookies for hosts outside `allowed_hosts` are skipped, and so are expired ones and cookies without the `Secure` flag on a host that is not local (code: `Session.Apply` in `internal/signin/session.go`). Local storage is set only for https origins of allowed hosts, and the port is not compared. A session that loads no cookie and no local storage is an error. Set a role's `session_file` in
+the target file to load it without the flag. A relative path starts at the target file's directory. The file holds
+live session cookies. It is written with mode 0600 (code: `Session.Save` in `internal/signin/session.go`). Treat it like a password and keep it out of version control.
+The engine does not check that a loaded session is still valid (code: `loadSession` in `internal/signin/session.go`). Save a fresh one when it expires.
+
+`dummyrun a11y --session FILE` loads the same file before the first page, so the sweep tests the pages as that user sees them.
+
+### The read-only exception
+
+The sign-in POST would be blocked by the read-only policy, so the policy has one exception. While the engine
+signs in by form, a gate is open. It lets through exactly one request, the one `allow_request` declares, by
+method and URL. A second matching request is blocked. Every other write is blocked as before. Hosts outside
+`allowed_hosts` stay blocked. The gate closes before the persona's first step and never opens again, so a persona that
+finds the login form and posts it is blocked like any other write. The exception applies only to targets
+with a `signin` block.
+
+Sign-out is blocked too. On a read-only target the usual sign-out button is a POST and fails like any write.
+`block_paths` also covers a sign-out link that is a GET.
+
+### What the record says
+
+The run record has an optional `signin` block, additive in schema version 2.
+
+```json
+"signin": { "method": "form", "role": "admin", "ok": true,
+  "allowed_request": { "method": "POST", "url": "https://staging.example.test/signin" }, "duration_ms": 850 }
+```
+
+`method` is `form` or `session`. `allowed_request` is the one request the exception let through, without its query,
+and null for a session. A failed sign-in has `ok: false` and an `error`, and the run is `errored` with no steps.
+The block holds the role name from the target file and never a user name or password.
+
+### Where credentials never go
+
+Credentials are read from the environment when the run starts. They are put into the form through the BiDi
+connection and nowhere else. The engine takes no screenshot during sign-in, so the password field is never
+captured. Errors are scrubbed of both values before they are recorded or logged. A test checks the model's requests and every file a run writes for the test password, on both browsers
+(`internal/runner/signin_browser_test.go`). It checks the log and the record for the user name too. A page can still show the user name, for example on a list of users, because the
+engine does not edit page text. See [SECURITY.md](../SECURITY.md) for the threat note.
 
 ## Providers
 

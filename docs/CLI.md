@@ -13,17 +13,18 @@ Usage:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE]
+  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE]
+  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
   dummyrun doctor [--stop]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers:
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
@@ -38,6 +39,7 @@ Providers:
   bedrock            Amazon Bedrock Converse with the AWS default credential chain. --region defaults to eu-west-2.
 
 An API key is read from the environment when the run starts. It is never printed or written to a run record.
+The same holds for the test-user credentials named in a target file's signin block.
 ```
 
 ## dummyrun run
@@ -82,6 +84,8 @@ Usage of run:
     	scenario ID
   -seed int
     	sampling seed sent to the model API where the provider takes one (0 or more); recorded as seed, null where it is not sent (default -1)
+  -session string
+    	sign in from this saved session file (see "dummyrun session save") instead of the login form
   -steps int
     	step budget override (up to 40)
   -target string
@@ -193,6 +197,8 @@ Flags:
   --scheme NAME     light, dark or both (default both)
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
+                    tested signed in. The file holds cookies: keep it private
   --headful         show the browser window
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
@@ -207,6 +213,30 @@ List browsers and profile directories that an earlier run left behind, and stop 
 Usage of doctor:
   -stop
     	stop the browsers listed and remove their profile directories
+```
+
+## dummyrun session
+
+Sign in once through a target's login form and save the session for reuse. See [ENGINE.md](ENGINE.md).
+
+```text
+Usage:
+  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox] [--headful]
+
+Signs in once through the login form named in the target file, with the credentials in the role's
+environment variables, and writes the browser's cookies and local storage to FILE. The file is in
+Playwright's storageState format. "dummyrun run --session FILE" and "dummyrun a11y --session FILE" load it
+instead of signing in, so CI can reuse one sign-in.
+
+The file holds live session cookies. It is written with mode 0600. Keep it out of version control and
+treat it like a password. It prints only a count of cookies.
+
+Flags:
+  --target CONFIG   the target file; it needs a signin block
+  --role ROLE       which of the target's credentials roles to sign in as
+  --out FILE        where to write the session
+  --browser NAME    chrome or firefox (default chrome)
+  --headful         show the browser window
 ```
 
 ## dummyrun-otel

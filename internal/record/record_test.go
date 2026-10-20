@@ -341,3 +341,29 @@ func FuzzParse(f *testing.F) {
 		}
 	})
 }
+
+func TestSigninBlock(t *testing.T) {
+	r := sample()
+	r.Signin = &Signin{Method: "form", Role: "admin", OK: true, DurationMs: 800,
+		AllowedRequest: &SigninRequest{Method: "POST", URL: "https://example.test/signin"}}
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatalf("a record with a sign-in block was rejected: %v", err)
+	}
+	if !strings.Contains(string(data), `"allowed_request"`) {
+		t.Error("the allowed request is missing")
+	}
+	r.Signin = &Signin{Method: "session", Role: "admin", OK: false, Error: "expired"}
+	if _, err := Marshal(r); err != nil {
+		t.Errorf("a session sign-in with no request was rejected: %v", err)
+	}
+	r.Signin = &Signin{Method: "cookie", Role: "admin"}
+	if _, err := Marshal(r); err == nil {
+		t.Error("an unknown sign-in method was accepted")
+	}
+	r.Signin = nil
+	data, _ = Marshal(r)
+	if strings.Contains(string(data), `"signin"`) {
+		t.Error("a run with no sign-in has a signin key")
+	}
+}

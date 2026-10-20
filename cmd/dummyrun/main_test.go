@@ -88,6 +88,21 @@ func TestParseThresholds(t *testing.T) {
 	}
 }
 
+func TestLoadTargetWithSignin(t *testing.T) {
+	tg, err := loadTarget("../../examples/targets/signin.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tg.Signin == nil || len(tg.Signin.Credentials) != 3 || tg.Signin.Dir == "" {
+		t.Errorf("signin %+v", tg.Signin)
+	}
+	for _, f := range []string{"../../examples/targets/local.json", "../../examples/targets/dummyrun-dev.json"} {
+		if got, err := loadTarget(f); err != nil || got.Signin != nil {
+			t.Errorf("%s: %v %v", f, got.Signin, err)
+		}
+	}
+}
+
 func TestReportExitCodes(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "report")
 	for name, c := range map[string]struct {
@@ -108,6 +123,21 @@ func TestReportExitCodes(t *testing.T) {
 		if got := run(c.args); got != c.want {
 			t.Errorf("%s: dummyrun %v exited %d, want %d", name, c.args, got, c.want)
 		}
+	}
+}
+
+func TestSessionCommandUsage(t *testing.T) {
+	if got := run([]string{"session"}); got != 2 {
+		t.Errorf("session with no command: %d", got)
+	}
+	if got := run([]string{"session", "-h"}); got != 0 {
+		t.Errorf("session -h: %d", got)
+	}
+	if got := run([]string{"session", "save"}); got != 2 {
+		t.Errorf("session save with no flags: %d", got)
+	}
+	if got := run([]string{"session", "bogus"}); got != 2 {
+		t.Errorf("session bogus: %d", got)
 	}
 }
 

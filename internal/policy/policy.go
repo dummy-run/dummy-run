@@ -25,6 +25,8 @@ type Target struct {
 	ReadOnly bool `json:"read_only"`
 	// Commit is the target's commit, when known.
 	Commit string `json:"commit,omitempty"`
+	// Signin declares how the engine signs in before the persona starts. Nil means no sign-in.
+	Signin *Signin `json:"signin,omitempty"`
 }
 
 // Validate checks the target configuration.
@@ -50,6 +52,11 @@ func (t Target) Validate() error {
 	}
 	if !t.HostAllowed(u.Hostname()) {
 		return fmt.Errorf("policy: base_url host %s is not in allowed_hosts", u.Hostname())
+	}
+	if t.Signin != nil {
+		if err := t.validateSignin(); err != nil {
+			return fmt.Errorf("policy: %w", err)
+		}
 	}
 	return nil
 }
@@ -125,6 +132,8 @@ const (
 	BlockHost
 	// BlockWrite fails a request that could change the read-only target.
 	BlockWrite
+	// BlockSignout fails a request to a path the target declares as a sign-out.
+	BlockSignout
 )
 
 func (v Verdict) String() string {
@@ -135,6 +144,8 @@ func (v Verdict) String() string {
 		return "host not allowed"
 	case BlockWrite:
 		return "read-only target"
+	case BlockSignout:
+		return "sign-out is blocked"
 	}
 	return "unknown"
 }
@@ -153,6 +164,9 @@ func (t Target) Decide(method, rawURL string) Verdict {
 	}
 	if !t.OriginAllowed(u.Scheme, u.Hostname(), u.Port()) {
 		return BlockHost
+	}
+	if t.signoutBlocked(u) {
+		return BlockSignout
 	}
 	if t.ReadOnly && !safeMethods[strings.ToUpper(method)] {
 		return BlockWrite

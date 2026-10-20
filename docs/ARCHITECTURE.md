@@ -31,7 +31,7 @@ flowchart TB
 | LLM provider | Play the persona; review claims. Separate models for the two jobs | Azure OpenAI, Anthropic, Gemini on Vertex AI or the Developer API, Amazon Bedrock and any OpenAI-compatible service, all built. See [PROVIDERS.md](PROVIDERS.md) |
 | Runner host | Where the browser runs | Laptop; GitHub Actions; Kubernetes job (Helm); Cloud Run jobs; Azure Container Apps jobs |
 | Results store | Where run records and the board live | Local directory; object storage (GCS, Azure Blob, S3); the board is always static files on top |
-| Secrets | Test-user credentials and provider keys | OS keychain; CI secrets; Secret Manager; Key Vault |
+| Secrets | Test-user credentials and provider keys | Environment variables, filled from the OS keychain, CI secrets, Secret Manager or Key Vault. Test-user credentials are read by name from the target file's `signin` block |
 
 An adapter declares the regions it can run in. A market profile (for example `uk`) lists the regions
 that satisfy it (`europe-west2`, `uksouth`, `ukwest`). A run refuses to start if any adapter in the chain

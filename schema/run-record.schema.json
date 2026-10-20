@@ -303,6 +303,62 @@
         }
       }
     },
+    "signin": {
+      "type": "object",
+      "description": "How the engine signed the persona in before the run. Optional and additive in version 2. It never holds a credential: the role is the name from the target file, not a user name.",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "role",
+        "ok",
+        "allowed_request",
+        "duration_ms"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "form",
+            "session"
+          ],
+          "description": "form signs in through the login form named in the target file. session loads cookies from a saved session file"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "allowed_request": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "The one request the read-only policy let through during sign-in, without its query. Null when none was sent",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "url"
+          ],
+          "properties": {
+            "method": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "type": "string",
+          "description": "Why the sign-in failed, with credentials removed"
+        }
+      }
+    },
     "outcome": {
       "enum": [
         "completed",
