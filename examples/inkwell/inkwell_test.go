@@ -214,6 +214,26 @@ func TestPermissionSwitches(t *testing.T) {
 	})
 }
 
+// The seeded author owns a draft that is already in review, so the self-review rule can be tried
+// without first submitting one (a submit that does nothing would otherwise block it).
+func TestSeededAuthorOwnsDraftInReview(t *testing.T) {
+	for _, on := range []bool{false, true} {
+		e := newEnv(t, withSwitch(on, "perm-owner-self-review"))
+		d := e.s.draftByID("6")
+		if d == nil || d.OwnerID != "sam" || d.Status != "in_review" {
+			t.Fatalf("seed draft 6 = %+v, want an in-review draft owned by sam", d)
+		}
+		code, _ := e.do(e.client("author"), "POST", "/drafts/6/review", f("verdict", "approve"))
+		want := http.StatusForbidden
+		if on {
+			want = http.StatusSeeOther
+		}
+		if code != want {
+			t.Errorf("switch %v: review status %d, want %d", on, code, want)
+		}
+	}
+}
+
 func withSwitch(on bool, sw string) *Manifest {
 	if on {
 		return manifestOf(sw)
