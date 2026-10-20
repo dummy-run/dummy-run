@@ -87,7 +87,7 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 		Date:          date.UTC().Format("2006-01-02"),
 		Tool:          "dummyrun",
 		ToolVersion:   opt.ToolVersion,
-		Basis:         "confirmed findings",
+		Basis:         BasisConfirmed,
 		Limits:        Limits,
 		Warnings:      []string{},
 	}
@@ -656,7 +656,7 @@ func buildCoverage(runs []*Run, opt Options) CoverageSection {
 		return cs
 	}
 	cs.Available = true
-	cs.Basis = "confirmed findings"
+	cs.Basis = BasisConfirmed
 	if opt.IncludePending {
 		cs.Basis = "findings that no person has confirmed, so a demonstration of the method and not an estimate"
 	}

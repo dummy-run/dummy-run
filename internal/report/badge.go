@@ -37,7 +37,7 @@ func badgeSeverityColour(sev string) string {
 func badgeMessage(rep *Report) string {
 	n := len(rep.Findings)
 	what := "open"
-	if rep.Basis != "confirmed findings" {
+	if rep.Basis != BasisConfirmed {
 		what = "open unreviewed"
 	}
 	return fmt.Sprintf("%d %s · %s", n, what, badgeDate(rep))

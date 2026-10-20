@@ -84,7 +84,7 @@ func summaryText(rep *Report) []string {
 
 	if c := rep.Coverage; c.Available && c.UnfoundAtLeast != nil && c.CompletedRuns > 0 {
 		p := fmt.Sprintf("From the pattern of repeats, there are at least %.1f more problems that these runs have not found. That is a floor and not a count.", *c.UnfoundAtLeast)
-		if c.Basis != "confirmed findings" {
+		if c.Basis != BasisConfirmed {
 			p += " This counts findings that no person has confirmed, so it demonstrates the method and is not an estimate."
 		}
 		out = append(out, p)

@@ -64,7 +64,7 @@ There are three places to put the files.
 
 ### The gh-pages branch
 
-This job rebuilds the badge and the report after your runs finish. It commits both to `gh-pages`. Give the job `contents: write`.
+This job rebuilds the badge and the report after your runs finish. It commits both to `gh-pages`. Give the job `contents: write`. The `gh-pages` branch must already exist. Replace `VERSION` with a release tag you have reviewed.
 
 ```yaml
 publish-badge:
@@ -76,7 +76,7 @@ publish-badge:
     - uses: actions/setup-go@v5
       with:
         go-version: stable
-    - run: go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
+    - run: go install github.com/dummy-run/dummy-run/cmd/dummyrun@VERSION
     - run: |
         mkdir site
         dummyrun report --runs runs --out site/report.html
@@ -84,11 +84,12 @@ publish-badge:
         dummyrun report --runs runs --format shields --out site/badge.json
     - run: |
         git fetch origin gh-pages
-        git worktree add ../pages gh-pages
+        git worktree add -B gh-pages ../pages FETCH_HEAD
         cp site/* ../pages/
         cd ../pages
         git add .
-        git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -m "Update badge" || exit 0
+        if git diff --cached --quiet; then exit 0; fi
+        git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -m "Update badge"
         git push origin gh-pages
 ```
 

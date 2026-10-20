@@ -59,7 +59,7 @@ func syntheticReport(basis, ended string, sevs ...string) *Report {
 }
 
 func TestBadgeColourAndMessage(t *testing.T) {
-	const confirmed = "confirmed findings"
+	const confirmed = BasisConfirmed
 	for _, tc := range []struct {
 		rep    *Report
 		colour string
@@ -111,7 +111,7 @@ func TestBadgeShape(t *testing.T) {
 // A badge is a sample. It must not read as a verdict or a conformance claim.
 func TestBadgeAvoidsVerdictWords(t *testing.T) {
 	banned := regexp.MustCompile(`(?i)\b(pass|passed|passes|passing|compliant|accessible|certified)\b`)
-	reports := []*Report{exampleReport(t, false), exampleReport(t, true), syntheticReport("confirmed findings", ""), syntheticReport("confirmed findings", "2026-10-20T10:00:00Z", "blocker", "info")}
+	reports := []*Report{exampleReport(t, false), exampleReport(t, true), syntheticReport(BasisConfirmed, ""), syntheticReport(BasisConfirmed, "2026-10-20T10:00:00Z", "blocker", "info")}
 	for _, rep := range reports {
 		for _, format := range []string{"badge", "shields"} {
 			if m := banned.FindString(render(t, rep, format)); m != "" {
