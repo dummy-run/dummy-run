@@ -1,7 +1,7 @@
 ---
 title: Free scan
-lead: Join the waitlist and we email you when the free scan opens. It gives you an accessibility sweep and a persona's findings in a private report.
-description: The Dummy Run free scan will run an accessibility sweep and at least one persona over the public pages of a site, read-only, and email you a private report. Join the waitlist. Opening soon.
+lead: An accessibility sweep and the findings of a persona, a fictional visitor, in a private report by email. Join the waitlist.
+description: The Dummy Run free scan will run an accessibility sweep and a persona, a fictional visitor, over the public pages of a site. It is read-only and the report comes by email.
 layout: scan
 ---
 
