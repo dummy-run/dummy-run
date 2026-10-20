@@ -59,7 +59,10 @@ type Record struct {
 	OutcomeReason string    `json:"outcome_reason,omitempty"`
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
-	Usage         Usage     `json:"usage"`
+	// Observations are things that worked and neutral notes. They are not findings and never enter
+	// coverage or the findings metric. Records written before observations had their own list have none.
+	Observations []Observation `json:"observations,omitempty"`
+	Usage        Usage         `json:"usage"`
 	// Events are things the engine saw that a reviewer should know about. Left out when there are none.
 	Events []Event `json:"events,omitempty"`
 }
@@ -80,6 +83,12 @@ type Event struct {
 	Source  string `json:"source,omitempty"`
 	Pattern string `json:"pattern,omitempty"`
 	Detail  string `json:"detail"`
+}
+
+// Observation is a note that something worked or is neutral, with the steps that show it.
+type Observation struct {
+	Text  string `json:"text"`
+	Steps []int  `json:"steps"`
 }
 
 // Persona identifies the persona and how it browsed in this run. Device and

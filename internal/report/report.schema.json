@@ -166,6 +166,20 @@
       }
     },
     "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "worked": {
+      "type": "array",
+      "description": "What personas reported as working. A person has not checked these notes",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "runs", "personas"],
+        "properties": {
+          "text": { "type": "string" },
+          "runs": { "type": "integer", "minimum": 1 },
+          "personas": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
     "fixed": { "type": "array", "items": { "$ref": "#/$defs/fixed" }, "description": "Problems in the baseline that this report did not find again" },
     "axe": { "$ref": "#/$defs/axe" },
     "baseline": {

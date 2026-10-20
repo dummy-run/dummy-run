@@ -37,6 +37,31 @@ func sample() *Record {
 	}
 }
 
+func TestObservationsAreOptionalAndValidated(t *testing.T) {
+	r := sample()
+	if data, err := Marshal(r); err != nil || bytes.Contains(data, []byte("observations")) {
+		t.Fatalf("a record without observations must be valid and leave the key out: %v", err)
+	}
+	r.Observations = []Observation{{Text: "The home page check found no violations.", Steps: []int{2}}}
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatalf("valid observations rejected: %v", err)
+	}
+	if !bytes.Contains(data, []byte(`"observations"`)) {
+		t.Error("observations missing from the output")
+	}
+	for name, bad := range map[string]Observation{
+		"no text":  {Text: "", Steps: []int{1}},
+		"no steps": {Text: "ok", Steps: []int{}},
+		"step 0":   {Text: "ok", Steps: []int{0}},
+	} {
+		r.Observations = []Observation{bad}
+		if _, err := Marshal(r); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
 func TestMarshalValidRecord(t *testing.T) {
 	data, err := Marshal(sample())
 	if err != nil {

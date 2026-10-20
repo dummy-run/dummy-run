@@ -36,11 +36,20 @@ type Report struct {
 	Scope    Scope           `json:"scope"`
 	Coverage CoverageSection `json:"coverage"`
 	Findings []Finding       `json:"findings"`
-	Fixed    []FixedFinding  `json:"fixed,omitempty"`
-	Axe      *AxeSection     `json:"axe,omitempty"`
-	Baseline *BaselineInfo   `json:"baseline,omitempty"`
-	Limits   []string        `json:"limits"`
-	Warnings []string        `json:"warnings"`
+	// Worked lists what the personas reported as working. A person has not checked these notes.
+	Worked   []WorkedNote   `json:"worked,omitempty"`
+	Fixed    []FixedFinding `json:"fixed,omitempty"`
+	Axe      *AxeSection    `json:"axe,omitempty"`
+	Baseline *BaselineInfo  `json:"baseline,omitempty"`
+	Limits   []string       `json:"limits"`
+	Warnings []string       `json:"warnings"`
+}
+
+// WorkedNote is something personas reported as working, with how many runs said so.
+type WorkedNote struct {
+	Text     string   `json:"text"`
+	Runs     int      `json:"runs"`
+	Personas []string `json:"personas"`
 }
 
 // Summary holds the counts and the plain-language paragraphs at the top of the report.

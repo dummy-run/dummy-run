@@ -78,6 +78,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <li><a href="#scope">Scope and method</a></li>
 <li><a href="#coverage">Coverage</a></li>
 <li><a href="#findings">Findings</a></li>
+{{- if .Worked}}
+<li><a href="#worked">What worked</a></li>
+{{- end}}
 {{- if .Axe}}
 <li><a href="#axe-sweep">Axe sweep</a></li>
 {{- end}}
@@ -254,6 +257,17 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 </article>
 {{end}}
 </section>
+{{if .Worked}}
+<section id="worked" aria-labelledby="h-worked">
+<h2 id="h-worked">What worked</h2>
+<p>Personas also reported what worked. These notes are claims by a model. No person has checked them, and they are not findings.</p>
+<ul>
+{{- range .Worked}}
+<li>{{.Text}} ({{.Runs}} of {{$.Scope.Runs.Total}} runs; {{join .Personas}})</li>
+{{- end}}
+</ul>
+</section>
+{{end}}
 {{if .Axe}}
 <section id="axe-sweep" aria-labelledby="h-axe">
 <h2 id="h-axe">Axe sweep</h2>

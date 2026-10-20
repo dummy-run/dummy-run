@@ -78,12 +78,14 @@ time of the finding's first step.
 | `dummyrun.finding.evidence` | `evidence` |
 | `dummyrun.finding.verdict` | `verdict` |
 | `dummyrun.finding.steps` | `steps`, as an integer array |
-| `dummyrun.finding.class` | `class`, when present (version 2 records) |
+| `dummyrun.finding.class` | `class`, when present (version 2 records). Always `problem` in records from the current engine |
 | `dummyrun.finding.route` | `route`, when present |
 | `dummyrun.finding.symptom` | `symptom`, when present |
 | `dummyrun.finding.fingerprint` | `fingerprint`, when present. The same problem has the same fingerprint in every run |
 
 The verdict is the one the record holds at the moment of the export. `dummyrun review` changes it, so review first and export after. It adds `reviewer`, `reviewed_at` and `reason` to the record, and the exporter reads them without sending them. Sending a reviewed record again does not update what Grafana holds. It adds a second set of spans, lines and metric points, as the exporter guide says. Panels that count confirmed findings are then right only for runs exported after review.
+
+A record may hold an `observations` list of things that worked. The exporter reads it so that the record passes validation. It sends nothing for it. The findings metric does not count it.
 
 ## Metrics
 

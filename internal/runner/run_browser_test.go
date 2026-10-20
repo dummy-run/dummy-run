@@ -43,7 +43,7 @@ func (s *scripted) Chat(_ context.Context, req provider.Request) (provider.Respo
 	resp := provider.Response{Usage: provider.Usage{InputTokens: 1000, OutputTokens: 50}, FinishReason: "tool_calls"}
 	if req.ForceTool == "finish" || n >= len(s.calls) {
 		resp.ToolCalls = []provider.ToolCall{{ID: fmt.Sprintf("call_%d", n), Name: "finish", Args: json.RawMessage(
-			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}]}`)}}
+			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}],"observations":[{"text":"The home page loaded with its heading.","steps":[1]}]}`)}}
 		return resp, nil
 	}
 	c := s.calls[n]
@@ -152,6 +152,9 @@ func TestRunEndToEnd(t *testing.T) {
 			}
 			if rec.Outcome != record.OutcomeCompleted || res.Finish == nil || res.Finish.Verdict != "friction" {
 				t.Errorf("outcome %s finish %+v", rec.Outcome, res.Finish)
+			}
+			if len(rec.Observations) != 1 || rec.Observations[0].Steps[0] != 1 || len(rec.Findings) != 1 {
+				t.Errorf("observations %+v, findings %d: want one of each, kept apart", rec.Observations, len(rec.Findings))
 			}
 			if len(rec.Steps) != 7 {
 				t.Fatalf("%d steps: %+v", len(rec.Steps), rec.Steps)
