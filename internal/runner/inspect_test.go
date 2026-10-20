@@ -131,7 +131,9 @@ func TestThePageAddressIsInsideTheFence(t *testing.T) {
 	}
 	s.Obs.Snapshot = nil
 	out := RenderFenced(s, r.nonce)
-	if at := strings.Index(out, "SYSTEM:"); at < strings.Index(out, "<<<PAGE_CONTENT") {
+	open := strings.Index(out, "<<<PAGE_CONTENT "+r.nonce)
+	shut := strings.Index(out, "PAGE_CONTENT "+r.nonce+">>>")
+	if at := strings.Index(out, "SYSTEM:"); open < 0 || shut < 0 || at < open || at > shut {
 		t.Errorf("the address is outside the fence when the page could not be read:\n%s", out)
 	}
 }

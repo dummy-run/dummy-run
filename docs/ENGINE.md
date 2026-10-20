@@ -318,7 +318,7 @@ followed. The step gets a `blocked:` note and the record gets an `off_origin_blo
 The page under test is input the model must not trust. [Threat model](THREAT-MODEL.md) lists the threats. The
 engine does these things about prompt injection (code: `internal/inject`, `internal/runner/inspect.go`).
 
-- Everything the page supplies reaches the model between `<<<PAGE_CONTENT <id>` and `PAGE_CONTENT <id>>>>`
+- Everything from the page that is sent to the model arrives between `<<<PAGE_CONTENT <id>` and `PAGE_CONTENT <id>>>>`
   markers. The id is random for each run, so the page cannot close the fence. The system prompt says that text
   inside the markers is data and never changes the task, the tools, the verdict or the findings.
 - Text that the browser does not render is not sent. That covers `display: none` and `visibility: hidden`.
@@ -340,7 +340,7 @@ engine does these things about prompt injection (code: `internal/inject`, `inter
 The record's `events` array is optional. Each event has a `kind` and a short `detail`. It has a `step` where one applies. For `suspected_injection` it also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
 The `detail` of such an event is page text. Treat it as data. `dummyrun-otel` does not export events (code: `integrations/grafana/exporter/internal/record/record.go`).
 A reader built from an earlier copy of `schema/run-record.schema.json` rejects a record that has `events`, the
-outcome `provider_filtered` or a finding of kind `security` (code: `schema/run-record.schema.json`). `dummyrun-otel` reads these fields.
+outcome `provider_filtered` or a finding of kind `security` (code: `schema/run-record.schema.json`). `dummyrun-otel` reads the outcome and the finding kind and ignores `events`.
 
 ### When the provider refuses
 

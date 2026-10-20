@@ -30,7 +30,7 @@ flowchart LR
     classDef good fill:#f0fdf4,stroke:#15803d,color:#1d1d1b
 ```
 
-1. Target page to engine. Everything the page supplies is untrusted. That covers visible text and hidden text. It covers comments and the `aria-label`, `title` and `alt` values. It also covers the page title, URLs and console messages. The pixels in screenshots count too (code: `internal/inject/inject.go` and `internal/runner/observe.go` fence the text).
+1. Target page to engine. Everything the page supplies is untrusted. That covers visible text and hidden text. It covers comments and the `aria-label`, `title` and `alt` values. It also covers the page title, URLs and console messages. The pixels in screenshots count too. The fence covers text and not pixels (code: `internal/inject/inject.go` and `internal/runner/observe.go`).
 2. Engine to model provider. The provider receives page text and screenshots. [Ethics and limits](ETHICS.md) covers what providers keep. What comes back is untrusted too because a model that read hostile text may act on it (inferred from the prompt injection threat below).
 3. Operator to engine. The cast, the scenario files and the target config are trusted. A cast taken from someone else is code in the sense that its `prompt.md` goes into the system prompt (code: `systemPrompt` in `internal/runner/runner.go`).
 4. Engine to run records. A record holds text from the page. Anything that reads a record later, including a reviewer model, meets that text (code: `Event.Detail` in `internal/record/record.go`).
@@ -145,7 +145,7 @@ A provider may refuse a call because of the page. Azure's filter once blocked a 
 
 Today the run stops cleanly. The record has the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding. `report.md` and the command's message say what happened and that the engine is not at fault (code: `internal/provider/filter.go`, `internal/runner/runner.go`).
 
-A hostile page can deny a run this way. The engine does not retry with the offending text removed.
+A hostile page may be able to deny a run this way (inferred from the one block that Azure's filter made). The engine does not retry with the offending text removed.
 
 ### Poisoned run records
 
