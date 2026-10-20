@@ -6,7 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and similar words (code: `bin/check-prose` and `docs/STYLE.md`).
+- The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and the other listed audience phrases (code: `bin/check-prose` and `docs/STYLE.md`).
 
 ### Fixed
 - The OpenAI-compatible provider now sends an empty string as the text of a turn that only calls tools. Before, it left the field out, and a local Ollama server answered "invalid message content type" (code: `internal/provider/openai_compat.go`).

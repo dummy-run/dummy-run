@@ -26,12 +26,12 @@ what to write instead.
 | A sentence with no number, name, path, command or date in it | Delete it, or put the fact in |
 | A byline or date under the title | Nothing. Git records who and when |
 | Third person for the reader ("a QA lead wants their suite to pass") | "You" and "your" ("you want your suite to pass"). Use third person only for other people, such as personas, your users and clients |
-| Project state in user docs (pull request numbers, "in review", "once it merges") | What the user can do today. Work in progress belongs in pull requests and issues |
+| Project state in user docs (pull request numbers, "in review", "once it merges") | What you can do today. Work in progress belongs in pull requests and issues |
 
 Passive voice is not on the list and is never a reason to rewrite. A quotation keeps its words.
 
 `bin/check-prose` checks the main pages for the countable habits in CI. Those are commas, bold, staged
-contrasts and signposts. It also warns about "their" after "a QA lead", "teams" and similar words on pages written for the reader. The other habits need a human reader.
+contrasts and signposts. It also warns about "their" after "a QA lead", "teams" and the other listed audience phrases on reader-facing pages. The other habits need a human reader.
 
 ## Citations
 
