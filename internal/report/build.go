@@ -113,12 +113,47 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 	var omitted []string
 	rep.Findings, omitted = buildFindings(runs, opt.IncludePending, axeRules, axeVersion)
 	rep.Summary.PendingOmitted = len(omitted)
+	rep.Worked = buildWorked(runs)
 	rep.Coverage = buildCoverage(runs, opt)
 	if opt.Baseline != nil {
 		applyBaseline(rep, opt.Baseline, omitted)
 	}
 	summarise(rep)
 	return rep, nil
+}
+
+// buildWorked collects the observations of the runs in the report. The same note from several runs is one
+// entry. Observations are not findings, so they never enter the counts.
+func buildWorked(runs []*Run) []WorkedNote {
+	type acc struct {
+		runs     map[string]bool
+		personas map[string]bool
+	}
+	byText := map[string]*acc{}
+	var order []string
+	for _, run := range runs {
+		for _, o := range run.Rec.Observations {
+			text := strings.TrimSpace(o.Text)
+			if text == "" {
+				continue
+			}
+			a := byText[text]
+			if a == nil {
+				a = &acc{runs: map[string]bool{}, personas: map[string]bool{}}
+				byText[text] = a
+				order = append(order, text)
+			}
+			a.runs[run.Rec.ID] = true
+			a.personas[run.Rec.Persona.ID] = true
+		}
+	}
+	var out []WorkedNote
+	for _, text := range order {
+		a := byText[text]
+		out = append(out, WorkedNote{Text: text, Runs: len(a.runs), Personas: sortedKeys(a.personas)})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Runs > out[j].Runs })
+	return out
 }
 
 func buildOf(r *record.Record) string {

@@ -134,6 +134,14 @@ Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if
 {{.Alt}}. The file is `{{.Path}}`, next to the run record.
 {{end}}
 {{end}}
+{{- if .Worked}}## What worked
+
+Personas also reported what worked. These notes are claims by a model. No person has checked them, and they are not findings.
+
+{{range .Worked -}}
+- {{.Text}} ({{.Runs}} of {{$.Scope.Runs.Total}} runs; {{join .Personas}})
+{{end}}
+{{end -}}
 {{- if .Axe}}## Axe sweep
 
 The sweep ran axe-core {{.Axe.AxeVersion}} on {{.Axe.Pages}} pages in {{.Axe.Runs}} settings (browser, viewport and colour scheme). It checked the rules with these tags: {{codes .Axe.Tags}}. It found {{.Axe.FailingNodes}} failing elements{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.

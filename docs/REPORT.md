@@ -34,9 +34,10 @@ Rejected findings never appear in any format. Observations, which are notes that
 2. Scope and method. It names the target, the build and the dates. It lists the personas with the dimensions they varied, and the scenarios. It lists the browsers, the models and providers, the number of runs and the model cost.
 3. Coverage. It reuses the numbers of [dummyrun coverage](COVERAGE.md).
 4. Findings, worst first.
-5. The axe sweep, when you gave one.
-6. A comparison with the baseline, when you gave one.
-7. What the report is not.
+5. What worked, when the runs hold observations. These are notes by a model that no person has checked. They are not findings and never enter a count (code: `buildWorked` in `internal/report/build.go`).
+6. The axe sweep, when you gave one.
+7. A comparison with the baseline, when you gave one.
+8. What the report is not.
 
 ## Coverage
 

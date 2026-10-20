@@ -720,3 +720,35 @@ func TestAxeRulesAreNotFixedWhenTheSweepHadPageErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestWhatWorkedListsObservationsAndNeverCountsThem(t *testing.T) {
+	runs := loadFixture(t)
+	base, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, r := range runs {
+		if i < 2 {
+			r.Rec.Observations = append(r.Rec.Observations, record.Observation{Text: "The search box found the draft at once", Steps: []int{1}})
+		}
+	}
+	rep, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Worked) != 1 || rep.Worked[0].Runs != 2 {
+		t.Fatalf("worked %+v, want one note seen in 2 runs", rep.Worked)
+	}
+	if rep.Summary.FindingsTotal != base.Summary.FindingsTotal {
+		t.Errorf("observations changed the finding count from %d to %d", base.Summary.FindingsTotal, rep.Summary.FindingsTotal)
+	}
+	for _, format := range []string{"html", "md", "json"} {
+		out := render(t, rep, format)
+		if !strings.Contains(out, "The search box found the draft at once") {
+			t.Errorf("%s output lacks the note", format)
+		}
+	}
+	if strings.Contains(render(t, base, "md"), "What worked") {
+		t.Error("a report with no observations has a What worked section")
+	}
+}
