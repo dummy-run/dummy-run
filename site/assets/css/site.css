@@ -974,7 +974,6 @@ td code, th code { white-space: nowrap; }
 .plan-cta { margin: auto 0 0; padding-top: 0.6rem; }
 .plan-cta .btn { width: 100%; }
 .plan-soon { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0.5rem 1.35rem; border-radius: 999px; border: 2px dashed var(--ink-muted); color: var(--ink-muted); font-family: var(--font-heading); font-weight: 600; line-height: 1.2; }
-.tax-line { max-width: var(--measure); margin: 1.5rem 0 0; font-size: var(--type-small); line-height: 1.55; color: var(--ink-muted); }
 .oss { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; align-items: center; }
 @media (min-width: 40em) { .oss { grid-template-columns: auto minmax(0, 1fr); gap: 2.5rem; } }
 .oss-mark svg { width: 88px; height: 88px; }
