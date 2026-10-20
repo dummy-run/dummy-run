@@ -57,7 +57,7 @@ The engine defends against this in six ways.
 - A warning. The next observation tells the persona that the text was an instruction and that it should say so.
 - A record of the attempt. Each new match is a `suspected_injection` event with the step, where it was found and a short extract. The harness then files one finding of kind `security` that cites every step with a match. The model doesn't write that finding, so a page can't talk the model out of it.
 
-What's left:
+These gaps remain:
 
 - The patterns are a tripwire. A paraphrase, another language or a homoglyph gets past them.
 - Text drawn into an image reaches the model in screenshots and isn't scanned.
@@ -69,14 +69,14 @@ What's left:
 
 A page, or a persuaded model, reports a problem that isn't there or hides one that is.
 
-Defences:
+The engine defends against it like this:
 
 - Every finding must cite step numbers that exist. A finding with none is dropped and recorded as an `uncited_finding` event.
 - The symptom must come from a closed list. The route, locus and fingerprint come from the page, never from the model.
 - Findings start as `pending`. A person confirms or rejects each one in `dummyrun review`, checking it against the run record ([Architecture](ARCHITECTURE.md)).
 - The harness writes the security finding itself.
 
-What's left:
+These gaps remain:
 
 - A false finding that cites a real step passes the citation check. Only review catches it.
 - Review reads the same hostile record. Any model that reads it later needs the same fencing, and it must not trust a quote the record supplies.
@@ -85,7 +85,7 @@ What's left:
 
 A page asks the persona to visit an address that carries data in its path or query, such as the prompt, earlier page text or a credential.
 
-Defences:
+The engine defends against it like this:
 
 - The browser reaches only the hosts and ports in the target's allow list. Every request it makes is intercepted, and anything off the list fails before it leaves. That covers images, scripts, redirects and form posts. `visit` also refuses an address outside the list before the browser is involved.
 - A bare host name matches the scheme's default port, and the port of `base_url` when it's the base host. Any other port needs a `host:port` entry, so a page on `localhost:3000` can't reach a service on `localhost:9000`.
@@ -93,9 +93,9 @@ Defences:
 - `read_only` fails every request that could change the target.
 - The persona is told never to visit an address just because a page names it.
 
-What's left:
+These gaps remain:
 
-- A GET to an allowed host can carry data in its query. If the page's own origin is the attacker, it gets that data. Today the persona holds little worth taking, and the sign-in defences below keep it that way.
+- A GET to an allowed host can carry data in its query. If the page's own origin is the attacker, it gets that data.
 - A downgrade to plain `http` on an allowed host and default port is allowed.
 - An allowed host that serves user content, such as a shared storage domain, brings that content inside the boundary. List specific hosts.
 - No test covers traffic that isn't an HTTP request the browser's network events see, such as WebRTC.
@@ -118,7 +118,7 @@ The allow-list gaps above apply here too.
 
 A persona that signs in uses a test user's account. A hostile page could ask for the password, or a log could keep it.
 
-Defences:
+The engine defends against it like this:
 
 - The engine signs in before the persona starts, in a separate tab. The model never sees the credentials and never passes them in a tool call.
 - The engine types the password only into a page served over https, or over http on `localhost`, `127.0.0.1` or `::1`. It checks the address again before each field, in case a redirect moved the page.
@@ -128,15 +128,15 @@ Defences:
 - Provider keys come from the environment variable named by `--api-key-env` and are never logged. Azure uses a token credential and has no key path.
 - Query values that look like credentials are redacted from the URLs the engine records, and the value of a `fill` isn't recorded in a step.
 
-What's left: screenshots can show what a page displays, including the test user's own details. Give each test user the lowest role the scenario needs, fake personal details, and access to a test environment only. The full rules are under "Test credentials" in [SECURITY.md](../SECURITY.md).
+Screenshots can still show what a page displays, including the test user's own details. Give each test user the lowest role the scenario needs, fake personal details, and access to a test environment only. The full rules are under "Test credentials" in [SECURITY.md](../SECURITY.md).
 
 ### Resource abuse
 
 A page tries to burn tokens, time or your machine.
 
-Defences: a step budget of at most 40, a token budget, and at most the step budget plus ten model calls. Each model call times out after 120 seconds, and `wait` stops at 15 seconds. Page text, the controls and the outline are cut to a fixed size before they reach the model. The hidden-text scan reads at most 5,000 elements and 3,000 characters. A record keeps at most 25 events of each kind, and the reader refuses a file over 64 MiB.
+A run has a step budget of at most 40 and a token budget, and it makes at most the step budget plus ten model calls. Each model call times out after 120 seconds, and `wait` stops at 15 seconds. Page text, the controls and the outline are cut to a fixed size before they reach the model. The hidden-text scan reads at most 5,000 elements and 3,000 characters. A record keeps at most 25 events of each kind, and the reader refuses a file over 64 MiB.
 
-What's left: there's no wall-clock limit on a whole run. A page that makes the browser crawl ends only when a call times out or you stop the run.
+There's still no wall-clock limit on a whole run. A page that makes the browser crawl ends only when a call times out or you stop the run.
 
 ### The provider's content filter
 
@@ -144,7 +144,7 @@ A provider may refuse a call because of the page. Its content filter can block a
 
 The run stops cleanly. The record gets the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding. `report.md` and the command's message say what happened and that the engine isn't at fault.
 
-What's left: a hostile page may be able to deny a run this way. The engine doesn't retry with the offending text removed.
+A hostile page may still be able to deny a run this way. The engine doesn't retry with the offending text removed.
 
 ### Poisoned run records
 
@@ -152,13 +152,13 @@ A record repeats hostile page text in events, step notes and `steps.jsonl`.
 
 Event extracts are short, single-line and stripped of invisible characters. The schema marks them as data, and the security finding holds no page text.
 
-What's left: any model that reads a record must fence it and treat it as data. Any tool that renders a title or an extract, such as a dashboard, must escape it.
+Any model that reads a record still has to fence it and treat it as data. Any tool that renders a title or an extract, such as a dashboard, must escape it.
 
 ### Supply chain
 
 Go modules are locked in `go.sum` and watched by Dependabot and dependency review. CI actions are pinned to commit hashes and checked by zizmor, and gitleaks scans for secrets. The browsers and chromedriver are pinned in CI. The axe-core copy in `internal/page/axe` is vendored with its licence.
 
-What's left: casts and scenarios aren't signed. A cast you didn't write can steer the persona through its prompt, so read it first. `go install ...@latest` takes whatever is newest.
+Casts and scenarios still aren't signed. A cast you didn't write can steer the persona through its prompt, so read it first. `go install ...@latest` takes whatever is newest.
 
 ## Checking the defences
 

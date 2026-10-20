@@ -13,8 +13,9 @@ have none of the version 2 fields, so the attributes marked "version 2" are miss
 
 ## What leaves the network
 
-Dummy Run sends data to at most three places. You choose the model provider and the Grafana address,
-and the OpenTelemetry endpoint comes from your environment.
+Dummy Run sends data only where you tell it to. That's the model provider and your OpenTelemetry
+backend, plus Grafana if you ask. You choose the provider and the Grafana address, and the OpenTelemetry endpoints come
+from your environment.
 
 - The model provider you pick with `--provider` gets screenshots and page text, because the persona is a model that reads what the browser shows. [Ethics and limits](ETHICS.md) covers what providers keep.
 - The OpenTelemetry backend you configure gets the telemetry on this page. The exporter sends it to `OTEL_EXPORTER_OTLP_ENDPOINT`, or to a per-signal variable such as `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` when you set one. With neither set, it uses the local collector address. It sends telemetry nowhere else.
@@ -23,7 +24,7 @@ and the OpenTelemetry endpoint comes from your environment.
 Telemetry never holds screenshots or a copy of the persona's report. What it does hold:
 
 - run IDs and outcomes
-- each step's action, page URL and control label
+- each step's action, page URL and target (the element reference, selector or label the action named)
 - the model, its region, the token counts and the cost
 - each finding's title and evidence label (measured, code, sourced or inferred)
 
@@ -57,7 +58,8 @@ The IDs are derived from the run ID, so exporting a run twice writes the same tr
 - The span ID of step `n` is the first 8 bytes of SHA-256 of `dummyrun.span:<id>:step:<n>`.
 
 Each request the browser makes during a step carries a `traceparent` with the run's trace ID and that
-step's span ID. Your app's spans then become children of the step.
+step's span ID, so your app's spans become children of the step. If the page's own instrumentation has
+already set a `traceparent`, the engine keeps it and adds only the baggage.
 
 Root span attributes:
 
@@ -117,8 +119,8 @@ The verdict is whatever the record holds when you export it, so review with `dum
 and export afterwards. Review also adds `reviewer`, `reviewed_at` and `reason` to the record. The
 exporter reads those fields but doesn't send them.
 
-Exporting a reviewed record again won't update what Grafana already holds. It adds a second set of
-spans, log lines and metric points, as the exporter guide explains. Panels that count confirmed findings
+Exporting a reviewed record again won't update what Grafana already holds. The trace IDs stay the same,
+but Loki keeps the repeated log lines and Prometheus counts the run again, as the exporter guide explains. Panels that count confirmed findings
 are only right for runs you exported after review.
 
 A record can also hold an `observations` list of things that worked. The exporter sends nothing for it,

@@ -72,7 +72,7 @@ change, so check the vendor before you rely on a detail.
 | Groq | `https://api.groq.com/openai/v1` | Tool use yes on most models. Chat images not covered on the page | Not stated on the page | [Groq OpenAI compatibility](https://console.groq.com/docs/openai) and [tool use](https://console.groq.com/docs/tool-use) |
 
 Scaleway's and OVHcloud's pages didn't show a base URL, so confirm both with the vendor before your
-first run. If you find the answer, a pull request that fills the gap is welcome.
+first run.
 
 ### Local servers
 
@@ -94,7 +94,8 @@ Two flags cover both cases, for `openai-compatible` and `azure`:
 - `--openai-api responses` switches from chat completions to the Responses API.
 
 On the Responses API the engine sends the whole conversation with each call and sets `store` to false, so
-the service keeps nothing. Unless the effort is `none`, it asks for encrypted reasoning and passes it back
+the service doesn't store the responses for later use. That isn't the same as zero data retention, which each vendor
+controls separately. Unless the effort is `none`, it asks for encrypted reasoning and passes it back
 alongside the tool call it belongs to, as OpenAI asks for reasoning models.
 
 Check the model's page for the setting it needs. If a model wants reasoning off for chat tool calls, use

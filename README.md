@@ -59,7 +59,7 @@ for good, write a test for it.
 ## What leaves your network
 
 The persona is a model reading what the browser shows, so screenshots and page text go to the model
-provider you choose. Telemetry is optional and holds no screenshots. It carries step URLs, control labels
+provider you choose. Telemetry is optional and holds no screenshots. It carries step URLs, step targets
 and finding titles, which can quote a few words from the page. It goes only to the OpenTelemetry
 backend you configure. [docs/TELEMETRY.md](docs/TELEMETRY.md) lists every field.
 

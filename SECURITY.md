@@ -26,8 +26,8 @@ the defences against each and the gaps that remain.
 
 ## What this repository holds
 
-This repository holds no run results, screenshots or credentials, and no personas drawn from real
-customers. Run data stays with whoever runs Dummy Run.
+This repository holds no credentials and no run results or screenshots from a real app. The run records
+in `examples/runs/` are synthetic, and no persona is drawn from a real customer. Run data stays with whoever runs Dummy Run.
 
 ## Test credentials
 

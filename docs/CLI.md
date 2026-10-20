@@ -237,7 +237,7 @@ Playwright's storageState format. "dummyrun run --session FILE" and "dummyrun a1
 instead of signing in, so CI can reuse one sign-in.
 
 The file holds live session cookies. It is written with mode 0600. Keep it out of version control and
-treat it like a password. The command prints only how many cookies it saved.
+treat it like a password. The command prints how many cookies it saved, the role and the file path, and never a cookie's value.
 
 Flags:
   --target CONFIG   the target file; it needs a signin block

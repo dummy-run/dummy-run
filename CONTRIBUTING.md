@@ -162,7 +162,8 @@ privately, as [SECURITY.md](SECURITY.md) describes. The maintainer replies to is
 Use the "Persona proposal" issue template. Give the role and its jobs, its device and conditions, and what
 it may see. Add three to six scenarios. Say where each trait comes from: a public source, an inference or
 your own experience. In the profile, tag each trait `sourced` or `inferred` as
-[docs/STYLE.md](docs/STYLE.md) describes, and keep the source lines when you copy a library persona. A trait
+[docs/STYLE.md](docs/STYLE.md) describes. A trait from your own experience is `inferred`, and its source
+line says it comes from your experience. Keep these tags, and keep the source lines when you copy a library persona. A trait
 with no source is removed. We don't accept personas built from a real customer's data.
 
 ## Proposing a target adapter

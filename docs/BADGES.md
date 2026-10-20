@@ -124,8 +124,9 @@ redirect, so shields may need the final URL. Publishing to `gh-pages` avoids tha
 
 ### A gist
 
-To use a gist, upload the JSON and point shields at its raw URL. You'll need a token with the `gist` scope,
-stored as a secret.
+To use a gist, create it once by hand with `gh gist create badge.json` and note its ID. Then update it from
+the workflow and point shields at its raw URL. The workflow needs a token with the `gist` scope, stored as a
+secret.
 
 ```sh
 gh gist edit GIST_ID --filename badge.json badge.json

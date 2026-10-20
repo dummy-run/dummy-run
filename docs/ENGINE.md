@@ -5,7 +5,7 @@ record. It drives Chrome or Firefox over WebDriver BiDi, so the same run works i
 
 ## Install
 
-You'll need Go 1.27 and a browser. For Chrome you also need a chromedriver that matches it.
+You'll need Go 1.27.1 or later and a browser. For Chrome you also need a chromedriver that matches it.
 
 ```sh
 go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest

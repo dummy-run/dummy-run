@@ -76,7 +76,7 @@ An agent could point these tools anywhere, so the server refuses most sites. It 
 - Addresses on a private network such as `192.168.x.x` and `10.x.x.x`.
 - Sites you add with `--allow-origin`. It takes a host, a wildcard such as `*.example.com` or an origin such as `https://preview.example.com`. Repeat the flag, or set `DUMMYRUN_MCP_ALLOW_ORIGINS` to a comma-separated list.
 
-By default the server never allows the link-local range that cloud metadata services use, or the metadata services' names. It also refuses a private name that resolves to a link-local address, and any URL with a user name or password in it. It looks the address up once, when the call starts, so these checks don't stop DNS rebinding.
+By default the server never allows the link-local range that cloud metadata services use, or the metadata services' names. It also refuses a private name that resolves to a link-local address, and any URL with a username or password in it. It looks the address up once, when the call starts, so these checks don't stop DNS rebinding.
 
 `run_persona` also needs `https`, or `http` on `localhost` or `127.0.0.1`. The browser blocks other hosts by name, so a GET can still reach a different port on the same host. `a11y_sweep` follows redirects like any browser. Only add sites you own.
 

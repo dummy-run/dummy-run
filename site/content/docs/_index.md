@@ -1,6 +1,6 @@
 ---
 title: Docs
-lead: How to install Dummy Run, run personas against your app and read what they find. Most pages come straight from the repository's Markdown, so they match the code.
+lead: How to install Dummy Run, run personas against your app and read what they find. Most pages are built from the Markdown in the repository.
 description: The Dummy Run docs. Install the engine, run personas, read the report and connect runs to Grafana.
 next:
   title: New here
