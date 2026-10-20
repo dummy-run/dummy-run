@@ -45,6 +45,21 @@ engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, an
 (`DUMMYRUN_CHROME`, `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
 to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a reason.
 
+## Large text
+
+A phone with a larger system text size is a phone with a larger default font size, so the site is sized in
+`rem` and `em` and its layout breaks (media queries) are in `em`. Do not give anything that holds text a
+fixed `px` height or width: use `min-height`, let buttons wrap their own text, and give grid and flex
+children `min-width: 0` (`minmax(0, 1fr)` in grids) so they can shrink. Long words, URLs and emails wrap.
+Code blocks and tables scroll inside themselves, never the page.
+
+`go run ./internal/tools/textscale` checks it. It opens every page in the sitemap in Chrome at 320 pixels wide
+with a 32 pixel default font, twice the normal 16. It fails when the page scrolls sideways. It also fails when text is
+clipped in a button, link, label or field. And it fails when two controls overlap. These flags change what it tests.
+`--font` and `--width` set the size. `--zoom 200` sets the root font size as a percent. `--spacing` adds the
+WCAG 1.4.12 text spacing overrides. `--scheme both` adds dark. `--shots DIR` saves a full-page PNG of each page. It needs the same `DUMMYRUN_CHROME`
+and `DUMMYRUN_CHROMEDRIVER` as `dummyrun a11y`. The site workflow runs it after the accessibility checks.
+
 ## Social cards and structured data
 
 Each main page has a 1200 by 630 link-preview card in `static/social/`, named for the page path with

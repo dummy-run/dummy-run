@@ -1,3 +1,28 @@
+// The menu. Without JavaScript the links stay in view as a wrapped list. With it, they fold behind a Menu
+// button wherever the line is too narrow, and the button says whether they are showing.
+(function () {
+  var header = document.querySelector(".masthead");
+  var button = header && header.querySelector(".nav-toggle");
+  if (!button) {
+    return;
+  }
+  button.hidden = false;
+  header.classList.add("is-collapsible");
+  function set(open) {
+    header.classList.toggle("is-open", open);
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  button.addEventListener("click", function () {
+    set(button.getAttribute("aria-expanded") !== "true");
+  });
+  header.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
+      set(false);
+      button.focus();
+    }
+  });
+})();
+
 // The theme toggle. Without JavaScript the page follows the system setting and the button stays hidden.
 (function () {
   var root = document.documentElement;

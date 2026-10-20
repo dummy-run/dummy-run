@@ -13,6 +13,7 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/bidi/**"
       - "internal/tools/**"
       - ".github/workflows/site.yml"
   push:
@@ -28,6 +29,7 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/bidi/**"
       - "internal/tools/**"
       - ".github/workflows/site.yml"
 
@@ -128,6 +130,18 @@ jobs:
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
           --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-firefox.json"
           http://127.0.0.1:1313/404.html
+      - name: Large text, Chrome, 320 pixels, 32 pixel default font, light and dark
+        run: >-
+          go run ./internal/tools/textscale --scheme both
+          --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
+          --width 320 --font 32 --shots "$RUNNER_TEMP/large-text"
+          http://127.0.0.1:1313/404.html
+      - name: Large text, Chrome, 320 pixels, 200 percent root size and WCAG text spacing
+        run: >-
+          go run ./internal/tools/textscale
+          --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
+          --width 320 --font 16 --zoom 200 --spacing
+          http://127.0.0.1:1313/404.html
       - name: No engine browser or profile directory is left behind
         if: ${{ !cancelled() }}
         run: '"$RUNNER_TEMP/dummyrun" doctor'
@@ -135,7 +149,9 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: a11y-reports
-          path: ${{ runner.temp }}/a11y-*.json
+          path: |
+            ${{ runner.temp }}/a11y-*.json
+            ${{ runner.temp }}/large-text
           retention-days: 7
           if-no-files-found: ignore
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -39,6 +39,9 @@ type LaunchOptions struct {
 	Args []string
 	// FirefoxPrefs are extra Firefox preferences, written to the temporary profile.
 	FirefoxPrefs map[string]any
+	// ChromePrefs are extra Chrome preferences for the temporary profile, as a nested map such as
+	// {"webkit": {"webprefs": {"default_font_size": 32}}}. They are how a test simulates a larger system text size.
+	ChromePrefs map[string]any
 }
 
 // Browser is a launched browser with its BiDi connection.
@@ -338,6 +341,9 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	}
 	args = append(args, opts.Args...)
 	chromeOpts := map[string]any{"args": args}
+	if len(opts.ChromePrefs) > 0 {
+		chromeOpts["prefs"] = opts.ChromePrefs
+	}
 	if chrome != "" {
 		chromeOpts["binary"] = chrome
 	}
