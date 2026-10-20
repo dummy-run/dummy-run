@@ -1,14 +1,23 @@
 package mcpserver
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // privateSuffixes are host name endings that stay on a private network or a developer's machine.
 var privateSuffixes = []string{".localhost", ".local", ".internal", ".test"}
+
+// metadataHosts are the names of cloud metadata services. They are refused even when they end in a
+// private suffix or an --allow-origin entry names them.
+var metadataHosts = map[string]bool{
+	"metadata": true, "metadata.goog": true, "metadata.google.internal": true,
+	"instance-data": true, "instance-data.ec2.internal": true, "metadata.azure.internal": true,
+}
 
 // Origins decides which sites a tool call may point the browser at. A site is allowed when it is on this
 // machine or a private network, or when an --allow-origin entry names it.
@@ -81,7 +90,13 @@ func (o *Origins) Check(raw string) (*url.URL, error) {
 	if host == "" {
 		return nil, fmt.Errorf("%q has no host", raw)
 	}
+	if metadataHosts[host] {
+		return nil, fmt.Errorf("%s is a cloud metadata service, which this server never tests", host)
+	}
 	if privateHost(host) || o.listed(u.Scheme, host, portOf(u)) {
+		if err := resolvesToAllowedAddress(host); err != nil {
+			return nil, err
+		}
 		return u, nil
 	}
 	return nil, fmt.Errorf("%s is not allowed. This server only tests localhost and private-network hosts. "+
@@ -115,6 +130,28 @@ func (o *Origins) listed(scheme, host, port string) bool {
 		}
 	}
 	return false
+}
+
+// resolvesToAllowedAddress refuses a host name that points at a link-local address, where cloud metadata
+// services live. A literal address is already judged by privateHost. A name that does not resolve is left to
+// the browser to fail. The answer is read once, so this narrows the risk and is not a defence against DNS
+// rebinding.
+func resolvesToAllowedAddress(host string) error {
+	if net.ParseIP(host) != nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return nil
+	}
+	for _, a := range addrs {
+		if a.IP.IsLinkLocalUnicast() || a.IP.IsLinkLocalMulticast() || a.IP.IsUnspecified() {
+			return fmt.Errorf("%s resolves to %s, a link-local address where cloud metadata services live", host, a.IP)
+		}
+	}
+	return nil
 }
 
 // privateHost reports whether a host name or address is on this machine or a private network.

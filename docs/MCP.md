@@ -1,6 +1,6 @@
 # Dummy Run as an MCP server
 
-`dummyrun mcp` serves Dummy Run to a coding agent over the Model Context Protocol (MCP). The agent can list personas, check a page for accessibility failures and run one persona on a page while you work. It talks to the program over standard input and output, so there is nothing to host. Code: `internal/mcpserver/` and `cmd/dummyrun/mcp.go`.
+`dummyrun mcp` serves Dummy Run to a coding agent over the Model Context Protocol (MCP). The agent can list personas, check a page for accessibility failures and run one persona on a page while you work. It talks to the program over standard input and output, so there is nothing to host. The code is in `internal/mcpserver/` and `cmd/dummyrun/mcp.go`.
 
 ## Set it up
 
@@ -61,9 +61,9 @@ An agent passes its own environment on to the program, so a key already set in y
 
 `a11y_sweep` takes `url`. The `viewport` is `desktop`, `phone` or `both`. The colour `scheme` is `light`, `dark` or `both`. The defaults are desktop and light, which is the cheapest. It is the same sweep as `dummyrun a11y` in [ENGINE.md](ENGINE.md).
 
-`run_persona` takes `url`, `persona` and either `scenario_id` or `task`. A task is plain words such as "find the price of the team plan" and may be up to 2,000 characters. It also takes `max_steps` and `max_tokens`, which can only lower the caps. The token cap is soft. The run stops at the next model call after it passes.
+`run_persona` takes `url`, `persona` and either `scenario_id` or `task`. A task is plain words such as "find the price of the team plan" and may be up to 2,000 characters. It also takes `max_steps` and `max_tokens`. A value above the server's cap is cut to the cap, and a missing one uses the default. The token cap is soft. The run stops at the next model call after it passes.
 
-A run is read-only. The browser cannot send any request that changes data, and it cannot reach any host except the one in the URL. [ENGINE.md](ENGINE.md) describes the policy. The call reports progress as MCP progress notifications when the client asks for them.
+A run is read-only. The browser blocks every request that is not GET, HEAD or OPTIONS, and it cannot reach any host except the one in the URL. A GET that changes data on the site is not blocked. [ENGINE.md](ENGINE.md) describes the policy. The call reports progress as MCP progress notifications when the client asks for them.
 
 Findings are claims by a model playing a persona. No reviewer has checked them, and each has the verdict `pending`. Text in a result can come from the page under test, so the agent should treat it as data.
 
@@ -76,7 +76,7 @@ An agent could point these tools anywhere, so the server refuses most sites. It 
 - Addresses on a private network such as `192.168.x.x` and `10.x.x.x`.
 - Sites you add with `--allow-origin`. It takes a host, a wildcard such as `*.example.com` or an origin such as `https://preview.example.com`. Repeat the flag, or set `DUMMYRUN_MCP_ALLOW_ORIGINS` to a comma-separated list.
 
-The link-local range that cloud metadata services use is never allowed by default. A URL with a user name or password is refused.
+The link-local range that cloud metadata services use is never allowed by default. Neither are the names of the metadata services, and a private name that resolves to a link-local address is refused. The address is read once when the call starts, so this does not stop DNS rebinding. A URL with a user name or password is refused.
 
 `run_persona` also needs `https`, or `http` on `localhost` or `127.0.0.1`. The browser blocks requests to other hosts by name, so a different port on the same host is still reachable by `GET`. `a11y_sweep` follows redirects like any browser. Add only sites you own.
 

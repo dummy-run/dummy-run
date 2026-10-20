@@ -139,9 +139,17 @@ func (s *Server) runPersona(ctx context.Context, req *mcp.CallToolRequest, in Ru
 	}
 	release, err := s.acquireBrowser(ctx)
 	if err != nil {
+		s.spend(tokens, 0)
 		return nil, RunOutput{}, err
 	}
 	defer release()
+	// The reservation ends with the call. A run that wrote a record releases it below with its real use.
+	spent := false
+	defer func() {
+		if !spent {
+			s.spend(tokens, 0)
+		}
+	}()
 	ctx, cancel := context.WithTimeout(ctx, runTimeout)
 	defer cancel()
 
@@ -158,7 +166,8 @@ func (s *Server) runPersona(ctx context.Context, req *mcp.CallToolRequest, in Ru
 	var out RunOutput
 	if res != nil && res.Record != nil {
 		out = s.summarise(res.Record, res.Path, false)
-		used, left := s.spend(res.Record.Usage.InputTokens + res.Record.Usage.OutputTokens)
+		spent = true
+		used, left := s.spend(tokens, res.Record.Usage.InputTokens+res.Record.Usage.OutputTokens)
 		out.SessionTokens = &Session{TokensUsed: used, TokensLeft: left}
 	} else {
 		out = RunOutput{Persona: persona.ID, Scenario: scenario.ID, ScenarioTitle: scenario.Title, URL: u.String(),

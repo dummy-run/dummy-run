@@ -73,9 +73,11 @@ type Server struct {
 
 	mu         sync.Mutex
 	tokensUsed int
-	runs       int
-	sweeps     int
-	prov       provider.Provider
+	// reserved is the token budget held by calls that have started and not yet finished.
+	reserved int
+	runs     int
+	sweeps   int
+	prov     provider.Provider
 
 	wg     sync.WaitGroup
 	closed chan struct{}
@@ -181,7 +183,7 @@ func (s *Server) register(srv *mcp.Server) {
 		Title: "Run a persona",
 		Description: "Play one persona on a page with a short task, in a real browser, and report what it found. " +
 			"This calls the configured model, so it costs tokens and takes minutes. The target is read-only: the browser " +
-			"cannot send any request that changes data. Findings are unreviewed claims, each citing step numbers.",
+			"blocks every request that is not GET, HEAD or OPTIONS. Findings are unreviewed claims, each citing step numbers.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: false, DestructiveHint: &no, OpenWorldHint: &yes},
 	}, s.runPersona)
 	mcp.AddTool(srv, &mcp.Tool{
