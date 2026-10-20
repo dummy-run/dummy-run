@@ -157,6 +157,15 @@ type StorageConn interface {
 	CallFunctionJSON(ctx context.Context, context, declaration string, out any, args ...any) error
 }
 
+// isLocalHost reports whether host is a local address, where plain http is accepted.
+func isLocalHost(host string) bool {
+	switch strings.ToLower(strings.TrimSuffix(host, ".")) {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	}
+	return false
+}
+
 // Applied says what Apply did.
 type Applied struct {
 	Cookies int
@@ -183,7 +192,8 @@ func (s *Session) Apply(ctx context.Context, conn StorageConn, hostOK func(host 
 	}()
 	for _, c := range s.Cookies {
 		host := strings.TrimPrefix(c.Domain, ".")
-		if !hostOK(host) || (c.Expires > 0 && time.Unix(int64(c.Expires), 0).Before(now)) {
+		// A cookie without Secure could go out over plain http, so only a local host may use one.
+		if !hostOK(host) || (!c.Secure && !isLocalHost(host)) || (c.Expires > 0 && time.Unix(int64(c.Expires), 0).Before(now)) {
 			out.Skipped++
 			continue
 		}
@@ -204,7 +214,7 @@ func (s *Session) Apply(ctx context.Context, conn StorageConn, hostOK func(host 
 			continue
 		}
 		nctx, cancel := context.WithTimeout(ctx, formTimeout)
-		_, err = conn.Navigate(nctx, cx, o.Origin+"/")
+		_, err = conn.Navigate(nctx, cx, u.Scheme+"://"+u.Host+"/")
 		cancel()
 		if err != nil {
 			return out, fmt.Errorf("visit %s to set local storage: %w", o.Origin, err)
@@ -291,7 +301,7 @@ func loadSession(ctx context.Context, p *page.Page, t policy.Target, path string
 		return err
 	}
 	if a.Cookies == 0 && a.Storage == 0 {
-		return fmt.Errorf("nothing in the session file can be used: its cookies and local storage are expired or for hosts outside allowed_hosts")
+		return fmt.Errorf("nothing in the session file can be used: its cookies and local storage are expired, for hosts outside allowed_hosts, or cookies without the Secure flag on a host that is not local")
 	}
 	return nil
 }

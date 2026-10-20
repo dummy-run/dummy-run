@@ -440,7 +440,7 @@ dummyrun a11y --session sessions/admin.json https://staging.example.test/admin/
 ```
 
 The file is in Playwright's `storageState` format, so a file saved by Playwright loads here and the reverse.
-Cookies for hosts outside `allowed_hosts` are skipped, and so are expired ones (code: `Session.Apply` in `internal/signin/session.go`). A session that loads no cookie and no local storage is an error. Set a role's `session_file` in
+Cookies for hosts outside `allowed_hosts` are skipped, and so are expired ones and cookies without the `Secure` flag on a host that is not local (code: `Session.Apply` in `internal/signin/session.go`). Local storage is set only for https origins of allowed hosts, and the port is not compared. A session that loads no cookie and no local storage is an error. Set a role's `session_file` in
 the target file to load it without the flag. A relative path starts at the target file's directory. The file holds
 live session cookies. It is written with mode 0600 (code: `Session.Save` in `internal/signin/session.go`). Treat it like a password and keep it out of version control.
 The engine does not check that a loaded session is still valid (code: `loadSession` in `internal/signin/session.go`). Save a fresh one when it expires.

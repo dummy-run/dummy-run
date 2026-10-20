@@ -252,7 +252,7 @@ func applySession(ctx context.Context, conn signin.StorageConn, cfg Config) erro
 		return fmt.Errorf("a11y: load the session: %w", err)
 	}
 	if got.Cookies == 0 && got.Storage == 0 {
-		return errors.New("a11y: the session has no cookie or local storage that is unexpired and for a host in the URLs")
+		return errors.New("a11y: the session has no cookie or local storage that is unexpired and for a host in the URLs (a cookie also needs the Secure flag unless the host is local)")
 	}
 	return nil
 }

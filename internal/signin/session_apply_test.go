@@ -38,10 +38,10 @@ func TestApplyKeepsOnlyUsableEntries(t *testing.T) {
 	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
 	s := &Session{
 		Cookies: []SessionCookie{
-			{Name: "good", Domain: "app.test", Expires: float64(now.Add(time.Hour).Unix())},
-			{Name: "session-cookie", Domain: ".app.test", Expires: -1},
-			{Name: "expired", Domain: "app.test", Expires: float64(now.Add(-time.Hour).Unix())},
-			{Name: "elsewhere", Domain: "other.test", Expires: -1},
+			{Name: "good", Domain: "app.test", Secure: true, Expires: float64(now.Add(time.Hour).Unix())},
+			{Name: "session-cookie", Domain: ".app.test", Secure: true, Expires: -1},
+			{Name: "expired", Domain: "app.test", Secure: true, Expires: float64(now.Add(-time.Hour).Unix())},
+			{Name: "elsewhere", Domain: "other.test", Secure: true, Expires: -1},
 		},
 		Origins: []SessionOrigin{
 			{Origin: "https://app.test", LocalStorage: []StorageItem{{Name: "a", Value: "1"}, {Name: "b", Value: "2"}}},
@@ -135,5 +135,21 @@ func TestSecureAddress(t *testing.T) {
 		if got := secureAddress(raw); got != want {
 			t.Errorf("secureAddress(%q) = %v, want %v", raw, got, want)
 		}
+	}
+}
+
+func TestApplySkipsACookieWithoutSecureOnARemoteHost(t *testing.T) {
+	s := &Session{Cookies: []SessionCookie{
+		{Name: "plain", Domain: "app.test", Expires: -1},
+		{Name: "local", Domain: "localhost", Expires: -1},
+		{Name: "secure", Domain: "app.test", Secure: true, Expires: -1},
+	}}
+	conn := &fakeConn{}
+	got, err := s.Apply(context.Background(), conn, func(string) bool { return true }, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(conn.cookies, ",") != "local,secure" || got.Skipped != 1 {
+		t.Errorf("set %v, skipped %d, want local and secure set and plain skipped", conn.cookies, got.Skipped)
 	}
 }

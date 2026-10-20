@@ -24,7 +24,7 @@ func (f *fakeConn) CallFunctionJSON(context.Context, string, string, any, ...any
 func TestApplySessionLoadsCookiesForTheSweepHosts(t *testing.T) {
 	conn := &fakeConn{}
 	cfg := Config{URLs: []string{"https://app.test/page"}, Session: &signin.Session{
-		Cookies: []signin.SessionCookie{{Name: "sid", Domain: "app.test", Expires: -1}},
+		Cookies: []signin.SessionCookie{{Name: "sid", Domain: "app.test", Secure: true, Expires: -1}},
 	}}
 	if err := applySession(context.Background(), conn, cfg); err != nil {
 		t.Fatal(err)
