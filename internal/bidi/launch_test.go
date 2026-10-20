@@ -54,3 +54,20 @@ func TestChromeOptionsPrefs(t *testing.T) {
 		}
 	}
 }
+
+func TestNoSandbox(t *testing.T) {
+	t.Setenv("CI", "")
+	t.Setenv("DUMMYRUN_NO_SANDBOX", "")
+	if noSandbox() {
+		t.Error("sandbox is off with neither variable set")
+	}
+	t.Setenv("DUMMYRUN_NO_SANDBOX", "1")
+	if !noSandbox() {
+		t.Error("DUMMYRUN_NO_SANDBOX does not switch the sandbox off")
+	}
+	t.Setenv("DUMMYRUN_NO_SANDBOX", "")
+	t.Setenv("CI", "true")
+	if !noSandbox() {
+		t.Error("CI does not switch the sandbox off")
+	}
+}

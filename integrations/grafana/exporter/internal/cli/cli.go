@@ -37,6 +37,9 @@ const (
 // Version is set by the build with -ldflags "-X ...cli.Version=v1.2.3".
 var Version = "dev"
 
+// Commit is the Git commit of the build, set the same way as Version.
+var Commit = "unknown"
+
 // Env is the process environment the command reads. Tests substitute their own.
 type Env struct {
 	Stdout io.Writer
@@ -68,7 +71,7 @@ func Main(ctx context.Context, args []string, env Env) int {
 	case "watch":
 		return runWatch(ctx, args[1:], env)
 	case "version", "--version", "-v":
-		fmt.Fprintf(env.Stdout, "dummyrun-otel %s\n", Version)
+		fmt.Fprintf(env.Stdout, "dummyrun-otel %s (commit %s)\n", Version, Commit)
 		return ExitOK
 	case "help", "-h", "--help":
 		usage(env.Stdout)

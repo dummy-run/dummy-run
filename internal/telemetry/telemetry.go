@@ -19,6 +19,10 @@ import (
 // "DummyRun/<Version>".
 var Version = "0.1.0-dev"
 
+// Commit is the Git commit the binary was built from. A release build sets it with
+// -ldflags "-X github.com/dummy-run/dummy-run/internal/telemetry.Commit=<sha>".
+var Commit = "unknown"
+
 // ScannerURL is the page that says who Dummy Run is and how to opt out. An identified user agent names it.
 const ScannerURL = "https://dummyrun.dev/scanner/"
 

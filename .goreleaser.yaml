@@ -1,0 +1,136 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# GoReleaser configuration for dummyrun and dummyrun-otel. The release workflow
+# (.github/workflows/release.yml) runs it on a v* tag. docs/RELEASING.md says how.
+version: 2
+
+project_name: dummyrun
+
+before:
+  hooks:
+    - go mod verify
+
+builds:
+  - id: dummyrun
+    main: ./cmd/dummyrun
+    binary: dummyrun
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/dummy-run/dummy-run/internal/telemetry.Version={{ .Version }}
+      - -X github.com/dummy-run/dummy-run/internal/telemetry.Commit={{ .FullCommit }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # dummyrun-otel is its own Go module, so the build runs inside its directory.
+  - id: dummyrun-otel
+    dir: integrations/grafana/exporter
+    main: ./cmd/dummyrun-otel
+    binary: dummyrun-otel
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/cli.Version={{ .Version }}
+      - -X github.com/dummy-run/dummy-run/integrations/grafana/exporter/internal/cli.Commit={{ .FullCommit }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: dummyrun
+    ids: [dummyrun]
+    name_template: "dummyrun_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - src: LICENSE
+        info: {mtime: "{{ .CommitDate }}"}
+      - src: NOTICE
+        info: {mtime: "{{ .CommitDate }}"}
+      - src: README.md
+        info: {mtime: "{{ .CommitDate }}"}
+  - id: dummyrun-otel
+    ids: [dummyrun-otel]
+    name_template: "dummyrun-otel_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - src: LICENSE
+        info: {mtime: "{{ .CommitDate }}"}
+      - src: NOTICE
+        info: {mtime: "{{ .CommitDate }}"}
+      - src: README.md
+        info: {mtime: "{{ .CommitDate }}"}
+      - src: integrations/grafana/exporter/README.md
+        dst: README-dummyrun-otel.md
+        info: {mtime: "{{ .CommitDate }}"}
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+# One SBOM for each archive, made by syft. The workflow installs syft first.
+sboms:
+  - id: archives
+    artifacts: archive
+    documents:
+      - "${artifact}.sbom.spdx.json"
+    cmd: syft
+    args: ["${artifact}", "--output", "spdx-json=${document}"]
+
+# Keyless cosign signature of the checksums file, which covers every archive and SBOM.
+signs:
+  - id: checksums
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - --yes
+      - --bundle=${signature}
+      - ${artifact}
+    artifacts: checksum
+    output: true
+
+# The release is a draft until the image job has passed. The notes come from CHANGELOG.md:
+# scripts/release-notes.sh writes them and the workflow passes them with --release-notes.
+changelog:
+  disable: true
+
+release:
+  github:
+    owner: dummy-run
+    name: dummy-run
+  draft: true
+  replace_existing_draft: true
+  prerelease: auto
+  name_template: "{{ .Tag }}"
+
+# Homebrew formula in dummy-run/homebrew-tap. Off until the tap repository and its token exist.
+# Set the repository variable HOMEBREW_TAP_ENABLED to true to turn it on (docs/RELEASING.md).
+brews:
+  - name: dummyrun
+    ids: [dummyrun]
+    skip_upload: '{{ if eq (envOrDefault "HOMEBREW_TAP_ENABLED" "false") "true" }}false{{ else }}true{{ end }}'
+    repository:
+      owner: dummy-run
+      name: homebrew-tap
+      token: '{{ envOrDefault "HOMEBREW_TAP_TOKEN" "" }}'
+    homepage: https://dummyrun.dev
+    description: AI personas try your app in a real browser and report what broke
+    license: Apache-2.0
+    directory: Formula
+    test: |
+      assert_match version.to_s, shell_output("#{bin}/dummyrun version")
+    commit_author:
+      name: Dummy Run release
+      email: noreply@dummyrun.dev
