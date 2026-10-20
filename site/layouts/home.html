@@ -4,9 +4,10 @@
     <h1 class="u-display">AI plays your users and tries your app before your customers do.</h1>
     <p class="u-lead">A fictional user with a real role signs in to your preview, tries to do its job and reports what broke, with the screenshot to prove it.</p>
     <p class="actions">
-      <a class="btn" href="/start/">Get started</a>
-      <a class="btn btn-quiet" href="/how-it-works/">See how a run works</a>
+      <a class="btn" href="/scan/">Get a free scan</a>
+      <a class="btn btn-quiet" href="/start/">Run it yourself</a>
     </p>
+    <p class="hero-note">The free scan gives you an accessibility sweep and a persona&rsquo;s findings on your public pages, by email.</p>
   </div>
   <div class="hero-scene">
     <div class="frame is-inkwell">
@@ -27,6 +28,31 @@
   <li>Hosted or local models</li>
   <li>OpenTelemetry</li>
 </ul>
+
+<section class="band" id="free-scan" aria-labelledby="scan-heading" data-waitlist>
+  <div class="panel scan-panel">
+    <div class="scan-intro">
+      <div class="scan-head">
+        <span class="scan-mascot">{{ partial "icons/mascot.html" (dict) }}</span>
+        <div>
+          <p class="scan-badge">Opening soon</p>
+          <h2 id="scan-heading" class="u-title-sm">Free scan</h2>
+        </div>
+      </div>
+      <p class="band-lede">A first look at your public site, in three steps.</p>
+      {{ partial "scan-steps.html" . }}
+      {{ partial "scan-facts.html" (dict "h" 3) }}
+      <p class="band-more"><a href="/scan/">How the free scan works</a></p>
+    </div>
+    {{- if site.Params.waitlist_enabled }}
+    <div class="scan-join">
+      <h3 class="scan-facts-title">Get an email when it opens</h3>
+      {{ partial "waitlist-form.html" (dict "source" "/" "prefix" "waitlist" "button" "Join the waitlist") }}
+    </div>
+    {{- end }}
+  </div>
+  {{ partial "waitlist-script.html" . }}
+</section>
 
 <section class="band" aria-labelledby="role-heading">
   <h2 id="role-heading" class="u-title-sm">Start with your job</h2>
@@ -89,8 +115,6 @@
     {{ partial "graphics/grafana-stack.html" . }}
   </div>
 </section>
-
-{{ partial "waitlist.html" . }}
 
 <section class="band close" aria-labelledby="close-heading">
   <h2 id="close-heading" class="u-title-sm">Run one persona today</h2>

@@ -20,6 +20,8 @@ flowchart LR
     A[Cast of personas] --> B[Run] --> C[Report] --> D[Reviewer] --> E[Results board]
 ```
 
+{{< try-scan >}}
+
 ## What works today
 
 The engine runs a persona in Chrome or Firefox and writes the run record, the persona's report and a screenshot for each step. It exports runs to Grafana (code: `internal/runner/runner.go` and `integrations/grafana/exporter/internal/cli/cli.go`). The model reviewer and the results board are planned (sourced: `docs/PLAN.md`). A person reviews findings with `dummyrun review` (code: `cmd/dummyrun/review.go`).

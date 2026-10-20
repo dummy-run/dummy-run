@@ -5,7 +5,7 @@ icon: shield
 lead_short: What each role can reach
 weight: 50
 lead: What each role can see or do beyond its rights, and exactly what leaves your environment.
-description: What compliance and security people get from Dummy Run. Permission findings verified against the code, a plain list of what leaves your environment, whether screenshots reach the model provider and how data residency covers exported telemetry.
+description: What you get from Dummy Run in compliance and security. Permission findings verified against the code, a plain list of what leaves your environment, whether screenshots reach the model provider and how data residency covers exported telemetry.
 next:
   title: Read the rules in full
   text: The architecture page defines adapters, market profiles and the evidence rule.

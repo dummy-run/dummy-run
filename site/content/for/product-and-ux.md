@@ -5,7 +5,7 @@ icon: cursor
 lead_short: Friction, with the screenshot
 weight: 40
 lead: Friction and confusion, each tied to the step and screenshot where it happened.
-description: What product and UX people get from Dummy Run. Friction, confusion and accessibility findings tied to a step and a screenshot, from personas with habits and devices.
+description: What you get from Dummy Run in product and UX. Friction, confusion and accessibility findings tied to a step and a screenshot, from personas with habits and devices.
 next:
   title: Start from personas that already exist
   text: The library has a screen-reader user, a phone on a slow connection, a first-time visitor and five more.
