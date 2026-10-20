@@ -621,7 +621,7 @@ turn a passing sweep red.
 |---|---|---|---|
 | `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window | 1.4.10 | serious |
 | `dummyrun-clipped-text` | An interactive element, or an element inside it, hides part of its text with `overflow` or an ellipsis, or a parent that clips hides part of the element | 1.4.4 | serious |
-| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The node is `selector & selector` | 1.4.4, 1.4.10 | serious |
+| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The node names both selectors, with an ampersand between them | 1.4.4, 1.4.10 | serious |
 | `dummyrun-target-size` | A visible, enabled interactive element is under 24 by 24 CSS px | 2.5.8 | moderate |
 
 The checks are an approximation of what a person sees, and they say so in the `detail` of each node. Overlap
