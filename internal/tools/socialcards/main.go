@@ -5,7 +5,7 @@
 //
 // Each card is 1200 by 630 pixels: amber ground, the Viewfinder mark, the Dummy mascot, and the page
 // title and description in Space Grotesk. The shapes are the ones in brand/logo/mark.svg and
-// brand/mascot/dummy.svg. The check compares pixels, not file bytes, so a change in the PNG encoder
+// brand/mascot/dummy-head.svg. The check compares pixels, not file bytes, so a change in the PNG encoder
 // does not fail it, and allows a small difference per channel on at most two percent of the pixels for
 // rounding between architectures.
 package main
@@ -46,6 +46,9 @@ var (
 	amber = color.RGBA{0xfb, 0xad, 0x18, 0xff}
 	ink   = color.RGBA{0x1d, 0x1d, 0x1b, 0xff}
 	dummy = color.RGBA{0x24, 0x22, 0x1e, 0xff}
+	paper = color.RGBA{0xf3, 0xf1, 0xec, 0xff}
+
+	amberDark = color.RGBA{0xdb, 0x8a, 0x06, 0xff}
 )
 
 // card is one page's preview. Name is the file name without .png and matches the page path with
@@ -179,14 +182,8 @@ func draw1(c card, bold, medium *opentype.Font) (*image.RGBA, error) {
 	fillPath(img, circle(cx, cy, r), ink)
 	// The mascot's own viewBox is 64 units. Scale it to fit the disc.
 	scale := 4.6
-	ox, oy := cx-32*scale, cy-32*scale+6
-	for _, p := range mascotAmber(ox, oy, scale) {
-		fillPath(img, p, amber)
-	}
-	for _, p := range mascotFeatures(ox, oy, scale) {
-		fillPath(img, p, dummy)
-	}
-	strokeMouth(img, ox, oy, scale)
+	ox, oy := cx-32*scale, cy-32*scale
+	drawHead(img, ox, oy, scale)
 
 	// The mark and name, top left.
 	drawMark(img, margin, 76, 56)
@@ -340,65 +337,76 @@ func drawMark(img *image.RGBA, x, y, size float64) {
 	corners(img, px(0), py(0), px(64), py(64), arm*k, t*k, ink)
 }
 
-// The mascot's head, from the path in mascot/dummy.svg. Cubic curves are flattened by the rasteriser.
-func mascotAmber(ox, oy, k float64) []shape {
-	p := func(x, y float64) (float32, float32) { return float32(ox + x*k), float32(oy + y*k) }
-	cubic := func(r *vector.Rasterizer, x1, y1, x2, y2, x, y float64) {
-		ax1, ay1 := p(x1, y1)
-		ax2, ay2 := p(x2, y2)
-		ax, ay := p(x, y)
-		r.CubeTo(ax1, ay1, ax2, ay2, ax, ay)
+// drawHead draws the friendly head from brand/mascot/dummy-head.svg. The head's viewBox is 64 units,
+// scaled by k and placed with its top left corner at ox, oy.
+func drawHead(img *image.RGBA, ox, oy, k float64) {
+	px := func(x float64) float64 { return ox + x*k }
+	py := func(y float64) float64 { return oy + y*k }
+
+	// Ears, then the rounded face.
+	fillPath(img, union(circle(px(6.5), py(35), 4.5*k), circle(px(57.5), py(35), 4.5*k)), amberDark)
+	face := []shape{rect(px(29), py(7), px(35), py(57)), rect(px(7), py(29), px(57), py(35))}
+	for _, c := range [][2]float64{{29, 29}, {35, 29}, {29, 35}, {35, 35}} {
+		face = append(face, circle(px(c[0]), py(c[1]), 22*k))
 	}
-	line := func(r *vector.Rasterizer, x, y float64) { ax, ay := p(x, y); r.LineTo(ax, ay) }
-	move := func(r *vector.Rasterizer, x, y float64) { ax, ay := p(x, y); r.MoveTo(ax, ay) }
+	fillPath(img, union(face...), amber)
 
-	head := shape{[]func(*vector.Rasterizer){func(r *vector.Rasterizer) {
-		move(r, 32, 6)
-		cubic(r, 46, 6, 53, 15, 53, 27)
-		line(r, 53, 36)
-		cubic(r, 53, 46, 44, 52, 32, 52)
-		cubic(r, 20, 52, 11, 46, 11, 36)
-		line(r, 11, 27)
-		cubic(r, 11, 15, 18, 6, 32, 6)
+	// The target on the temple: amber disc, dark ring, dark top left and bottom right quadrants.
+	tx, ty := px(19), py(21)
+	fillPath(img, circle(tx, ty, 7.8*k), dummy)
+	fillPath(img, circle(tx, ty, 5.2*k), amber)
+	fillPath(img, union(arcShape(tx, ty, 6.5*k, math.Pi, 1.5*math.Pi), arcShape(tx, ty, 6.5*k, 0, 0.5*math.Pi)), dummy)
+
+	// Eyes with a highlight each.
+	fillPath(img, union(ellipse(px(25), py(36), 3.6*k, 4.4*k), ellipse(px(39), py(36), 3.6*k, 4.4*k)), dummy)
+	fillPath(img, union(circle(px(26.2), py(34.3), 1.4*k), circle(px(40.2), py(34.3), 1.4*k)), paper)
+
+	// The smile: a quadratic curve from (27, 46) through (32, 50.5) to (37, 46), stroked 3 units wide
+	// as one outline with a round cap at each end. One outline keeps the fill count low.
+	const steps = 24
+	var left, right [steps + 1][2]float64
+	for i := 0; i <= steps; i++ {
+		t := float64(i) / steps
+		x := (1-t)*(1-t)*27 + 2*(1-t)*t*32 + t*t*37
+		y := (1-t)*(1-t)*46 + 2*(1-t)*t*50.5 + t*t*46
+		dx := 2*(1-t)*(32-27) + 2*t*(37-32)
+		dy := 2*(1-t)*(50.5-46) + 2*t*(46-50.5)
+		n := math.Hypot(dx, dy)
+		nx, ny := -dy/n*1.5, dx/n*1.5
+		left[i] = [2]float64{px(x + nx), py(y + ny)}
+		right[i] = [2]float64{px(x - nx), py(y - ny)}
+	}
+	fillPath(img, shape{[]func(*vector.Rasterizer){func(r *vector.Rasterizer) {
+		r.MoveTo(float32(left[0][0]), float32(left[0][1]))
+		for i := 1; i <= steps; i++ {
+			r.LineTo(float32(left[i][0]), float32(left[i][1]))
+		}
+		for i := steps; i >= 0; i-- {
+			r.LineTo(float32(right[i][0]), float32(right[i][1]))
+		}
 		r.ClosePath()
-	}}}
-	neck := rect2(ox, oy, k, 27, 50, 37, 56)
-	base := shape{[]func(*vector.Rasterizer){func(r *vector.Rasterizer) {
-		move(r, 18, 56)
-		line(r, 46, 56)
-		cubic(r, 47.5, 56, 48, 57, 48, 58.5)
-		line(r, 48, 60)
-		line(r, 16, 60)
-		line(r, 16, 58.5)
-		cubic(r, 16, 57, 16.5, 56, 18, 56)
-		r.ClosePath()
-	}}}
-	// The target on the temple: amber disc with dark quadrants and ring.
-	return []shape{head, neck, base}
+	}}}, dummy)
+	fillPath(img, union(circle(px(27), py(46), 1.5*k), circle(px(37), py(46), 1.5*k)), dummy)
 }
 
-func rect2(ox, oy, k, x0, y0, x1, y1 float64) shape {
-	return rect(ox+x0*k, oy+y0*k, ox+x1*k, oy+y1*k)
-}
-
-func mascotFeatures(ox, oy, k float64) []shape {
-	var out []shape
-	// Eyes.
-	out = append(out, circle(ox+25*k, oy+34*k, 2.8*k), circle(ox+39*k, oy+34*k, 2.8*k))
-	// Temple target: ring, amber face, then dark quadrants.
-	tx, ty := ox+15*k, oy+21*k
-	out = append(out, circle(tx, ty, 8.2*k))
+// union joins shapes that share one fill, so the rasteriser runs once for them. Every shape is drawn in
+// the same direction, so overlaps stay filled.
+func union(shapes ...shape) shape {
+	var out shape
+	for _, s := range shapes {
+		out.segs = append(out.segs, s.segs...)
+	}
 	return out
 }
 
-// strokeMouth draws the mouth and finishes the temple target on top of the dark ring.
-func strokeMouth(img *image.RGBA, ox, oy, k float64) {
-	m := 2.6 * k
-	fillPath(img, rect(ox+27*k, oy+44*k-m/2, ox+37*k, oy+44*k+m/2), dummy)
-	fillPath(img, circle(ox+27*k, oy+44*k, m/2), dummy)
-	fillPath(img, circle(ox+37*k, oy+44*k, m/2), dummy)
-	tx, ty := ox+15*k, oy+21*k
-	fillPath(img, circle(tx, ty, 5.8*k), amber)
-	fillPath(img, arcShape(tx, ty, 7*k, math.Pi, 1.5*math.Pi), dummy)
-	fillPath(img, arcShape(tx, ty, 7*k, 0, 0.5*math.Pi), dummy)
+func ellipse(cx, cy, rx, ry float64) shape {
+	const n = 120
+	return shape{[]func(*vector.Rasterizer){func(r *vector.Rasterizer) {
+		r.MoveTo(float32(cx+rx), float32(cy))
+		for i := 1; i <= n; i++ {
+			a := 2 * math.Pi * float64(i) / n
+			r.LineTo(float32(cx+rx*math.Cos(a)), float32(cy+ry*math.Sin(a)))
+		}
+		r.ClosePath()
+	}}}
 }

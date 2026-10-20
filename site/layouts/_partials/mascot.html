@@ -1,0 +1,6 @@
+{{- /* A mascot pose from brand/mascot. Decorative by default (empty alt); pass "alt" only when the picture adds meaning. */ -}}
+{{- with resources.Get (printf "brand/mascot/%s.svg" .name) -}}
+<img class="{{ $.class | default "mascot" }}" src="{{ .RelPermalink }}" width="{{ if in $.name "head" }}64{{ else }}200{{ end }}" height="{{ if in $.name "head" }}64{{ else }}240{{ end }}" alt="{{ $.alt | default "" }}" loading="lazy" decoding="async">
+{{- else -}}
+{{- errorf "mascot %q not found in brand/mascot" .name -}}
+{{- end -}}
