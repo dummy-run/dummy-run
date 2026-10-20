@@ -61,7 +61,7 @@ separate service account token on the Grafana instance, because annotations use 
 rather than OTLP.
 
 Grafana Cloud can answer HTTP 429 when annotations come too fast (inferred from the 429 answers the exporter has seen). The exporter waits at least half a second between
-calls to the Grafana API. It retries a call that gets HTTP 429 up to five times. A lookup also retries on a 5xx error, but a create does not, because Grafana may have stored it. It waits
+calls to the Grafana API. It retries a call that gets HTTP 429 up to five times. A lookup also retries on a 5xx error. A request that creates an annotation does not retry on a 5xx error. Grafana may have stored the annotation. It waits
 for the `Retry-After` time when Grafana sends one. Without it the wait starts at one second and doubles each time.
 No single wait is longer than two minutes. If a call still fails, the exporter notes the annotation and
 carries on with the next run. One export spends at most ten minutes on annotations. After that the rest are listed as failed and the telemetry still goes out.
