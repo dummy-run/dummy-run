@@ -87,7 +87,7 @@ holds what worked and neutral notes, such as "The home page accessibility check 
 prompt gives the persona one example of each (code: `systemPrompt` in `internal/runner/runner.go`). An observation is a sentence and the steps that show it. It has no
 kind, severity or symptom, and the engine gives it no fingerprint. The list is optional. If a model still sends a
 finding marked `class: observation`, the engine moves it to the observations (code: `internal/runner/tools.go`). The run record keeps both lists (code: `internal/record/record.go`).
-Observations never count in coverage, in the findings metric or in the problems a report lists. A report shows them in a separate What worked section (code: `internal/report/build.go`).
+Observations never count in coverage (code: `internal/coverage/report.go`), in the findings metric (code: `internal/record/record.go`) or in the problems a report lists. A report shows them in a separate What worked section (code: `internal/report/build.go`).
 
 Each finding names a `symptom` from a closed list, and may name the control it is about by its `@12` number. The
 engine computes the finding's route, locus and fingerprint from the page. [COVERAGE.md](COVERAGE.md) explains
