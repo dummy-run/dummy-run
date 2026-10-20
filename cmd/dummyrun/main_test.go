@@ -92,6 +92,15 @@ func TestParseThresholds(t *testing.T) {
 	}
 }
 
+func TestVersionLineHasVersionAndCommit(t *testing.T) {
+	oldV, oldC := telemetry.Version, telemetry.Commit
+	t.Cleanup(func() { telemetry.Version, telemetry.Commit = oldV, oldC })
+	telemetry.Version, telemetry.Commit = "1.2.3", "abc1234"
+	if got, want := versionLine(), "dummyrun 1.2.3 (commit abc1234)"; got != want {
+		t.Errorf("versionLine() = %q, want %q", got, want)
+	}
+}
+
 // denyAllSite serves a robots.txt that keeps DummyRun out and records every request's user agent.
 func denyAllSite(t *testing.T) (*httptest.Server, func() []string) {
 	t.Helper()
