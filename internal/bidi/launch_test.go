@@ -34,3 +34,23 @@ func TestFirstExistingIgnoresBareNamesInTheWorkingDirectory(t *testing.T) {
 		t.Errorf("name on PATH not found: %q", got)
 	}
 }
+
+func TestChromeOptionsPrefs(t *testing.T) {
+	prefs := map[string]any{"webkit": map[string]any{"webprefs": map[string]any{"default_font_size": 32}}}
+	got := chromeOptions([]string{"--x"}, "/chrome", prefs)
+	if _, ok := got["prefs"]; !ok {
+		t.Fatalf("prefs missing from %v", got)
+	}
+	if got["binary"] != "/chrome" {
+		t.Errorf("binary = %v", got["binary"])
+	}
+	for _, empty := range []map[string]any{nil, {}} {
+		got = chromeOptions([]string{"--x"}, "", empty)
+		if _, ok := got["prefs"]; ok {
+			t.Errorf("prefs present for an empty map: %v", got)
+		}
+		if _, ok := got["binary"]; ok {
+			t.Errorf("binary present for an empty path: %v", got)
+		}
+	}
+}

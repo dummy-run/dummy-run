@@ -47,18 +47,26 @@ to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a re
 
 ## Large text
 
-A phone with a larger system text size is a phone with a larger default font size, so the site is sized in
-`rem` and `em` and its layout breaks (media queries) are in `em`. Do not give anything that holds text a
-fixed `px` height or width: use `min-height`, let buttons wrap their own text, and give grid and flex
-children `min-width: 0` (`minmax(0, 1fr)` in grids) so they can shrink. Long words, URLs and emails wrap.
+Phones apply a larger system text size in different ways. Some raise the browser's default font size, and some
+scale the page. The site is sized in `rem` and `em` and its layout breaks (media queries) are in `em`, so it
+follows the first kind and a larger size reaches the narrow layout on a wider screen. Do not give anything that
+holds text a fixed `px` height or width. Use `min-height`, let buttons wrap their own text, and give grid and
+flex children `min-width: 0` (`minmax(0, 1fr)` in grids) so they can shrink. Long words, URLs and emails wrap.
 Code blocks and tables scroll inside themselves, never the page.
 
-`go run ./internal/tools/textscale` checks it. It opens every page in the sitemap in Chrome at 320 pixels wide
-with a 32 pixel default font, twice the normal 16. It fails when the page scrolls sideways. It also fails when text is
-clipped in a button, link, label or field. And it fails when two controls overlap. These flags change what it tests.
-`--font` and `--width` set the size. `--zoom 200` sets the root font size as a percent. `--spacing` adds the
-WCAG 1.4.12 text spacing overrides. `--scheme both` adds dark. `--shots DIR` saves a full-page PNG of each page. It needs the same `DUMMYRUN_CHROME`
-and `DUMMYRUN_CHROMEDRIVER` as `dummyrun a11y`. The site workflow runs it after the accessibility checks.
+`internal/tools/textscale` checks it. With the built site served on port 1313, run this from the repository root:
+
+```sh
+go run ./internal/tools/textscale --sitemap http://127.0.0.1:1313/sitemap.xml \
+  --rebase http://127.0.0.1:1313 --width 320 --font 32 http://127.0.0.1:1313/404.html
+```
+
+It opens each page in Chrome at 320 pixels wide with a 32 pixel default font, twice the normal 16, then opens
+the Menu and looks again. It fails on three faults. The page scrolls sideways. A button or label clips its text,
+or a link or field runs past the page edge. Two controls overlap. `--zoom 200` sets the root font size as a percent. `--spacing` adds the WCAG 1.4.12 text spacing overrides.
+`--scheme both` adds dark. `--shots DIR` saves a full-page PNG of each page. Without `--sitemap` it tests only the URLs you give. It needs the same
+`DUMMYRUN_CHROME` and `DUMMYRUN_CHROMEDRIVER` as `dummyrun a11y`. The site workflow runs it after the
+accessibility checks. It is not a doctest block because the doctest tool runs only `dummyrun` commands.
 
 ## Social cards and structured data
 

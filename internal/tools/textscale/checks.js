@@ -18,11 +18,11 @@
     if (r.right < 0 || r.bottom < 0) return false; // the skip link waits off screen
     return true;
   };
-  // An element inside a box that scrolls on its own (a code block, a table) may run past the page edge.
+  // An element inside a box that scrolls on its own (a code block, a table) may run past the page edge. A box that only clips does not count: a visitor cannot scroll to what it hides.
   const insideScroller = (el) => {
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       const ox = getComputedStyle(p).overflowX;
-      if ((ox === "auto" || ox === "scroll" || ox === "hidden") && p.scrollWidth > p.clientWidth) return true;
+      if ((ox === "auto" || ox === "scroll") && p.scrollWidth > p.clientWidth) return true;
     }
     return false;
   };

@@ -456,7 +456,8 @@ td code, th code { white-space: nowrap; }
 .example > .example-tag { position: absolute; top: 0; left: 1rem; transform: translateY(-50%); margin: 0; padding: 0.1rem 0.75rem; border: 1.5px solid var(--text-amber); border-radius: 999px; background: var(--paper); color: var(--ink); font-family: var(--font-heading); font-weight: 600; font-size: var(--type-small); line-height: 1.5; }
 .example.is-inkwell::after, .scene::after { content: "Inkwell"; position: absolute; right: 1.25rem; bottom: 0.25rem; font-family: var(--font-heading); font-weight: 700; font-size: 3.5rem; line-height: 1; letter-spacing: -0.03em; color: var(--ink); opacity: 0.07; transform: rotate(-6deg); pointer-events: none; }
 .scene::after { right: auto; left: 1.25rem; top: 3rem; bottom: auto; }
-.scene, .example.is-inkwell { overflow-x: clip; }
+.example.is-inkwell { overflow-x: clip; }
+@media (max-width: 63.999em) { .scene { overflow-x: clip; } }
 .example.is-inkwell::after, .scene::after { font-size: min(3.5rem, 16vw); }
 .example-tag.is-caption { margin: 1rem 0 0; color: var(--ink-muted); font-size: var(--type-small); max-width: 36ch; }
 .trio .example, .wide-figure .example { margin-top: 1.25rem; }

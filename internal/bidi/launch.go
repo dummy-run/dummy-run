@@ -340,13 +340,7 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 		args = append(args, "--no-sandbox", "--disable-dev-shm-usage")
 	}
 	args = append(args, opts.Args...)
-	chromeOpts := map[string]any{"args": args}
-	if len(opts.ChromePrefs) > 0 {
-		chromeOpts["prefs"] = opts.ChromePrefs
-	}
-	if chrome != "" {
-		chromeOpts["binary"] = chrome
-	}
+	chromeOpts := chromeOptions(args, chrome, opts.ChromePrefs)
 	body, _ := json.Marshal(map[string]any{"capabilities": map[string]any{"alwaysMatch": map[string]any{
 		"browserName":             "chrome",
 		"webSocketUrl":            true,
@@ -401,4 +395,17 @@ func waitHTTP(ctx context.Context, url string) error {
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
+}
+
+// chromeOptions builds the goog:chromeOptions capability. The prefs key is left out when there are none, and
+// the binary key when no Chrome path is known, so chromedriver uses its own.
+func chromeOptions(args []string, binary string, prefs map[string]any) map[string]any {
+	opts := map[string]any{"args": args}
+	if len(prefs) > 0 {
+		opts["prefs"] = prefs
+	}
+	if binary != "" {
+		opts["binary"] = binary
+	}
+	return opts
 }

@@ -1,13 +1,12 @@
-// Command textscale renders the built site in Chrome the way a phone with a large system text size does,
-// and fails when the layout breaks. It checks three faults at each page:
+// Command textscale renders the built site in Chrome with a larger text size and fails when the layout breaks. It checks three faults at each page:
 //
 //   - the page scrolls sideways (WCAG 1.4.10 reflow),
-//   - text is clipped inside a button, link, label or field (WCAG 1.4.4 resize text),
+//   - text is clipped inside a button or label, or a link or field runs past the page edge (WCAG 1.4.4 resize text),
 //   - two controls overlap.
 //
-// Large text is the browser's own default font size, set in the profile, so the site's rem units are tested the
-// way a person's setting tests them. -spacing adds the WCAG 1.4.12 text spacing overrides. -shots saves a
-// full-page screenshot of every page.
+// Large text is simulated as a larger default font size in the Chrome profile, so the site's rem units are tested.
+// Phones map their text size setting in different ways, and this is one model of it. -spacing adds the WCAG
+// 1.4.12 text spacing overrides. -shots saves a full-page screenshot of every page.
 //
 //	go run ./internal/tools/textscale -sitemap http://127.0.0.1:1313/sitemap.xml -rebase http://127.0.0.1:1313
 //
@@ -182,10 +181,7 @@ func check(ctx context.Context, conn *bidi.Conn, cx, u string, font, zoom int, s
 	if err := conn.EvaluateJSON(ctx, cx, "parseFloat(getComputedStyle(document.documentElement).fontSize)", &root); err != nil {
 		return res, err
 	}
-	want := float64(font)
-	if zoom > 0 {
-		want = float64(font) * float64(zoom) / 100
-	}
+	want := wantRoot(font, zoom)
 	if root < want-0.5 {
 		return res, fmt.Errorf("the root font size is %.1f px, not %.1f px: the browser did not apply the setting, or the page fixes its font size in px", root, want)
 	}
@@ -202,12 +198,7 @@ func check(ctx context.Context, conn *bidi.Conn, cx, u string, font, zoom int, s
 		if err := conn.EvaluateJSON(ctx, cx, checksJS, &open); err != nil {
 			return res, err
 		}
-		res.Overflow = append(res.Overflow, prefix("menu open: ", open.Overflow)...)
-		res.Clipped = append(res.Clipped, prefix("menu open: ", open.Clipped)...)
-		res.Overlaps = append(res.Overlaps, prefix("menu open: ", open.Overlaps)...)
-		if open.PageScrollWidth > open.ViewportWidth && res.PageScrollWidth <= res.ViewportWidth {
-			res.Overflow = append(res.Overflow, fmt.Sprintf("menu open: the page scrolls sideways: %d px in a %d px window", open.PageScrollWidth, open.ViewportWidth))
-		}
+		mergeOpen(&res, open)
 		// Shut it again, so a screenshot shows the page as a visitor first sees it.
 		if _, err := conn.Evaluate(ctx, cx, `document.querySelector(".nav-toggle").click()`); err != nil {
 			return res, err
@@ -252,4 +243,24 @@ func prefix(p string, in []string) []string {
 		out = append(out, p+s)
 	}
 	return out
+}
+
+// wantRoot is the root font size the page should compute to: the browser's default font size, times the root
+// percent when -zoom is set. A page that fixes its font size in px computes to less, and the test is void.
+func wantRoot(font, zoom int) float64 {
+	want := float64(font)
+	if zoom > 0 {
+		want = want * float64(zoom) / 100
+	}
+	return want
+}
+
+// mergeOpen adds the faults found with the menu open to the result, marked as such.
+func mergeOpen(res *result, open result) {
+	res.Overflow = append(res.Overflow, prefix("menu open: ", open.Overflow)...)
+	res.Clipped = append(res.Clipped, prefix("menu open: ", open.Clipped)...)
+	res.Overlaps = append(res.Overlaps, prefix("menu open: ", open.Overlaps)...)
+	if open.PageScrollWidth > open.ViewportWidth && res.PageScrollWidth <= res.ViewportWidth {
+		res.Overflow = append(res.Overflow, fmt.Sprintf("menu open: the page scrolls sideways: %d px in a %d px window", open.PageScrollWidth, open.ViewportWidth))
+	}
 }
