@@ -23,12 +23,21 @@ A cast is a set of personas. Each persona has scenarios. A preview is a copy of 
 request. Findings land on the results board. The crash-test theme calls the cast "dummies" and gives us a
 mascot. The cautions are in [NAMING.md](NAMING.md).
 
-## Decisions
+## Not built yet
 
-| Date | Decision | Why |
-|---|---|---|
-| 2026-10-18 | Name: Dummy Run, org `dummy-run`, command `dummyrun` | [NAMING.md](NAMING.md). The GitHub name `dummyrun` belongs to a dormant account |
-| 2026-10-18 | Licence: Apache-2.0 with DCO sign-off and a trademark policy | [LICENSING.md](LICENSING.md) |
-| 2026-10-19 | Body text at least 18px on every surface | [TYPOGRAPHY.md](TYPOGRAPHY.md) |
-| 2026-10-18 | Logo: the Viewfinder mark, with the Dummy as mascot | [brand/README.md](../brand/README.md) |
-| 2026-10-18 | Domain: dummyrun.dev | Docs and the public board will live there |
+These ideas are written down so they aren't lost. None of them exists in the code today.
+
+- A model reviewer that judges each finding claim by claim, with code references and three votes. It
+  would run after deterministic checks such as axe, CSP, status codes and allowed hosts. A person would
+  still check high-severity candidates.
+- A results board of static HTML and JSON built from run records.
+- Target adapters for GitHub Deployments, Vercel, Netlify and Cloudflare Pages. Each would find the preview
+  for a pull request, create a test user with a role and load test data.
+- Runner hosts as Kubernetes jobs from a Helm chart, Cloud Run jobs and Azure Container Apps jobs. Results
+  in object storage such as GCS, Azure Blob or S3. Secrets from the OS keychain, Secret Manager or Key Vault.
+- Real devices through a hosted browser grid, and separate models for playing and reviewing.
+- Market profiles. A profile such as `uk` would list the regions that satisfy it, for example
+  `europe-west2` and `uksouth`. A run would refuse to start if any part of the chain couldn't meet it. Today
+  `--region` goes to the provider and into the record, and nothing checks it against a market.
+
+The reasons behind past choices are in [DECISIONS.md](DECISIONS.md).

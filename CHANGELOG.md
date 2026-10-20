@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- The user docs and the README are rewritten to read more plainly and to describe only what the product does today. Design reasoning and plans moved to `docs/DECISIONS.md` and `docs/PLAN.md`, and test-suite notes moved to `CONTRIBUTING.md`. The site no longer renders the plan or the naming notes. The style guide, type scale, brand and contributing pages sit under a Contributing group.
 - The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and the other listed audience phrases (code: `bin/check-prose` and `docs/STYLE.md`).
 
 ### Fixed

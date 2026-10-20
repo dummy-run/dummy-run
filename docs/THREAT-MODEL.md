@@ -1,18 +1,18 @@
 # Threat model
 
-Dummy Run points a model at a web page and lets the model act on what it reads. The page is therefore untrusted input to the model (code: `internal/runner/observe.go` builds the prompt from page text). This document says what the engine protects and where the trust boundaries are. It lists the threats and what stops each one today, and it names the gaps. To report a flaw in Dummy Run itself, follow [Security](../SECURITY.md).
+Dummy Run points a model at a web page and lets it act on what it reads. So the page is untrusted input to the model. This page lists what the engine protects, where the trust boundaries sit, and each threat with the defence that stops it and the gap that's left. To report a flaw in Dummy Run itself, follow [Security](../SECURITY.md).
 
 ## Assets
 
 | Asset | Why it matters |
 |---|---|
 | The target | A run must not change it. Read-only targets must stay read-only |
-| The truth of the findings | A suppressed, faked or steered finding sends a team the wrong way |
+| The truth of the findings | A suppressed, faked or steered finding sends you the wrong way |
 | Credentials | Provider keys and the test users a persona signs in with |
 | Run records | They hold page text, screenshots, URLs and the persona's reports. `steps.jsonl` holds the full observation of every step |
-| The operator's network | The machine that runs the browser can reach more than the target |
+| Your network | The machine that runs the browser can reach more than the target |
 | Spend | Model tokens and browser time cost money |
-| The supply chain | The engine, its dependencies, the browsers and the casts run with the operator's rights |
+| The supply chain | The engine, its dependencies, the browsers and the casts run with your rights |
 
 ## Trust boundaries
 
@@ -30,139 +30,144 @@ flowchart LR
     classDef good fill:#f0fdf4,stroke:#15803d,color:#1d1d1b
 ```
 
-1. Target page to engine. Everything the page supplies is untrusted. That covers visible text and hidden text. It covers comments and the `aria-label`, `title` and `alt` values. It also covers the page title, URLs and console messages. The pixels in screenshots count too. The fence covers text and not pixels (code: `internal/inject/inject.go` and `internal/runner/observe.go`).
-2. Engine to model provider. The provider receives page text and screenshots. [Ethics and limits](ETHICS.md) covers what providers keep. What comes back is untrusted too because a model that read hostile text may act on it (inferred from the prompt injection threat below).
-3. Operator to engine. The cast, the scenario files and the target config are trusted. A cast taken from someone else is code in the sense that its `prompt.md` goes into the system prompt (code: `systemPrompt` in `internal/runner/runner.go`).
-4. Engine to run records. A record holds text from the page. Anything that reads a record later, including a reviewer model, meets that text (code: `Event.Detail` in `internal/record/record.go`).
-5. Exporter to telemetry backend. The exporter sends IDs, outcomes, URLs and finding titles. A finding title is written by a model that read the page (code: `integrations/grafana/exporter/internal/telemetry/plan.go`).
+1. Target page to engine. Everything the page supplies is untrusted. That means visible and hidden text and HTML comments. It means `aria-label`, `title` and `alt` values. It means the page title, URLs and console messages. The pixels in screenshots count too. The fencing described below covers text and can't cover pixels.
+2. Engine to model provider. The provider receives page text and screenshots, and [Ethics and limits](ETHICS.md) covers what providers keep. Treat what comes back as untrusted too, because a model that read hostile text may act on it.
+3. Operator to engine. You trust the cast, the scenario files and the target config. A cast from someone else is effectively code, since its `prompt.md` goes into the system prompt.
+4. Engine to run records. A record holds text from the page, so anything that reads it later meets that text. That includes a person in `dummyrun review`.
+5. Exporter to telemetry backend. The exporter sends IDs, outcomes, URLs and finding titles. A model that read the page wrote those titles.
 
 ## Threats
 
 ### Prompt injection from the page
 
-A page tells the persona to ignore its task. Other variants tell it to report no findings or to say the site is fully accessible. Some tell it to go to another site. Others tell it to call `finish` with text the page supplies. The text can sit in plain view. It can also hide in several ways.
+A page tells the persona to ignore its task. It might say to report no findings or to declare the site fully accessible. It might send the persona to another site, or ask it to call `finish` with text the page supplies. The text can sit in plain view or hide in one of these places:
 
-- Text moved off screen, or in a `display: none` block.
-- HTML comments.
-- `aria-label`, `alt` and `title` values.
-- Unicode tag characters that spell ASCII.
-- Zero width characters that split a phrase.
+- text moved off screen, or in a `display: none` block
+- HTML comments
+- `aria-label`, `alt` and `title` values
+- Unicode tag characters that spell ASCII
+- zero-width characters that split a phrase
 
-These defences apply today.
+The engine defends against this in six ways.
 
-- Fencing. Page-derived text reaches the model between markers that carry a random value for the run, which the page cannot know. Marker-like text in the page is defanged (code: `internal/inject/inject.go`, `internal/runner/observe.go`).
-- The rule in the system prompt. It says that text between the markers is data and never changes the task, the tools, the verdict or the findings (code: `systemPrompt` in `internal/runner/runner.go`).
-- Hidden text mostly stays out. Text in `display: none` and `visibility: hidden` blocks, comments and attributes are collected for the scan and for the reviewer. They are not sent to the model. Text with zero size, zero opacity or `aria-hidden` stays in the page text and is flagged (code: `internal/page/look.js`). The address and the title of older steps are quoted, cut short and fenced like the rest (code: `SummaryFenced` in `internal/runner/observe.go`).
-- The scan. Simple phrase patterns run over what the model is sent and over the hidden text. They look for "ignore previous instructions", "system prompt" and "you are now". They look for chat template tokens and orders to report nothing. They look for claims that the site is fully accessible and orders to call `finish`. They look for instructions to go to a host outside the allow list, and for invisible characters. Hidden text that names an assistant and gives an order is flagged even when no fixed phrase matches (code: `internal/inject/inject.go`, `internal/runner/inspect.go`).
-- A warning in the next observation tells the persona that the text was an instruction and that it should say so (code: `RenderFenced` in `internal/runner/observe.go`).
-- Records. Each new match is a `suspected_injection` event with the step, where it was found and a short extract. The harness files one finding of kind `security` that cites every step with a match. The model does not write it, so a page cannot talk the model out of it (code: `internal/runner/inspect.go`).
+- Fencing. Page text reaches the model between markers that carry a random value for the run, which the page can't know. Marker-like text in the page is defanged.
+- A rule in the system prompt. Text between the markers is data. It never changes the task, the tools, the verdict or the findings.
+- Hidden text mostly stays out. Text in `display: none` and `visibility: hidden` blocks, in comments and in attributes is collected for the scan and for review, and isn't sent to the model. Text with zero size, zero opacity or `aria-hidden` stays in the page text and is flagged. The address and title of older steps are quoted, cut short and fenced like the rest.
+- A scan. Simple phrase patterns run over what the model is sent and over the hidden text. They look for "ignore previous instructions", "system prompt" and "you are now". They look for chat template tokens and orders to report nothing. They also catch claims that the site is fully accessible and orders to call `finish`. Instructions to visit a host outside the allow list are caught too, and so are invisible characters. Hidden text that names an assistant and gives an order is flagged even when no fixed phrase matches.
+- A warning. The next observation tells the persona that the text was an instruction and that it should say so.
+- A record of the attempt. Each new match is a `suspected_injection` event with the step, where it was found and a short extract. The harness then files one finding of kind `security` that cites every step with a match. The model doesn't write that finding, so a page can't talk the model out of it.
 
-These gaps remain.
+What's left:
 
 - The patterns are a tripwire. A paraphrase, another language or a homoglyph gets past them.
-- Text drawn into an image reaches the model in screenshots and is not scanned.
-- Text moved off screen but still rendered goes to the model on purpose. The screen-reader persona needs it, because assistive technology reads that text too. Fencing and the scan cover the injection risk. The scan flags a match.
-- A model that is persuaded can still leave real findings out. The security finding shows that the page tried, and it does not restore what was left out.
-- The scan flags documentation that talks about prompts. The reviewer decides.
+- Text drawn into an image reaches the model in screenshots and isn't scanned.
+- Text that's moved off screen but still rendered goes to the model on purpose. The screen-reader persona needs it, because assistive technology reads it too. Fencing and the scan cover the risk, and the scan flags any match.
+- A persuaded model can still leave real findings out. The security finding shows the page tried, but it doesn't restore what was left out.
+- Documentation that talks about prompts trips the scan. You decide whether it matters when you review the finding.
 
 ### Faked or suppressed findings
 
-A page, or a persuaded model, reports a problem that is not there or hides one that is.
+A page, or a persuaded model, reports a problem that isn't there or hides one that is.
 
-These defences apply today.
+Defences:
 
-- Every finding must cite step numbers that exist. A finding with none is dropped and recorded as an `uncited_finding` event (code: `ParseFinish` in `internal/runner/tools.go`).
-- The symptom must come from the closed list. The route, locus and fingerprint come from the page and not from the model (code: `internal/identity`).
-- Findings start as `pending`. The reviewer checks each claim against the run record, and a person confirms the high-severity ones ([Architecture](ARCHITECTURE.md)).
-- The security finding comes from the harness (code: `internal/runner/inspect.go`).
+- Every finding must cite step numbers that exist. A finding with none is dropped and recorded as an `uncited_finding` event.
+- The symptom must come from a closed list. The route, locus and fingerprint come from the page, never from the model.
+- Findings start as `pending`. A person confirms or rejects each one in `dummyrun review`, checking it against the run record ([Architecture](ARCHITECTURE.md)).
+- The harness writes the security finding itself.
 
-These gaps remain.
+What's left:
 
-- A false finding that cites a real step passes the citation check. Only the reviewer and a person catch it.
-- The reviewer reads the same hostile record. It needs the same fencing, and it must not trust a quote that the record itself supplies.
+- A false finding that cites a real step passes the citation check. Only review catches it.
+- Review reads the same hostile record. Any model that reads it later needs the same fencing, and it must not trust a quote the record supplies.
 
 ### Exfiltration through URLs
 
-A page asks the persona to visit an address that carries data in its path or query. The data could be the prompt, earlier page text or a credential.
+A page asks the persona to visit an address that carries data in its path or query, such as the prompt, earlier page text or a credential.
 
-These defences apply today.
+Defences:
 
-- The browser only reaches the hosts and ports in the target's allow list. Every request the browser makes is intercepted and failed before it leaves. That covers images, scripts, redirects and form posts. `visit` also refuses an address outside the list before the browser is involved (code: `internal/policy/policy.go`, `internal/page/page.go`).
-- A host name alone matches the default port of the scheme, and the port of `base_url` when it is the base host. Another port needs a `host:port` entry, so a page on `localhost:3000` cannot reach a service on `localhost:9000`.
-- A blocked request to another host is an `off_origin_blocked` event on the step.
+- The browser reaches only the hosts and ports in the target's allow list. Every request it makes is intercepted, and anything off the list fails before it leaves. That covers images, scripts, redirects and form posts. `visit` also refuses an address outside the list before the browser is involved.
+- A bare host name matches the scheme's default port, and the port of `base_url` when it's the base host. Any other port needs a `host:port` entry, so a page on `localhost:3000` can't reach a service on `localhost:9000`.
+- A blocked request to another host is logged as an `off_origin_blocked` event on the step.
 - `read_only` fails every request that could change the target.
-- The persona is told not to visit an address because a page names it.
+- The persona is told never to visit an address just because a page names it.
 
-These gaps remain.
+What's left:
 
-- A GET request to an allowed host can carry data in its query. If the page's own origin is the attacker, it receives that data. The persona holds little worth taking today, and the sign-in rules below keep it that way.
-- A scheme downgrade to plain `http` on an allowed host and the default port is allowed.
-- An allowed host that serves user content, such as a shared storage domain, puts that content inside the boundary. List specific hosts.
-- Traffic that is not an HTTP request seen by the browser's network events, such as WebRTC, is not covered by a test.
+- A GET to an allowed host can carry data in its query. If the page's own origin is the attacker, it gets that data. Today the persona holds little worth taking, and the sign-in defences below keep it that way.
+- A downgrade to plain `http` on an allowed host and default port is allowed.
+- An allowed host that serves user content, such as a shared storage domain, brings that content inside the boundary. List specific hosts.
+- No test covers traffic that isn't an HTTP request the browser's network events see, such as WebRTC.
 
 ### Exfiltration through the model provider
 
 Everything the persona sees goes to the provider: page text, the accessibility outline and the newest screenshots. A page that shows personal data sends it on.
 
-Today the operator chooses the provider and its region. The persona is told not to copy personal data into its report. Exported telemetry carries no screenshots.
-
-Nothing redacts page text before it is sent. Run against previews that hold synthetic data.
+You choose the provider and its region. The persona is told not to copy personal data into its report, and exported telemetry carries no screenshots. Nothing redacts page text before it's sent, so run against previews that hold synthetic data.
 
 ### Off-scope navigation
 
 A link, a redirect, a meta refresh or a script sends the browser to another site.
 
-Today the same interception as above applies. The blocked navigation is not followed and the step records it. The persona stays on the last good page. Host matching is exact, so `api.example.test` is not `example.test`. Addresses with no host, such as `file:` and `ftp:`, are refused. Only `data:`, `blob:` and `about:` pass without a host check, because the address names no host and fetches nothing from the network. A page they hold can still make requests, and each of those goes through the same check (code: `Decide` in `internal/policy/policy.go`).
+The same interception applies. The blocked navigation isn't followed, the step records it, and the persona stays on the last good page. Host matching is exact, so `api.example.test` doesn't match `example.test`. Addresses with no host, such as `file:` and `ftp:`, are refused. Only `data:`, `blob:` and `about:` pass without a host check, because those addresses fetch nothing from the network. Any request a page inside them makes goes through the same check.
 
 The allow-list gaps above apply here too.
 
 ### Credential exposure with sign-in
 
-A persona that signs in holds a test user's credentials. A hostile page could ask for them, or a log could keep them.
+A persona that signs in uses a test user's account. A hostile page could ask for the password, or a log could keep it.
 
-Rules a sign-in feature must keep:
+Defences:
 
-- The engine types the credentials. The model never sees them and never passes them in a tool call.
-- They are filled only on a page whose origin is in the allow list, and never into a form that the page added after load.
-- They come from the secrets adapter or the environment. They never appear in the prompt or the run record. They never appear in `steps.jsonl`, the report, screenshots or logs.
-- A test user has the lowest role the scenario needs and works only on a test environment.
+- The engine signs in before the persona starts, in a separate tab. The model never sees the credentials and never passes them in a tool call.
+- The engine types the password only into a page served over https, or over http on `localhost`, `127.0.0.1` or `::1`. It checks the address again before each field, in case a redirect moved the page.
+- The target file names environment variables, and the values are read at run time. They're kept out of the prompt and the run record, including `steps.jsonl`. The report, the logs and error messages don't hold them either.
+- The engine takes no screenshot while it signs in.
+- A saved session file is written with mode 0600.
+- Provider keys come from the environment variable named by `--api-key-env` and are never logged. Azure uses a token credential and has no key path.
+- Query values that look like credentials are redacted from the URLs the engine records, and the value of a `fill` isn't recorded in a step.
 
-Today provider keys are read from an environment variable named by `--api-key-env` at run time, and are never logged. Azure uses a token credential and has no key path. The engine redacts query values that look like credentials in the URLs it records (code: `redact` in `internal/page/page.go`). The `fill` value is not recorded in a step.
-
-Screenshots can show what a page displays, including a test user's own data.
+What's left: screenshots can show what a page displays, including the test user's own details. Give each test user the lowest role the scenario needs, fake personal details, and access to a test environment only. The full rules are under "Test credentials" in [SECURITY.md](../SECURITY.md).
 
 ### Resource abuse
 
-A page tries to burn tokens, time or the operator's machine.
+A page tries to burn tokens, time or your machine.
 
-Today the limits are a step budget of at most 40, a token budget, and a limit of the step budget plus ten model calls. Each model call times out after 120 seconds. `wait` stops at 15 seconds. Page text, the controls and the outline are cut to a fixed size before they reach the model. The hidden-text scan reads at most 5,000 elements and 3,000 characters. A record keeps at most 25 events of each kind, and a reader refuses a file over 64 MiB (code: `internal/runner/runner.go`, `internal/record/record.go`).
+Defences: a step budget of at most 40, a token budget, and at most the step budget plus ten model calls. Each model call times out after 120 seconds, and `wait` stops at 15 seconds. Page text, the controls and the outline are cut to a fixed size before they reach the model. The hidden-text scan reads at most 5,000 elements and 3,000 characters. A record keeps at most 25 events of each kind, and the reader refuses a file over 64 MiB.
 
-There is no wall-clock limit on a whole run. A page that makes the browser very slow ends only when a call times out or the operator stops the run.
+What's left: there's no wall-clock limit on a whole run. A page that makes the browser crawl ends only when a call times out or you stop the run.
 
 ### The provider's content filter
 
-A provider may refuse a call because of the page. A provider's content filter can block a page that holds hidden injection text (code: `provider_filtered` in `internal/provider/filter.go`).
+A provider may refuse a call because of the page. Its content filter can block a page that holds hidden injection text.
 
-Today the run stops cleanly. The record has the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding. `report.md` and the command's message say what happened and that the engine is not at fault (code: `internal/provider/filter.go`, `internal/runner/runner.go`).
+The run stops cleanly. The record gets the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding. `report.md` and the command's message say what happened and that the engine isn't at fault.
 
-A hostile page may be able to deny a run this way (inferred from the filter behaviour above). The engine does not retry with the offending text removed.
+What's left: a hostile page may be able to deny a run this way. The engine doesn't retry with the offending text removed.
 
 ### Poisoned run records
 
 A record repeats hostile page text in events, step notes and `steps.jsonl`.
 
-Today event extracts are short, single-line and stripped of invisible characters. The schema marks them as data. The security finding holds no page text.
+Event extracts are short, single-line and stripped of invisible characters. The schema marks them as data, and the security finding holds no page text.
 
-Any model that reads a record must fence it and treat it as data. The reviewer and any future summary stage need this. Tools that render a title or an extract, such as a dashboard, must escape it.
+What's left: any model that reads a record must fence it and treat it as data. Any tool that renders a title or an extract, such as a dashboard, must escape it.
 
 ### Supply chain
 
-Today Go modules are locked in `go.sum` and watched by Dependabot and dependency review. CI actions are pinned to commit hashes and checked by zizmor. Gitleaks scans for secrets. The browsers and chromedriver are pinned in CI. The axe-core copy in `internal/page/axe` is vendored with its licence.
+Go modules are locked in `go.sum` and watched by Dependabot and dependency review. CI actions are pinned to commit hashes and checked by zizmor, and gitleaks scans for secrets. The browsers and chromedriver are pinned in CI. The axe-core copy in `internal/page/axe` is vendored with its licence.
 
-Casts and scenarios are not signed. A cast you did not write can steer the persona through its prompt, so read it first. `go install ...@latest` takes whatever is newest.
+What's left: casts and scenarios aren't signed. A cast you didn't write can steer the persona through its prompt, so read it first. `go install ...@latest` takes whatever is newest.
 
 ## Checking the defences
 
-`internal/runner/testdata/canary.html` is a page full of injection attempts. They sit in visible text and in text moved off screen. They sit in a `display: none` block and in a comment. They sit in an `aria-label`, in `alt` text and in a `title` attribute. A link, a redirect and an image lead to another origin. The browser tests in `internal/runner/canary_browser_test.go` play a scripted model against it. They show that nothing reaches the other origin. They show that every kind of attempt is flagged and that hidden text is not sent to the model. They also show that the security finding and the model's own findings survive whether the model resists or obeys. They also cover a provider that refuses the call. Run them with `DUMMYRUN_BROWSERS=chrome,firefox go test ./internal/runner/`.
+`internal/runner/testdata/canary.html` is a page full of injection attempts. They sit in visible text, in text moved off screen, in a `display: none` block and in a comment. They also sit in an `aria-label`, in `alt` text and in a `title` attribute. A link, a redirect and an image lead to another origin.
 
-Do not point the canary at a site you do not own.
+The browser tests in `internal/runner/canary_browser_test.go` play a scripted model against that page. They show that nothing reaches the other origin, every kind of attempt is flagged, and hidden text isn't sent to the model. They also show that the security finding and the model's own findings survive whether the model resists or obeys, and they cover a provider that refuses the call. Run them with:
+
+```sh
+DUMMYRUN_BROWSERS=chrome,firefox go test ./internal/runner/
+```
+
+Don't point the canary at a site you don't own.

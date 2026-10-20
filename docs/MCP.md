@@ -1,10 +1,10 @@
 # Dummy Run as an MCP server
 
-`dummyrun mcp` serves Dummy Run to a coding agent over the Model Context Protocol (MCP). The agent can list personas, check a page for accessibility failures and run one persona on a page while you work. It talks to the program over standard input and output, so there is nothing to host. The code is in `internal/mcpserver/` and `cmd/dummyrun/mcp.go`.
+Your coding agent can use Dummy Run while you work. Ask it to check the page you just changed for accessibility failures, or to have a persona try a task on your local build. `dummyrun mcp` makes this possible over the Model Context Protocol (MCP). The agent starts the program itself and talks to it over standard input and output, so there's nothing to host.
 
 ## Set it up
 
-Install the engine as [ENGINE.md](ENGINE.md) shows. The agent then starts `dummyrun mcp` itself. The model provider is only needed for `run_persona`. Pass its settings as flags or as environment variables, and see [PROVIDERS.md](PROVIDERS.md) for the values.
+First install the engine as [ENGINE.md](ENGINE.md) shows. Then register it with your agent using one of the snippets below. You only need a model provider for `run_persona`. Pass its settings as flags or environment variables, and find the values in [PROVIDERS.md](PROVIDERS.md).
 
 Claude Code:
 
@@ -48,7 +48,7 @@ command = "dummyrun"
 args = ["mcp", "--provider", "anthropic", "--model", "<model>"]
 ```
 
-An agent passes its own environment on to the program, so a key already set in your shell reaches the provider. The key is read when a run starts. It is never returned in a result or written to a log or a run record.
+The agent passes its environment on to the program, so a key that's already set in your shell reaches the provider. The key is read when a run starts. It never appears in a result, a log or a run record.
 
 ## The tools
 
@@ -59,26 +59,26 @@ An agent passes its own environment on to the program, so a key already set in y
 | `run_persona` | Plays one persona on a page with a short task and returns the outcome, findings, the steps they cite and the record path | Model tokens. Each step is one model call and one browser action. The defaults cap a call at 10 steps and 150,000 tokens |
 | `get_run` | Summarises a record that `run_persona` wrote, with every step | Nothing. It reads one file |
 
-`a11y_sweep` takes `url`. The `viewport` is `desktop`, `phone` or `both`. The colour `scheme` is `light`, `dark` or `both`. The defaults are desktop and light, which is the cheapest. It is the same sweep as `dummyrun a11y` in [ENGINE.md](ENGINE.md).
+`a11y_sweep` takes a `url`. You can also pass a `viewport` of `desktop`, `phone` or `both`. The colour `scheme` is `light`, `dark` or `both`. Desktop and light are the defaults, and the cheapest. It's the same sweep as `dummyrun a11y`, described in [ENGINE.md](ENGINE.md).
 
-`run_persona` takes `url`, `persona` and either `scenario_id` or `task`. A task is plain words such as "find the price of the team plan" and may be up to 2,000 characters. It also takes `max_steps` and `max_tokens`. A value above the server's cap is cut to the cap, and a missing one uses the default. The token cap is soft. The run stops at the next model call after it passes.
+`run_persona` takes a `url`, a `persona` and either a `scenario_id` or a `task`. A task is a plain request such as "find the price of the team plan", up to 2,000 characters. You can also set `max_steps` and `max_tokens`. Leave them out to get the defaults. A value above the server's cap is cut down to the cap. The token cap is soft, so a run stops at the first model call after it goes over.
 
-A run is read-only. The browser blocks every request that is not GET, HEAD or OPTIONS, and it cannot reach any host except the one in the URL. A GET that changes data on the site is not blocked. [ENGINE.md](ENGINE.md) describes the policy. The call reports progress as MCP progress notifications when the client asks for them.
+Every run is read-only. The browser blocks any request other than GET, HEAD or OPTIONS, and it can't reach any host except the one in the URL. A GET that changes data on the site still goes through. The read-only policy in [ENGINE.md](ENGINE.md) has the details. If the client asks for progress notifications, the call sends them as it goes.
 
-Findings are claims by a model playing a persona. No reviewer has checked them, and each has the verdict `pending`. Text in a result can come from the page under test, so the agent should treat it as data.
+A finding is a claim made by a model playing a persona. Nobody has checked it yet, so its verdict is `pending`. Text in a result can come from the page under test, so your agent should treat it as data and never as instructions.
 
 ## Which sites it will test
 
-An agent could point these tools anywhere, so the server refuses most sites. It tests only:
+An agent could point these tools anywhere, so the server refuses most sites. It tests only these:
 
 - `localhost`, `127.0.0.1` and `::1`.
 - Names ending in `.localhost`, `.local`, `.internal` or `.test`.
 - Addresses on a private network such as `192.168.x.x` and `10.x.x.x`.
 - Sites you add with `--allow-origin`. It takes a host, a wildcard such as `*.example.com` or an origin such as `https://preview.example.com`. Repeat the flag, or set `DUMMYRUN_MCP_ALLOW_ORIGINS` to a comma-separated list.
 
-The link-local range that cloud metadata services use is never allowed by default. Neither are the names of the metadata services, and a private name that resolves to a link-local address is refused. The address is read once when the call starts, so this does not stop DNS rebinding. A URL with a user name or password is refused.
+By default the server never allows the link-local range that cloud metadata services use, or the metadata services' names. It also refuses a private name that resolves to a link-local address, and any URL with a user name or password in it. It looks the address up once, when the call starts, so these checks don't stop DNS rebinding.
 
-`run_persona` also needs `https`, or `http` on `localhost` or `127.0.0.1`. The browser blocks requests to other hosts by name, so a different port on the same host is still reachable by `GET`. `a11y_sweep` follows redirects like any browser. Add only sites you own.
+`run_persona` also needs `https`, or `http` on `localhost` or `127.0.0.1`. The browser blocks other hosts by name, so a GET can still reach a different port on the same host. `a11y_sweep` follows redirects like any browser. Only add sites you own.
 
 ## Limits
 
@@ -90,12 +90,12 @@ The link-local range that cloud metadata services use is never allowed by defaul
 | `--max-runs` | 10 | `run_persona` calls in the session |
 | `--max-sweeps` | 40 | `a11y_sweep` calls in the session |
 
-A session lasts as long as the agent keeps the program running. One tool call uses the browser at a time. Another waits its turn. When the agent stops the program, running calls are cancelled and their browsers closed before it exits.
+A session lasts as long as the agent keeps the program running. Only one tool call uses the browser at a time, and the next waits its turn. When the agent stops the program, it cancels running calls and closes their browsers before it exits.
 
 ## Where things live
 
-Local personas come from `--cast DIR`, which you can repeat. The default is each folder in `./casts` except `library`. The library is built into the program and is always available. A local persona with the same ID replaces a library one.
+Your own personas come from `--cast DIR`, which you can repeat. By default it's every folder in `./casts` except `library`. The persona library is built into the program, so it's always there. If a local persona has the same ID as a library one, yours wins.
 
-Run records go to `--out`, which defaults to `~/.local/share/dummyrun/runs/mcp`. `get_run` reads only `.json` records in that folder and follows no link out of it. Pass it the `record_path` from `run_persona` or just the run ID.
+Run records go to `--out`, which defaults to `~/.local/share/dummyrun/runs/mcp`. `get_run` reads only `.json` records in that folder and won't follow a link out of it. Pass it the `record_path` from `run_persona`, or just the run ID.
 
 `--verbose` writes the engine's progress lines to standard error. Standard output carries only the protocol.

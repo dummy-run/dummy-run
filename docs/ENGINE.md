@@ -1,27 +1,29 @@
 # The engine
 
-`dummyrun` is a Go program that plays one persona through one scenario in a real browser and writes a run
-record. It drives Chrome and Firefox over WebDriver BiDi with its own client in `internal/bidi`, so the same
-code runs both browsers.
+`dummyrun` plays one persona through one scenario in a real browser and writes down what happened as a run
+record. It drives Chrome or Firefox over WebDriver BiDi, so the same run works in either browser.
 
 ## Install
 
-You need Go 1.27 and a browser. Chrome also needs a matching chromedriver.
+You'll need Go 1.27 and a browser. For Chrome you also need a chromedriver that matches it.
 
 ```sh
 go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 ```
 
-| Browser | What the engine starts | How it finds it |
+| Browser | What the engine starts | Where it looks |
 |---|---|---|
 | Firefox | Firefox itself with `--remote-debugging-port`. No driver | `DUMMYRUN_FIREFOX`, then the Firefox app on macOS, then `firefox` on the PATH |
 | Chrome | chromedriver, which starts Chrome for Testing or Chrome | `DUMMYRUN_CHROMEDRIVER` and `DUMMYRUN_CHROME`, then the PATH |
 
-Chrome for Testing and its chromedriver come from the same version listing at
-https://googlechromelabs.github.io/chrome-for-testing/. CI pins 155.0.8059.12 and Firefox 157.0 in
-`.github/workflows/engine.yml`.
+Download Chrome for Testing and its chromedriver from the same
+[version listing](https://googlechromelabs.github.io/chrome-for-testing/) so they match. The project's own CI
+uses Chrome for Testing 155.0.8059.12 and Firefox 157.0.
 
 ## Run
+
+To run a persona against your app, sign in to your model provider and point the engine at a cast and a
+target. This example uses Azure OpenAI and Firefox.
 
 ```sh
 az login
@@ -34,26 +36,26 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | Flag | Meaning |
 |---|---|
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
-| `--persona ID`, `--scenario ID` | Which persona and which of its scenarios |
-| `--target CONFIG` | A JSON file: `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block, and optionally `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
-| `--out DIR` | Where run records go. The record is `DIR/<run id>.json`; screenshots and the persona's report are under `DIR/<run id>/` |
+| `--persona ID`, `--scenario ID` | Which persona to run, and which of its scenarios |
+| `--target CONFIG` | A JSON file with `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. It can also set `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
+| `--out DIR` | Where run records go. The record is `DIR/<run id>.json`. Screenshots and the persona's report go under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
-| `--endpoint`, `--api-key-env`, `--project` | The provider's base URL, the name of the environment variable holding its API key, and the Google Cloud project for `vertex` |
-| `--reasoning-effort`, `--openai-api` | Reasoning effort, and `responses` to use the Responses API, for OpenAI-style models |
+| `--endpoint`, `--api-key-env`, `--project` | The provider's base URL, the name of the environment variable that holds its API key, and the Google Cloud project for `vertex` |
+| `--reasoning-effort`, `--openai-api` | Reasoning effort for OpenAI-style models. Set `--openai-api responses` to use the Responses API |
 | `--api-version V` | The Azure OpenAI API version. The default is `2025-04-01-preview` |
-| `--batch ID` | A batch ID, kept in the run record as `batch`, to group runs started together. The default is the date and the target's environment |
-| `--seed N` | A sampling seed, 0 or more. It is sent to providers that take one (see [PROVIDERS.md](PROVIDERS.md)) and recorded as `seed`. Where it is not sent the record has `seed: null` |
-| `--repeat-index N` | The run's `repeat_index`. The default counts the earlier records in `--out` with the same batch, persona, scenario and model |
-| `--identify` | Add `DummyRun/<version> (+https://dummyrun.dev/scanner/)` to the browser's user agent. Also set by `"identify": true` in the target file |
-| `--respect-robots` | Fetch `/robots.txt` from the target's origin and block what it disallows. Also set by `"respect_robots": true` in the target file |
-| `--session FILE` | Sign in from a saved session file in place of the login form. See [Sign in](#sign-in) |
-| `--universe sitemap` | Read the routes that exist from the target's `/sitemap.xml`, or from a sitemap URL, and write them to `target.route_universe` for route coverage |
-| `--steps N` | Step budget, up to 40. A scenario can also ask with a `Budget: 30 steps` line. The default is 25 |
-| `--tokens N` | Token budget for input plus output. The default is 1,500,000 |
-| `--headful` | Show the browser window |
+| `--batch ID` | Groups runs you start together. It's kept in the record as `batch`. The default is the date plus the target's environment |
+| `--seed N` | A sampling seed, 0 or more. It's sent to providers that accept one (see [PROVIDERS.md](PROVIDERS.md)) and recorded as `seed`. Where it isn't sent, the record has `seed: null` |
+| `--repeat-index N` | The run's `repeat_index`. By default the engine counts the earlier records in `--out` with the same batch, persona, scenario and model |
+| `--identify` | Adds `DummyRun/<version> (+https://dummyrun.dev/scanner/)` to the browser's user agent. `"identify": true` in the target file does the same |
+| `--respect-robots` | Fetches `/robots.txt` from the target's origin and blocks what it disallows. `"respect_robots": true` in the target file does the same |
+| `--session FILE` | Signs in from a saved session file instead of the login form. See [Sign in](#sign-in) |
+| `--universe sitemap` | Reads the routes that exist from the target's `/sitemap.xml`, or from a sitemap URL you give, and writes them to `target.route_universe` for route coverage |
+| `--steps N` | The step budget, up to 40. The default is 25. A scenario can ask for more with a `Budget: 30 steps` line |
+| `--tokens N` | The token budget for input plus output. The default is 1,500,000 |
+| `--headful` | Shows the browser window |
 
-[CLI.md](CLI.md) holds the help text of every command, and the commands print it too.
+Every command prints its own help, and [CLI.md](CLI.md) collects all of it.
 
 <!-- doctest -->
 ```sh
@@ -61,108 +63,115 @@ dummyrun --help
 dummyrun run -h
 ```
 
-A run visits the target's base URL, then lets the model call one tool per turn until it calls `finish` or
-the budget runs out (code: `internal/runner/runner.go`). After every action the model sees the page as text
-with numbered controls. It also sees the focused element and an accessibility outline. The two newest steps
-come with a screenshot. Older steps shrink to one line to keep
-the context small. The run ends early when the persona gives up: three failed tries at the same thing on the
-same page (code: `internal/runner/patience.go`).
+### What happens during a run
+
+The engine opens the target's base URL. Then the model calls one tool per turn until it calls `finish` or
+runs out of budget. After each action the model sees the page as text, with every control numbered, plus the
+focused element and an accessibility outline. The two newest steps come with a screenshot, and older steps
+shrink to a single line so the context stays small. If the persona tries the same thing on the same page three
+times and fails each time, it gives up and the run ends.
 
 | Tool | What it does |
 |---|---|
 | `look`, `screenshot` | Read the page again: title, headings, focus, outline, numbered controls and text, with a screenshot |
-| `visit` | Go to an address on the target. Addresses on other hosts are refused before the browser is involved |
-| `click` | Click `@12` from the last look, the control's text or `css:selector` |
+| `visit` | Go to an address on the target. An address on another host is refused before the browser sees it |
+| `click` | Click `@12` from the last look, a control's text or `css:selector` |
 | `fill`, `type` | Put text into a field in one go, or key by key for fields that react as you type |
 | `select` | Choose an option in a select by its text |
 | `press` | Press a key such as Enter, Escape or ArrowDown |
-| `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, wait up to 15 seconds |
+| `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, or wait up to 15 seconds |
 | `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. Only rule IDs and counts are recorded |
-| `finish` | End the run with a verdict, `goal_met`, a report, findings and observations that cite step numbers (code: `internal/runner/tools.go`) |
+| `finish` | End the run with a verdict, `goal_met`, a report, and findings and observations that cite step numbers |
 
 ### Findings and observations
 
-`finish` takes two lists. `findings` holds problems only: something wrong, missing or confusing. `observations`
-holds what worked and neutral notes, such as "The home page accessibility check found no violations." The system
-prompt gives the persona one example of each (code: `systemPrompt` in `internal/runner/runner.go`). An observation is a sentence and the steps that show it. It has no
-kind, severity or symptom, and the engine gives it no fingerprint. The list is optional. If a model still sends a
-finding marked `class: observation`, the engine moves it to the observations (code: `internal/runner/tools.go`). The run record keeps both lists (code: `internal/record/record.go`).
-Observations never count in coverage (code: `internal/coverage/report.go`), in the findings metric (code: `internal/record/record.go`) or in the problems a report lists. A report shows them in a separate What worked section (code: `internal/report/build.go`).
+`finish` takes two lists. `findings` is for problems: something wrong, missing or confusing. `observations`
+is for what worked and for neutral notes, such as "The home page accessibility check found no violations."
 
-Each finding names a `symptom` from a closed list, and may name the control it is about by its `@12` number. The
-engine computes the finding's route, locus and fingerprint from the page. [COVERAGE.md](COVERAGE.md) explains
-the list and what the fingerprint is for. A symptom outside the list sends the model back to `finish` twice at
-most, and then the finding is dropped.
+An observation is a sentence plus the steps that show it. It has no kind, severity or symptom, and it gets no
+fingerprint. The list is optional. If a model sends a finding marked `class: observation`, the engine moves it
+to the observations. The run record keeps both lists. Observations never count towards coverage, the findings
+metric or the problems a report lists. A report shows them in its own What worked section.
+
+Each finding names a `symptom` from a fixed list, and it can point at a control by its `@12` number. The
+engine works out the finding's route, locus and fingerprint from the page. [COVERAGE.md](COVERAGE.md) has the
+list and explains what the fingerprint is for. If the model gives a symptom that isn't on the list, it's sent
+back to `finish` up to twice, and after that the finding is dropped.
 
 ## Browser cleanup
 
-The engine starts the driver and the browser in a process group of its own. Their profile is a temporary
-directory named `dummyrun-chrome-*` or `dummyrun-firefox-*` (code: `internal/bidi/launch.go` and
-`internal/bidi/cleanup.go`). When a run ends the engine closes the BiDi session and signals the group. It waits
-for the group to exit and kills what is left. It also stops any helper that still names the profile. Then it
-removes the profile. This happens when a run succeeds or fails. It also happens on a panic, a timeout, Ctrl-C
-and SIGTERM. A second process watches the engine and stops the browser group if the engine disappears without
-cleaning up, for example after SIGKILL.
+You shouldn't find browsers left running after a run. The engine starts the driver and the browser in their
+own process group, with a temporary profile directory named `dummyrun-chrome-*` or `dummyrun-firefox-*`. When
+the run ends, the engine closes the BiDi session and signals the group. It waits for the group to exit and
+kills anything left. It also stops any helper process that still names the profile, then removes the profile.
+
+That happens whether the run succeeds or fails. It also happens on a panic, a timeout, Ctrl-C or SIGTERM. If the engine
+itself disappears without cleaning up, for example after SIGKILL, a second watcher process stops the browser
+group. To find anything left over, see [Troubleshooting](#troubleshooting).
 
 Use Chrome for Testing where you can. On macOS each running Google Chrome keeps a code-signing clone of the
 app of about 1.4 GB, and the engine looks for Chrome for Testing first. Set `DUMMYRUN_CHROME` and
-`DUMMYRUN_CHROMEDRIVER` to a matching pair. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/)
-lists the downloads.
+`DUMMYRUN_CHROMEDRIVER` to a matching pair from the
+[Chrome for Testing downloads](https://googlechromelabs.github.io/chrome-for-testing/).
 
 ## Persona and scenario settings
 
-A persona's `profile.md` starts with a front matter block of `key: value` lines. These keys set how the
-browser behaves for that persona.
+A persona's `profile.md` starts with front matter, one `key: value` per line. These keys control the browser
+for that persona.
 
 | Key | Meaning |
 |---|---|
-| `device` | `desktop` (1400 x 1000), `tablet` (820 x 1180) or `phone` (390 x 844). The window size is in device pixels. This key is required. |
+| `device` | `desktop` (1400 x 1000), `tablet` (820 x 1180) or `phone` (390 x 844), in device pixels. Required |
 | `zoom` | Page zoom in percent, from 100 to 500. `200` and `200%` both work. The default is 100 |
 | `tools-allowed` | The only tools the persona may use, separated by spaces or commas. `finish` is always allowed |
-| `tools-denied` | Tools the persona may not use. When both keys are set, a tool must be allowed and not denied |
+| `tools-denied` | Tools the persona may not use. If you set both keys, a tool has to be allowed and not denied |
 
-A scenario file can put `Device: phone` and `Zoom: 200%` on lines of their own. A scenario's setting replaces
-the persona's, so one persona can be run on several devices. The scenario files already start with a line such
-as `Device: desktop. Start at the home page.`, and the engine reads that line. A `Budget: 30 steps` line works
-the same way. A `Device:` line may carry other words after the device name. A `Zoom:` value has its line to
-itself. A run does not start with a device other than `desktop`, `tablet` or `phone`. It does not start with a
-zoom that is not a number from 100 to 500.
+To run one persona on several devices, set the device in the scenario instead. A scenario's `Device: phone`
+or `Zoom: 200%` line replaces the persona's setting. Scenario files usually open with a line such as
+`Device: desktop. Start at the home page.`, and the engine reads the device from it. A `Device:` line can
+carry other words after the device name, but a `Zoom:` value needs a line to itself. A `Budget: 30 steps`
+line works the same way.
+
+A run won't start with a device other than `desktop`, `tablet` or `phone`, or with a zoom outside 100 to 500.
 
 ### Tool limits
 
-The engine offers the persona every tool. When the persona calls one that its limits rule out, the engine does
-nothing in the browser. The step still counts against the budget. Its result says `REFUSED`, the run record
-gives the step a note beginning `blocked:`, and `steps.jsonl` has a `refusal` field. Three refusals of
-the same tool on the same page make the persona give up, as with any other failed try. The system prompt lists
-the tools the persona may not use, so a refusal is rarely a surprise.
-If a persona may not use `screenshot`, the model is not sent screenshots either. They are still saved for the
+The persona is still offered every tool. If it calls one its limits rule out, the engine does nothing in the
+browser and the step still counts against the budget. The tool result says `REFUSED`, the record gives the
+step a note starting `blocked:`, and `steps.jsonl` has a `refusal` field. Three refusals of the same tool on
+the same page make the persona give up, like any other failed try. The system prompt lists the tools the
+persona can't use, so refusals are rare.
+
+If a persona may not use `screenshot`, the model isn't sent screenshots at all. They're still saved for the
 reviewer. The engine's own opening visit is never refused.
 
 ### Zoom
 
-A zoom above 100 percent behaves like browser zoom. The window keeps its device size, and the page lays out in
-fewer CSS pixels. At 200 percent a tablet window of 820 x 1180 gives the page 410 x 590 CSS pixels and a
-`devicePixelRatio` of 2. Media queries see the narrower viewport, text is twice its size, and screenshots stay
-820 x 1180 pixels. The engine sets this with `browsingContext.setViewport`, giving it the smaller viewport and
-the `devicePixelRatio` parameter ([WebDriver BiDi, setViewport](https://w3c.github.io/webdriver-bidi/#command-browsingContext-setViewport)).
-The setting is kept across navigations. CSS `zoom` set from a script would not survive a page load, would not
-change media queries and is not standard on Firefox. Observations show a `zoom:` line with the viewport and
-pixel ratio the page reports, so a screenshot and the page's own numbers can be compared. The run record
-holds the zoom in `persona.zoom`. It is left out at 100. The persona object does not allow other keys, so a
-reader that still has the earlier schema rejects a record that has `persona.zoom`. Update the reader's copy of
-`schema/run-record.schema.json` first. The Grafana exporter in this repository is already updated.
+Use zoom to test WCAG 2.2 SC 1.4.4 (resize text) and SC 1.4.10 (reflow). A zoom above 100 percent behaves
+like browser zoom: the window keeps its device size and the page lays out in fewer CSS pixels. At 200 percent,
+a tablet window of 820 x 1180 gives the page 410 x 590 CSS pixels and a `devicePixelRatio` of 2. Media
+queries see the narrower viewport, text is twice the size, and screenshots stay 820 x 1180.
 
-This is the setting for WCAG 2.2 SC 1.4.4 (resize text) and SC 1.4.10 (reflow).
+The engine sets this with
+[`browsingContext.setViewport`](https://w3c.github.io/webdriver-bidi/#command-browsingContext-setViewport),
+using the smaller viewport and the `devicePixelRatio` parameter, and it holds across navigations. Each
+observation includes a `zoom:` line with the viewport and pixel ratio the page reports, so you can compare a
+screenshot with the page's own numbers.
+
+The run record holds the zoom in `persona.zoom`, and leaves it out at 100. The persona object allows no other
+keys, so a reader with an older copy of the schema rejects a record that has `persona.zoom`. Update that
+reader's copy of `schema/run-record.schema.json` first. The Grafana exporter in this repository already
+reads it.
 
 ### Device in the record
 
-`persona.device` in the run record is the device the run used. When a scenario sets its own, that is the
-scenario's device and not the one in `profile.md`.
+`persona.device` in the run record is the device the run actually used. If the scenario set one, that's the
+scenario's device, whatever `profile.md` says.
 
 ## Focus and the accessibility outline
 
-Every observation carries two extra parts, built in the page after each action
-(code: `internal/page/tree.js`).
+After each action the engine adds two things to what the model sees: the element with keyboard focus, and an
+outline of the page.
 
 ```
 focus: link "Pricing" @7
@@ -177,66 +186,79 @@ accessibility tree (roles and names computed from the page; @n matches the contr
     textbox (no name) @8 [required]
 ```
 
-The focus line gives the role, accessible name and `@ref` of the element that has keyboard focus. It says
-`focus: nothing` when no element has it. The outline lists landmarks, headings and interactive elements in page
-order. Each line has a role and a name, and may have states. A state is `disabled`, `checked` or `required`. A field can be `invalid`.
-A link to the current page is `current`. A disclosure control shows `expanded` or `collapsed`. An element with no accessible name shows `(no name)`. Moving focus with Tab counts as a change on
-the page, so a persona that tabs through a page is not told that nothing happened. Both parts are also in
-`steps.jsonl` under `page.focus` and `page.tree`.
+The focus line gives the role, accessible name and `@ref` of the focused element, or `focus: nothing`. The
+outline lists landmarks, headings and interactive elements in page order. Each line has a role, a name and
+sometimes a state:
 
-WebDriver BiDi has no command that returns an accessibility tree. Its only accessibility feature is the
-`accessibility` locator for `browsingContext.locateNodes`, which finds nodes by role and name
-([WebDriver BiDi, locators](https://w3c.github.io/webdriver-bidi/#type-browsingContext-Locator)). The engine
-therefore runs a script with `script.callFunction` that reads the DOM and ARIA attributes. It follows HTML-AAM
-for implicit roles and Accessible Name and Description Computation 1.2 for names, in the common cases. The
-roles and names are an approximation of what each browser exposes, the same on Chrome and Firefox. Shadow DOM
+- `disabled`, `checked` or `required`, and `invalid` for a field
+- `current` for a link to the current page
+- `expanded` or `collapsed` for a disclosure control
+
+An element with no accessible name shows `(no name)`. Moving focus with Tab counts as a change on the page, so
+a persona tabbing through a page isn't told that nothing happened. Both parts are also saved in `steps.jsonl`
+under `page.focus` and `page.tree`.
+
+The outline comes from a script the engine runs in the page, because WebDriver BiDi has no command that
+returns an accessibility tree. The script reads the DOM and ARIA attributes, and follows HTML-AAM for implicit
+roles and Accessible Name and Description Computation 1.2 for names in the common cases. So the roles and names
+are a close approximation of what each browser exposes, and they're the same on Chrome and Firefox. Shadow DOM
 and cross-origin frames are only partly covered.
 
-The outline has a budget of 600 tokens (`page.TreeTokens`). The engine counts 3 characters to a token, so
-the limit is 1,800 characters. When a page has more, the landmarks and the focused element stay. Headings come next, then
+The outline is capped at 600 tokens (`page.TreeTokens`). At 3 characters to a token that's 1,800 characters.
+On a bigger page the engine keeps the landmarks and the focused element first. Headings come next, then
 interactive elements in page order. A last line says how many entries were left out.
 
-The run record matches `schema/run-record.schema.json` (schema version 2) and is validated before it is written.
-Version 1 records, written by earlier releases, stay readable by `dummyrun coverage` and the Grafana exporter.
-A version 2 record adds the fingerprint of each finding and the route of each step. It also adds the persona's
-dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
-`internal/price/prices.json`. The cost is null for a model that is not in the table. A target without a `commit` gets one from a hash of its
-home page, which the engine fetches with one GET request outside the browser. Findings
-start with the verdict `pending`, and the Review section below shows how a person changes it. Next to the record, `report.md` holds the
-persona's own report and `steps.jsonl` holds the full observation for each step, including page text the
-reviewer can check quotes against.
+## The run record
 
-Every request to the target carries a `baggage` header with the run and persona IDs. A request also gets a
-`traceparent` header unless the page set one itself, in which case the page's header is kept. The trace ID
-and the step span ID are derived from the run ID and the step number, as `docs/TELEMETRY.md` describes
-(code: `internal/telemetry/telemetry.go`). The browser's user agent ends with `DummyRun/<version>`, or with `DummyRun/<version> (+https://dummyrun.dev/scanner/)` under `--identify`.
+The run record follows `schema/run-record.schema.json` (schema version 2), and the engine validates it
+before writing it. `dummyrun coverage` and the Grafana exporter can still read version 1 records from earlier
+releases.
+
+A version 2 record adds the fingerprint of each finding and the route of each step. It also adds the
+persona's dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
+`internal/price/prices.json`, and it's null for a model that isn't in the table. If the target has no
+`commit`, the engine makes one from a hash of the home page, fetched with a single GET request outside the
+browser. Findings start with the verdict `pending` until a person reviews them (see [Review](#review)).
+
+Next to the record, `report.md` holds the persona's own report. `steps.jsonl` holds the full observation for
+each step, including the page text, so a reviewer can check the persona's quotes.
+
+Every request to the target carries a `baggage` header with the run and persona IDs. It also gets a
+`traceparent` header, unless the page set its own, which is kept. The trace ID and step span ID come from the
+run ID and step number, as [TELEMETRY.md](TELEMETRY.md) describes. The browser's user agent ends with
+`DummyRun/<version>`, or `DummyRun/<version> (+https://dummyrun.dev/scanner/)` with `--identify`.
 
 ## Review
 
-A paid report holds only findings that a person has confirmed. `dummyrun review` is where that person works. It reads a folder of run records, or the record files you name (code: `internal/review/store.go`). It lists the findings that are still `pending` and sets each one to `confirmed` or `rejected` (code: `Apply` in `internal/review/store.go`).
+A paid report only holds findings a person has confirmed, and `dummyrun review` is where you confirm them. Point
+it at a folder of run records, or at the record files themselves. It lists the findings that are still
+`pending` and lets you set each one to `confirmed` or `rejected`.
 
-List what is waiting. This changes nothing.
+To see what's waiting without changing anything:
 
 <!-- doctest -->
 ```sh
 dummyrun review examples/runs --list
 ```
 
-Add `--json` for a script, or `--verdict all` to include findings that are already reviewed.
+Add `--json` for output a script can read, or `--verdict all` to include findings that are already reviewed.
 
 ### One finding at a time
 
-Run the command in a terminal with no other flag. It shows the problems one by one, most severe first. Each one lists the persona and the scenario. It also lists the title, the severity and the kind. The route, the symptom and the evidence tag follow. For every step the finding cites it shows the action, what the step saw, the element that had focus and the screenshot file. Open the screenshot yourself and then press a key and Enter.
+Run `dummyrun review` in a terminal with no other flag and it walks you through the problems, most severe
+first. Each one starts with its severity, kind and evidence tag, then the title. Next come the fingerprint,
+route, locus and symptom. The persona and scenario follow. For every step the finding cites you get the
+action and what the step saw. You also get the focused element and the screenshot file. Open the screenshot, then type a key and press Enter.
 
 | Key | What it does |
 |---|---|
 | `c` | Confirm |
-| `r` | Reject. It asks for a short reason and does nothing if you leave it empty |
+| `r` | Reject. You're asked for a short reason, and nothing happens if you leave it empty |
 | `e` | Change the severity or the title. The change is saved with your next `c` or `r` |
 | `s` | Skip. The finding stays `pending` |
 | `q` | Quit. Nothing is lost, because each decision is saved as you make it |
 
-A session looks like this. The screenshot path is shortened.
+A session looks like this (the screenshot path is shortened):
 
 ```text
 2 problems to review, reviewer Pat Example. Type a key and press Enter.
@@ -278,18 +300,27 @@ Confirmed 1, rejected 1, skipped 0. 3 findings changed.
 
 ### Without a terminal
 
-A script or a CI job names the findings in flags. A selector is a fingerprint or a prefix of at least six characters, in either case. It can also be `run-id/finding-id`, or a finding ID that only one problem uses. The command checks every selector before it writes anything. If one is wrong it exits 2 and changes nothing.
+In a script or a CI job, name the findings in flags:
 
 ```sh
 dummyrun review runs/ --confirm 87c7d4 --reviewer "Pat Example"
 dummyrun review runs/ --reject 1718b7 --reason "The wording matches the product glossary"
 ```
 
-A rejection needs `--reason`. A confirmation may have one. Give `--reason` once. It goes with every verdict in the command. `--reviewer` defaults to `git config user.name`, and the command stops if neither is set. The exit code is 0 when it wrote the verdicts, 1 when a write failed and 2 when the command line was wrong.
+A selector can be a fingerprint, or a prefix of one at least six characters long, in either case. It can also
+be `run-id/finding-id`, or a finding ID that only one problem uses. The command checks every selector before
+writing anything, and if one is wrong it exits 2 and changes nothing.
+
+A rejection needs `--reason`, and a confirmation can have one. You give `--reason` once and it applies to every
+verdict in that command. `--reviewer` defaults to `git config user.name`, and the command stops if neither is
+set. It exits 0 when it wrote the verdicts, 1 when a write failed and 2 when the command line was wrong.
 
 ### One problem is judged once
 
-Findings with the same fingerprint are one problem seen in several runs. You decide it once. The verdict reaches every finding with that fingerprint that is still `pending`, and the command says how many it changed. A finding that someone has already confirmed or rejected is never changed. An edit to the severity or the title reaches the same pending findings.
+Findings with the same fingerprint are one problem seen in several runs, so you only decide it once. Your
+verdict reaches every finding with that fingerprint that's still `pending`, and the command tells you how many
+it changed. It never changes a finding someone has already confirmed or rejected. An edit to the severity or
+the title reaches the same pending findings.
 
 ### What a decision writes
 
@@ -298,86 +329,116 @@ For each finding it changes, the command sets `verdict` and adds three optional 
 | Field | Content |
 |---|---|
 | `reviewer` | The `--reviewer` value or `git config user.name` |
-| `reviewed_at` | The time of the decision in UTC |
+| `reviewed_at` | The time of the decision, in UTC |
 | `reason` | Why. Required for a rejection |
 
-Nothing else in the record moves. The command reads the record again just before it writes, checks the new text against the schema, writes it to a temporary file in the same folder and renames it over the record. If another reviewer saves the record in between, the command reads it again and applies your verdict to what is still pending. Where the system has a lock, two reviewers in the same folder take turns. The command holds the lock while it rewrites a record (code: `internal/review/lock_unix.go` and `internal/review/lock_windows.go`). That covers Linux, macOS, the BSDs and Windows. Windows keeps a `.review.lock` file in the folder. Other systems have no lock. There the command reads the record again just before the rename and starts over if it changed. Two reviewers can still collide in the instant between that check and the rename (code: `internal/review/lock_other.go`). A failure while the record is checked or replaced leaves the old record in place (code: `editOnce` in `internal/review/store.go`). It then adds one line to `review-log.jsonl` in the folder of the record. If that write fails, the records have already changed and the command says so (code: `Apply` in `internal/review/store.go`). The line holds the time and the reviewer. It also holds the fingerprint, the verdict and the reason. A list of the changed findings follows, each with its run ID, its finding ID and its earlier severity and title. Nothing in the tool deletes a line from the log.
+Nothing else in the record changes. Just before writing, the command reads the record again and checks the new
+text against the schema. It writes the result to a temporary file in the same folder and renames that over the record.
+If another reviewer saved the record in the meantime, your verdict is applied to whatever is still pending.
+A failure while the record is checked or replaced leaves the old record as it was.
+
+Two reviewers working in the same folder take turns on a lock while each record is rewritten. That works on
+Linux, macOS, the BSDs and Windows. On Windows the lock is a `.review.lock` file in the folder. Other systems have no
+lock. There the command rereads the record just before the rename and starts over if it changed, which leaves
+a brief moment when two reviewers can still collide.
+
+After the records are written, the command adds one line to `review-log.jsonl` in the record's folder. The
+line holds the time and the reviewer, plus the fingerprint, the verdict and the reason. It then lists each changed
+finding with its run ID, finding ID and earlier severity and title. If writing the log fails, the records have
+already changed and the command tells you. The tool never deletes a line from the log.
 
 Version 1 records have no fingerprint and no review fields. The command skips them and says so.
 
 ### Reports and exports
 
-`dummyrun coverage` counts only confirmed findings unless you pass `--confirmed-only=false`. Review before you export. `dummyrun-otel` sends `verdict` with each finding, and it reads reviewed records without change. It does not update what it sent earlier, so sending a record again after a review duplicates its spans and log lines. [TELEMETRY.md](TELEMETRY.md) explains what a repeat does.
+`dummyrun coverage` counts only confirmed findings unless you pass `--confirmed-only=false`, so review before
+you export. `dummyrun-otel` sends `verdict` with each finding and reads reviewed records as they are. It
+doesn't update what it sent before, so sending a record again after a review duplicates its spans and log
+lines. [TELEMETRY.md](TELEMETRY.md) explains what a repeat does.
 
 ## Read-only policy
 
-A target with `"read_only": true` cannot be changed by a run. The engine intercepts every request the
-browser makes (code: `internal/policy/policy.go` and `internal/page/page.go`). A request to an allowed host with a method other than GET, HEAD or OPTIONS fails as a
-network error before it leaves the browser, and the step that caused it gets a note such as
-`blocked: POST https://example.test/subscribe (read-only target)`. A request to any host outside
-`allowed_hosts` fails the same way. The one exception is the sign-in request, described under [Sign in](#sign-in). The persona is told about the policy in its prompt as well, but the
-interception is what enforces it. `internal/page/tools_test.go` proves it with a form whose POST never
-reaches the test server, on both browsers (measured on Firefox 158.0 and Chrome 155.0.8059.80).
+Set `"read_only": true` in the target file and a run can't change anything in your app. The engine intercepts
+every request the browser makes. A request to an allowed host with any method other than GET, HEAD or OPTIONS
+fails as a network error before it leaves the browser. The step that caused it gets a note such as
+`blocked: POST https://example.test/subscribe (read-only target)`. A request to a host outside `allowed_hosts`
+fails the same way. The only exception is the sign-in request, described under [Sign in](#sign-in).
+
+The persona's prompt mentions the policy too, but it's the interception that enforces it. The engine's own
+browser tests check this with a form whose POST never reaches the test server, on both browsers.
 
 An `allowed_hosts` entry is a host name or `host:port`. A bare host name matches the default port of the
-request's scheme, and also the port of `base_url` when it is the base URL's own host. Another port needs its own
-`host:port` entry. With a bare `127.0.0.1` entry and no `127.0.0.1:9000` entry, a page on `127.0.0.1:8080` cannot reach a service on `127.0.0.1:9000`. Matching
-is exact, so a subdomain needs its own entry (code: `internal/policy/policy.go`). A request or a `visit` that goes to a host outside the list is not
-followed. The step gets a `blocked:` note and the record gets an `off_origin_blocked` event.
+request's scheme. It also matches the port of `base_url`, when it's the base URL's own host. Any other port
+needs its own `host:port` entry. For example, with a bare `127.0.0.1` entry and no `127.0.0.1:9000` entry, a
+page on `127.0.0.1:8080` can't reach a service on `127.0.0.1:9000`. Matching is exact, so each subdomain needs
+its own entry. A request or a `visit` to a host outside the list isn't followed. The step gets a `blocked:`
+note and the record gets an `off_origin_blocked` event.
 
 ## Untrusted page content
 
-The page under test is input the model must not trust. [Threat model](THREAT-MODEL.md) lists the threats. The
-engine does these things about prompt injection (code: `internal/inject`, `internal/runner/inspect.go`).
+The engine treats the page under test as input the model mustn't trust. [Threat model](THREAT-MODEL.md) lists
+the threats. Here is what the engine does about prompt injection.
 
-- Everything from the page that is sent to the model arrives between `<<<PAGE_CONTENT <id>` and `PAGE_CONTENT <id>>>>`
-  markers. The id is random for each run, so the page cannot close the fence. The system prompt says that text
-  inside the markers is data and never changes the task, the tools, the verdict or the findings.
-- Text that the browser does not render is not sent. That covers `display: none` and `visibility: hidden`.
-  Comments are not sent either. Text with zero size, zero opacity or `aria-hidden` is still in the page text. It can
-  reach the model. The scan flags it as hidden. `internal/page/look.js` collects all of that text and the
-  `aria-label`, `title`, `alt` and `placeholder` values. They go in `page.hidden` in `steps.jsonl`, for the scan and
-  for the reviewer (code: `internal/page/look.js`). Text that CSS only moves off the screen is still page text. The
-  model can see it, and the scan flags it as hidden text (code: `internal/runner/canary_browser_test.go`).
-- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such as
-  "ignore previous instructions", "system prompt" and "you are now". It looks for chat template tokens. It looks for
-  orders to report nothing or to call `finish`, and for claims that the site is fully accessible. It looks for
-  instructions to go to a host outside the allow list, and for invisible Unicode characters. Hidden text that talks to
-  an assistant and gives an order is flagged too. These are heuristics for a reviewer and not a filter.
-- A match adds a `HARNESS WARNING` line to that step's result, a `suspected_injection` event in the run record,
-  and one finding of kind `security` that cites every step with a match. The engine files the finding, so a
-  persona that obeys the page still leaves it behind. Its symptom is `misleading-copy`. Its severity is `major`
-  when the text was hidden or contained invisible characters and `minor` otherwise (code: `internal/runner/inspect.go`). Its verdict is `pending`.
+- Everything from the page that's sent to the model sits between `<<<PAGE_CONTENT <id>` and
+  `PAGE_CONTENT <id>>>>` markers. The id is random for each run, so the page can't close the fence. The system
+  prompt says text inside the markers is data and never changes the task, the tools, the verdict or the
+  findings.
+- Text the browser doesn't render isn't sent. That covers `display: none`, `visibility: hidden` and comments.
+  Text with zero size, zero opacity or `aria-hidden` is still part of the page text. It can reach the model,
+  and the scan flags it as hidden. So does text that CSS only moves off the screen.
+- The engine collects that hidden text along with the `aria-label`, `title`, `alt` and `placeholder` values.
+  They're saved in `page.hidden` in `steps.jsonl`, for the scan and for the reviewer.
+- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such
+  as "ignore previous instructions", "system prompt" and "you are now", and for chat template tokens. It also
+  looks for orders to report nothing or to call `finish`, and for claims that the site is fully accessible.
+  Instructions to go to a host outside the allow list are flagged, and so are invisible Unicode characters. Hidden text that
+  addresses an assistant and gives an order is flagged too. These are heuristics to help a reviewer. They
+  don't filter anything.
+- A match adds a `HARNESS WARNING` line to that step's result and a `suspected_injection` event to the run
+  record. It also adds one finding of kind `security` that cites every step with a match. The engine files this
+  finding itself, so it's there even if the persona obeyed the page. Its symptom is `misleading-copy` and its
+  verdict is `pending`. Its severity is `major` when the text was hidden or held invisible characters, and
+  `minor` otherwise.
 - A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
 
-The record's `events` array is optional. Each event has a `kind` and a short `detail`. It has a `step` where one applies. For `suspected_injection` it also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
-The `detail` of such an event is page text. Treat it as data. `dummyrun-otel` does not export events (code: `integrations/grafana/exporter/internal/record/record.go`).
-A reader built from an earlier copy of `schema/run-record.schema.json` rejects a record that has `events`, the
-outcome `provider_filtered` or a finding of kind `security` (code: `schema/run-record.schema.json`). `dummyrun-otel` reads the outcome and the finding kind and ignores `events`.
+The record's `events` array is optional. Each event has a `kind` and a short `detail`, plus a `step` where one
+applies. A `suspected_injection` event also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
+Its `detail` is page text, so treat it as data. `dummyrun-otel` doesn't export events.
+
+A reader built from an older copy of `schema/run-record.schema.json` rejects a record that has `events`, the
+outcome `provider_filtered` or a finding of kind `security`. `dummyrun-otel` reads the outcome and the finding
+kind and ignores `events`.
 
 ### When the provider refuses
 
-A model provider may refuse a call because its content filter objects to the page. The run stops. The record
-has the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding.
-`report.md` and the command's message say that the provider refused the call. The command exits with status 1.
-Every provider maps to this outcome through one error (code: `internal/provider/filter.go`). Azure OpenAI and the
-other OpenAI-compatible services report a content filter finish reason, a `refusal` message or an API error
-(code: `internal/provider/azure.go` and `internal/provider/openai_compat.go`). The Responses API reports a cut-off
-response or a `refusal` part (code: `internal/provider/responses.go`). Anthropic reports a `refusal` stop reason
-(code: `internal/provider/anthropic.go`). Gemini reports safety blocks (code: `internal/provider/gemini.go`).
-Bedrock reports a guardrail stop reason, and the call keeps its token counts (code: `internal/provider/bedrock.go`).
+Sometimes a model provider refuses a call because its content filter objects to the page. The run stops, and
+the command exits with status 1. The record has the outcome `provider_filtered`, a `provider_filtered` event,
+the steps so far and any security finding. `report.md` and the command's message both say the provider
+refused.
+
+Each provider signals a refusal in its own way, and the engine maps all of them to this outcome:
+
+| Provider | What counts as a refusal |
+|---|---|
+| Azure OpenAI and other OpenAI-compatible services | A content filter finish reason, a `refusal` message or an API error |
+| The Responses API | A cut-off response or a `refusal` part |
+| Anthropic | A `refusal` stop reason |
+| Gemini | A safety block |
+| Bedrock | A guardrail stop reason. The call keeps its token counts |
 
 ## Sign in
 
-Some apps show nothing until a user signs in. The engine signs in before the persona starts. The harness
-does not give the credentials to the persona, so it cannot be asked for them. A signed-in page can still show the
-user name (see below). There are two ways. Both use a test account of
-your own that has no multi-factor step. Single sign-on and multi-factor prompts are out of scope. For those, sign in
-once by hand or with a test account and use a session file.
+Some apps show nothing until you sign in. The engine can sign in for the persona before it starts, and it never
+hands the persona the credentials, so the persona can't be talked into revealing them. A signed-in page may
+still show the user name, as [Where credentials never go](#where-credentials-never-go) explains.
+
+There are two ways to sign in: the engine fills in the login form, or it loads a saved session file. Both need
+a test account of your own with no multi-factor step. The engine can't handle single sign-on or multi-factor
+prompts. For those, sign in once by hand or with a test account and save a session file.
 
 ### The target file
 
-A target file gains an optional `signin` block (code: `internal/policy/signin.go`).
+Add a `signin` block to the target file:
 
 ```json
 {
@@ -405,38 +466,40 @@ A target file gains an optional `signin` block (code: `internal/policy/signin.go
 | Key | Meaning |
 |---|---|
 | `login_url` | The page with the form. A path is resolved against `base_url` |
-| `username`, `password`, `submit` | How to find each control. Give a CSS `selector` or the text of its `label`, not both |
-| `allow_request` | The form's own request, by `method` (default POST) and `url`. The query is ignored. This is the only request that would otherwise fail the read-only policy during the sign-in phase |
-| `success` | A `url_matches` regular expression, a `selector` or both. Make it specific to a signed-in page. Sign-in only counts when the request above was sent and this holds |
+| `username`, `password`, `submit` | How to find each control. Give either a CSS `selector` or the text of its `label` |
+| `allow_request` | The form's own request, by `method` (default POST) and `url`. The query is ignored. During sign-in, this is the one request the read-only policy lets through |
+| `success` | A `url_matches` regular expression, a `selector` or both. Make it specific to a signed-in page. Sign-in only counts when the request above was sent and this check passes |
 | `block_paths` | Paths that sign the user out, such as `/logout`. A request to one fails for the whole run, whatever its method |
-| `credentials` | One entry for each role. It names the environment variables that hold the user name and password, or a `session_file` |
+| `credentials` | One entry per role. It names the environment variables that hold the user name and password, or a `session_file` |
 
-The file never holds a credential. A value that is not a valid variable name is rejected. All hosts named
-in the block must be in `allowed_hosts`.
+The file never holds a credential itself. A value that isn't a valid variable name is rejected. Every host named
+in the block must also be in `allowed_hosts`.
 
 ### Which role signs in
 
-The first of these that is set decides.
+The engine uses the first of these that's set:
 
 1. The scenario's `Sign in as: editor` line. `Sign in as: none` turns sign-in off.
 2. The persona's `signin: editor` front matter key. `none` turns it off.
 3. The persona's `role` key, when the target has credentials under that name. The library's `role-viewer`,
-   `role-editor` and `role-admin` use this. A target with credentials under those three names needs no more set-up.
+   `role-editor` and `role-admin` personas work this way, so a target with credentials under those three
+   names needs nothing else.
 
-A role asked for by name that the target does not list is an error. So is a missing environment variable.
-Both stop the run before a browser starts. A persona whose role matches nothing runs signed out.
+If a role is asked for by name and the target doesn't list it, or an environment variable is missing, the run
+stops before a browser starts. A persona whose role matches nothing runs signed out.
 
 ### Method one: the login form
 
-The engine opens a tab of its own, loads the login page, fills the two fields from the environment and
-clicks submit. It waits for the declared request and the success check, then closes the tab. The persona's
-tab starts clean, with the session cookies in the browser and no history. The model is told which role it
-is signed in as, and that signing out is blocked.
+The engine opens a tab of its own, loads the login page, fills in the two fields from the environment and
+clicks submit. It waits for the declared request and the success check, then closes the tab. The persona's tab
+starts clean, with the session cookies in the browser and no history. The model is told which role it's signed
+in as, and that signing out is blocked.
 
 ### Method two: a session file
 
-`dummyrun session save` signs in once through the form and writes the browser's cookies, and the local storage
-of the target's origin and of the sign-in page's origin, to a file (code: `internal/signin/session.go`).
+To sign in once and reuse the session, save it with `dummyrun session save`. It signs in through the form and
+writes the browser's cookies to a file, along with the local storage of the target's origin and of the sign-in
+page's origin.
 
 <!-- doctest -->
 ```sh
@@ -450,152 +513,162 @@ dummyrun run --session sessions/admin.json ...
 dummyrun a11y --session sessions/admin.json https://staging.example.test/admin/
 ```
 
-The file is in Playwright's `storageState` format, so a file saved by Playwright loads here and the reverse.
-Cookies for hosts outside `allowed_hosts` are skipped, and so are expired ones and cookies without the `Secure` flag on a host that is not local (code: `Session.Apply` in `internal/signin/session.go`). Local storage is set only for https origins of allowed hosts, and the port is not compared. A session that loads no cookie and no local storage is an error. Set a role's `session_file` in
-the target file to load it without the flag. A relative path starts at the target file's directory. The file holds
-live session cookies. It is written with mode 0600 (code: `Session.Save` in `internal/signin/session.go`). Treat it like a password and keep it out of version control.
-The engine does not check that a loaded session is still valid (code: `loadSession` in `internal/signin/session.go`). Save a fresh one when it expires.
+To load a session without the flag, set a role's `session_file` in the target file. A relative path starts
+from the target file's directory. `dummyrun a11y --session FILE` loads the file before the first page, so the
+sweep tests pages as that user sees them.
 
-`dummyrun a11y --session FILE` loads the same file before the first page, so the sweep tests the pages as that user sees them.
+The file uses Playwright's `storageState` format, so a file saved by Playwright loads here, and the other way
+round. When the engine loads it:
+
+- it skips cookies for hosts outside `allowed_hosts`, expired cookies, and cookies without the `Secure` flag
+  on a host that isn't local
+- it sets local storage only for https origins of allowed hosts, without comparing the port
+- it stops with an error if the file loads no cookie and no local storage
+
+The engine doesn't check whether a loaded session is still valid, so save a fresh one when it expires. The file
+holds live session cookies and is written with mode 0600. Treat it like a password and keep it out of version
+control.
 
 ### The read-only exception
 
-The sign-in POST would be blocked by the read-only policy, so the policy has one exception. While the engine
-signs in by form, a gate is open. It lets through exactly one request, the one `allow_request` declares, by
-method and URL. A second matching request is blocked. Every other write is blocked as before. Hosts outside
-`allowed_hosts` stay blocked. The gate closes before the persona's first step and never opens again, so a persona that
-finds the login form and posts it is blocked like any other write. The exception applies only to targets
-with a `signin` block.
+On a read-only target the sign-in POST would be blocked, so the policy makes one exception. While the engine
+signs in by form, it lets through exactly one request: the one `allow_request` declares, matched by method and
+URL. A second matching request is blocked, and so is every other write. Hosts outside `allowed_hosts` stay
+blocked. The exception ends before the persona's first step and never reopens, so if the persona finds the
+login form and posts it, that's blocked like any other write. Only targets with a `signin` block get the
+exception.
 
-Sign-out is blocked too. On a read-only target the usual sign-out button is a POST and fails like any write.
-`block_paths` also covers a sign-out link that is a GET.
+Signing out is blocked too. On a read-only target the usual sign-out button is a POST, which fails like any
+write, and `block_paths` covers a sign-out link that's a GET.
 
 ### What the record says
 
-The run record has an optional `signin` block, additive in schema version 2.
+The run record has an optional `signin` block, added in schema version 2.
 
 ```json
 "signin": { "method": "form", "role": "admin", "ok": true,
   "allowed_request": { "method": "POST", "url": "https://staging.example.test/signin" }, "duration_ms": 850 }
 ```
 
-`method` is `form` or `session`. `allowed_request` is the one request the exception let through, without its query,
-and null for a session. A failed sign-in has `ok: false` and an `error`, and the run is `errored` with no steps.
-The block holds the role name from the target file and never a user name or password.
+`method` is `form` or `session`. `allowed_request` is the one request the exception let through, without its
+query, and it's null for a session. A failed sign-in has `ok: false` and an `error`, and the run is `errored`
+with no steps. The block holds the role name from the target file, never a user name or password.
 
 ### Where credentials never go
 
-Credentials are read from the environment when the run starts. They are put into the form through the BiDi
-connection and nowhere else. The engine takes no screenshot during sign-in, so the password field is never
-captured. Errors are scrubbed of both values before they are recorded or logged. A test checks the model's requests and every file a run writes for the test password, on both browsers
-(`internal/runner/signin_browser_test.go`). It checks the log and the record for the user name too. A page can still show the user name, for example on a list of users, because the
-engine does not edit page text. See [SECURITY.md](../SECURITY.md) for the threat note.
+The engine reads credentials from the environment when the run starts, and types them into the form over the
+BiDi connection. They go nowhere else. No screenshot is taken during sign-in, so the password field is never
+captured, and both values are scrubbed from errors before anything is recorded or logged. The engine's browser
+tests check the model's requests and every file a run writes for the test password, on both browsers, and
+check the log and the record for the user name.
+
+The engine doesn't edit page text, though. A page can still show the user name, on a list of users for
+example. See [SECURITY.md](../SECURITY.md) for more.
 
 ## Identifying the engine and honouring robots.txt
 
-Two switches, both off by default, let a run say who it is and keep out of places that ask crawlers to stay away.
-Anyone running the engine can leave them off. The code is in `internal/robots`, `internal/policy/policy.go` and `internal/telemetry/telemetry.go`. With `--respect-robots`, a sitemap that `--universe` or `--sitemap` names is checked against its own origin's robots.txt before it is requested.
+Two switches let a run say who it is and stay out of places that ask crawlers to keep away. Both are off by
+default.
 
-- **`--identify`.** Without it a run's user agent is the browser's own with `DummyRun/<version>` added. With it the end reads
-  `DummyRun/<version> (+https://dummyrun.dev/scanner/)`. The browser's own text stays in front so sites render as they do for
-  the browser. Both `run` and `a11y` set it through WebDriver BiDi (`emulation.setUserAgentOverride`) on Chrome and Firefox. The
-  engine's own requests, such as `robots.txt` and the sitemap, carry the same suffix.
-- **`--respect-robots`.** The engine fetches `/robots.txt` from the target's origin before anything else, including the home-page hash and the browser. It reads
-  the group for the token `DummyRun` and, if there is none, the group for `*`. It follows RFC 9309. Paths and patterns are compared after percent-encoding normalisation. The longest matching rule
-  wins and `Allow` wins a tie. `*` and a final `$` work in patterns. `Crawl-delay` is ignored. A `4xx` answer means there are
-  no rules. A `5xx` answer or a network failure means the whole site is off limits.
+`--identify` changes the end of the user agent. Without it, the browser's own user agent gets
+`DummyRun/<version>` added. With it, the end reads `DummyRun/<version> (+https://dummyrun.dev/scanner/)`. The
+browser's own text stays at the front, so sites render as they normally would. Both `run` and `a11y` set it
+over WebDriver BiDi (`emulation.setUserAgentOverride`) on Chrome and Firefox. The engine's own requests, such
+as for `robots.txt` and the sitemap, carry the same suffix.
 
-With `run`, a request to the target's origin for a path the rules disallow is blocked through the same interception as the
-read-only policy. The step notes it as `blocked: GET https://example.test/admin (robots.txt disallows DummyRun)`. The
-`/robots.txt` file itself is always allowed. Other hosts in `allowed_hosts` are not covered, because their robots.txt files
-are not read. If the start page is disallowed, which includes a site-wide `Disallow: /`, the run stops before the browser
-starts. The record has the outcome `blocked` and an `outcome_reason`, and the command exits with status 3.
+`--respect-robots` makes the engine fetch `/robots.txt` from the target's origin before anything else,
+including the home-page hash and the browser. It reads the group for the token `DummyRun`, or the `*` group if
+there isn't one, following RFC 9309:
 
-With `a11y`, each page is checked against the robots.txt of its own origin. A disallowed page is skipped, listed as `skipped`
-in the report and counted in `skipped_pages`. It does not fail the sweep. If every page is disallowed no browser starts and the
-exit status is 3. The sweep does not intercept the requests a page makes for its own files.
+- Paths and patterns are compared after percent-encoding normalisation.
+- The longest matching rule wins, and `Allow` wins a tie.
+- `*` and a final `$` work in patterns. `Crawl-delay` is ignored.
+- A `4xx` answer means there are no rules. A `5xx` answer or a network failure means the whole site is off
+  limits.
 
-The record keeps both settings as `target.identify` and `target.respect_robots`, left out when false.
+A sitemap named by `--universe` or `--sitemap` is checked against its own origin's robots.txt before it's
+requested.
+
+With `run`, a request to the target's origin for a disallowed path is blocked by the same interception as the
+read-only policy. The step notes it as `blocked: GET https://example.test/admin (robots.txt disallows DummyRun)`.
+`/robots.txt` itself is always allowed. Other hosts in `allowed_hosts` aren't covered, because their robots.txt
+files aren't read. If the start page is disallowed, which includes a site-wide `Disallow: /`, the run stops
+before the browser starts. The record has the outcome `blocked` and an `outcome_reason`, and the command exits
+with status 3.
+
+With `a11y`, each page is checked against the robots.txt of its own origin. A disallowed page is skipped,
+listed as `skipped` in the report and counted in `skipped_pages`, and it doesn't fail the sweep. If every page
+is disallowed, no browser starts and the exit status is 3. The sweep doesn't intercept the requests a page makes
+for its own files.
+
+The record keeps both settings as `target.identify` and `target.respect_robots`, and leaves them out when
+they're false.
 
 ## Providers
 
-`internal/provider` defines one interface. A request carries a system prompt and the turns so far. Each turn
-holds text and may hold images and tool calls. The request also lists the tools and may name one forced tool. The Azure OpenAI implementation uses `openai-go`'s `azure` package with
-`azidentity.DefaultAzureCredential`, which tries the environment, workload identity and managed identity
-before the Azure CLI sign-in (code: `internal/provider/azure.go`). The Azure provider has no code path that
-reads an API key. The other providers read a key from the environment when the run starts, as
-[PROVIDERS.md](PROVIDERS.md) says. Each call has a 120 second timeout and up to three retries. The API version defaults to `2025-04-01-preview` and `--api-version` overrides
-it. Token usage from every call is summed into the record's `usage` block, and
-`--region` is recorded as `provider.region` because a deployment does not report where it runs.
+Pick a provider with `--provider`. [PROVIDERS.md](PROVIDERS.md) has the flags, the notes for each vendor and
+where each one keeps your data. The engine works with Azure OpenAI and any OpenAI-compatible service. It
+also works with Anthropic, Gemini and Amazon Bedrock. It knows what each one can do and picks fallbacks for you.
 
-Other backends sit behind the same interface. They are any OpenAI-compatible service, Anthropic, Gemini and
-Amazon Bedrock. A capability table in `internal/provider/capabilities.go` tells the runner
-what each can do, so it picks fallbacks without checking names. `docs/PROVIDERS.md` has the flags, the notes for
-each vendor and the data region of each.
+Azure OpenAI signs in with `DefaultAzureCredential`, which tries the environment, workload identity and managed
+identity before your Azure CLI sign-in. It never reads an API key. The other providers read a key from the
+environment when the run starts. The Azure API version defaults to `2025-04-01-preview`, and `--api-version`
+overrides it.
+
+Each call has a 120 second timeout and up to three retries. Token usage from every call is added up in the
+record's `usage` block. `--region` is recorded as `provider.region`, because a deployment doesn't report where
+it runs.
 
 ## The accessibility sweep
 
-`dummyrun a11y` checks pages for accessibility problems without calling a model. It runs the
-axe-core 4.13.0 copy that the `a11y` tool uses, over the same WebDriver BiDi connection. It checks every page
-you give it (code: `internal/a11y`, `cmd/dummyrun/a11y.go`). `dummyrun audit a11y` is the same command.
+To check a set of pages for accessibility problems without calling a model, use `dummyrun a11y`. It runs the
+same axe-core 4.13.0 as the `a11y` tool, over the same WebDriver BiDi connection, on every page you give it.
+`dummyrun audit a11y` is the same command.
 
 ```sh
 dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   --allow a11y-allow.txt --json report.json https://example.com/404.html
 ```
 
-- **Pages.** Give URLs, a sitemap or both. A sitemap index is followed one level. `--rebase URL` moves
-  every sitemap address onto another origin, so a local copy of a site can be tested from its live sitemap.
-- **Rules.** The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA. Best-practice rules are not run.
-- **Sizes.** `--viewport` is `desktop` (1280 wide), `phone` (375 wide) or `both`.
-- **Colour scheme.** `--scheme` is `light`, `dark` or `both`. WebDriver BiDi has no command for
-  `prefers-color-scheme`, so the sweep sets it when it starts the browser (a Blink setting in Chrome, a
-  preference in Firefox) and starts one browser for each scheme. After each page loads it reads the scheme
-  the page actually got. A mismatch is reported as a page error, so a run can never quietly test the wrong theme.
-- **Needs review.** Where axe-core cannot decide, for example text that is partly hidden by a scrolling
-  container, the result is listed as "needs review" in the JSON and does not fail the run.
-- **Output.** A short summary on standard output, listing each failure once with the browser, size and
-  scheme where it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the impact. It also has the WCAG
-  criteria and the element selector. The help link is there too.
-- **Exit status.** 0 when nothing fails. 1 when any violation is not in the allow-list or a page cannot be
-  loaded. 2 for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
+- Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
+  sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
+- Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA. Best-practice rules aren't run.
+- Sizes. `--viewport` is `desktop` (1280 wide), `phone` (375 wide) or `both`.
+- Colour scheme. `--scheme` is `light`, `dark` or `both`. WebDriver BiDi has no command for
+  `prefers-color-scheme`. So the sweep sets it at launch, as a Blink setting in Chrome or a preference in
+  Firefox, and starts one browser per scheme. After each page loads, it reads the scheme the page actually got and reports a
+  mismatch as a page error, so a sweep can't quietly test the wrong theme.
+- Needs review. When axe-core can't decide, for example on text partly hidden by a scrolling container, the
+  result is listed as "needs review" in the JSON and doesn't fail the run.
+- Output. A short summary on standard output lists each failure once, with the browser, size and scheme where
+  it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the
+  impact. It also has the WCAG criteria, the element selector and the help link.
+- Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
+  for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
-The allow-list holds violations you have accepted. Each line is `rule | page | selector | reason`. The page
-is a URL path and the selector is matched against the element's selector. A `*` matches anything. The reason
-is required, so every exception is explained. A line that matches nothing in a run is reported, so stale
-exceptions can be removed.
+The allow-list holds violations you've accepted, one per line as `rule | page | selector | reason`. The page
+is a URL path, and the selector is matched against the element's selector. A `*` matches anything. The reason
+is required, so every exception is explained. If a line matches nothing in a sweep, the sweep reports it, so
+you can remove stale exceptions.
 
-The site's own check is this command, run on Chrome and Firefox against the built site by
-`.github/workflows/site.yml`. Its allow-list is `site/a11y-allow.txt`.
-
-## Tests
-
-`go test ./...` runs the unit tests. Set `DUMMYRUN_BROWSERS=chrome,firefox` to also run the browser tests
-against a local test server. They cover the conformance suite (`internal/bidi`) and the tool suite
-(`internal/page`). They also cover the end-to-end run with a scripted model (`internal/runner`), the canary page of injection attempts
-(`internal/runner/testdata/canary.html`) and the accessibility sweep (`internal/a11y`, on a fixture page with known violations). The MCP server (`internal/mcpserver`) has a test that drives it through an in-process client. CI runs all of them on ubuntu-latest with pinned browsers.
-The conformance suite includes `browsingContext.setViewport` with `devicePixelRatio`, and the tool suite
-covers focus, the outline and zoom on both browsers.
-
-Every test that launches a browser closes it with `t.Cleanup`. Each test binary fails when a browser was
-launched and never closed. The conformance suite also fails when a browser's process or profile outlives its
-test. CI runs `dummyrun doctor` after the browser tests and fails when it finds anything.
+The dummyrun.dev site is checked with this command on Chrome and Firefox, with the allow-list in
+`site/a11y-allow.txt`.
 
 ## Troubleshooting
 
 Leftover browsers fill the disk and the process table. To list the browsers and profile directories that
-earlier runs left behind, run this:
+earlier runs left behind, run:
 
 ```sh
 dummyrun doctor
 ```
 
-It exits 1 when it finds any. Add `--stop` to stop them and remove the profile directories. Check first that
-no run is in progress, since a browser that belongs to a live run is listed too. Without the command, this
-lists the processes:
+It exits 1 if it finds any. Add `--stop` to stop them and remove the profile directories. Check first that no
+run is in progress, because a browser that belongs to a live run is listed too. Without the command, this lists
+the processes:
 
 ```sh
 ps -axo pid=,args= | grep -E 'dummyrun-(chrome|firefox)-' | grep -v grep
 ```
 
-The engine only removes directories that it made itself in the temporary directory with those prefixes.
+The engine only removes directories it made itself, in the temporary directory, with those prefixes.
