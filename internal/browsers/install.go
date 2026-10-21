@@ -331,6 +331,13 @@ func unzip(archive, dest string) error {
 	}
 	root = filepath.Clean(root)
 	prefix := root + string(os.PathSeparator)
+	if err := os.MkdirAll(root, 0o750); err != nil {
+		return err
+	}
+	realRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return err
+	}
 	var written int64
 	for _, f := range zr.File {
 		target := filepath.Join(root, filepath.FromSlash(f.Name))
@@ -340,15 +347,15 @@ func unzip(archive, dest string) error {
 		mode := f.Mode()
 		switch {
 		case mode.IsDir():
-			if err := os.MkdirAll(target, 0o750); err != nil {
+			if err := mkdirInside(target, realRoot); err != nil {
 				return err
 			}
 		case mode&os.ModeSymlink != 0:
-			if err := writeLink(f, target, prefix); err != nil {
+			if err := writeLink(f, target, prefix, realRoot); err != nil {
 				return err
 			}
 		default:
-			if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
+			if err := mkdirInside(filepath.Dir(target), realRoot); err != nil {
 				return err
 			}
 			n, err := copyEntry(f, target, mode.Perm(), maxUnpacked-written)
@@ -363,7 +370,7 @@ func unzip(archive, dest string) error {
 
 // writeLink creates the symbolic link an archive entry describes, if it points inside the folder. The app
 // bundle that Chrome for Testing has on macOS is made of such links.
-func writeLink(f *zip.File, target, prefix string) error {
+func writeLink(f *zip.File, target, prefix, realRoot string) error {
 	rc, err := f.Open()
 	if err != nil {
 		return err
@@ -377,10 +384,26 @@ func writeLink(f *zip.File, target, prefix string) error {
 	if filepath.IsAbs(string(link)) || !strings.HasPrefix(resolved, prefix) {
 		return fmt.Errorf("browsers: the archive has a link that points outside its folder: %q", f.Name)
 	}
-	if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
+	if err := mkdirInside(filepath.Dir(target), realRoot); err != nil {
 		return err
 	}
 	return os.Symlink(string(link), target)
+}
+
+// mkdirInside makes dir and checks that, with every link followed, it is still inside realRoot. An earlier
+// entry could be a link, and the names alone would not show that a later entry writes through it.
+func mkdirInside(dir, realRoot string) error {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	resolved, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return err
+	}
+	if resolved != realRoot && !strings.HasPrefix(resolved, realRoot+string(os.PathSeparator)) {
+		return fmt.Errorf("browsers: the archive writes through a link to %s, outside its folder", resolved)
+	}
+	return nil
 }
 
 func copyEntry(f *zip.File, target string, perm os.FileMode, limit int64) (int64, error) {

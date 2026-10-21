@@ -371,3 +371,24 @@ func TestMarkerErrorOnlyForReadProblems(t *testing.T) {
 		t.Errorf("a missing marker is not an error: %v", err)
 	}
 }
+
+func TestUnzipRefusesWritingThroughALink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("no symbolic links")
+	}
+	dest, outside := t.TempDir(), t.TempDir()
+	// An earlier entry left a link that points out of the folder.
+	if err := os.Symlink(outside, filepath.Join(dest, "ln")); err != nil {
+		t.Fatal(err)
+	}
+	zp := filepath.Join(t.TempDir(), "a.zip")
+	if err := os.WriteFile(zp, buildZip(t, map[string]string{"ln/evil.txt": "x"}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := unzip(zp, dest); err == nil {
+		t.Error("an entry was written through a link that leaves the folder")
+	}
+	if _, err := os.Stat(filepath.Join(outside, "evil.txt")); err == nil {
+		t.Error("a file landed outside the folder")
+	}
+}
