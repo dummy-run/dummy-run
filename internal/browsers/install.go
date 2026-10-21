@@ -334,7 +334,7 @@ func unzip(archive, dest string) error {
 	var written int64
 	for _, f := range zr.File {
 		target := filepath.Join(root, filepath.FromSlash(f.Name))
-		if target != root && !strings.HasPrefix(target, prefix) {
+		if !strings.HasPrefix(target, prefix) {
 			return fmt.Errorf("browsers: the archive has an entry outside its folder: %q", f.Name)
 		}
 		mode := f.Mode()
