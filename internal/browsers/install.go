@@ -351,7 +351,7 @@ func unzip(archive, dest string) error {
 				return err
 			}
 		case mode&os.ModeSymlink != 0:
-			if err := writeLink(f, target, prefix, realRoot); err != nil {
+			if err := writeLink(f, target, realRoot); err != nil {
 				return err
 			}
 		default:
@@ -370,7 +370,7 @@ func unzip(archive, dest string) error {
 
 // writeLink creates the symbolic link an archive entry describes, if it points inside the folder. The app
 // bundle that Chrome for Testing has on macOS is made of such links.
-func writeLink(f *zip.File, target, prefix, realRoot string) error {
+func writeLink(f *zip.File, target, realRoot string) error {
 	rc, err := f.Open()
 	if err != nil {
 		return err
@@ -380,12 +380,18 @@ func writeLink(f *zip.File, target, prefix, realRoot string) error {
 	if err != nil {
 		return err
 	}
-	resolved := filepath.Join(filepath.Dir(target), string(link))
-	if filepath.IsAbs(string(link)) || !strings.HasPrefix(resolved, prefix) {
-		return fmt.Errorf("browsers: the archive has a link that points outside its folder: %q", f.Name)
-	}
+	// Make the parent first and resolve it, since an earlier entry may be a link and the parent's name alone
+	// would then say the wrong place.
 	if err := mkdirInside(filepath.Dir(target), realRoot); err != nil {
 		return err
+	}
+	parent, err := filepath.EvalSymlinks(filepath.Dir(target))
+	if err != nil {
+		return err
+	}
+	resolved := filepath.Join(parent, string(link))
+	if filepath.IsAbs(string(link)) || !strings.HasPrefix(resolved, realRoot+string(os.PathSeparator)) {
+		return fmt.Errorf("browsers: the archive has a link that points outside its folder: %q", f.Name)
 	}
 	return os.Symlink(string(link), target)
 }

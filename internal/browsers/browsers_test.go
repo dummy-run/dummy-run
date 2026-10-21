@@ -392,3 +392,53 @@ func TestUnzipRefusesWritingThroughALink(t *testing.T) {
 		t.Error("a file landed outside the folder")
 	}
 }
+
+// zipEntry is one archive entry, in the order given, with the mode a real archive would carry.
+type zipEntry struct {
+	name, body string
+	mode       os.FileMode
+}
+
+func buildOrderedZip(t *testing.T, entries []zipEntry) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for _, e := range entries {
+		h := &zip.FileHeader{Name: e.name}
+		h.SetMode(e.mode)
+		w, err := zw.CreateHeader(h)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = w.Write([]byte(e.body))
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+// TestUnzipResolvesTheParentOfALink: sub/x points at ../other, so a link written at sub/x/l really sits in other,
+// one level higher than its name says. Its target ../../out looks inside the folder by name and is not.
+func TestUnzipResolvesTheParentOfALink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("no symbolic links")
+	}
+	dest := filepath.Join(t.TempDir(), "dest")
+	zp := filepath.Join(t.TempDir(), "a.zip")
+	data := buildOrderedZip(t, []zipEntry{
+		{"other/", "", os.ModeDir | 0o755},
+		{"sub/", "", os.ModeDir | 0o755},
+		{"sub/x", "../other", os.ModeSymlink | 0o755},
+		{"sub/x/l", "../../out", os.ModeSymlink | 0o755},
+	})
+	if err := os.WriteFile(zp, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := unzip(zp, dest); err == nil {
+		t.Fatal("a link whose target leaves the folder, once its parent is resolved, was accepted")
+	}
+	if _, err := os.Lstat(filepath.Join(dest, "other", "l")); err == nil {
+		t.Error("the escaping link was created")
+	}
+}
