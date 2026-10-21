@@ -485,9 +485,10 @@ to show itself is different. These are its images, stylesheets, fonts, scripts, 
 come from any public host by GET or HEAD. Sites keep them on CDNs, and a page without them isn't the page a
 visitor sees.
 
-The engine tells the two apart from what the browser reports for each request. A request with a navigation id,
-or whose destination is a document, frame, object or embed, is a document load. Everything else is a
-subresource. A subresource is still refused when its host is, or resolves to, an internal address. That covers
+The engine tells the two apart from what the browser reports for each request. A request with a navigation id
+is a document load. So is one whose destination is a document, iframe, frame, object or embed. When the browser
+reports neither, a request whose `Accept` header starts with `text/html` is a document load too. Everything
+else is a subresource. A subresource is still refused when its host is, or resolves to, an internal address. That covers
 loopback, private, link-local, carrier-grade NAT and other special-use ranges, including IPv6 forms that carry
 an IPv4 address. It holds even for a local target. If your app loads assets from a second local port, list it
 in `allowed_hosts`. The run's trace headers go only to the target's own origins. Allowed subresources aren't

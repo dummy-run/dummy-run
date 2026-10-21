@@ -26,6 +26,9 @@ func harnessSteps() []Step {
 		{N: 9, PageChanged: true, Obs: page.Observation{Action: "click", URL: "https://example.test/next", Snapshot: home, Blocked: []string{"POST https://example.test/beacon (read-only target)"}}},
 		// Chrome shows its own error page when the test refuses a form's POST.
 		{N: 10, PageChanged: true, Obs: page.Observation{Action: "click", URL: "chrome-error://chromewebdata/", Snapshot: home, Blocked: []string{"POST https://example.test/subscribe (read-only target)"}}},
+		// Firefox's own pages for a failed load and a bad certificate.
+		{N: 11, PageChanged: true, Obs: page.Observation{Action: "click", URL: "about:neterror?e=connectionFailure", Snapshot: home, Blocked: []string{"GET https://other.test/ (host not allowed)"}}},
+		{N: 12, PageChanged: true, Obs: page.Observation{Action: "visit", URL: "about:certerror?e=nssBadCert", Snapshot: home, Blocked: []string{"GET https://other.test/ (host not allowed)"}}},
 	}
 }
 
@@ -44,6 +47,8 @@ func TestHarnessOnlyDropsFindingsAboutTheTest(t *testing.T) {
 		{"a refused tool", FinishFinding{Symptom: "not-reachable", Steps: []int{6}}, true, "refused"},
 		{"all of them together", FinishFinding{Symptom: "wrong-outcome", Steps: []int{2, 3, 6}}, true, "step 2"},
 		{"chrome's error page after a refused post", FinishFinding{Symptom: "not-operable", Steps: []int{10}}, true, "own error page"},
+		{"firefox's error page after a blocked load", FinishFinding{Symptom: "unclear-label", Steps: []int{11}}, true, "own error page"},
+		{"firefox's certificate page after a blocked load", FinishFinding{Symptom: "dead-link", Steps: []int{12}}, true, "own error page"},
 		{"one real step keeps it", FinishFinding{Symptom: "wrong-outcome", Steps: []int{2, 7}}, false, ""},
 		{"a blocked request does not excuse a label problem", FinishFinding{Symptom: "unclear-label", Steps: []int{4}}, false, ""},
 		{"a beacon while scrolling does not excuse a failure", FinishFinding{Symptom: "not-operable", Steps: []int{8}}, false, ""},
