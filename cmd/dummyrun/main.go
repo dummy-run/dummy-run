@@ -95,7 +95,7 @@ func usage() {
   dummyrun browsers install [chrome|firefox|all]
   dummyrun browsers list
   dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL]
-  dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
+  dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots]
@@ -136,6 +136,7 @@ func runCmd(args []string) int {
 	castDir := fs.String("cast", "", "cast directory")
 	personaID := fs.String("persona", "", "persona ID")
 	scenarioID := fs.String("scenario", "", "scenario ID")
+	scenarioFile := fs.String("scenario-file", "", "a scenario file to play instead of --scenario, named NN-<id>.md; it is not looked up in the cast")
 	targetPath := fs.String("target", "", "target configuration (JSON)")
 	out := fs.String("out", "", "directory for run records")
 	browser := fs.String("browser", "chrome", "chrome or firefox")
@@ -157,7 +158,15 @@ func runCmd(args []string) int {
 		return 2
 	}
 	missing := []string{}
-	for name, v := range map[string]string{"cast": *castDir, "persona": *personaID, "scenario": *scenarioID,
+	if *scenarioID != "" && *scenarioFile != "" {
+		fmt.Fprintln(os.Stderr, "dummyrun run: use --scenario or --scenario-file, not both")
+		return 2
+	}
+	scenarioNeed := *scenarioID
+	if *scenarioFile != "" {
+		scenarioNeed = *scenarioFile
+	}
+	for name, v := range map[string]string{"cast": *castDir, "persona": *personaID, "scenario": scenarioNeed,
 		"target": *targetPath, "out": *out} {
 		if v == "" {
 			missing = append(missing, "--"+name)
@@ -178,7 +187,12 @@ func runCmd(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	scenario, err := persona.Scenario(*scenarioID)
+	var scenario cast.Scenario
+	if *scenarioFile != "" {
+		scenario, err = cast.LoadScenario(*scenarioFile)
+	} else {
+		scenario, err = persona.Scenario(*scenarioID)
+	}
 	if err != nil {
 		return fail(err)
 	}

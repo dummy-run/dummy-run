@@ -49,6 +49,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 |---|---|
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
 | `--persona ID`, `--scenario ID` | Which persona to run, and which of its scenarios |
+| `--scenario-file FILE` | Play a scenario file in place of `--scenario`. The file is named `NN-<id>.md` and is not looked up in the cast. Use it when a tool writes the scenario for one run, for example to list the pages to start from |
 | `--target CONFIG` | A JSON file with `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. It can also set `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`. Screenshots and the persona's report go under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
@@ -144,6 +145,16 @@ To run one persona on several devices, set the device in the scenario instead. A
 line such as `Device: desktop. Start at the home page.`, and the engine reads the device from it. A `Device:`
 line can carry other words after the device name, but a `Zoom:` or `Text scale:` value needs a line to
 itself. A `Budget: 30 steps` line works the same way.
+
+### Minimum steps
+
+A scenario can say `Min steps: 8` on a line of its own. Until the persona has taken 8 steps of its own (the
+engine's opening visit is not one of them), a call to `finish` gets a note to carry on and the run continues. The system prompt
+tells the persona about the minimum too. Four cases still end the run early. A `finish` with the verdict
+`blocked` is accepted. The engine takes the persona's word that the site stopped it. A `finish` that the engine forced, because the step or token budget
+ran out or the persona lost patience, is accepted. So is a `finish` on the call that reaches the token budget. And after three refusals the next `finish` is
+accepted, so a persona that insists can't use up the budget. The engine keeps at least three steps of the
+budget for the work after the minimum, so a minimum above the budget less three is lowered to fit.
 
 A run won't start with a device other than `desktop`, `tablet` or `phone`. It also won't start with a zoom
 outside 100 to 500, or a text scale outside 100 to 300.

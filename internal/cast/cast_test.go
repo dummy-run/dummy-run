@@ -17,7 +17,7 @@ func writeCast(t *testing.T) string {
 	files := map[string]string{
 		"profile.md":                 "---\nid: qa-lead\nname: Priya\nrole: visitor\ndevice: desktop\n---\n\n# Priya, QA lead\n\nShe tests things.\n",
 		"prompt.md":                  "You are Priya.\n",
-		"scenarios/01-first-look.md": "# First look at the home page\n\nBudget: 30 steps\n\nRead the home page.\n",
+		"scenarios/01-first-look.md": "# First look at the home page\n\nBudget: 30 steps\nMin steps: 8\n\nRead the home page.\n",
 		"scenarios/02-find-docs.md":  "# Find the documentation\n\nLook for docs.\n",
 	}
 	for name, body := range files {
@@ -46,8 +46,11 @@ func TestLoad(t *testing.T) {
 	if len(p.Scenarios) != 2 || p.Scenarios[0].ID != "first-look" || p.Scenarios[1].ID != "find-docs" {
 		t.Fatalf("scenarios %+v", p.Scenarios)
 	}
-	if p.Scenarios[0].Title != "First look at the home page" || p.Scenarios[0].Budget != 30 {
+	if p.Scenarios[0].Title != "First look at the home page" || p.Scenarios[0].Budget != 30 || p.Scenarios[0].MinSteps != 8 {
 		t.Errorf("scenario %+v", p.Scenarios[0])
+	}
+	if p.Scenarios[1].MinSteps != 0 {
+		t.Errorf("scenario without a minimum got %d", p.Scenarios[1].MinSteps)
 	}
 	if p.Scenarios[1].Budget != 0 {
 		t.Errorf("scenario without a budget line got %d", p.Scenarios[1].Budget)
@@ -327,6 +330,35 @@ func TestTextScale(t *testing.T) {
 	for profile, want := range map[string]string{"text_scale: 301\n": "outside 100 to 300", "text_scale: huge\n": "not a percentage"} {
 		if _, err := Load(writePersona(t, profile, "Go."), "kit"); err == nil || !strings.Contains(err.Error(), "text_scale") || !strings.Contains(err.Error(), want) {
 			t.Errorf("%q: error %v, want text_scale and %q", profile, err, want)
+		}
+	}
+}
+
+func TestLoadScenarioRejectsAnOversizedMinSteps(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "01-big.md")
+	if err := os.WriteFile(path, []byte("# Big\n\nMin steps: 99999999999999999999999\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadScenario(path); err == nil || !strings.Contains(err.Error(), "min steps") {
+		t.Errorf("want a min steps error, got %v", err)
+	}
+}
+
+func TestLoadScenarioRejectsAMalformedMinSteps(t *testing.T) {
+	for value, want := range map[string]int{"8": 8, "8 steps": 8, "8\r": 8, "nope": -1, "8 or so": -1, "": -1, "-3": -1} {
+		path := filepath.Join(t.TempDir(), "01-min.md")
+		if err := os.WriteFile(path, []byte("# Min\n\nMin steps: "+value+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		s, err := LoadScenario(path)
+		if want < 0 {
+			if err == nil {
+				t.Errorf("Min steps: %q should be an error", value)
+			}
+			continue
+		}
+		if err != nil || s.MinSteps != want {
+			t.Errorf("Min steps: %q gave %d, %v, want %d", value, s.MinSteps, err, want)
 		}
 	}
 }
