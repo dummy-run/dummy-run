@@ -1,11 +1,11 @@
 ---
 title: Docs
 mascot: dummy-reading
-lead: How Dummy Run is built and the documents that govern the project. Most pages are rendered from the repository's own Markdown, so there is one source of truth.
-description: The Dummy Run docs. How a run is built and how to connect it to Grafana. The plan, the licence and the security policy.
+lead: Everything you need to install Dummy Run, run personas, read what they find and connect it to the tools you already use.
+description: The Dummy Run docs. Install the engine, run personas, read the report and connect Grafana. The licence and security policy are here too.
 next:
   title: New here
-  text: How it works explains the five stages of a run.
+  text: How it works follows one run from start to finish.
   label: Read how it works
   href: /how-it-works/
 ---

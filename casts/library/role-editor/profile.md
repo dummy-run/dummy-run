@@ -7,8 +7,8 @@ tags: permissions roles access-control
 leans-on: look click fill visit
 label: Editor
 need: permissions
-summary: Edits their own work and tries shortcuts. Probes the gap to admin.
-finds: An editor who reaches admin pages, or approves their own work.
+summary: Edits their own work and looks for shortcuts into what only an admin should do.
+finds: An editor who can reach admin pages or approve their own work.
 limit: Needs a sign-in and a target that allows changes. Use test data.
 ---
 # Edie, editor

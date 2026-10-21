@@ -10,6 +10,7 @@
     "id": "sam-author",
     "role": "author",
     "device": "phone",
+    "text_scale": 200,
     "dimensions": {
       "viewport": {
         "width": 390,

@@ -6,10 +6,10 @@ layout: legal
 updated: 2026-10-20
 short:
   - For the waitlist we keep your email and any answers you choose to give. We use them to confirm your sign-up and to tell you once when the free scan opens.
-  - We do not sell your data or share it for advertising.
-  - An unconfirmed entry is deleted after 9 days. A confirmed entry is deleted 24 months after you confirm unless you reconfirm. Unsubscribing deletes your entry. We keep only a one-way hash of your address so that we do not email you again.
-  - Paddle takes your payment details. We never see your card number.
-  - You can ask to see, correct or delete your data. You can also complain to the Information Commissioner's Office.
+  - We don't sell your data or share it for advertising.
+  - An unconfirmed entry is deleted after 9 days. A confirmed entry is deleted 24 months after you confirm unless you reconfirm. Unsubscribing deletes your entry, and we keep only a one-way hash of your address so that we don't email you again.
+  - Paddle takes your payment details, so we never see your card number.
+  - You can ask to see, correct or delete your data at any time, and you can complain to the Information Commissioner's Office.
 contact:
   - label: Personal data and your rights
     email: privacy@dummyrun.dev

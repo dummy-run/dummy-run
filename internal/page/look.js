@@ -2,8 +2,9 @@
 // content, and every visible control numbered so the persona can act on "@12"
 // instead of guessing a selector. Numbers are reassigned on every look.
 //
-// Called as a function expression with (maxControls, textLimit, logLimit).
-(maxControls, textLimit, logLimit) => {
+// Called as a function expression with (maxControls, textLimit, logLimit, mark). mark is a random value
+// made by the engine for this look.
+(maxControls, textLimit, logLimit, mark) => {
   // Off-canvas elements (a closed drawer parked beyond the left or right edge) count as hidden.
   const visible = (el) => {
     const r = el.getBoundingClientRect();
@@ -88,19 +89,81 @@
   }
   const walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT);
   for (let n = walker.nextNode(), c = 0; n && c < 200; n = walker.nextNode(), c++) keepHidden(n.nodeValue);
+  // Quoted examples: code, preformatted text, keys, sample output, block quotes and short quotes that a
+  // person can see in the normal flow of the page. A docs page that shows an example of an attack in a
+  // code block is content, so the injection scan leaves these out. Anything hidden, off screen or
+  // transparent does not count, nor does a quote inside such an element. The scan text is the page text
+  // with each such quote cut out where it stands, so the same words in ordinary prose still show.
+  const quotedSel = "code, pre, kbd, samp, blockquote, q";
+  const inFlow = (el) => {
+    for (let e = el; e && e !== document.body; e = e.parentElement) {
+      const s = getComputedStyle(e);
+      if (s.display === "contents") {
+        // No box of its own, so only these two can hide what is inside.
+        if (e.getAttribute("aria-hidden") === "true" || s.opacity === "0") return false;
+        continue;
+      }
+      const r = e.getBoundingClientRect();
+      if (unseen(e) || r.bottom + scrollY <= 0 || s.position === "absolute" || s.position === "fixed" || parseFloat(s.fontSize) < 4 || /rgba\(.*,\s*0\)$/.test(s.color) || s.color === "transparent" || s.clipPath !== "none" || parseFloat(s.textIndent) < -100) return false;
+    }
+    return true;
+  };
   const main = document.querySelector("main") || document.body;
-  const body = (main.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
+  // The markers carry a random value that the engine made for this look. The page cannot predict it,
+  // so it cannot forge or close one.
+  const open = "\uE000" + mark + "\uE001";
+  const shut = "\uE002" + mark + "\uE003";
+  const added = [];
+  let quotes = 0;
+  for (const el of document.body.querySelectorAll(quotedSel)) {
+    if (quotes >= 500) break;
+    if (el.parentElement && el.parentElement.closest(quotedSel)) continue;
+    if (!inFlow(el) || !el.parentNode) continue;
+    quotes++;
+    const before = document.createTextNode(open);
+    const after = document.createTextNode(shut);
+    el.parentNode.insertBefore(before, el);
+    el.parentNode.insertBefore(after, el.nextSibling);
+    added.push(before, after);
+  }
+  let body = "";
+  let headings = [];
+  let alerts = [];
+  try {
+    body = (main.innerText || "").replace(/\n{3,}/g, "\n\n").trim();
+    headings = texts("h1, h2").slice(0, 10);
+    alerts = texts("[role=alert], [role=status], [aria-live]").slice(0, 5);
+  } finally {
+    for (const n of added) n.remove();
+  }
+  const strip = (t) => t.split(open).join("").split(shut).join("");
+  const cut = (t) => {
+    let out = "";
+    for (;;) {
+      const i = t.indexOf(open);
+      const j = i < 0 ? -1 : t.indexOf(shut, i + open.length);
+      if (j < 0) return out + t;
+      out += t.slice(0, i) + " . ";
+      t = t.slice(j + shut.length);
+    }
+  };
+  const clean = (t) => strip(cut(t));
+  const scanText = [clean(body).slice(0, textLimit), ...headings.map(clean), ...alerts.map(clean)].join("\n");
+  body = strip(body);
+  headings = headings.map(strip);
+  alerts = alerts.map(strip);
   return {
     url: location.href,
     title: document.title,
     viewport: [innerWidth, innerHeight],
     device_pixel_ratio: devicePixelRatio,
     scroll: [Math.round(scrollY), Math.round(document.documentElement.scrollHeight)],
-    headings: texts("h1, h2").slice(0, 10),
-    alerts: texts("[role=alert], [role=status], [aria-live]").slice(0, 5),
+    headings,
+    alerts,
     text: body.slice(0, textLimit),
     log_text: body.slice(0, logLimit),
     controls,
     hidden: [...hidden],
+    scan_text: scanText,
   };
 }

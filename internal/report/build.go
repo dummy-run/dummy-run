@@ -242,6 +242,9 @@ func buildScope(runs []*Run) Scope {
 		if r.Persona.Zoom > 0 && r.Persona.Zoom != 100 {
 			dev += fmt.Sprintf(" at %d percent zoom", r.Persona.Zoom)
 		}
+		if r.Persona.TextScale > 100 {
+			dev += fmt.Sprintf(" with text at %d percent", r.Persona.TextScale)
+		}
 		p.devices[dev] = true
 		if d := r.Persona.Dimensions; d != nil {
 			if d.Viewport != nil {
@@ -573,7 +576,7 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 			a = &acc{rule: AxeRule{Fingerprint: axeFingerprint(f.Rule), Rule: f.Rule, Impact: f.Impact, WCAG: f.WCAG, Help: f.Help, HelpURL: f.HelpURL}, pages: map[string]*AxePage{}, nodes: map[string]bool{}}
 			into[f.Rule] = a
 		}
-		setting := fmt.Sprintf("%s/%s/%s", p.Browser, p.Viewport, p.Scheme)
+		setting := p.Setting()
 		for _, n := range f.Nodes {
 			if n.Allowed {
 				if countAllowed {
@@ -616,7 +619,7 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 			sec.Runs++
 			if p.Error != "" {
 				sec.PageErrors++
-				sec.Errors = append(sec.Errors, AxeError{URL: p.URL, Setting: fmt.Sprintf("%s/%s/%s", p.Browser, p.Viewport, p.Scheme), Message: p.Error})
+				sec.Errors = append(sec.Errors, AxeError{URL: p.URL, Setting: p.Setting(), Message: p.Error})
 				continue
 			}
 			for _, f := range p.Violations {

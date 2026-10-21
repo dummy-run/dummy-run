@@ -4,42 +4,38 @@ role: Developer
 icon: terminal
 lead_short: Your laptop or CI
 weight: 20
-lead: Your product used the way a customer uses it, on your laptop or in CI.
-description: What you get from Dummy Run as a developer. Two install commands, a real browser on your preview, a read-only mode and one JSON run record per run. Headers join your own telemetry.
+lead: Watch your product being used the way a customer would use it, on your laptop or in CI, with a record you can read like a log.
+description: What you get from Dummy Run as a developer. Two install commands, a real browser on your preview, a read-only mode, one JSON record per run and traces that join your own.
 next:
   title: Run it
-  text: Install both commands, run one persona read-only and look at the run in a local Grafana.
+  text: Install both commands, send one persona to a site in read-only mode and look at the run in a local Grafana.
   label: Get started
   href: /start/
 ---
 
 ## Install
 
-Go 1.27.1 or later builds both commands. `dummyrun` plays a persona and `dummyrun-otel` sends the run to any OpenTelemetry backend.
+You need Go 1.27.1 or later. `dummyrun` plays a persona, and `dummyrun-otel` sends the run to any OpenTelemetry backend.
 
 ```sh
 go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest
 ```
 
-The [get started](../start.md) page runs one persona against a site and exports the run to a local Grafana.
+[Get started](../start.md) takes you from there to your first run and a local Grafana.
 
 ## A real browser on your preview
 
 {{< graphic name="headers" >}}
 
-A run drives Chrome or Firefox through WebDriver BiDi. A target with `"read_only": true` blocks every request that could change data. Every request to your hosts carries a `traceparent` and a `baggage` header, and the user agent ends with `DummyRun/<version>`. An app instrumented with OpenTelemetry joins the persona's trace.
+A run drives a real Chrome or Firefox through WebDriver BiDi, so your app gets the same JavaScript, cookies and layout a customer's browser would. Set `"read_only": true` in the target and the browser blocks anything that could change data. Every request to your hosts carries `traceparent` and `baggage` headers, and the user agent ends with `DummyRun/<version>`. If your app is instrumented with OpenTelemetry, its spans join the persona's trace, so you can see which backend call sat behind the step where the persona got stuck.
 
 ## One JSON record per run
 
 {{< graphic name="record" >}}
 
-Each run writes one record that validates against the [run record schema](../docs/run-record.md). The results board is static HTML and JSON built from those records.
+Each run writes one record that validates against the [run record schema](../docs/run-record.md): the persona, the target, every step, every finding and what the model cost. It's plain JSON, so you can diff it, script against it or turn it into tickets yourself.
 
-## Adapters
+## In CI and in your editor
 
-An adapter finds the preview for a pull request, creates a test user with the right role and loads test data. The [architecture](../../../docs/ARCHITECTURE.md) lists the adapters for targets and model providers. It also lists them for runner hosts, results stores and secrets.
-
-## Sources
-
-The headers are from [Telemetry](../../../docs/TELEMETRY.md) and the browsers and adapters from the [architecture](../../../docs/ARCHITECTURE.md), both sourced. The install commands and the read-only policy are in `docs/ENGINE.md`, code. The record excerpt is a synthetic example, measured.
+`dummyrun report` can write SARIF for code scanning and JUnit for any CI that reads test results, plus a badge for your README. If you work with a coding agent, `dummyrun mcp` lets Claude Code, Cursor, VS Code or Codex check a page for accessibility failures, or run a persona on it, while you work. The [MCP guide](../../../docs/MCP.md) shows the setup for each.

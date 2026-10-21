@@ -1,12 +1,12 @@
 {{- $repo := .Site.Params.repo -}}
 {{- with .Params.source }}
 <footer class="page-source">
-  <p>This page is rendered from <a href="{{ $repo }}/blob/main/{{ . }}"><code>{{ . }}</code></a> in the repository. Edit it there and the site follows.</p>
+  <p>Spotted a mistake? Suggest a change to <a href="{{ $repo }}/blob/main/{{ . }}"><code>{{ . }}</code></a> on GitHub.</p>
 </footer>
 {{- else }}
 {{- with .File }}
 <footer class="page-source">
-  <p>This page lives at <a href="{{ $repo }}/blob/main/site/content/{{ .Path }}"><code>site/content/{{ .Path }}</code></a> in the repository.</p>
+  <p>Spotted a mistake? Suggest a change to <a href="{{ $repo }}/blob/main/site/content/{{ .Path }}"><code>site/content/{{ .Path }}</code></a> on GitHub.</p>
 </footer>
 {{- end }}
 {{- end }}

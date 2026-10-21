@@ -1,12 +1,12 @@
 ---
 title: Check your inbox
-lead: We sent you an email. Select the link in it to confirm your place on the list.
-description: We sent you an email. Select the link in it to confirm your place on the list.
+lead: We've sent you an email. Select the link in it to confirm your place on the list.
+description: We've sent you an email. Select the link in it to confirm your place on the list.
 noindex: true
 sitemap:
   disable: true
 ---
 
-The email comes from Dummy Run and may take a few minutes. If you cannot find it, check your spam folder. The link works for 48 hours. We add you to the list only after you select it.
+It comes from Dummy Run and can take a few minutes to arrive. If you can't find it, have a look in your spam folder. The link works for 48 hours, and we only add you to the list once you've selected it.
 
-If you did not mean to sign up, ignore the email and we delete the entry. Read [how we use your data](../privacy.md).
+If you didn't mean to sign up, just ignore the email and we'll delete the entry. Read [how we use your data](../privacy.md).

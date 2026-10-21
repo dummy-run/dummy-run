@@ -4,6 +4,7 @@
 *.png
 *.webm
 !/examples/runs/
+!/examples/runs/**/*.png
 !/brand/**/*.png
 !/docs/images/**/*.png
 !/site/static/social/*.png

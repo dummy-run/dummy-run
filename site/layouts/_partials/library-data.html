@@ -34,7 +34,7 @@
     "id" $id "name" $meta.name "title" $title "label" $meta.label
     "need" $need "order" $rank "needLabel" (index $needs $need)
     "summary" $meta.summary "finds" $meta.finds "limit" $meta.limit
-    "device" $meta.device "role" $meta.role "zoom" $meta.zoom
+    "device" $meta.device "role" $meta.role "zoom" $meta.zoom "textScale" (index $meta "text_scale")
     "denied" (index $meta "tools-denied") "leans" (split (index $meta "leans-on") " ")
     "scenarios" $scen) -}}
 {{- end -}}

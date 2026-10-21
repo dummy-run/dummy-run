@@ -256,7 +256,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		}
 	}
 	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: disp.CSSWidth, Height: disp.CSSHeight,
-		Zoom: disp.Zoom, RequestHook: hook, Launch: cfg.Launch})
+		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Launch: cfg.Launch})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open browser: %w", err)
 	}
@@ -720,6 +720,9 @@ func (r *run) systemPrompt() string {
 	if d := r.display; d.Zoom > 100 {
 		fmt.Fprintf(&b, "- Your browser is at %d percent zoom on a %s-sized window, so pages lay out in %d x %d CSS pixels and text is %d percent of its normal size. Judge the site as you see it at this zoom.\n", d.Zoom, d.Device, d.CSSWidth, d.CSSHeight, d.Zoom)
 	}
+	if d := r.display; d.TextScale > 100 {
+		fmt.Fprintf(&b, "- Your device has its system text size raised to %d percent, set as the browser's default font size. The page is not zoomed: it lays out in %d x %d CSS pixels, as it would at normal text size, and text that the site sizes in rem or em grows while text it sizes in px may not. Judge the site as you see it, and look for overlapping or cut-off controls and text that runs off the screen. The \"layout:\" line in each result reports overlaps, cut-off text and sideways scrolling that the harness measured.\n", d.TextScale, d.CSSWidth, d.CSSHeight)
+	}
 	if refused := r.cfg.Persona.Refused(toolNames()); len(refused) > 0 {
 		fmt.Fprintf(&b, "- You may not use these tools: %s. The harness refuses them, does nothing in the browser and records a blocked step that counts against your actions. If the job cannot be done without one, that is a finding: say so and finish.\n", strings.Join(refused, ", "))
 	}
@@ -763,6 +766,9 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 	}
 	if r.display.Zoom > 100 {
 		rec.Persona.Zoom = r.display.Zoom
+	}
+	if r.display.TextScale > 100 {
+		rec.Persona.TextScale = r.display.TextScale
 	}
 	if r.page != nil && r.page.Browser().Version != "" {
 		rec.Browser.Version = r.page.Browser().Version
@@ -882,7 +888,7 @@ func (r *run) target() record.Target {
 	return t
 }
 
-// dimensions records what varied for this run. The engine emulates the device, the zoom and the persona's
+// dimensions records what varied for this run. The engine emulates the device, the zoom, the text size and the persona's
 // tool limits; the connection is the machine's own, and the locale and motion setting are the browser's defaults.
 func (r *run) dimensions() *record.Dimensions {
 	d := r.display
