@@ -124,12 +124,32 @@ func commonFuncs() map[string]any {
 		"statusText":   statusText,
 		"baselineText": baselineText,
 		"severities":   func() []string { return Severities },
+		"sevGroups":    sevGroups,
+		"segments":     segments,
+		"longDate":     longDate,
+		"period":       period,
+		"howSure":      howSure,
+		"impactSev":    impactSeverity,
+		"plural":       plural,
+		"pages":        pagesTested,
+		"upper":        upperFirst,
+		"cell":         mdCell,
+		"inline":       mdInline,
+		"inc":          func(i int) int { return i + 1 },
+		"symptomText":  symptomText,
+		"placeText":    placeText,
+		"whoText":      whoText,
+		"reproSteps":   reproSteps,
+		"shotCaption":  shotCaption,
+		"lookAt":       lookAt,
+		"lead":         lead,
 	}
 }
 
 func parseHTML() (*htmltemplate.Template, error) {
 	funcs := htmltemplate.FuncMap(commonFuncs())
 	funcs["shot"] = embedShot
+	funcs["asset"] = asset
 	return htmltemplate.New("report.html.tmpl").Funcs(funcs).ParseFS(templateFS, "templates/report.html.tmpl")
 }
 
@@ -181,4 +201,19 @@ func renderMarkdown(w io.Writer, rep *Report) error {
 	}
 	_, err = w.Write(buf.Bytes())
 	return err
+}
+
+// mdCell makes free text safe inside a Markdown table cell: a pipe would start a new column and a
+// newline would end the row.
+func mdCell(v any) string {
+	s := fmt.Sprint(v)
+	s = strings.NewReplacer("|", `\|`, "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
+	return s
+}
+
+// mdInline makes free text safe inside a Markdown code span or a paragraph: a backtick would end the
+// span and a newline would split the paragraph.
+func mdInline(v any) string {
+	s := fmt.Sprint(v)
+	return strings.NewReplacer("`", "'", "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
 }

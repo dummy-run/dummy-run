@@ -8,6 +8,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Added
 - A scenario can ask for a minimum number of steps with a `Min steps: 8` line. The engine sends back a `finish` that comes sooner. It lets one through when the verdict is `blocked` or the engine ended the run, and after three refusals. `dummyrun run --scenario-file FILE` plays a scenario file that is not in the cast (code: `internal/runner/patience.go`, `internal/cast/cast.go`, `cmd/dummyrun/main.go`).
 
+### Changed
+- `dummyrun report` has a designed HTML report. It has a cover with the logo and the client. The cover also has the target, the dates, a plain summary and a bar of problems by severity. The summary page has key-number cards and a plain statement of how many problems are still unfound. Findings are cards with a severity band and badge, grouped by severity under a contents list. The axe sweep is a table, and baseline status has clear labels. The brand typefaces are embedded, with a light theme and a dark one on screen only. Print has page breaks, a running title and page numbers. The Markdown format has the same structure in headings and tables. The example report and its pictures are rebuilt, and `docs/REPORT.md` has a tour (code: `internal/report/templates/` and `internal/report/assets/`).
+
 ## [0.1.1] - 2026-10-20
 
 ### Fixed
