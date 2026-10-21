@@ -199,7 +199,7 @@ func quoteIn(snap *page.Snapshot, q string) bool {
 // containsQuote is true when every part of the quote, split at an ellipsis, is in the text in order.
 func containsQuote(text, quote string) bool {
 	rest := text
-	any := false
+	found := false
 	for _, part := range strings.Split(quote, "...") {
 		part = strings.TrimSpace(part)
 		if part == "" {
@@ -210,9 +210,9 @@ func containsQuote(text, quote string) bool {
 			return false
 		}
 		rest = rest[i+len(part):]
-		any = true
+		found = true
 	}
-	return any
+	return found
 }
 
 var quoteFold = strings.NewReplacer("‘", "'", "’", "'", "“", "\"", "”", "\"", "…", "...", " ", " ", "–", "-", "—", "-")
