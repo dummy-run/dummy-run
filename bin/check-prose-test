@@ -82,6 +82,9 @@ class Passes(unittest.TestCase):
     def test_tilde_fenced_code_is_ignored(self):
         self.assertClean("Run it.\n\n~~~sh\necho a robust thing\n~~~\n")
 
+    def test_a_fence_closes_only_with_its_own_marker(self):
+        self.assertClean("Run it.\n\n```sh\n~~~\necho a robust thing\n```\n")
+
 
 class Warnings(unittest.TestCase):
     def test_many_commas_warn_but_pass(self):

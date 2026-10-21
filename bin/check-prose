@@ -46,15 +46,17 @@ def clean(text):
 
 def blocks(lines):
     """Yield (first line number, kind, text) for paragraphs, list items and table rows."""
-    in_code, buf, start, kind = False, [], 0, "prose"
+    in_code, fence, buf, start, kind = False, "", [], 0, "prose"
     def flush():
         if buf:
             yield start, kind, " ".join(buf)
     for n, raw in enumerate(lines, 1):
         s = raw.strip()
-        if s.startswith(("```", "~~~")):
+        marker = re.match(r"(`{3,}|~{3,})", s)
+        if marker and (not in_code or (marker.group(1)[0] == fence[0] and len(marker.group(1)) >= len(fence))):
             yield from flush(); buf = []
             in_code = not in_code
+            fence = marker.group(1) if in_code else ""
             continue
         if in_code:
             continue

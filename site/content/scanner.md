@@ -27,7 +27,7 @@ The browser's own user agent comes first, so your site renders just as it would 
 
 Someone ran the open-source tool against your site. When our hosted free scan opens, a visit may also mean someone asked it to check one of your public pages.
 
-The hosted scan only loads public pages, and it only sends GET, HEAD and OPTIONS requests, so it can't change anything. It's rate limited and it follows robots.txt. [The free scan page](scan.md) has the detail.
+The hosted scan only loads public pages, and it only sends GET, HEAD and OPTIONS requests. It's rate limited and it follows robots.txt. [The free scan page](scan.md) has the detail.
 
 Because the engine is open source, anyone can run it, and they can change the user agent. The identifying string is a courtesy that our hosted scan and our own runs always keep. We can't promise the same for copies other people run.
 

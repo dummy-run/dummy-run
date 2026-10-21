@@ -44,12 +44,12 @@
     <h2 id="care-heading" class="u-title-sm">How it treats your site</h2>
     <ul class="scan-care">
       <li>It visits only the public pages of your site and never signs in.</li>
-      <li>It only reads. It sends GET, HEAD and OPTIONS requests and nothing that could change your site.</li>
+      <li>It sends only GET, HEAD and OPTIONS requests, the kinds made to read a page.</li>
       <li>It goes gently, with a rate limit and a cap on how many pages it looks at.</li>
       <li>It says who it is in the user agent, and it follows your robots.txt.</li>
       <li>It stops when you ask. <a href="/scanner/">Dummy Run visited my site</a> explains how.</li>
     </ul>
-    <p class="band-note">The persona is played by an AI model, so the text and screenshots of the pages it visits go to that model. The scan will have its own privacy notice before it opens. For now the privacy page covers the waitlist. <a href="/privacy/">Read the privacy page</a></p>
+    <p class="band-note">The persona is played by an AI model, so the text and screenshots of the pages it visits go to that model. <a href="/privacy/">The privacy page</a> covers the waitlist.</p>
   </section>
 
   {{- if site.Params.waitlist_enabled }}
