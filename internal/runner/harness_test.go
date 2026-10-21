@@ -104,7 +104,7 @@ func TestProblemsNameAxeElementsAndCountOffSiteBlocksOnce(t *testing.T) {
 	if strings.Contains(out, "other.test") {
 		t.Errorf("an off-site block is shown in full: %s", out)
 	}
-	r := &run{log: io.Discard, eventKeys: map[string]bool{}}
+	r := &run{log: io.Discard, dir: t.TempDir(), eventKeys: map[string]bool{}}
 	var notes int
 	for i := 1; i <= 3; i++ {
 		st := r.finishExecute(page.Observation{Action: "look", Blocked: []string{"GET https://other.test/x (host not allowed)"},

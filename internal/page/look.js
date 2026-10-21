@@ -20,7 +20,15 @@
   const visible = drRendered;
   const squash = drSquash;
   // A hint that helps the persona tell nameless controls apart. It is not part of the name.
-  const hint = (el) => squash((el.href ? new URL(el.href, location.href).pathname : "") || el.getAttribute("name") || "");
+  const hint = (el) => {
+    let path = "";
+    try {
+      path = el.href ? new URL(el.href, location.href).pathname : "";
+    } catch (e) {
+      path = el.getAttribute("href") || "";
+    }
+    return squash(path || el.getAttribute("name") || "");
+  };
   const label = (el, role) => {
     const name = drName(el, role);
     if (name) return drClip(name, 80);
@@ -45,7 +53,7 @@
         role,
         label: label(el, role),
       href: el.tagName === "A" ? el.getAttribute("href") || undefined : undefined,
-      disabled: el.disabled || el.getAttribute("aria-disabled") === "true" || undefined,
+      disabled: el.matches(":disabled") || el.getAttribute("aria-disabled") === "true" || undefined,
         offscreen: r.bottom < 0 || r.top > innerHeight || undefined,
       });
     }

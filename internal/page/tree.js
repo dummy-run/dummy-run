@@ -96,7 +96,7 @@
     if (dropped.length > 0) {
       const c = dropped.filter((r) => r.kind === "control").length;
       const h = dropped.filter((r) => r.kind === "heading").length;
-      kept.push("… " + dropped.length + " more not shown to stay within the budget (" + c + " controls, mostly header and menu ones, " + h + " headings)");
+      kept.push("… " + dropped.length + " more not shown to stay within the budget (" + c + " controls, " + h + " headings)");
     }
 
     let focus = null;

@@ -29,11 +29,14 @@ const namesPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><t
 <label for="topic">What are you contacting us about?</label><button id="topic" role="combobox" aria-expanded="false">Choose one</button>
 <a href="/long">A very long link name that keeps going well past the sixty character limit of the outline</a>
 <h3>Third level</h3><h6>Sixth level</h6>
+<fieldset disabled><legend>Locked</legend><button>Locked button</button></fieldset>
+<div hidden style="display:block"><button>Shown anyway</button></div>
 <a href="/feed.xml">Feed</a>
 </main></body></html>`
 
-// spec is the same page with a fake axe the engine must not trust, so names come from the spec computation.
-const specPage = `<script>window.axe = {};</script>`
+// specPage plants a fake axe that would name every control "planted". The engine must not use it, so the names
+// match the plain page and the page's own window.axe is left as it was.
+const specPage = `<script>window.axe = { version: "4.13.0", setup() {}, teardown() {}, commons: { text: { accessibleText: () => "planted" }, dom: { isVisibleToScreenReaders: () => true } }, run: () => Promise.resolve({ violations: [] }) };</script>`
 
 const feed = `<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><item><title>Post</title></item></channel></rss>`
 
@@ -133,7 +136,8 @@ func TestControlNamesAreAccessibleNames(t *testing.T) {
 					}
 				}
 			}
-			for _, want := range []string{"heading 3 \"Third level\"", "heading 6 \"Sixth level\"", "combobox \"What are you contacting us about?\""} {
+			for _, want := range []string{"heading 3 \"Third level\"", "heading 6 \"Sixth level\"", "combobox \"What are you contacting us about?\"",
+				"button \"Locked button\"", "[disabled", "button \"Shown anyway\""} {
 				if !strings.Contains(o.Snapshot.Tree, want) {
 					t.Errorf("outline lacks %q:\n%s", want, o.Snapshot.Tree)
 				}
@@ -165,10 +169,19 @@ func TestControlNamesAreAccessibleNames(t *testing.T) {
 					t.Errorf("%q with axe has no match without it: %v", l, specLabels)
 				}
 			}
+			if specLabels["planted"] {
+				t.Errorf("the page's own window.axe named the controls: %v", specLabels)
+			}
+			if a := p.A11y(ctx); a.Error != "" || len(a.A11y) == 0 {
+				t.Errorf("the accessibility check used the page's fake axe: %+v %q", a.A11y, a.Error)
+			}
 
 			// On a busy page the main content's controls stay and the menu goes first.
 			busy := p.Visit(ctx, srv.URL+"/busy")
-			if busy.Snapshot == nil || !strings.Contains(busy.Snapshot.Tree, `button "Main action"`) || !strings.Contains(busy.Snapshot.Tree, "more not shown") {
+			if busy.Snapshot == nil {
+				t.Fatalf("busy visit: %s", busy.Error)
+			}
+			if !strings.Contains(busy.Snapshot.Tree, `button "Main action"`) || !strings.Contains(busy.Snapshot.Tree, "more not shown") {
 				t.Errorf("busy outline:\n%s", busy.Snapshot.Tree)
 			}
 			mu.Lock()

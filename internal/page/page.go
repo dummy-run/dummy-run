@@ -242,11 +242,14 @@ type Observation struct {
 
 // Page is one tab in a launched browser.
 type Page struct {
-	browser       *bidi.Browser
-	conn          *bidi.Conn
-	cx            string
-	hook          func(Request) Decision
-	access        *access.Resolved
+	browser *bidi.Browser
+	conn    *bidi.Conn
+	cx      string
+	hook    func(Request) Decision
+	access  *access.Resolved
+	// axeName is the window property the engine's own axe-core is loaded under, random for each page, so a
+	// page cannot plant a fake axe where the engine looks.
+	axeName       string
 	mu            sync.Mutex
 	inflight      map[string]bool
 	consoleErrors []string
@@ -303,6 +306,11 @@ func Open(ctx context.Context, opts Options) (*Page, error) {
 		return nil, err
 	}
 	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, access: opts.Access, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100)}
+	if mark, err := lookMark(); err == nil {
+		p.axeName = "__dr_axe_" + mark
+	} else {
+		p.axeName = "__dr_axe"
+	}
 	if err := p.setup(ctx, opts); err != nil {
 		b.Close()
 		return nil, err
@@ -610,7 +618,7 @@ func (p *Page) A11y(ctx context.Context) Observation {
 			return fmt.Errorf("%w, so the accessibility check did not run", ErrNotAWebPage)
 		}
 		var loaded bool
-		if err := p.conn.CallFunctionJSON(ctx, p.cx, "function(){ if (!window.axe) { "+axeJS+"\n } return !!window.axe; }", &loaded); err != nil {
+		if err := p.conn.CallFunctionJSON(ctx, p.cx, p.loadAxeJS(), &loaded); err != nil {
 			return fmt.Errorf("inject axe-core: %w", err)
 		}
 		if !loaded {
@@ -618,7 +626,7 @@ func (p *Page) A11y(ctx context.Context) Observation {
 		}
 		actx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
-		if err := p.conn.CallFunctionJSON(actx, p.cx, axeRunJS, &violations); err != nil {
+		if err := p.conn.CallFunctionJSON(actx, p.cx, p.withAxe(axeRunJS), &violations); err != nil {
 			return fmt.Errorf("axe.run: %w", err)
 		}
 		if violations == nil {
@@ -723,9 +731,26 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 // can name controls with axe's own functions, then runs look.js. If axe cannot load, the spec computation names them.
 func (p *Page) lookWithAxe(ctx context.Context, snap *Snapshot, mark string) error {
 	var loaded bool
-	_ = p.conn.CallFunctionJSON(ctx, p.cx, "function(){ if (!/^(text\\/html|application\\/xhtml\\+xml)/i.test(document.contentType || '')) return false; "+
-		"if (!window.axe) { "+axeJS+"\n } return !!window.axe; }", &loaded)
-	return p.conn.CallFunctionJSON(ctx, p.cx, lookJS, snap, maxControls, textLimit, logLimit, mark)
+	_ = p.conn.CallFunctionJSON(ctx, p.cx, p.loadAxeJS(), &loaded)
+	return p.conn.CallFunctionJSON(ctx, p.cx, p.withAxe(lookJS), snap, maxControls, textLimit, logLimit, mark)
+}
+
+// loadAxeJS loads the engine's axe-core into a web page under p.axeName, once per document. Whatever the page had
+// at window.axe is put back afterwards, so the page's own axe, or a fake one, is never what the engine calls.
+func (p *Page) loadAxeJS() string {
+	return "function(){ if (!/^(text\\/html|application\\/xhtml\\+xml)/i.test(document.contentType || '')) return false; " +
+		"if (window['" + p.axeName + "']) return true; " +
+		"const had = Object.prototype.hasOwnProperty.call(window, 'axe'); const prev = window.axe; " +
+		"try { delete window.axe; } catch (e) {} " +
+		axeJS + "\n ; const mine = window.axe; " +
+		"if (had) { try { window.axe = prev; } catch (e) {} } else { try { delete window.axe; } catch (e) {} } " +
+		"if (!mine || mine === prev) return false; " +
+		"Object.defineProperty(window, '" + p.axeName + "', { value: mine, enumerable: false, configurable: false, writable: false }); return true; }"
+}
+
+// withAxe points a script at the engine's own axe for this page.
+func (p *Page) withAxe(script string) string {
+	return strings.ReplaceAll(script, "__DR_AXE__", p.axeName)
 }
 
 // addOutline adds focus and the accessibility outline to a snapshot. A page
@@ -736,7 +761,7 @@ func (p *Page) addOutline(ctx context.Context, snap *Snapshot) {
 		Tree    string `json:"tree"`
 		Omitted int    `json:"omitted"`
 	}
-	if err := p.conn.CallFunctionJSON(ctx, p.cx, treeJS, &out, TreeChars); err != nil {
+	if err := p.conn.CallFunctionJSON(ctx, p.cx, p.withAxe(treeJS), &out, TreeChars); err != nil {
 		snap.TreeError = firstLine(err.Error())
 		return
 	}
@@ -876,13 +901,14 @@ const scrollJS = `(by) => {
 }`
 
 // axeRunSrc runs axe and names up to three failing elements of each rule by selector and accessible name.
-const axeRunSrc = `() => window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })
+const axeRunSrc = `() => window.__DR_AXE__.run(document, { elementRef: true, runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })
   .then((r) => {
 /*NAMES*/
-    const named = (sel) => {
+    // axe gives the element itself for nodes in this document and its shadow roots. Nodes in frames have none
+    // and stay unnamed.
+    const named = (el) => {
       try {
-        const el = document.querySelector(sel);
-        return el ? drClip(drSpecName(el, drRole(el)), 60) : "";
+        return el && el.nodeType === 1 ? drClip(drSpecName(el, drRole(el)), 60) : "";
       } catch (e) {
         return "";
       }
@@ -890,7 +916,7 @@ const axeRunSrc = `() => window.axe.run(document, { runOnly: { type: "tag", valu
     return r.violations.map((v) => ({ id: v.id, impact: v.impact || "", help: v.help, nodes: v.nodes.length,
       elements: v.nodes.slice(0, 3).map((n) => {
         const sel = (n.target || []).map(String).join(" ");
-        return { selector: drClip(sel, 120), name: named(sel) };
+        return { selector: drClip(sel, 120), name: named(n.element) };
       }) }));
   })`
 

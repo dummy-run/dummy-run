@@ -3,8 +3,8 @@
   // check can never name the same element two ways.
   //
   // Names and exposure come from axe-core's own functions (axe.commons.text.accessibleText and
-  // axe.commons.dom.isVisibleToScreenReaders) when axe is loaded in the page, and from the spec computation below
-  // otherwise. axe misses a <label for> on a button with a role, so an empty axe name falls back to the spec one.
+  // axe.commons.dom.isVisibleToScreenReaders) when the engine has loaded its axe into the page, and from the spec
+  // computation below otherwise. axe misses a <label for> on a button with a role, so an empty axe name falls back to the spec one.
   const drSquash = (s) => (s || "").replace(/\s+/g, " ").trim();
   // Cut a name at a word boundary, never inside a word.
   const drClip = (s, n) => {
@@ -16,7 +16,8 @@
   };
   const drAxe = (() => {
     try {
-      const a = window.axe;
+      // The engine's own axe, loaded under a name the page does not know. A page's window.axe is never used.
+      const a = window.__DR_AXE__;
       return a && typeof a.setup === "function" && typeof a.teardown === "function" && a.commons?.text?.accessibleText &&
         a.commons?.dom?.isVisibleToScreenReaders ? a : null;
     } catch (e) {
@@ -69,7 +70,8 @@
   };
   const drHiddenFromAT = (el) => {
     for (let e = el; e && e.nodeType === 1; e = e.parentElement) {
-      if (e.getAttribute("aria-hidden") === "true" || e.inert || e.hasAttribute("hidden")) return true;
+      // The hidden attribute is left to the rendering check: author CSS can show an element that has it.
+      if (e.getAttribute("aria-hidden") === "true" || e.inert) return true;
     }
     return false;
   };
@@ -200,7 +202,7 @@
   };
   const drStates = (el) => {
     const out = [];
-    if (el.disabled || el.getAttribute("aria-disabled") === "true") out.push("disabled");
+    if (el.matches(":disabled") || el.getAttribute("aria-disabled") === "true") out.push("disabled");
     if (el.checked === true || el.getAttribute("aria-checked") === "true") out.push("checked");
     const expanded = el.getAttribute("aria-expanded") ?? (el.tagName === "SUMMARY" ? String(!!el.parentElement?.open) : null);
     if (expanded === "true") out.push("expanded");

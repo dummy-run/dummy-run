@@ -280,8 +280,9 @@ outline line has a role, a name and sometimes a state:
 Names and visibility come from one script, `internal/page/names.js`, which the engine splices into the control
 numbering, the outline and the accessibility check, so an element is never named two ways. When axe-core is
 loaded in the page, the script uses axe's own functions: `axe.commons.text.accessibleText` for the name and
-`axe.commons.dom.isVisibleToScreenReaders` for whether a screen reader can reach it. The engine loads axe into
-each web page before it reads it. Without axe, or when axe gives an empty name, the script follows Accessible
+`axe.commons.dom.isVisibleToScreenReaders` for whether a screen reader can reach it. The engine loads its own
+axe into each web page before it reads it, under a property name that's random for each page. Whatever the page
+has at `window.axe` is put back and never used, so a page can't plant a fake axe to change the names. Without axe, or when axe gives an empty name, the script follows Accessible
 Name and Description Computation 1.2 and HTML-AAM for the common cases. That means `aria-labelledby`,
 `aria-label` and the element's `<label>` (buttons and comboboxes included), then `alt` on an image button and a
 button's value. Links and buttons are then named from their rendered content, with image `alt` and SVG
@@ -291,7 +292,8 @@ DevTools Protocol, so this is a close approximation of what each browser exposes
 Firefox. Shadow DOM and cross-origin frames are only partly covered.
 
 Only controls a screen reader user can reach are listed and numbered. Links in a closed `<details>` or a
-collapsed menu, controls with `aria-hidden`, `inert` or `hidden`, and anything not rendered are left out. A
+collapsed menu, controls under `aria-hidden` or `inert`, and anything not rendered are left out. The
+`hidden` attribute counts only when it really hides the element, since a page's CSS can show it anyway. A
 control the browser would give no name shows `(no name)`, sometimes with its link path as a hint. The
 persona is told to confirm one with the accessibility check before it reports it. Names are cut at 80
 characters, at a word boundary.
@@ -315,8 +317,9 @@ doesn't run on it. The type is saved as `page.content_type` in `steps.jsonl`.
 
 Lines that come from the test are worded as the test's, never as page content. Requests the test stopped on the
 site's own hosts, such as a form's POST on a read-only target, are listed on the step, because they explain why
-something did nothing. Page loads and writes on other sites are counted once per run, on the first step where
-they happen, with a line saying they're the test's rule and not a fault of the site. The `a11y` result names up
+something did nothing. Other requests the host rule stopped are counted once, on the first step where they
+happen, with a line saying they're the test's rule and not a fault of the site. These are page loads and
+writes on other sites, and requests to internal or unknown hosts. The `a11y` result names up
 to three failing elements of each rule, by axe's selector and the element's accessible name, and says how many
 more there are. The geometry heuristics behind the `layout:` line are unchanged for now.
 
