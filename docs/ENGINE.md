@@ -937,6 +937,21 @@ report end in `/text-200` when a text scale was used.
 dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://example.com/
 ```
 
+
+### Keyboard checks
+
+To check the page by keyboard, add `--keyboard`. The sweep clicks nothing. It presses Tab from the top of the page, up to 80
+times, and records where focus goes, then reports what it measured. There is no model call. The checks are off by default.
+
+| Rule ID | Fails when | WCAG | Impact |
+|---|---|---|---|
+| `dummyrun-focus-not-visible` | An element that takes focus looks the same, in the pixels around it, with and without focus. An element whose outline or style changes is never checked, so a focus ring drawn another way passes only if it changes the picture | 2.4.7 | serious |
+| `dummyrun-focus-hidden` | Focus lands on an element with no size, hidden, or outside the window | 2.4.7 | serious |
+| `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
+| `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
+
+Focus that moves into a frame or a media player is followed no further. A dialog that keeps focus inside itself is not a trap.
+
 ## Troubleshooting
 
 Leftover browsers fill the disk and the process table. To list the browsers and profile directories that
