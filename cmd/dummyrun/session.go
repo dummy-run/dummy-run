@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/policy"
 	"github.com/dummy-run/dummy-run/internal/signin"
@@ -81,8 +82,12 @@ func sessionSave(args []string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	gate := policy.NewGate(target)
+	pa, err := access.Resolve(target.Auth, os.Getenv, access.TargetScope(target))
+	if err != nil {
+		return fail(err)
+	}
 	p, err := page.Open(ctx, page.Options{Browser: *browser, Headless: !*headful, Width: 1280, Height: 900,
-		RequestHook: signin.Hook(target, gate)})
+		RequestHook: signin.Hook(target, gate), Access: pa})
 	if err != nil {
 		return fail(fmt.Errorf("open browser: %w", err))
 	}
