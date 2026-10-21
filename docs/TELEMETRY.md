@@ -124,6 +124,8 @@ Exporting a reviewed record again won't update what Grafana already holds. The t
 but Loki keeps the repeated log lines and Prometheus counts the run again, as the exporter guide explains. Panels that count confirmed findings
 are only right for runs you exported after review.
 
+A record can also hold a `preview_access` block, which names the Basic auth or header protection the run got past. The exporter accepts it and sends nothing for it, and it never holds a secret.
+
 A record can also hold an `observations` list of things that worked. The exporter sends nothing for it,
 and the findings metric doesn't count it.
 

@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
 
@@ -82,7 +83,10 @@ type Options struct {
 	Hosts []string
 	// RequestHook decides each intercepted request. nil lets everything through.
 	RequestHook func(Request) Decision
-	Launch      bidi.LaunchOptions
+	// Access adds the preview-protection headers to requests to the target's hosts and answers
+	// Basic auth challenges from them. Nil does neither.
+	Access *access.Resolved
+	Launch bidi.LaunchOptions
 }
 
 // Control is one numbered interactive element from the last look.
@@ -170,11 +174,11 @@ type Observation struct {
 
 // Page is one tab in a launched browser.
 type Page struct {
-	browser *bidi.Browser
-	conn    *bidi.Conn
-	cx      string
-	hook    func(Request) Decision
-
+	browser       *bidi.Browser
+	conn          *bidi.Conn
+	cx            string
+	hook          func(Request) Decision
+	access        *access.Resolved
 	mu            sync.Mutex
 	inflight      map[string]bool
 	consoleErrors []string
@@ -230,7 +234,7 @@ func Open(ctx context.Context, opts Options) (*Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100)}
+	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, access: opts.Access, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100)}
 	if err := p.setup(ctx, opts); err != nil {
 		b.Close()
 		return nil, err
@@ -277,7 +281,15 @@ func (p *Page) setup(ctx context.Context, opts Options) error {
 			p.browser.UserAgent, _ = v.String()
 		}
 	}
-	if _, err := c.AddIntercept(ctx, opts.Hosts); err != nil {
+	phases := []string{"beforeRequestSent"}
+	if p.access.HasBasic() {
+		c.OnAuthRequired(p.onAuthRequired)
+		if err := c.Subscribe(ctx, []string{"network.authRequired"}); err != nil {
+			return err
+		}
+		phases = append(phases, "authRequired")
+	}
+	if _, err := c.AddInterceptPhases(ctx, opts.Hosts, phases...); err != nil {
 		return err
 	}
 	return nil
@@ -322,11 +334,23 @@ func (p *Page) decide(e bidi.BeforeRequestSent) {
 		_ = p.conn.FailRequest(ctx, e.Request.Request)
 		return
 	}
+	d.Set = append(d.Set, p.access.Headers(e.Request.URL, e.Request.Headers)...)
 	if len(d.Set) == 0 {
 		_ = p.conn.ContinueRequestUnchanged(ctx, e.Request.Request)
 		return
 	}
 	_ = p.conn.ContinueRequest(ctx, e.Request.Request, e.Request.Headers, d.Set)
+}
+
+func (p *Page) onAuthRequired(e bidi.AuthRequired) {
+	if !e.IsBlocked {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		p.access.HandleAuth(ctx, p.conn, e)
+	}()
 }
 
 func (p *Page) onResponse(e bidi.ResponseCompleted) {

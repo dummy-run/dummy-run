@@ -53,8 +53,10 @@ type Record struct {
 	Provider  Provider  `json:"provider"`
 	Browser   Browser   `json:"browser"`
 	// Signin says how the engine signed the persona in before the run. Nil when it did not.
-	Signin  *Signin `json:"signin,omitempty"`
-	Outcome string  `json:"outcome"`
+	Signin *Signin `json:"signin,omitempty"`
+	// PreviewAccess says how the engine got past the protection on a staging or preview site. Nil when there was none.
+	PreviewAccess *PreviewAccess `json:"preview_access,omitempty"`
+	Outcome       string         `json:"outcome"`
 	// OutcomeReason says why a run was blocked before it started, such as a robots.txt disallow.
 	OutcomeReason string    `json:"outcome_reason,omitempty"`
 	Steps         []Step    `json:"steps"`
@@ -179,6 +181,14 @@ type Signin struct {
 	DurationMs     int            `json:"duration_ms"`
 	// Error says why the sign-in failed. Credentials are removed from it.
 	Error string `json:"error,omitempty"`
+}
+
+// PreviewAccess records which protection the engine answered. It holds names only, never a value.
+type PreviewAccess struct {
+	// Methods is basic, headers or both.
+	Methods []string `json:"methods"`
+	// HeaderNames are the names of the request headers that carried a secret.
+	HeaderNames []string `json:"header_names,omitempty"`
 }
 
 // SigninRequest is a request method and address, without the query.

@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/signin"
 )
@@ -42,6 +43,13 @@ Flags:
   --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
                     tested signed in. The file holds cookies: keep it private
+  --basic-auth-env USER_ENV:PASS_ENV
+                    answer HTTP Basic auth on a protected preview with the user name and password in these
+                    environment variables. Give the variable names, never the secrets
+  --header-env 'Name:ENV'
+                    send a request header whose value is in an environment variable, such as
+                    x-vercel-protection-bypass or CF-Access-Client-Id. Repeat for more. Both go only to the
+                    origins of the URLs, the sitemap and --rebase, never to another host, and never into the report
   --headful         show the browser window
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
@@ -64,6 +72,8 @@ func a11yCmd(args []string) int {
 	headful := fs.Bool("headful", false, "show the browser window")
 	identify := fs.Bool("identify", false, "name the scanner page in the user agent")
 	respect := fs.Bool("respect-robots", false, "skip pages that robots.txt disallows for DummyRun or *")
+	var preview authFlags
+	preview.register(fs)
 	// Flags may come after the URLs, so parse in a loop that peels off positional arguments.
 	var urls []string
 	rest := args
@@ -129,10 +139,20 @@ func a11yCmd(args []string) int {
 			return fail(err)
 		}
 	}
+	auth, err := preview.auth(nil)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
+		return 2
+	}
+	// The secrets go only to the origins you name: the URLs, the sitemap and the --rebase origin.
+	pa, err := access.Resolve(auth, os.Getenv, access.OriginScope(append([]string{*sitemap, *rebase}, urls...)))
+	if err != nil {
+		return fail(err)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if *sitemap != "" {
-		pages, err := a11y.FetchSitemap(ctx, requestClient(*identify), *sitemap, robotsGuard(requestClient(*identify), *identify, *respect))
+		pages, err := a11y.FetchSitemap(ctx, access.WrapClient(requestClient(*identify), pa), *sitemap, robotsGuard(access.WrapClient(requestClient(*identify), pa), *identify, *respect))
 		if err != nil {
 			return fail(err)
 		}
@@ -147,7 +167,7 @@ func a11yCmd(args []string) int {
 	rep, err := a11y.Run(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
 		TextScales: scales, Layout: *layout, ScreenshotDir: *shotDir,
-		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect,
+		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
 		rep.WriteSummary(os.Stderr)

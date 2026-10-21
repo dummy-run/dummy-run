@@ -63,7 +63,13 @@ type FetchError struct {
 // AddIntercept registers an intercept for the beforeRequestSent phase on the
 // given hostnames. With no hostnames, every request is intercepted.
 func (c *Conn) AddIntercept(ctx context.Context, hostnames []string) (string, error) {
-	params := map[string]any{"phases": []string{"beforeRequestSent"}}
+	return c.AddInterceptPhases(ctx, hostnames, "beforeRequestSent")
+}
+
+// AddInterceptPhases is AddIntercept for the given phases, such as "beforeRequestSent" and "authRequired".
+// A blocked authRequired request waits for ContinueWithAuth.
+func (c *Conn) AddInterceptPhases(ctx context.Context, hostnames []string, phases ...string) (string, error) {
+	params := map[string]any{"phases": phases}
 	if len(hostnames) > 0 {
 		patterns := make([]any, 0, len(hostnames))
 		for _, h := range hostnames {
@@ -179,4 +185,42 @@ func (c *Conn) OnFetchError(f func(FetchError)) {
 		}
 		f(e)
 	})
+}
+
+// AuthRequired is a network.authRequired event: the server answered 401 or 407 with a challenge.
+type AuthRequired struct {
+	Context   string      `json:"context"`
+	IsBlocked bool        `json:"isBlocked"`
+	Request   RequestData `json:"request"`
+	Response  struct {
+		URL    string `json:"url"`
+		Status int    `json:"status"`
+	} `json:"response"`
+}
+
+// OnAuthRequired calls f for every network.authRequired event.
+func (c *Conn) OnAuthRequired(f func(AuthRequired)) {
+	c.OnEvent("network.authRequired", func(_ string, params json.RawMessage) {
+		var e AuthRequired
+		if err := json.Unmarshal(params, &e); err != nil {
+			return
+		}
+		f(e)
+	})
+}
+
+// ProvideCredentials answers a blocked authentication challenge with a user name and password.
+func (c *Conn) ProvideCredentials(ctx context.Context, request, username, password string) error {
+	return c.Call(ctx, "network.continueWithAuth", map[string]any{
+		"request": request,
+		"action":  "provideCredentials",
+		"credentials": map[string]any{
+			"type": "password", "username": username, "password": password,
+		},
+	}, nil)
+}
+
+// CancelAuth refuses a blocked authentication challenge. The page gets the 401 response.
+func (c *Conn) CancelAuth(ctx context.Context, request string) error {
+	return c.Call(ctx, "network.continueWithAuth", map[string]any{"request": request, "action": "cancel"}, nil)
 }

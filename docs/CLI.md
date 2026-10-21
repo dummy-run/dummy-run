@@ -12,18 +12,22 @@ The list of commands and the model providers.
 Usage:
   dummyrun browsers install [chrome|firefox|all]
   dummyrun browsers list
-  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL]
+  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots]
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots]
-  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
+  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
+  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun doctor [--stop]
   dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
@@ -46,7 +50,8 @@ the first line of the output says what was chosen, and docs/PROVIDERS.md lists t
   bedrock            Amazon Bedrock Converse with the AWS default credential chain. --region defaults to eu-west-2.
 
 An API key is read from the environment when the run starts. It is never printed or written to a run record.
-The same holds for the test-user credentials named in a target file's signin block.
+The same holds for the test-user credentials named in a target file's signin block and for the Basic auth and
+header secrets of a protected preview (the auth block, --basic-auth-env and --header-env).
 ```
 
 ## dummyrun run
@@ -59,6 +64,8 @@ Usage of run:
     	name of the environment variable that holds the API key
   -api-version string
     	Azure OpenAI API version (default 2025-04-01-preview)
+  -basic-auth-env string
+    	answer HTTP Basic auth with the user name and password in these environment variables, as USER_ENV:PASS_ENV. Names only, never the secrets
   -batch string
     	batch ID grouping runs started together
   -browser string
@@ -67,6 +74,8 @@ Usage of run:
     	cast directory
   -endpoint string
     	base URL of the provider (Azure endpoint, or the OpenAI-compatible base URL)
+  -header-env value
+    	send a request header whose value is in an environment variable, as 'Name:ENV' (repeat for more). Only the target's own hosts get it. Names only, never the value
   -headful
     	show the browser window
   -identify
@@ -224,6 +233,13 @@ Flags:
   --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
                     tested signed in. The file holds cookies: keep it private
+  --basic-auth-env USER_ENV:PASS_ENV
+                    answer HTTP Basic auth on a protected preview with the user name and password in these
+                    environment variables. Give the variable names, never the secrets
+  --header-env 'Name:ENV'
+                    send a request header whose value is in an environment variable, such as
+                    x-vercel-protection-bypass or CF-Access-Client-Id. Repeat for more. Both go only to the
+                    origins of the URLs, the sitemap and --rebase, never to another host, and never into the report
   --headful         show the browser window
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
@@ -261,6 +277,10 @@ Flags:
   --role ROLE       which of the target's credentials roles to sign in as
   --out FILE        where to write the session
   --browser NAME    chrome or firefox (default chrome)
+  --basic-auth-env USER_ENV:PASS_ENV
+                    answer HTTP Basic auth on a protected preview, with the names of two environment variables
+  --header-env 'Name:ENV'
+                    send a request header whose value is in an environment variable. Repeat for more
   --headful         show the browser window
 ```
 

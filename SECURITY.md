@@ -47,6 +47,17 @@ A target file can name test accounts, so the engine signs in before a persona st
 - A page can show the signed-in user's own name or email, and the engine doesn't edit what a site displays. The model may see those details and repeat them in a report, so give test users fake ones.
 - The read-only policy has one exception: the sign-in form's own request, and only while the engine signs in. See "Sign in" in the [engine guide](docs/ENGINE.md).
 
+## Preview access secrets
+
+A target file can also get the engine past the protection on a staging or preview site: HTTP Basic auth, or a header such as Vercel's `x-vercel-protection-bypass` or Cloudflare Access's `CF-Access-Client-Id` and `CF-Access-Client-Secret`. These secrets follow the same rules.
+
+- The `auth` block, `--basic-auth-env` and `--header-env` name environment variables, never values. The engine refuses a secret written into the target file, and its error does not repeat it.
+- The secrets go only to the target's own hosts (`allowed_hosts`, or the origins you give `dummyrun a11y`). A redirect to another host does not carry them.
+- The engine never writes them into the run record, the log, the telemetry, errors or the report. The record names only the methods and the header names. The model is never given them. If your site echoes a secret into a page, that page text can reach a screenshot or the model, so don't build a preview that prints its own bypass token.
+- A bypass secret opens a protected site to anyone who has it. Store it in your CI secret store, scope it to the project and rotate it if it leaks.
+
+See "Protected previews" in the [engine guide](docs/ENGINE.md).
+
 ## Supported versions
 
 We fix security problems in the newest release. Fixes land on `main` first. [Releases](https://github.com/dummy-run/dummy-run/releases) lists the versions, so update to the latest one.

@@ -35,6 +35,8 @@ type Target struct {
 	Robots *robots.Rules `json:"-"`
 	// Signin declares how the engine signs in before the persona starts. Nil means no sign-in.
 	Signin *Signin `json:"signin,omitempty"`
+	// Auth gets the browser past Basic auth or header-based protection on a staging or preview site. Nil means none.
+	Auth *Auth `json:"auth,omitempty"`
 }
 
 // Validate checks the target configuration.
@@ -65,6 +67,9 @@ func (t Target) Validate() error {
 		if err := t.validateSignin(); err != nil {
 			return fmt.Errorf("policy: %w", err)
 		}
+	}
+	if err := t.Auth.Validate(); err != nil {
+		return fmt.Errorf("policy: %w", err)
 	}
 	return nil
 }

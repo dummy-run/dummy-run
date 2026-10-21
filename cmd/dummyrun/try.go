@@ -37,6 +37,11 @@ Flags:
   --browser NAME   chrome or firefox (default chrome)
   --out DIR        where run records go (default ~/.local/share/dummyrun/runs/try)
   --steps N        step budget (default 15, up to 40)
+  --basic-auth-env USER_ENV:PASS_ENV
+                   answer HTTP Basic auth on a protected preview, with the names of two environment variables
+  --header-env 'Name:ENV'
+                   send a request header whose value is in an environment variable, such as
+                   x-vercel-protection-bypass. Repeat for more. Both go only to the site's own hosts
   --headful        show the browser window
   The model flags are the same as for "dummyrun run".`
 
@@ -83,6 +88,8 @@ func tryCmd(args []string) int {
 	steps := fs.Int("steps", tryDefaultSteps, "step budget (up to 40)")
 	headful := fs.Bool("headful", false, "show the browser window")
 	pf := addProviderFlags(fs)
+	var preview authFlags
+	preview.register(fs)
 	// Allow the URL before or after the flags.
 	var target string
 	rest := args
@@ -108,6 +115,10 @@ func tryCmd(args []string) int {
 	}
 	tgt, err := tryTarget(target)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun try:", err)
+		return 2
+	}
+	if tgt.Auth, err = preview.auth(nil); err != nil {
 		fmt.Fprintln(os.Stderr, "dummyrun try:", err)
 		return 2
 	}

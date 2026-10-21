@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/identity"
@@ -94,18 +95,22 @@ func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   dummyrun browsers install [chrome|firefox|all]
   dummyrun browsers list
-  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL]
+  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots]
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots]
-  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
+  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
+  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun doctor [--stop]
   dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
@@ -128,7 +133,8 @@ the first line of the output says what was chosen, and docs/PROVIDERS.md lists t
   bedrock            Amazon Bedrock Converse with the AWS default credential chain. --region defaults to eu-west-2.
 
 An API key is read from the environment when the run starts. It is never printed or written to a run record.
-The same holds for the test-user credentials named in a target file's signin block.`)
+The same holds for the test-user credentials named in a target file's signin block and for the Basic auth and
+header secrets of a protected preview (the auth block, --basic-auth-env and --header-env).`)
 }
 
 func runCmd(args []string) int {
@@ -151,6 +157,8 @@ func runCmd(args []string) int {
 	headful := fs.Bool("headful", false, "show the browser window")
 	identify := fs.Bool("identify", false, "add \"DummyRun/<version> (+"+telemetry.ScannerURL+")\" to the browser's user agent (also set by \"identify\": true in the target file)")
 	respect := fs.Bool("respect-robots", false, "fetch robots.txt from the target origin and block what it disallows for DummyRun or * (also set by \"respect_robots\": true in the target file); a site-wide disallow stops the run before the browser starts")
+	var preview authFlags
+	preview.register(fs)
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -183,6 +191,17 @@ func runCmd(args []string) int {
 	}
 	target.Identify = target.Identify || *identify
 	target.RespectRobots = target.RespectRobots || *respect
+	if target.Auth, err = preview.auth(target.Auth); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun run:", err)
+		return 2
+	}
+	if err := target.Validate(); err != nil {
+		return fail(err)
+	}
+	pa, err := access.Resolve(target.Auth, os.Getenv, access.TargetScope(target))
+	if err != nil {
+		return fail(err)
+	}
 	persona, err := cast.Load(*castDir, *personaID)
 	if err != nil {
 		return fail(err)
@@ -205,7 +224,7 @@ func runCmd(args []string) int {
 	cfg := runner.Config{
 		Persona: persona, Scenario: scenario, Target: target, Provider: p, Browser: *browser, Headless: !*headful,
 		OutDir: *out, SessionFile: *sessionFile, StepBudget: *steps, TokenBudget: *tokens, Batch: *batch, Log: os.Stderr,
-		HTTPClient: requestClient(target.Identify),
+		HTTPClient: access.WrapClient(requestClient(target.Identify), pa), Access: pa,
 	}
 	if *seed >= 0 {
 		cfg.Seed = seed

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/robots"
@@ -75,6 +76,9 @@ type Config struct {
 	// Session, when set, is loaded into each browser before the first page, so the sweep sees the
 	// pages as a signed-in user does. Cookies for hosts that none of the URLs use are skipped.
 	Session *signin.Session
+	// Access gets the browser past Basic auth or header protection on a preview site. Its secrets go only to
+	// the origins its scope names. Nil means none.
+	Access *access.Resolved
 }
 
 // Node is one element that failed a rule.
@@ -142,15 +146,17 @@ func (p PageResult) Failing() int {
 
 // Report is the result of a sweep.
 type Report struct {
-	Tool           string       `json:"tool"`
-	Browser        string       `json:"browser"`
-	BrowserVersion string       `json:"browser_version,omitempty"`
-	AxeVersion     string       `json:"axe_version,omitempty"`
-	Tags           []string     `json:"tags"`
-	Identify       bool         `json:"identify,omitempty"`
-	RespectRobots  bool         `json:"respect_robots,omitempty"`
-	Results        []PageResult `json:"results"`
-	Summary        Summary      `json:"summary"`
+	Tool           string   `json:"tool"`
+	Browser        string   `json:"browser"`
+	BrowserVersion string   `json:"browser_version,omitempty"`
+	AxeVersion     string   `json:"axe_version,omitempty"`
+	Tags           []string `json:"tags"`
+	Identify       bool     `json:"identify,omitempty"`
+	RespectRobots  bool     `json:"respect_robots,omitempty"`
+	// PreviewAccess names the protection the sweep answered. Names only, never a value.
+	PreviewAccess *access.Summary `json:"preview_access,omitempty"`
+	Results       []PageResult    `json:"results"`
+	Summary       Summary         `json:"summary"`
 }
 
 // Summary totals a report.
@@ -235,6 +241,11 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 		cfg.Settle = 300 * time.Millisecond
 	}
 	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
+	if cfg.Access.Active() {
+		sum := cfg.Access.Summary()
+		rep.PreviewAccess = &sum
+		cfg.HTTPClient = access.WrapClient(cfg.HTTPClient, cfg.Access)
+	}
 	var skipped []PageResult
 	if cfg.RespectRobots {
 		var err error
@@ -306,6 +317,9 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, 
 	}
 	defer b.Close()
 	rep.BrowserVersion = b.Version
+	if err := access.Attach(ctx, b.Conn, cfg.Access); err != nil {
+		return fmt.Errorf("a11y: set up preview access: %w", err)
+	}
 	if cfg.Session != nil {
 		if err := applySession(ctx, b.Conn, cfg); err != nil {
 			return err

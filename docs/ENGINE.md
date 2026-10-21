@@ -50,7 +50,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
 | `--persona ID`, `--scenario ID` | Which persona to run, and which of its scenarios |
 | `--scenario-file FILE` | Play a scenario file in place of `--scenario`. The file is named `NN-<id>.md` and is not looked up in the cast. Use it when a tool writes the scenario for one run, for example to list the pages to start from |
-| `--target CONFIG` | A JSON file with `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` block. It can also set `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy) and [Sign in](#sign-in) |
+| `--target CONFIG` | A JSON file with `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` or `auth` block. It can also set `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy), [Sign in](#sign-in) and [Protected previews](#protected-previews) |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`. Screenshots and the persona's report go under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
@@ -63,6 +63,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--identify` | Adds `DummyRun/<version> (+https://dummyrun.dev/scanner/)` to the browser's user agent. `"identify": true` in the target file does the same |
 | `--respect-robots` | Fetches `/robots.txt` from the target's origin and blocks what it disallows. `"respect_robots": true` in the target file does the same |
 | `--session FILE` | Signs in from a saved session file instead of the login form. See [Sign in](#sign-in) |
+| `--basic-auth-env USER_ENV:PASS_ENV`, `--header-env 'Name:ENV'` | Get past a protected preview without editing the target file. Each names environment variables, never the secrets, and `--header-env` can repeat. See [Protected previews](#protected-previews) |
 | `--universe sitemap` | Reads the routes that exist from the target's `/sitemap.xml`, or from a sitemap URL you give, and writes them to `target.route_universe` for route coverage |
 | `--steps N` | The step budget, up to 40. The default is 25. A scenario can ask for more with a `Budget: 30 steps` line |
 | `--tokens N` | The token budget for input plus output. The default is 1,500,000 |
@@ -656,6 +657,91 @@ check the log and the record for the user name.
 The engine doesn't edit page text, though. A page can still show the user name, on a list of users for
 example. See [SECURITY.md](../SECURITY.md) for more.
 
+## Protected previews
+
+Staging and preview sites are often behind a gate: HTTP Basic auth, or a secret header that lets automation
+through. Without a way past it, the persona only ever sees the gate. Add an `auth` block to the target file
+and the engine gets past it for every request to your site. The persona never sees the secrets.
+
+The block takes Basic auth, headers or both. Each value is the name of an environment variable, never the
+secret itself.
+
+```json
+{
+  "adapter": "url",
+  "environment": "pr-42",
+  "base_url": "https://pr-42.preview.example.test/",
+  "allowed_hosts": ["pr-42.preview.example.test"],
+  "read_only": true,
+  "auth": {
+    "headers": {
+      "x-vercel-protection-bypass": { "value_env": "VERCEL_AUTOMATION_BYPASS_SECRET" }
+    }
+  }
+}
+```
+
+That is Vercel's Protection Bypass for Automation. Copy the secret from your project's Deployment Protection
+settings into `VERCEL_AUTOMATION_BYPASS_SECRET`. For Cloudflare Access, create a service token and send both
+halves of it:
+
+```json
+"auth": {
+  "headers": {
+    "CF-Access-Client-Id": { "value_env": "CF_ACCESS_CLIENT_ID" },
+    "CF-Access-Client-Secret": { "value_env": "CF_ACCESS_CLIENT_SECRET" }
+  }
+}
+```
+
+For Basic auth, name the two variables that hold the user name and password:
+
+```json
+"auth": { "basic": { "username_env": "PREVIEW_USER", "password_env": "PREVIEW_PASS" } }
+```
+
+A bearer token or any other custom header works the same way: `"Authorization": { "value_env": "PREVIEW_TOKEN" }`
+holds the whole header value, such as `Bearer abc`. You can't mix that with `basic`, since both use the
+Authorization header.
+
+For a one-off run you can skip the file. `dummyrun run`, `dummyrun try`, `dummyrun a11y` and `dummyrun session save` take the
+same thing as flags, and flags win over the file:
+
+```sh
+export PREVIEW_USER=... PREVIEW_PASS=...
+dummyrun a11y --basic-auth-env PREVIEW_USER:PREVIEW_PASS https://staging.example.test/
+dummyrun run ... --header-env 'x-vercel-protection-bypass:VERCEL_AUTOMATION_BYPASS_SECRET'
+```
+
+### How the secrets travel
+
+- Only your own hosts get them, and only over https. A request over plain http carries nothing, except on
+  `localhost` and other loopback addresses, which is where `base_url` may use http too. In a run, that means the hosts in `allowed_hosts`. The
+  [read-only policy](#read-only-policy) matches them in the same way, including the port. In `dummyrun a11y`, it means the origins of the
+  URLs, the sitemap and `--rebase` that you name. A request to any other host never carries a secret, and that
+  includes a redirect from your site to another host.
+- The engine adds the headers to each request in the browser and keeps what the request already had. With Basic
+  auth it sends the `Authorization` header up front, unless the page set its own, and it also answers the
+  browser's Basic challenge as a fallback. It answers once per request, so a wrong password fails with the
+  site's 401 instead of looping.
+- The headers never let a write through the read-only policy.
+- The engine's own requests for `robots.txt`, sitemaps and the home page hash carry the headers too, on your
+  hosts only.
+- The values are read from the environment when the run starts. A missing or empty variable stops the run
+  before the browser opens, and the error names the variable. A secret written into the target file is refused
+  with an error that tells you to name a variable instead. The error never repeats the secret.
+- The engine never writes a secret into the run record, the log, the screenshots, the telemetry or an error.
+  A page can still expose a secret if the site echoes it. The record has an optional `preview_access`
+  block. It was added in schema version 2. It holds the methods used and the header names, nothing else:
+
+```json
+"preview_access": { "methods": ["basic", "headers"], "header_names": ["x-vercel-protection-bypass"] }
+```
+
+`dummyrun a11y` writes the same block in its JSON report. The engine's browser tests check every output for
+the test secrets on both browsers. Your site can still echo a header back in a page, so don't build a preview
+that prints its own bypass token. [SECURITY.md](../SECURITY.md) has the rules for credentials.
+
 ## Identifying the engine and honouring robots.txt
 
 Two switches let a run say who it is and stay out of places that ask crawlers to keep away. Both are off by
@@ -721,6 +807,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   --allow a11y-allow.txt --json report.json https://example.com/404.html
 ```
 
+- Protected previews. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` get the sweep past Basic auth or a bypass header, as [Protected previews](#protected-previews) describes.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA. Best-practice rules aren't run.

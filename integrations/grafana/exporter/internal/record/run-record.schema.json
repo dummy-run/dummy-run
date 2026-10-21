@@ -373,6 +373,37 @@
         }
       }
     },
+    "preview_access": {
+      "type": "object",
+      "description": "Which protection on a staging or preview site the engine answered, such as HTTP Basic auth or a bypass header. Optional and additive in version 2. It holds names only: never a user name, password, token or header value.",
+      "additionalProperties": false,
+      "required": [
+        "methods"
+      ],
+      "properties": {
+        "methods": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "basic",
+              "headers"
+            ]
+          },
+          "description": "basic answers HTTP Basic auth. headers adds request headers, such as a Vercel protection bypass or Cloudflare Access service token"
+        },
+        "header_names": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "The names of the request headers that carried a secret. Never their values"
+        }
+      }
+    },
     "outcome": {
       "enum": [
         "completed",

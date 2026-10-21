@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/inject"
@@ -70,6 +71,9 @@ type Config struct {
 	SessionFile string
 	// Getenv reads the credentials' environment variables. Nil uses os.Getenv.
 	Getenv func(string) string
+	// Access is the resolved preview protection (Basic auth, bypass headers). Nil resolves the
+	// target file's auth block with Getenv.
+	Access *access.Resolved
 	Log    io.Writer
 	Launch bidi.LaunchOptions
 }
@@ -123,6 +127,7 @@ type run struct {
 	plan          *signin.Plan
 	gate          *policy.Gate
 	signin        *record.Signin
+	access        *access.Resolved
 	// nonce marks the fence around page text in the prompt. The page cannot know it.
 	nonce   string
 	scanner inject.Scanner
@@ -191,6 +196,20 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 	r.dir = filepath.Join(cfg.OutDir, r.id)
 	if err := os.MkdirAll(filepath.Join(r.dir, "screens"), 0o750); err != nil {
 		return nil, err
+	}
+	var accErr error
+	if r.access, accErr = r.resolveAccess(); accErr != nil {
+		return nil, accErr
+	}
+	if r.access.Active() {
+		sum := r.access.Summary()
+		fmt.Fprintf(r.log, "access: protected preview, %s", strings.Join(sum.Methods, " and "))
+		if len(sum.HeaderNames) > 0 {
+			fmt.Fprintf(r.log, " (headers %s)", strings.Join(sum.HeaderNames, ", "))
+		}
+		fmt.Fprintln(r.log)
+		r.cfg.HTTPClient = access.WrapClient(r.cfg.HTTPClient, r.access)
+		cfg = r.cfg
 	}
 	if cfg.Target.RespectRobots {
 		res, rerr := robots.Fetch(ctx, cfg.HTTPClient, cfg.Target.BaseURL, telemetry.RobotsToken, telemetry.RequestUserAgent(cfg.Target.Identify))
@@ -261,7 +280,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		}
 	}
 	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: disp.CSSWidth, Height: disp.CSSHeight,
-		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Launch: cfg.Launch})
+		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Access: r.access, Launch: cfg.Launch})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open browser: %w", err)
 	}
@@ -501,6 +520,19 @@ func okWord(ok bool) string {
 		return "ok"
 	}
 	return "failed"
+}
+
+// resolveAccess reads the preview-protection secrets from the environment, so a missing variable stops
+// the run before it costs anything.
+func (r *run) resolveAccess() (*access.Resolved, error) {
+	if r.cfg.Access != nil {
+		return r.cfg.Access, nil
+	}
+	getenv := r.cfg.Getenv
+	if getenv == nil {
+		getenv = os.Getenv
+	}
+	return access.Resolve(r.cfg.Target.Auth, getenv, access.TargetScope(r.cfg.Target))
 }
 
 // signinPlan decides whether and how to sign in, before any browser starts. A role asked for by
@@ -779,6 +811,10 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 		Provider: record.Provider{Kind: cfg.Provider.Kind(), Model: cfg.Provider.Model(), Region: cfg.Provider.Region()},
 		Browser:  record.Browser{Name: cfg.Browser, Version: "unknown"},
 		Steps:    []record.Step{}, Findings: []record.Finding{}, Usage: r.usage, Signin: r.signin,
+	}
+	if r.access.Active() {
+		sum := r.access.Summary()
+		rec.PreviewAccess = &record.PreviewAccess{Methods: sum.Methods, HeaderNames: sum.HeaderNames}
 	}
 	if r.display.Zoom > 100 {
 		rec.Persona.Zoom = r.display.Zoom

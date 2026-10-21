@@ -176,6 +176,30 @@ func TestEmptyDirectoryIsAnError(t *testing.T) {
 	}
 }
 
+func TestPreviewAccessLoads(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-17-lin-contributor-008.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	m["preview_access"] = map[string]any{"methods": []string{"basic", "headers"}, "header_names": []string{"x-vercel-protection-bypass"}}
+	withAccess, _ := json.Marshal(m)
+	run, err := v.Parse(withAccess)
+	if err != nil {
+		t.Fatalf("a record with preview_access was rejected: %v", err)
+	}
+	if run.PreviewAccess == nil || len(run.PreviewAccess.Methods) != 2 {
+		t.Errorf("preview_access %+v", run.PreviewAccess)
+	}
+}
+
 func TestFirstStepAndConfirmedFindings(t *testing.T) {
 	v, err := NewValidator()
 	if err != nil {
@@ -188,7 +212,7 @@ func TestFirstStepAndConfirmedFindings(t *testing.T) {
 	if got := run.ConfirmedFindings(); got != 1 {
 		t.Errorf("confirmed findings = %d, want 1", got)
 	}
-	f := record(run.Findings, "contributor-sees-rates-table")
+	f := record(run.Findings, "author-edits-others-draft")
 	if s := run.FirstStep(f); s == nil || s.N != 7 {
 		t.Errorf("first step = %v, want step 7", s)
 	}
@@ -223,6 +247,7 @@ func TestVersionOneRecordsStillLoad(t *testing.T) {
 	m["schema_version"] = 1
 	delete(m, "repeat_index")
 	delete(m, "seed")
+	delete(m, "observations")
 	delete(m["persona"].(map[string]any), "dimensions")
 	delete(m["scenario"].(map[string]any), "goal_met")
 	delete(m["usage"].(map[string]any), "cost_usd")
