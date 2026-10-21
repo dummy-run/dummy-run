@@ -10,7 +10,7 @@
         {{ partial "icons/mascot.html" (dict "class" "flow-mascot") }}
         <span class="flow-chip">Screen reader</span><span class="flow-chip">Keyboard only</span><span class="flow-chip">Older adult</span><span class="flow-chip">Slow phone</span><span class="flow-chip">Viewer</span><span class="flow-chip">Admin</span>
       </div>
-      <p class="flow-text">Personas from the library, such as a screen-reader user or an older adult.</p>
+      <p class="flow-text">Choose personas from the library, like a screen-reader user or an older adult.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
     <li class="flow-step">
@@ -21,7 +21,7 @@
         <div class="flow-acts"><span class="flow-pill">Sees</span><span class="flow-pill">Thinks</span><span class="flow-pill">Acts</span></div>
         <div class="flow-block"><span class="flow-post">POST</span><span class="flow-lock">{{ partial "icons/icon.html" (dict "name" "lock") }}Writes blocked</span></div>
       </div>
-      <p class="flow-text">Chrome or Firefox, with writes blocked. Each step it sees, thinks with the model you choose and acts.</p>
+      <p class="flow-text">A real Chrome or Firefox, with anything that could change data blocked. At each step the persona looks, thinks and acts.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
     <li class="flow-step">
@@ -31,7 +31,7 @@
         <span class="flow-claim">Submit is under the keyboard</span>
         <span class="flow-tags"><span class="flow-evidence">Step 7</span><span class="flow-evidence">Screenshot</span></span>
       </div>
-      <p class="flow-text">Every finding cites the steps behind it, and the screenshots when the browser could take them.</p>
+      <p class="flow-text">Each problem it hits points back to the steps and screenshots that show it.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
     <li class="flow-step">
@@ -42,7 +42,7 @@
         <div class="flow-row"><span class="flow-mini">Admin sees rates</span><span class="flow-verdict is-no">{{ partial "icons/icon.html" (dict "name" "cross") }}Reject</span></div>
         <span class="flow-cursor"></span>
       </div>
-      <p class="flow-text">A person confirms or rejects each finding.</p>
+      <p class="flow-text">You confirm the real ones and reject the rest.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
     <li class="flow-step">
@@ -52,7 +52,7 @@
         <span class="flow-meter"><span class="flow-meter-fill"></span></span>
         <span class="flow-sums"><span class="flow-count">At least <span class="flow-n"></span> in all</span><span class="flow-stop">Stop when flat</span></span>
       </div>
-      <p class="flow-text">How much is covered, and a lower bound on how many problems there are in all. Stop when new finds dry up.</p>
+      <p class="flow-text">See how much of the app the personas reached, and stop when new runs stop turning up new problems.</p>
       <span class="flow-link" aria-hidden="true"><span class="flow-link-fill"></span></span><span class="flow-token" aria-hidden="true"></span>
     </li>
     <li class="flow-step">
@@ -63,7 +63,7 @@
         <span class="flow-out"><svg class="flow-spark" viewBox="0 0 32 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M1 11l5-4 4 2 5-7 5 6 4-3 7 5"/></svg>Grafana</span>
         <span class="flow-out">{{ partial "icons/icon.html" (dict "name" "terminal") }}CI</span>
       </div>
-      <p class="flow-text">A report, Grafana dashboards over OpenTelemetry and a CI check.</p>
+      <p class="flow-text">Send a report, watch runs in Grafana or fail a CI check.</p>
     </li>
   </ol>
 </div>

@@ -70,7 +70,7 @@ Personas also reported what went well. A model wrote these notes and no person h
 - {{.Text}} ({{.Runs}} of {{$.Scope.Runs.Total}} runs; {{join .Personas}})
 {{end}}
 {{end -}}
-> **Read this as a sample.** This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. See [What this report is not](#what-this-report-is-not).
+> Read this as a sample. This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. See [What this report is not](#what-this-report-is-not).
 
 ## Findings
 
@@ -83,7 +83,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 {{range .Items}}{{$f := .Finding}}#### {{$f.Title}}
 
-**{{cap $f.Severity}}**. {{statusText $f.Status}}.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
+{{cap $f.Severity}}. {{statusText $f.Status}}.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
 
 {{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
 

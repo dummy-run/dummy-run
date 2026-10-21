@@ -5,10 +5,10 @@ description: The Dummy Run refund policy for the full report, the Watch plan and
 layout: legal
 updated: 2026-10-20
 short:
-  - Paddle is our merchant of record for the full report and Watch and processes their refunds.
-  - Full report. A full refund within 14 days of purchase if the report has not been generated. If it failed on our side you can have a refund or a re-run.
-  - Watch. Cancel any time. Access continues to the end of the paid month. No refund of a part month unless the law requires it.
-  - Audits. Dummy Run invoices audits directly. Refunds follow the audit's order form, and Dummy Run issues them to the original payment method.
+  - Paddle is our merchant of record for the full report and Watch, and processes refunds for them.
+  - Full report. You can have a full refund within 14 days of purchase if the report hasn't been generated. If it failed on our side, you can choose a refund or a re-run.
+  - Watch. Cancel whenever you like and keep access to the end of the month you've paid for. We don't refund part months unless the law requires it.
+  - Audits. Dummy Run invoices audits directly. Refunds follow the audit's order form and go back to the original payment method.
   - Nothing here removes your statutory rights.
 contact:
   - label: Ask for a refund

@@ -31,7 +31,7 @@ A hook skips a tool you haven't installed and tells you so. CI still runs every 
 | Check | What it catches |
 |---|---|
 | gitleaks | Secrets in staged changes and in history |
-| `bin/check-prose` and the em-dash check | Breaks of the plain-wording rules in docs/STYLE.md |
+| `bin/check-prose` and the em-dash check | Breaks of the writing rules in docs/STYLE.md. Long sentences only warn |
 | typos | Spelling mistakes |
 | actionlint and zizmor | Broken or unsafe GitHub Actions workflows |
 | check-jsonschema | Example runs that don't match the run-record schema |

@@ -7,7 +7,7 @@ tags: language plain-english content
 leans-on: look scroll
 label: Non-native English reader
 need: language
-summary: Reads English as a second language and stops at long words.
+summary: Reads English as a second language and slows down at long words.
 finds: Idioms, long sentences, unexplained terms and dates in a local format.
 ---
 # Zofia, non-native English reader

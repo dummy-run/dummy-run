@@ -1,17 +1,17 @@
 ---
 title: Request an audit
-lead: A scoped accessibility audit delivered by a person. From £1,950.
-description: Ask Dummy Run for a scoped audit. A person does the work. The price starts at £1,950.
+lead: An accessibility audit carried out by a person, scoped to your site. From £1,950.
+description: Ask Dummy Run for an accessibility audit scoped to your site and carried out by a person. Prices start at £1,950.
 layout: audit
 ---
 
-An audit is scoped to your site. We agree what it covers before work starts. A person does the work and writes it up.
+Sometimes a tool isn't enough and you want a person to look. Tell us about your site and what you need, and we'll agree together what the audit covers before any work starts. A person does the testing and writes up what they find.
 
 ## What to expect
 
-- The price starts at £1,950 and depends on the scope.
+- Prices start at £1,950, and the final figure depends on the scope we agree.
 - Dummy Run invoices audits directly.
-- Every audit follows its own order form. The order form also sets refunds. See the [terms](../terms.md) and the [refund policy](../refunds.md).
-- An audit samples pages. It is not a certificate that a site meets WCAG or any law.
+- Each audit has its own order form, which also covers refunds. The [terms](../terms.md) and the [refund policy](../refunds.md) have the detail.
+- An audit looks at a sample of pages. It isn't a certificate that your site meets WCAG or any law.
 
 ## Send your request
