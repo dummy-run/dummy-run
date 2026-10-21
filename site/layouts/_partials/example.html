@@ -7,6 +7,6 @@
 {{- if not $kind }}{{ errorf "example.html: add %q to the kinds map" .name }}{{ end -}}
 {{- $args := dict "kind" .kind "who" .who -}}
 <div class="example is-{{ $kind }}">
-  <p class="example-tag">{{ if eq $kind "inkwell" }}Example{{ else }}Illustration{{ end }}</p>
+  <p class="example-tag">{{ if eq $kind "inkwell" }}Inkwell, a practice app{{ else }}How it fits together{{ end }}</p>
   {{ partial (printf "graphics/%s.html" .name) $args }}
 </div>

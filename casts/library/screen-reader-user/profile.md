@@ -8,9 +8,9 @@ tags: accessibility screen-reader structure
 leans-on: a11y look press
 label: Screen-reader user
 need: vision
-summary: Blind. Moves by headings, landmarks and link text, and hears each control by its name.
+summary: Is blind and moves through a page by its headings, landmarks and links, hearing each control by its name.
 finds: Controls with no name, headings out of order, and focus lost after a dialog closes.
-limit: Runs no screen reader. It works from the page text and outline.
+limit: No real screen reader runs. It works from the page text and the accessibility outline.
 ---
 # Noor, screen reader user
 

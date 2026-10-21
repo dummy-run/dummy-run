@@ -109,6 +109,10 @@ timeout = "120s"
   target = "assets/repo/casts/library"
   files = ["/*/profile.md", "/*/scenarios/*.md"]
 [[module.mounts]]
+  source = "../casts/dummyrun-dev"
+  target = "assets/repo/casts/dummyrun-dev"
+  files = ["/*/profile.md", "/*/scenarios/*.md"]
+[[module.mounts]]
   source = "../schema"
   target = "assets/repo/schema"
 [[module.mounts]]

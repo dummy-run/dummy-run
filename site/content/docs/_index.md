@@ -1,11 +1,11 @@
 ---
 title: Docs
 mascot: dummy-reading
-lead: How to install Dummy Run, run personas (made-up users with a role and a goal) against your app and read what they find. Most pages are built from the Markdown in the repository.
-description: The Dummy Run docs. Install the engine, run personas, read the report and connect runs to Grafana.
+lead: Everything you need to install Dummy Run, run personas, read what they find and connect it to the tools you already use.
+description: The Dummy Run docs. Install the engine, run personas, read the report and connect Grafana. The licence and security policy are here too.
 next:
   title: New here
-  text: How it works explains the five stages of a run.
+  text: How it works follows one run from start to finish.
   label: Read how it works
   href: /how-it-works/
 ---

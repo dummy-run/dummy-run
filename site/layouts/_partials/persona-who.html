@@ -1,0 +1,26 @@
+{{- /* Who a persona is and what it set out to do, in words, from its profile and scenario in casts/. Pass id (the persona) and scenario (its id). Returns a dict: name ("Tom"), who ("Tom, a developer"), task ("find the quickstart") and question (true when the scenario title is a question). */ -}}
+{{- $id := .id -}}
+{{- $name := index (split $id "-") 0 | title -}}
+{{- $role := "" -}}
+{{- $prof := or (resources.Get (printf "repo/casts/dummyrun-dev/%s/profile.md" $id)) (resources.Get (printf "repo/casts/library/%s/profile.md" $id)) -}}
+{{- with $prof -}}
+  {{- with findRESubmatch `(?m)^# ([^,\n]+), (.+)$` .Content 1 -}}
+    {{- $name = index (index . 0) 1 -}}{{- $role = index (index . 0) 2 -}}
+  {{- end -}}
+{{- end -}}
+{{- $who := $name -}}
+{{- with $role -}}
+  {{- $article := cond (in (slice "a" "e" "i" "o" "u") (substr (lower .) 0 1)) "an" "a" -}}
+  {{- $who = printf "%s, %s %s" $name $article . -}}
+{{- end -}}
+{{- $task := "" -}}{{- $question := false -}}
+{{- with .scenario -}}
+  {{- range resources.Match (printf "repo/casts/*/%s/scenarios/*-%s.md" $id .) -}}
+    {{- with findRESubmatch `(?m)^# (.+)$` .Content 1 }}{{ $task = index (index . 0) 1 }}{{ end -}}
+  {{- end -}}
+{{- end -}}
+{{- if $task -}}
+  {{- $question = findRE `^(Does|Do|Is|Are|Can|What|How|Which|Why|Where|Who|Will)\b` $task 1 | len | ne 0 -}}
+  {{- if not $question }}{{ $task = printf "%s%s" (lower (substr $task 0 1)) (substr $task 1) }}{{ end -}}
+{{- end -}}
+{{- return dict "name" $name "who" $who "task" $task "question" $question -}}
