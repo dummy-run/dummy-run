@@ -471,6 +471,9 @@ the threats. Here is what the engine does about prompt injection.
 - Text the browser doesn't render isn't sent. That covers `display: none`, `visibility: hidden` and comments.
   Text with zero size, zero opacity or `aria-hidden` is still part of the page text. It can reach the model,
   and the scan flags it as hidden. So does text that CSS only moves off the screen.
+  The quoted-example exemption never covers it, so a page that plays a code demo has to keep the text out of
+  those states. The terminal on dummyrun.dev covers the lines it has not played yet with a CSS mask instead of
+  fading them out. The scan does not look at CSS masks, so it reads those lines as quoted output.
 - The engine collects that hidden text along with the `aria-label`, `title`, `alt` and `placeholder` values.
   They're saved in `page.hidden` in `steps.jsonl`, for the scan and for the reviewer.
 - A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such

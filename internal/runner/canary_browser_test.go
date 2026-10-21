@@ -320,6 +320,7 @@ func TestDocsPageAboutInjection(t *testing.T) {
 		{"code moved above the page", `<pre style="position:relative;top:-9999px">` + attack + `</pre>`, true},
 		{"same words in code and in prose", `<pre>` + attack + `</pre><p>` + attack + `</p>`, true},
 		{"code at zero opacity", `<pre style="opacity:0">` + attack + `</pre>`, true},
+		{"code lines waiting at zero opacity", `<pre><code><span style="opacity:0">` + attack + `</span></code></pre>`, true},
 		{"code under aria-hidden", `<div aria-hidden="true"><pre>` + attack + `</pre></div>`, true},
 		{"plain prose", `<p>` + attack + `</p>`, true},
 	}

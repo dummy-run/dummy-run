@@ -8,6 +8,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Added
 - Personas and `dummyrun a11y` can get past a protected preview. A new `auth` block in the target file takes HTTP Basic auth (`basic.username_env`, `basic.password_env`) and request headers (`headers.<Name>.value_env`). That covers Vercel's `x-vercel-protection-bypass`, Cloudflare Access service tokens, and bearer or custom headers. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` do the same for one-off runs on `dummyrun run`, `dummyrun try`, `dummyrun a11y` and `dummyrun session save`. The values come only from environment variables, and a secret written in the file is refused. The headers go only to the target's own hosts over https (or on loopback), never to another host, including through a redirect. The engine also answers Basic auth challenges as a fallback. The read-only policy is unchanged. The run record has an optional `preview_access` block that names the methods and the header names. A reader built from an earlier copy of the schema rejects a record that has it. Nothing secret reaches the record, the log, screenshots, telemetry, errors or reports (code: `internal/access/`, `internal/policy/auth.go`).
 
+### Fixed
+- A persona visiting the Get started page on dummyrun.dev no longer reports that page content tries to instruct an AI persona. The page's sample run quotes engine output about injection, and the script that plays it faded each unplayed line out at zero opacity, which the injection scan reads as concealed text even inside `pre` and `code`. The terminal now covers unplayed lines with a CSS mask, so the text stays visible to the scan as quoted output. The engine rule is unchanged: concealed text inside code is still flagged. A browser test loads the real stylesheet and script (code: `site/assets/js/site.js`, `site/assets/css/site.css` and `internal/runner/site_terminal_test.go`).
+
 ## [0.1.2] - 2026-10-21
 
 ### Added
