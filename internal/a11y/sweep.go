@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -26,6 +27,10 @@ var ErrRobotsDisallow = errors.New("robots.txt disallows DummyRun from every pag
 
 // Tags are the axe-core rule tags the sweep runs: WCAG 2.0, 2.1 and 2.2 at levels A and AA.
 var Tags = []string{"wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"}
+
+// AdviceTags are the axe-core best-practice rules. A rule that only has these tags is not a WCAG failure: its
+// results go to a result's Advice list, never fail the sweep and are shown in a report as advice.
+var AdviceTags = []string{"best-practice"}
 
 // Viewport is a named window size in CSS pixels.
 type Viewport struct {
@@ -115,9 +120,11 @@ type PageResult struct {
 	LayoutChecked bool   `json:"layout_checked,omitempty"`
 	Error         string `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
-	Skipped      string    `json:"skipped,omitempty"`
-	Violations   []Finding `json:"violations"`
-	NeedsReview  []Finding `json:"needs_review"`
+	Skipped     string    `json:"skipped,omitempty"`
+	Violations  []Finding `json:"violations"`
+	NeedsReview []Finding `json:"needs_review"`
+	// Advice holds the best-practice rules that failed and have no WCAG criterion. They never fail the sweep.
+	Advice       []Finding `json:"advice,omitempty"`
 	DurationMS   int64     `json:"duration_ms"`
 	SchemeActual string    `json:"scheme_applied,omitempty"`
 }
@@ -151,8 +158,10 @@ type Report struct {
 	BrowserVersion string   `json:"browser_version,omitempty"`
 	AxeVersion     string   `json:"axe_version,omitempty"`
 	Tags           []string `json:"tags"`
-	Identify       bool     `json:"identify,omitempty"`
-	RespectRobots  bool     `json:"respect_robots,omitempty"`
+	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
+	AdviceTags    []string `json:"advice_tags,omitempty"`
+	Identify      bool     `json:"identify,omitempty"`
+	RespectRobots bool     `json:"respect_robots,omitempty"`
 	// PreviewAccess names the protection the sweep answered. Names only, never a value.
 	PreviewAccess *access.Summary `json:"preview_access,omitempty"`
 	Results       []PageResult    `json:"results"`
@@ -169,6 +178,8 @@ type Summary struct {
 	PageErrors    int `json:"page_errors"`
 	Skipped       int `json:"skipped_pages,omitempty"`
 	UnusedAllowed int `json:"unused_allow_entries"`
+	// Advice counts the elements that failed a best-practice rule. They never fail the sweep.
+	Advice int `json:"advice_nodes,omitempty"`
 }
 
 // Failed reports whether the sweep should exit non-zero: any violation not on the allow-list, or
@@ -240,7 +251,7 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	if cfg.Settle == 0 {
 		cfg.Settle = 300 * time.Millisecond
 	}
-	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
+	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, AdviceTags: AdviceTags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
 	if cfg.Access.Active() {
 		sum := cfg.Access.Summary()
 		rep.PreviewAccess = &sum
@@ -446,9 +457,17 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	}
 	path := pagePath(u)
 	for _, r := range out.Violations {
+		if adviceOnly(r.Tags) {
+			res.Advice = append(res.Advice, finding(r, path, cfg.Allow))
+			continue
+		}
 		res.Violations = append(res.Violations, finding(r, path, cfg.Allow))
 	}
 	for _, r := range out.Incomplete {
+		// A best-practice rule a person would have to check is noise, so only WCAG rules need review.
+		if adviceOnly(r.Tags) {
+			continue
+		}
 		res.NeedsReview = append(res.NeedsReview, finding(r, path, nil))
 	}
 	if cfg.Layout {
@@ -463,6 +482,18 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		shoot(pctx, conn, cx, cfg.ScreenshotDir, &res, boxes)
 	}
 	return res
+}
+
+// adviceOnly is true for a rule that has none of the WCAG A and AA level tags the sweep tests: a best-practice
+// rule, which is advice and not a failure. The sweep runs no AAA tag, so an AAA rule is here only when it is also
+// a best-practice rule.
+func adviceOnly(tags []string) bool {
+	for _, t := range tags {
+		if slices.Contains(Tags, t) {
+			return false
+		}
+	}
+	return true
 }
 
 // textScaleField is the value kept in a result: 100 is left out.
@@ -529,6 +560,13 @@ func (r *Report) summarise(cfg Config) {
 			}
 		}
 		r.Summary.NeedsReview += len(p.NeedsReview)
+		for _, f := range p.Advice {
+			for _, n := range f.Nodes {
+				if !n.Allowed {
+					r.Summary.Advice++
+				}
+			}
+		}
 	}
 	r.Summary.Pages = len(pages)
 	r.Summary.UnusedAllowed = len(cfg.Allow.Unused())
@@ -552,6 +590,6 @@ const axeRunJS = `(tagsJSON) => {
 // tagsArg is the rule tags as a JSON string, passed to the page as an argument rather than spliced
 // into the script.
 func tagsArg() string {
-	b, _ := json.Marshal(Tags)
+	b, _ := json.Marshal(append(append([]string{}, Tags...), AdviceTags...))
 	return string(b)
 }

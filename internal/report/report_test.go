@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -856,5 +857,43 @@ func TestMarkdownFindingWithoutALocation(t *testing.T) {
 	}
 	if strings.Contains(out, "evidence line one\nline") || strings.Contains(out, "`two`") {
 		t.Error("newlines and backticks in free text should be flattened in the technical details")
+	}
+}
+
+func TestAdviceIsShownApartFromFailures(t *testing.T) {
+	opt := fixtureOptions(t)
+	before, err := Build(loadFixture(t), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sweep := *opt.A11y[0]
+	sweep.Results = append([]a11y.PageResult{}, sweep.Results...)
+	sweep.Results[0].Advice = []a11y.Finding{{Rule: "region", Help: "All page content should be contained by landmarks",
+		HelpURL: "https://dequeuniversity.com/rules/axe/4.13/region", Nodes: []a11y.Node{{Target: "p.intro"}}}}
+	sweep.AdviceTags = []string{"best-practice"}
+	opt.A11y = []*a11y.Report{&sweep}
+	rep, err := Build(loadFixture(t), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Axe.Advice) != 1 || rep.Axe.Advice[0].Elements != 1 {
+		t.Fatalf("advice: %+v", rep.Axe.Advice)
+	}
+	if len(rep.Axe.AdviceTags) != 1 || slices.Contains(rep.Axe.Tags, "best-practice") {
+		t.Errorf("advice tags should be listed apart from the WCAG tags: %v / %v", rep.Axe.Tags, rep.Axe.AdviceTags)
+	}
+	if out := render(t, rep, "md"); !strings.Contains(out, "It also checked `best-practice`") {
+		t.Error("the check scope does not name the advice tags")
+	}
+	if rep.Axe.FailingNodes != before.Axe.FailingNodes || len(rep.Axe.Rules) != len(before.Axe.Rules) {
+		t.Errorf("advice changed the failures: %d rules, %d elements", len(rep.Axe.Rules), rep.Axe.FailingNodes)
+	}
+	for _, format := range []string{"html", "md"} {
+		if out := render(t, rep, format); !strings.Contains(out, "Advice beyond WCAG A and AA") || !strings.Contains(out, "All page content should be contained by landmarks") {
+			t.Errorf("%s has no advice section", format)
+		}
+	}
+	if out := render(t, before, "html"); strings.Contains(out, "Advice beyond WCAG A and AA") {
+		t.Error("a report with no advice shows the section")
 	}
 }

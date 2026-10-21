@@ -119,7 +119,7 @@ What goes wrong: {{$f.Title}}
 {{end}}{{end}}
 {{- if .Axe}}## Axe sweep and layout checks
 
-The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{codes .Axe.Tags}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.
+The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{codes .Axe.Tags}}{{if .Axe.AdviceTags}}. It also checked {{codes .Axe.AdviceTags}}, and lists the rules from those that are not WCAG A or AA rules as advice{{end}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.
 
 {{if .Axe.Rules -}}
 ### Rules that failed
@@ -150,6 +150,17 @@ Axe cannot decide these rules alone. A person has to look.
 |---|---|---|---|
 {{- range .Axe.NeedsReview}}
 | `{{cell .Rule}}` | {{cell .Help}} | {{if .WCAG}}{{cell (join .WCAG)}}{{else}}Not recorded{{end}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{cell $p.URL}}{{end}} |
+{{- end}}
+
+{{end -}}
+{{- if .Axe.Advice}}### Advice beyond WCAG A and AA
+
+These are axe's best-practice rules that are not WCAG A or AA rules (a few are WCAG AAA). They are not WCAG A or AA failures and are not counted above, but each one makes the site harder to use for someone.
+
+| Rule | What it checks | Elements | Pages |
+|---|---|---|---|
+{{- range .Axe.Advice}}
+| `{{cell .Rule}}` | {{cell .Help}}{{if .HelpURL}} ({{cell .HelpURL}}){{end}} | {{cell .Elements}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{cell $p.URL}}{{end}} |
 {{- end}}
 
 {{end -}}

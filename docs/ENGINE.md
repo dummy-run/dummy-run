@@ -813,7 +813,10 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - Protected previews. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` get the sweep past Basic auth or a bypass header, as [Protected previews](#protected-previews) describes.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
-- Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA. Best-practice rules aren't run.
+- Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.
+  A rule that has none of those WCAG level tags, such as `region` or `heading-order`, is advice: its results go
+  to each page's `advice` list and the summary's `advice_nodes`, never to `violations`, and they never fail the
+  sweep or change its exit code. Only WCAG rules go to `needs_review`.
 - Sizes. `--viewport` is `desktop` (1280 wide), `phone` (375 wide) or `both`.
 - Colour scheme. `--scheme` is `light`, `dark` or `both`. WebDriver BiDi has no command for
   `prefers-color-scheme`. So the sweep sets it at launch, as a Blink setting in Chrome or a preference in
