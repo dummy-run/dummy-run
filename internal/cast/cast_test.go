@@ -345,14 +345,20 @@ func TestLoadScenarioRejectsAnOversizedMinSteps(t *testing.T) {
 }
 
 func TestLoadScenarioRejectsAMalformedMinSteps(t *testing.T) {
-	for value, ok := range map[string]bool{"8": true, "8 steps": true, "nope": false, "8 or so": false, "": false, "-3": false} {
+	for value, want := range map[string]int{"8": 8, "8 steps": 8, "8\r": 8, "nope": -1, "8 or so": -1, "": -1, "-3": -1} {
 		path := filepath.Join(t.TempDir(), "01-min.md")
 		if err := os.WriteFile(path, []byte("# Min\n\nMin steps: "+value+"\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		_, err := LoadScenario(path)
-		if (err == nil) != ok {
-			t.Errorf("Min steps: %q gave error %v, want ok=%v", value, err, ok)
+		s, err := LoadScenario(path)
+		if want < 0 {
+			if err == nil {
+				t.Errorf("Min steps: %q should be an error", value)
+			}
+			continue
+		}
+		if err != nil || s.MinSteps != want {
+			t.Errorf("Min steps: %q gave %d, %v, want %d", value, s.MinSteps, err, want)
 		}
 	}
 }

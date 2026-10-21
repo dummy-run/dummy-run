@@ -175,7 +175,7 @@ func (p *Persona) Scenario(id string) (Scenario, error) {
 var (
 	numberPrefix  = regexp.MustCompile(`^[0-9]+-`)
 	budgetLine    = regexp.MustCompile(`(?m)^Budget:\s*([0-9]+)`)
-	minStepsLine  = regexp.MustCompile(`(?mi)^Min steps:[ \t]*([^\r\n]*)$`)
+	minStepsLine  = regexp.MustCompile(`(?mi)^Min steps:[ \t]*([^\n]*)$`)
 	minStepsValue = regexp.MustCompile(`^([0-9]+)(?: steps?)?$`)
 	titleLine     = regexp.MustCompile(`(?m)^#\s+(.+)$`)
 	deviceLine    = regexp.MustCompile(`(?mi)^Device:[ \t]*([^\s.]*)`)
