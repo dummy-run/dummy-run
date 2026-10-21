@@ -115,8 +115,11 @@
   });
 })();
 
-// The terminal on the Get started page. The whole transcript is already in the page as text. This types the
-// commands and shows the output in small chunks, with a pause button. With reduced motion it does nothing.
+// The terminal on the Get started page. The whole transcript is already in the page as text and stays there,
+// readable by a screen reader and by the page's own text. This only masks the lines that have not been
+// played yet, then types the commands and shows the output in small chunks, with a pause button. It never
+// hides the text itself (no opacity, no removal), so nothing on the page is concealed. With reduced motion it
+// does nothing.
 (function () {
   var term = document.querySelector("[data-terminal]");
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -124,6 +127,7 @@
     return;
   }
   var button = term.querySelector(".t-pause");
+  var body = term.querySelector(".t-body");
   var lines = Array.prototype.slice.call(term.querySelectorAll(".t-line"));
   var texts = lines.map(function (l) {
     var t = l.querySelector(".t-text");
@@ -134,6 +138,8 @@
   var next = null;
   var started = false;
   var index = 0;
+  var typing = null;
+  var masked = false;
 
   function later(fn, ms) {
     next = fn;
@@ -144,43 +150,72 @@
     }, ms);
   }
 
+  // Show only what has played: every line before index, and the part of the command typed so far. The mask
+  // is a set of boxes measured from the page, so the text and its layout do not change as it plays.
+  function paint() {
+    var origin = body.getBoundingClientRect();
+    var boxes = [];
+    function add(r) {
+      boxes.push([r.left - origin.left, r.top - origin.top, r.width, r.height]);
+    }
+    if (index > 0) {
+      var last = lines[index - 1].getBoundingClientRect();
+      boxes.push([0, 0, Math.max(body.scrollWidth, origin.width), last.bottom - origin.top]);
+    }
+    if (typing) {
+      var prompt = lines[typing.line].querySelector(".t-prompt");
+      if (prompt) {
+        add(prompt.getBoundingClientRect());
+      }
+      var node = lines[typing.line].querySelector(".t-text").firstChild;
+      var range = document.createRange();
+      range.setStart(node, 0);
+      range.setEnd(node, typing.n);
+      Array.prototype.forEach.call(range.getClientRects(), add);
+    }
+    var style = body.style;
+    masked = true;
+    style.maskRepeat = "no-repeat";
+    style.maskClip = "no-clip";
+    if (!boxes.length) {
+      style.maskImage = "linear-gradient(transparent, transparent)";
+      style.maskSize = "100% 100%";
+      style.maskPosition = "0 0";
+      return;
+    }
+    style.maskImage = boxes.map(function () { return "linear-gradient(#000, #000)"; }).join(",");
+    style.maskSize = boxes.map(function (b) { return b[2] + "px " + b[3] + "px"; }).join(",");
+    style.maskPosition = boxes.map(function (b) { return b[0] + "px " + b[1] + "px"; }).join(",");
+  }
+
   function reset() {
     index = 0;
-    lines.forEach(function (l, i) {
-      l.classList.add("t-wait");
-      var t = l.querySelector(".t-text");
-      if (t) {
-        t.textContent = texts[i];
-      }
-    });
+    typing = null;
+    paint();
   }
 
   function finish() {
-    lines.forEach(function (l) {
-      l.classList.remove("t-wait", "t-caret");
+    masked = false;
+    ["maskImage", "maskSize", "maskPosition", "maskRepeat", "maskClip"].forEach(function (k) {
+      body.style[k] = "";
     });
     button.textContent = "Replay";
     button.setAttribute("data-state", "done");
   }
 
   function type(i, n) {
-    var t = lines[i].querySelector(".t-text");
-    var full = texts[i];
-    var step = Math.max(1, Math.ceil(full.length / 80));
-    n = Math.min(full.length, n + step);
-    t.textContent = "";
-    t.appendChild(document.createTextNode(full.slice(0, n)));
-    var rest = document.createElement("span");
-    rest.className = "t-wait";
-    rest.textContent = full.slice(n);
-    t.appendChild(rest);
-    if (n < full.length) {
+    var full = texts[i].length;
+    var step = Math.max(1, Math.ceil(full / 80));
+    n = Math.min(full, n + step);
+    typing = { line: i, n: n };
+    paint();
+    if (n < full) {
       later(function () { type(i, n); }, 30);
       return;
     }
-    t.textContent = full;
-    lines[i].classList.remove("t-caret");
+    typing = null;
     index = i + 1;
+    paint();
     later(run, 700);
   }
 
@@ -191,17 +226,15 @@
     }
     var i = index;
     if (texts[i] !== null) {
-      lines[i].classList.remove("t-wait");
-      lines[i].classList.add("t-caret");
       type(i, 0);
       return;
     }
     var shown = 0;
     while (index < lines.length && texts[index] === null && shown < 2) {
-      lines[index].classList.remove("t-wait");
       index++;
       shown++;
     }
+    paint();
     later(run, index < lines.length && texts[index] === null ? 420 : 300);
   }
 
@@ -216,6 +249,12 @@
     }
     later(run, 600);
   }
+
+  window.addEventListener("resize", function () {
+    if (masked) {
+      paint();
+    }
+  });
 
   reset();
   button.hidden = false;

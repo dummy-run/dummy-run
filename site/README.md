@@ -45,6 +45,14 @@ engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, an
 (`dummyrun browsers install`, or `DUMMYRUN_CHROME` and `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
 to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a reason.
 
+## The terminal on Get started
+
+The transcript is in the page as ordinary text inside `pre` and `code`. `site.js` plays it by masking the
+lines that have not played yet with a CSS mask. It never sets opacity to zero on the text and never removes
+it. The engine reads zero-opacity text as concealed, even inside code, so a demo that fades lines in would be
+flagged when a persona visits the page. `internal/runner/site_terminal_test.go` loads the real stylesheet and
+script and checks that nothing is flagged.
+
 ## Large text
 
 Phones apply a larger system text size in different ways. Some raise the browser's default font size, and some
