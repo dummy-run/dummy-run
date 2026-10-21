@@ -3,114 +3,535 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <meta name="generator" content="dummyrun {{.ToolVersion}}">
 <title>{{.Title}}</title>
+<link rel="icon" type="image/svg+xml" href="{{asset "mark.svg"}}">
+<!--
+Typefaces: Space Grotesk, Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk),
+and Atkinson Hyperlegible Next, Copyright 2020 Braille Institute of America, Inc. Both are under the SIL Open Font License 1.1
+(https://openfontlicense.org). They are subset and embedded below.
+-->
 <style>
-:root { --ink: #1a1a1a; --muted: #4a4a4a; --line: #767676; --soft: #eef0f2; --link: #0b4f9c; --paper: #ffffff; }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 500 700; font-display: swap; src: url("{{asset "space-grotesk.woff2"}}") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400 700; font-display: swap; src: url("{{asset "atkinson-hyperlegible-next.woff2"}}") format("woff2"); }
+
+:root {
+  color-scheme: light;
+  --paper: #ffffff;
+  --ink: #1d1d1b;
+  --muted: #55524d;
+  --rule: #d9d6cf;
+  --panel: #f5f3ee;
+  --amber: #fbad18;
+  --link: #7d5200;
+  --focus: #1d1d1b;
+  --blocker: #b3192f; --blocker-bg: #fdeaec; --blocker-ink: #7a0a1e;
+  --major: #b85c00;   --major-bg: #ffecd2;   --major-ink: #6b3400;
+  --minor: #946f00;   --minor-bg: #fff5c4;   --minor-ink: #5a4500;
+  --info: #4f7a9b;    --info-bg: #e5eff7;    --info-ink: #1c3d5a;
+  --good-bg: #e3f1e6; --good-ink: #0d3d1b;
+  --font-heading: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #161616;
+    --ink: #f3f1ec;
+    --muted: #b5b1a8;
+    --rule: #3a3936;
+    --panel: #1f1f1e;
+    --link: #fbad18;
+    --focus: #f3f1ec;
+    --blocker: #ff7b72; --blocker-bg: #3a1a1d; --blocker-ink: #ffb9b3;
+    --major: #ffa657;   --major-bg: #3a2612;   --major-ink: #ffd3a6;
+    --minor: #e3b341;   --minor-bg: #33290b;   --minor-ink: #f0da8e;
+    --info: #8fb6d4;    --info-bg: #1c2a36;    --info-ink: #c3dcee;
+    --good-bg: #16301d; --good-ink: #a8e3b8;
+  }
+}
+
 * { box-sizing: border-box; }
-html { font-size: 100%; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow-wrap: anywhere; }
-a { color: var(--link); text-underline-offset: 0.15em; }
-a:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-.skip { position: absolute; left: 0.5rem; top: -4rem; background: var(--ink); color: #fff; padding: 0.6rem 1rem; z-index: 10; }
-.skip:focus { top: 0.5rem; }
-.wrap { max-width: 62rem; margin: 0 auto; padding: 0 1rem; }
-header[role="banner"], body > header { border-bottom: 4px solid var(--ink); padding: 2rem 0 1.25rem; }
-h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); line-height: 1.15; margin: 0 0 0.5rem; }
-h2 { font-size: 1.6rem; line-height: 1.25; margin: 2.75rem 0 0.75rem; padding-top: 0.75rem; border-top: 2px solid var(--ink); }
-h3 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 0.5rem; }
-h4 { font-size: 1rem; margin: 1.25rem 0 0.25rem; }
+html { font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--paper); }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.65; overflow-wrap: anywhere; text-rendering: optimizeLegibility; }
+a { color: var(--link); text-underline-offset: 0.18em; text-decoration-thickness: 0.08em; }
+a:focus-visible, .skip:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
+.skip { position: absolute; left: 0.75rem; top: -5rem; background: var(--ink); color: var(--paper); padding: 0.6rem 1rem; z-index: 10; border-radius: 6px; }
+.skip:focus { top: 0.75rem; }
+.wrap { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
+h1, h2, h3, h4, h5 { font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; margin: 0; }
+h2 { font-size: 1.9rem; margin: 0 0 1rem; }
+h3 { font-size: 1.3rem; margin: 2rem 0 0.75rem; }
+h4 { font-size: 1.15rem; }
+h5 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 0.4rem; }
 p, ul, ol, dl, table, figure { margin: 0 0 1rem; }
-.meta { color: var(--muted); font-size: 1rem; margin: 0; }
-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
-nav a { display: inline-block; padding: 0.25rem 0; }
-table { border-collapse: collapse; width: 100%; font-size: 1rem; table-layout: auto; }
-caption { text-align: left; font-weight: 700; padding: 0.5rem 0; }
-th, td { border: 1px solid var(--line); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
-thead th { background: var(--soft); }
-tbody th { background: #f7f8f9; font-weight: 600; }
-.num { text-align: right; }
-article.finding { border: 2px solid var(--ink); padding: 1rem 1.25rem; margin: 0 0 1.5rem; }
-.badge { display: inline-block; padding: 0.05rem 0.55rem; font-size: 1rem; font-weight: 700; border: 2px solid var(--ink); margin-right: 0.4rem; }
-.sev-blocker, .sev-critical { background: #7a0019; color: #fff; }
-.sev-major, .sev-serious { background: #8a3b00; color: #fff; }
-.sev-minor, .sev-moderate { background: #594700; color: #fff; }
-.sev-info { background: #3d4852; color: #fff; }
-.st-confirmed { background: #e3f1e6; color: #0d3d1b; }
-.st-not-reviewed { background: #fff3c4; color: var(--ink); border-style: dashed; }
-.bl-new { background: #dbe8f8; color: #0b2f5c; }
-.bl-still-present, .bl-fixed { background: var(--soft); color: var(--ink); }
-dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; font-size: 1rem; }
-dl.facts dt { font-weight: 700; }
-dl.facts dd { margin: 0; }
-figure { border: 1px solid var(--line); padding: 0.5rem; }
-figure img { max-width: 100%; height: auto; display: block; }
-figcaption { font-size: 1rem; color: var(--muted); margin-top: 0.4rem; }
-.notice { border-left: 6px solid var(--ink); background: var(--soft); padding: 0.75rem 1rem; margin: 0 0 1rem; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; background: var(--soft); padding: 0 0.2em; }
-footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2rem; font-size: 1rem; color: var(--muted); }
-.big { font-size: 1.1rem; }
-@page { margin: 16mm; }
+p, li { max-width: 68ch; }
+code { font-family: var(--font-mono); font-size: 0.88em; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+section { padding: 3rem 0 0.5rem; }
+section > h2::before { content: ""; display: block; width: 2.5rem; height: 0.3rem; background: var(--amber); border-radius: 2px; margin-bottom: 0.9rem; }
+
+/* Cover */
+.cover { border-bottom: 1px solid var(--rule); padding: 2.5rem 0 3rem; }
+.cover .wrap { position: relative; }
+.cover-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 3.5rem; }
+.cover-brand { display: block; width: 11rem; height: auto; }
+.cover-brand img { width: 100%; height: auto; display: block; }
+.cover-brand .logo-dark { display: none; }
+@media screen and (prefers-color-scheme: dark) { .cover-brand .logo-light { display: none; } .cover-brand .logo-dark { display: block; } }
+.eyebrow { font-family: var(--font-heading); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.75rem; }
+.cover h1 { font-size: clamp(2.4rem, 1.7rem + 3.4vw, 3.6rem); line-height: 1.08; letter-spacing: -0.025em; max-width: 18ch; margin: 0 0 0.9rem; }
+.cover .for { font-size: 1.25rem; margin: 0 0 2rem; }
+.cover-body { display: grid; grid-template-columns: 1fr; gap: 1.5rem 2.5rem; align-items: end; }
+.cover-body.has-mascot { grid-template-columns: 1fr 9.5rem; }
+.mascot { width: 9.5rem; height: auto; }
+.cover-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem 2rem; border-top: 3px solid var(--amber); padding-top: 1.1rem; margin: 0 0 1.75rem; }
+.cover-meta div { min-width: 0; }
+dt.k, .cover-meta dt { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.cover-meta dd { margin: 0.15rem 0 0; font-size: 1.0625rem; }
+.cover-lead { font-size: 1.2rem; line-height: 1.55; max-width: 60ch; margin: 0 0 1.75rem; }
+.overview { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 1.1rem 1.25rem 1.2rem; max-width: 40rem; }
+.overview h2, .overview .ov-title { font-family: var(--font-heading); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.7rem; }
+.overview h2::before { display: none; }
+.bar { display: block; width: 100%; height: 0.85rem; border-radius: 99px; overflow: hidden; margin: 0 0 0.85rem; background: var(--rule); }
+.seg { stroke: var(--panel); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.seg-blocker { fill: var(--blocker); } .seg-major { fill: var(--major); } .seg-minor { fill: var(--minor); } .seg-info { fill: var(--info); }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem 0.5rem; margin: 0; padding: 0; }
+.chips li { max-width: none; }
+.chip { display: inline-flex; align-items: baseline; gap: 0.4rem; border: 1.5px solid; border-radius: 99px; padding: 0.1rem 0.8rem 0.1rem 0.55rem; font-size: 0.9375rem; font-weight: 700; }
+.chip b { font-family: var(--font-heading); font-size: 1.05rem; }
+.chip.is-zero { border-style: dashed; font-weight: 400; }
+
+/* Severity colours. Every use also carries the severity as words. */
+.b-blocker { background: var(--blocker-bg); color: var(--blocker-ink); border-color: var(--blocker); }
+.b-major { background: var(--major-bg); color: var(--major-ink); border-color: var(--major); }
+.b-minor { background: var(--minor-bg); color: var(--minor-ink); border-color: var(--minor); }
+.b-info { background: var(--info-bg); color: var(--info-ink); border-color: var(--info); }
+.badge { display: inline-block; border: 1.5px solid; border-radius: 6px; padding: 0 0.55rem; font-size: 0.875rem; font-weight: 700; line-height: 1.6; margin: 0 0.35rem 0.25rem 0; vertical-align: middle; }
+.st-confirmed { background: var(--good-bg); color: var(--good-ink); border-color: var(--good-ink); }
+.st-not-reviewed { background: transparent; color: var(--ink); border: 1.5px dashed var(--muted); }
+.bl-new { background: var(--info-bg); color: var(--info-ink); border-color: var(--info); }
+.bl-still-present, .bl-fixed { background: var(--panel); color: var(--ink); border-color: var(--muted); }
+
+/* Contents */
+.contents { padding: 2rem 0 0; }
+.contents h2 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.6rem; }
+.contents h2::before { display: none; }
+.contents > ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+.contents > ol > li { counter-increment: toc; max-width: none; padding: 0.2rem 0; }
+.contents > ol > li > a { font-weight: 700; }
+.contents > ol > li > a::before { content: counter(toc, decimal-leading-zero); display: inline-block; min-width: 2rem; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.toc-findings { list-style: none; margin: 0.2rem 0 0.4rem; padding: 0 0 0 2rem; }
+.toc-findings li { font-size: 0.9375rem; line-height: 1.4; padding: 0.12rem 0; max-width: none; display: grid; grid-template-columns: 4.5rem 1fr; gap: 0 0.5rem; }
+.toc-findings .sevname { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding-top: 0.12rem; }
+
+/* Cards */
+.cards { list-style: none; padding: 0; margin: 0 0 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); gap: 0.75rem; }
+.cards li { max-width: none; margin: 0; }
+.card { border: 1px solid var(--rule); border-radius: 14px; padding: 0.9rem 1rem 0.95rem; background: var(--panel); height: 100%; display: flex; flex-direction: column; gap: 0.1rem; margin: 0; }
+.card dt { order: 2; font-size: 0.875rem; font-weight: 700; color: var(--muted); }
+.card dd { display: contents; }
+.card .sub { order: 3; }
+.card .n { order: 1; }
+.card .n { font-family: var(--font-heading); font-size: 2.1rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; display: block; }
+.card .n.words { font-size: 1.35rem; padding-top: 0.45rem; }
+.card .sub { display: block; font-size: 0.875rem; color: var(--muted); line-height: 1.35; margin-top: 0.15rem; }
+.cardwrap { display: block; }
+.panel { border: 1px solid var(--rule); border-radius: 14px; padding: 1rem 1.25rem; background: var(--panel); margin: 0 0 1.25rem; }
+.panel h3 { margin: 0 0 0.4rem; font-size: 1.1rem; }
+.panel p:last-child { margin-bottom: 0; }
+.note { border-left: 6px solid var(--amber); background: var(--panel); border-radius: 0 10px 10px 0; padding: 0.9rem 1.25rem; margin: 1.5rem 0 0; }
+.note h3 { margin: 0 0 0.3rem; font-size: 1.05rem; }
+.note p:last-child { margin-bottom: 0; }
+.notice { border: 1px dashed var(--muted); border-radius: 10px; padding: 0.7rem 1rem; margin: 0 0 1rem; }
+.worked { padding-left: 1.2rem; }
+.worked li { margin-bottom: 0.45rem; }
+
+/* Findings */
+.group-head { display: flex; align-items: baseline; gap: 0.75rem; margin: 2.25rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--rule); }
+.group-head h3 { margin: 0; }
+.group-head .count { color: var(--muted); font-size: 0.9375rem; }
+article.finding { position: relative; border: 1px solid var(--rule); border-left: 8px solid var(--muted); border-radius: 12px; padding: 1.15rem 1.4rem 0.7rem 1.3rem; margin: 0 0 1.5rem; background: var(--paper); }
+article.finding.f-blocker { border-left-color: var(--blocker); }
+article.finding.f-major { border-left-color: var(--major); }
+article.finding.f-minor { border-left-color: var(--minor); }
+article.finding.f-info { border-left-color: var(--info); }
+.f-badges { margin: 0 0 0.35rem; max-width: none; }
+article.finding h4 { margin: 0 0 0.3rem; font-size: 1.3rem; }
+.f-where { color: var(--muted); margin: 0 0 1rem; font-size: 0.9375rem; }
+dl.facts { display: grid; grid-template-columns: minmax(7.5rem, max-content) 1fr; gap: 0.35rem 1.25rem; margin: 0 0 0.5rem; font-size: 1rem; }
+dl.facts dt { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-top: 0.2rem; }
+dl.facts dd { margin: 0; min-width: 0; }
+dl.facts.small { font-size: 0.9375rem; }
+ol.steps { padding-left: 1.5rem; margin: 0 0 1rem; }
+ol.steps li { padding-left: 0.3rem; margin-bottom: 0.3rem; }
+ol.steps li::marker { font-family: var(--font-heading); font-weight: 700; color: var(--muted); }
+figure { margin: 0 0 1rem; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
+figcaption { font-size: 0.875rem; color: var(--muted); margin-top: 0.4rem; }
+.outcome { margin: 0 0 1rem; }
+details.tech { border-top: 1px solid var(--rule); margin-top: 1rem; padding: 0.5rem 0 0.4rem; }
+details.tech summary { cursor: pointer; font-size: 0.875rem; font-weight: 700; color: var(--muted); padding: 0.2rem 0; }
+details.tech summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+details.tech dl { margin-top: 0.5rem; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; margin: 0 0 1.25rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.96rem; margin: 0; }
+caption { text-align: left; font-family: var(--font-heading); font-weight: 600; font-size: 1.05rem; padding: 0 0 0.5rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); }
+thead th { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--ink); white-space: nowrap; }
+tbody th { font-weight: 700; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+td code { white-space: normal; }
+.help { font-weight: 400; }
+h3.sub { font-size: 1.15rem; margin: 2rem 0 0.6rem; }
+
+footer { margin-top: 4rem; border-top: 1px solid var(--rule); padding: 1.25rem 0 2.5rem; font-size: 0.9375rem; color: var(--muted); }
+footer p { margin: 0 0 0.4rem; }
+
+@media (max-width: 40rem) {
+  .cover-body.has-mascot { grid-template-columns: 1fr; }
+  .mascot { width: 7rem; }
+  dl.facts { grid-template-columns: 1fr; gap: 0; }
+  dl.facts dd { margin-bottom: 0.5rem; }
+  article.finding { padding: 1rem 1rem 0.5rem; }
+}
+
 @media print {
-  body { font-size: 11pt; line-height: 1.45; }
-  .skip, nav { display: none; }
-  h2 { break-after: avoid; margin-top: 1.5rem; }
-  article.finding, figure, tr { break-inside: avoid; }
+  :root { color-scheme: light; }
+  @page { size: A4; margin: 20mm 16mm 20mm;
+    @top-left { content: "{{.Title}}"; font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: bottom; padding-bottom: 4mm; }
+    @top-right { content: "{{if .Client}}Prepared for {{.Client}}{{else}}Audit report{{end}}"; font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: bottom; padding-bottom: 4mm; }
+    @bottom-left { content: "Made with dummyrun {{.ToolVersion}}"; font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: top; padding-top: 4mm; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: top; padding-top: 4mm; }
+  }
+  @page :first { @top-left { content: none; } @top-right { content: none; } }
+  body { font-size: 10.5pt; line-height: 1.5; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .skip { display: none; }
   .wrap { max-width: none; padding: 0; }
-  a { color: var(--ink); }
-  .badge, thead th, .notice { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cover { padding: 0; border: 0; min-height: 235mm; display: flex; flex-direction: column; justify-content: space-between; break-after: page; }
+  .cover > .wrap { flex: 1; display: flex; flex-direction: column; }
+  .cover-top { margin-bottom: 22mm; }
+  .cover h1 { font-size: 36pt; }
+  .cover-body { margin-top: auto; }
+  .contents { padding-top: 0; }
+  section { padding-top: 0; break-before: page; }
+  section.flow { break-before: auto; padding-top: 1.5rem; }
+  h2, h3, h4, h5 { break-after: avoid; }
+  article.finding, figure, tr, .card, .panel, .note, .overview { break-inside: avoid; }
+  thead { display: table-header-group; }
+  .table-wrap { overflow: visible; }
+  a { color: var(--ink); text-decoration: underline; }
+  article.finding { border-radius: 6px; }
+  details.tech:not([open])::details-content { content-visibility: visible; display: block; }
+  details.tech summary { list-style: none; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  figure img { max-height: 100mm; object-fit: contain; object-position: left top; }
+  footer { margin-top: 1.5rem; }
 }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to the report</a>
-<header>
+
+<header class="cover">
 <div class="wrap">
+<div class="cover-top">
+{{- /* Agencies: put your own logo inside .cover-brand, or replace the whole element. */}}
+<span class="cover-brand">
+<img class="logo-light" src="{{asset "lockup-horizontal.svg"}}" alt="Dummy Run" width="351" height="88">
+<img class="logo-dark" src="{{asset "lockup-horizontal-dark.svg"}}" alt="Dummy Run" width="351" height="88">
+</span>
+</div>
+<p class="eyebrow">Audit report</p>
 <h1>{{.Title}}</h1>
-<p class="meta">{{if .Client}}Prepared for {{.Client}}. {{end}}Report date {{.Date}}. Made with dummyrun {{.ToolVersion}}. Findings included: {{.Basis}}.</p>
+{{if .Client}}<p class="for">Prepared for <strong>{{.Client}}</strong></p>{{end}}
+<dl class="cover-meta">
+{{- range .Scope.Targets}}{{if .BaseURL}}
+<div><dt>Target</dt><dd>{{.BaseURL}}</dd></div>
+{{- end}}{{end}}
+{{- if .Scope.StartedAt}}
+<div><dt>Tested</dt><dd>{{period .Scope}}</dd></div>
+{{- end}}
+<div><dt>Report date</dt><dd>{{longDate .Date}}</dd></div>
+{{- if .Baseline}}
+<div><dt>Compared with</dt><dd>{{.Baseline.Title}}, {{longDate .Baseline.Date}}</dd></div>
+{{- end}}
+<div><dt>Findings included</dt><dd>{{cap .Basis}}</dd></div>
+</dl>
+<div class="cover-body has-mascot">
+<div>
+<p class="cover-lead">{{lead .Summary.Text}}</p>
+{{- $segs := segments .Summary}}
+<div class="overview" role="group" aria-labelledby="ov-title">
+<p class="ov-title" id="ov-title">Problems found, by severity</p>
+{{- if $segs}}
+<svg class="bar" viewBox="0 0 100 10" preserveAspectRatio="none" role="img" aria-label="{{range $i, $s := $segs}}{{if $i}}, {{end}}{{$s.Count}} {{$s.Severity}}{{end}}">
+{{- range $segs}}<rect class="seg seg-{{.Severity}}" x="{{.X}}" y="0" width="{{.W}}" height="10"/>{{end -}}
+</svg>
+{{- end}}
+<ul class="chips">
+{{- range $sev := severities}}{{$n := index $.Summary.BySeverity $sev}}
+<li><span class="chip b-{{$sev}}{{if not $n}} is-zero{{end}}"><b>{{$n}}</b> {{cap $sev}}</span></li>
+{{- end}}
+</ul>
+</div>
+</div>
+<img class="mascot" src="{{asset "dummy-reading.svg"}}" alt="" width="152" height="182">
+</div>
 </div>
 </header>
+
 <div class="wrap">
-<nav aria-label="Contents">
-<ul>
+<nav class="contents" aria-labelledby="h-contents">
+<h2 id="h-contents">Contents</h2>
+<ol>
 <li><a href="#summary">Summary</a></li>
-<li><a href="#scope">Scope and method</a></li>
-<li><a href="#coverage">Coverage</a></li>
-<li><a href="#findings">Findings</a></li>
-{{- if .Worked}}
-<li><a href="#worked">What worked</a></li>
+<li><a href="#findings">Findings</a>
+{{- if .Findings}}
+<ul class="toc-findings">
+{{- range sevGroups .Findings}}{{$g := .}}
+{{- range .Items}}
+<li><span class="sevname">{{cap $g.Severity}}</span><a href="#f-{{.Index}}">{{.Finding.Title}}</a></li>
 {{- end}}
+{{- end}}
+</ul>
+{{- end}}
+</li>
 {{- if .Axe}}
-<li><a href="#axe-sweep">Axe sweep</a></li>
+<li><a href="#axe-sweep">Axe sweep and layout checks</a></li>
 {{- end}}
 {{- if .Baseline}}
-<li><a href="#fixed">Since the baseline</a></li>
+<li><a href="#baseline">Since the baseline</a></li>
 {{- end}}
+<li><a href="#method">How it was tested</a></li>
 <li><a href="#limits">What this report is not</a></li>
-</ul>
+</ol>
 </nav>
+
 <main id="main">
 
-<section id="summary" aria-labelledby="h-summary">
+<section id="summary" class="flow" aria-labelledby="h-summary">
 <h2 id="h-summary">Summary</h2>
-{{range .Summary.Text}}<p class="big">{{.}}</p>
+{{if .Summary.NotReviewed}}<p class="notice"><strong>Not reviewed:</strong> {{plural .Summary.NotReviewed "finding" "findings"}}. A model reported what it found and no person has checked the evidence.</p>{{end}}
+{{range .Warnings}}<p class="notice">{{.}}</p>{{end}}
+
+<h3 class="sub">The key numbers</h3>
+<ul class="cards">
+<li><dl class="card"><dt>Problems found</dt><dd><span class="n">{{.Summary.FindingsTotal}}</span><span class="sub">{{.Summary.Confirmed}} confirmed by a person</span></dd></dl></li>
+<li><dl class="card"><dt>Runs</dt><dd><span class="n">{{.Scope.Runs.Total}}</span><span class="sub">{{.Scope.Runs.Completed}} completed</span></dd></dl></li>
+<li><dl class="card"><dt>Personas</dt><dd><span class="n">{{len .Scope.Personas}}</span><span class="sub">fictional users</span></dd></dl></li>
+<li><dl class="card"><dt>Routes visited</dt><dd><span class="n">{{len .Scope.Routes}}</span>{{if .Coverage.RouteUniverse}}<span class="sub">of {{.Coverage.RouteUniverse}} known</span>{{end}}</dd></dl></li>
+{{- if .Axe}}
+<li><dl class="card"><dt>Pages in the axe sweep</dt><dd><span class="n">{{.Axe.Pages}}</span><span class="sub">{{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}</span></dd></dl></li>
+{{- end}}
+{{- if .Baseline}}
+<li><dl class="card"><dt>Since the baseline</dt><dd><span class="n">{{.Summary.New}}</span><span class="sub">new, {{.Summary.StillPresent}} still present, {{.Summary.Fixed}} not seen again</span></dd></dl></li>
+{{- end}}
+</ul>
+
+<div class="panel">
+<h3>How sure you can be</h3>
+<p>{{howSure .Coverage}}</p>
+{{- if and .Coverage.Available .Coverage.SampleCoverage}}
+<p class="muted">Sample coverage is {{f2 .Coverage.SampleCoverage}}. The method is under <a href="#method">How it was tested</a>.</p>
+{{- end}}
+</div>
+
+{{if .Scope.Runs.Total}}
+<h3 class="sub">What was tested</h3>
+<dl class="facts">
+{{- range .Scope.Targets}}
+<dt>Target</dt><dd>{{.BaseURL}}, build <code>{{.Build}}</code> ({{.BuildKind}}), {{.Environment}}</dd>
+{{- end}}
+<dt>Personas</dt><dd>{{range $i, $p := .Scope.Personas}}{{if $i}}, {{end}}{{$p.ID}} ({{$p.Role}}){{end}}</dd>
+<dt>Scenarios</dt><dd>{{range $i, $s := .Scope.Scenarios}}{{if $i}}; {{end}}{{$s.Title}}{{end}}</dd>
+<dt>Browsers</dt><dd>{{range $i, $b := .Scope.Browsers}}{{if $i}}, {{end}}{{$b.Name}} {{$b.Version}}{{end}}</dd>
+{{- if .Axe}}
+<dt>Axe sweep</dt><dd>{{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}}</dd>
+{{- end}}
+</dl>
+{{else}}
+<h3 class="sub">What was tested</h3>
+<p>No persona runs were given. This report holds the axe sweep only.</p>
 {{end}}
+
+{{if .Worked}}
+<h3 class="sub" id="worked">What worked</h3>
+<p>Personas also reported what went well. A model wrote these notes and no person has checked them, so they are observations and not findings.</p>
+<ul class="worked">
+{{- range .Worked}}
+<li>{{.Text}} <span class="muted">({{.Runs}} of {{$.Scope.Runs.Total}} runs; {{join .Personas}})</span></li>
+{{- end}}
+</ul>
+{{end}}
+
+<aside class="note" aria-labelledby="h-note">
+<h3 id="h-note">Read this as a sample</h3>
+<p>This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. <a href="#limits">What this report is not</a> says more.</p>
+</aside>
+</section>
+
+<section id="findings" aria-labelledby="h-findings">
+<h2 id="h-findings">Findings</h2>
+<p>The findings are sorted by severity, then by the number of runs that found them. Each is a distinct problem, and one found in several runs appears once.</p>
+{{if not .Findings}}<p>This report has no persona findings.</p>{{end}}
+{{range sevGroups .Findings}}{{$g := .}}
+<div class="group-head"><h3 id="g-{{$g.Severity}}">{{cap $g.Severity}}</h3><span class="count">{{plural (len $g.Items) "finding" "findings"}}</span></div>
+{{range .Items}}{{$f := .Finding}}{{$i := .Index}}
+<article class="finding f-{{$f.Severity}}" id="f-{{$i}}" aria-labelledby="f-{{$i}}-t">
+<p class="f-badges"><span class="badge b-{{$f.Severity}}">{{cap $f.Severity}}</span><span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span>
+{{- if $f.Baseline}}<span class="badge bl-{{$f.Baseline}}">{{baselineText $f.Baseline}}</span>{{end}}</p>
+<h4 id="f-{{$i}}-t">{{$f.Title}}</h4>
+{{- $place := placeText $f.Route $f.Locus}}
+{{if $place}}<p class="f-where">{{upper $place}}{{if $f.Route}} <code>{{$f.Route}}</code>{{end}}</p>{{end}}
+<dl class="facts">
+{{- if $f.Symptom}}
+<dt>What went wrong</dt><dd>{{symptomText $f.Symptom}}</dd>
+{{- end}}
+<dt>Who hit it</dt><dd>{{whoText $ $f}}</dd>
+{{- if $f.State}}
+<dt>When</dt><dd>{{$f.State}}</dd>
+{{- end}}
+{{- if $f.WCAG}}
+<dt>WCAG 2.2</dt><dd>{{join $f.WCAG}}</dd>
+{{- end}}
+<dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
+{{- if $f.HelpURL}}
+<dt>Fix guidance</dt><dd><a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a></dd>
+{{- end}}
+</dl>
+<h5>How to reproduce</h5>
+<ol class="steps">
+{{- range reproSteps $f}}
+<li>{{.}}</li>
+{{- end}}
+</ol>
+<p class="outcome"><strong>What goes wrong:</strong> {{$f.Title}}</p>
+{{range $f.Screenshots}}{{$u := shot .}}
+{{if $u}}<figure><img src="{{$u}}" alt="Screenshot: {{shotCaption $f .}}"><figcaption>{{shotCaption $f .}}.{{with lookAt $f}} <strong>{{.}}</strong>{{end}}</figcaption></figure>{{else}}<p class="muted">The screenshot for this finding was not found when this report was made.</p>{{end}}
+{{end}}
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>{{$f.Reproduction.Run}}</code>{{if $f.Reproduction.Steps}}, step{{if gt (len $f.Reproduction.Steps) 1}}s{{end}} {{range $j, $st := $f.Reproduction.Steps}}{{if $j}}, {{end}}{{$st.N}}{{end}}{{end}}</dd>
+<dt>Persona</dt><dd><code>{{$f.Reproduction.Persona}}</code>, {{$f.Reproduction.Device}}, {{$f.Reproduction.Browser}}</dd>
+<dt>Kind</dt><dd>{{$f.Kind}}</dd>
+{{- if $f.Symptom}}
+<dt>Symptom</dt><dd><code>{{$f.Symptom}}</code></dd>
+{{- end}}
+{{- if or $f.Route $f.Locus}}
+<dt>Location</dt><dd>{{if $f.Route}}<code>{{$f.Route}}</code>{{end}}{{if $f.Locus}} <code>{{$f.Locus}}</code>{{end}}</dd>
+{{- end}}
+<dt>Evidence</dt><dd>{{$f.Evidence}}</dd>
+<dt>Fingerprint</dt><dd><code>{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}</code></dd>
+{{- if gt (len $f.Instances) 1}}
+<dt>Also seen in</dt><dd>{{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}</dd>
+{{- end}}
+{{range $f.Screenshots}}<dt>Screenshot</dt><dd>run {{.Run}}, step {{.Step}}, <code>{{.Path}}</code></dd>
+{{end}}
+</dl>
+</details>
+</article>
+{{end}}
+{{end}}
+</section>
+{{if .Axe}}
+<section id="axe-sweep" aria-labelledby="h-axe">
+<h2 id="h-axe">Axe sweep and layout checks</h2>
+<p>The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{range .Axe.Tags}}<code>{{.}}</code> {{end}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.</p>
+{{if .Axe.Rules}}
+<div class="table-wrap" role="region" tabindex="0" aria-label="Rules that failed">
 <table>
-<caption>Findings by severity</caption>
-<thead><tr><th scope="col">Severity</th><th scope="col" class="num">Distinct problems</th></tr></thead>
+<caption>Rules that failed</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">Impact</th><th scope="col">WCAG 2.2</th><th scope="col" class="num">Elements</th><th scope="col">Fix guidance</th></tr></thead>
 <tbody>
-{{- range $sev := severities}}
-<tr><th scope="row">{{cap $sev}}</th><td class="num">{{index $.Summary.BySeverity $sev}}</td></tr>
+{{- range .Axe.Rules}}
+<tr>
+<th scope="row"><code>{{.Rule}}</code><br><span class="muted help">{{.Help}}</span>{{if .Baseline}}<br><span class="badge bl-{{.Baseline}}">{{baselineText .Baseline}}</span>{{end}}</th>
+<td><span class="badge b-{{impactSev .Impact}}">{{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}</span></td>
+<td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td>
+<td class="num">{{.Elements}}</td>
+<td>{{if .HelpURL}}<a href="{{.HelpURL}}">How to fix {{.Rule}}</a>{{else}}None recorded{{end}}</td>
+</tr>
 {{- end}}
 </tbody>
 </table>
-{{if .Summary.NotReviewed}}<p class="notice">Not reviewed: {{.Summary.NotReviewed}}. A model reported these findings and no person has checked them against the evidence.</p>{{end}}
-{{range .Warnings}}<p class="notice">{{.}}</p>{{end}}
-</section>
+</div>
 
-<section id="scope" aria-labelledby="h-scope">
-<h2 id="h-scope">Scope and method</h2>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Where each rule failed">
+<table>
+<caption>Where each rule failed</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
+<tbody>
+{{- range $r := .Axe.Rules}}{{range $r.Pages}}
+<tr><th scope="row"><code>{{$r.Rule}}</code></th><td>{{.URL}}</td><td>{{range $k, $t := .Targets}}{{if $k}}<br>{{end}}<code>{{$t}}</code>{{end}}</td><td>{{range $k, $t := .Settings}}{{if $k}}<br>{{end}}{{$t}}{{end}}</td></tr>
+{{- end}}{{end}}
+</tbody>
+</table>
+</div>
+{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
+{{if .Axe.NeedsReview}}
+<h3 class="sub">Needs a person to check</h3>
+<p>Axe cannot decide these rules alone. A person has to look.</p>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Rules that need review">
+<table>
+<caption>Rules that need review</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col">WCAG 2.2</th><th scope="col">Pages</th></tr></thead>
+<tbody>
+{{- range .Axe.NeedsReview}}
+<tr><th scope="row"><code>{{.Rule}}</code></th><td>{{.Help}}</td><td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+</div>
+{{end}}
+{{if .Axe.Errors}}
+<h3 class="sub">Pages that could not be tested</h3>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Page errors">
+<table>
+<caption>Page errors</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Setting</th><th scope="col">Error</th></tr></thead>
+<tbody>
+{{- range .Axe.Errors}}
+<tr><td>{{.URL}}</td><td>{{.Setting}}</td><td>{{.Message}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+</div>
+{{end}}
+</section>
+{{end}}
+{{if .Baseline}}
+<section id="baseline" aria-labelledby="h-baseline">
+<h2 id="h-baseline">Since the baseline</h2>
+<p>The baseline is the report titled {{.Baseline.Title}} of {{longDate .Baseline.Date}}. Findings are matched by fingerprint. A finding the baseline had and this report did not find again is marked fixed. A sample can miss a problem that is still there.</p>
+<ul class="cards">
+<li><dl class="card"><dt>New since the baseline</dt><dd><span class="n">{{.Summary.New}}</span></dd></dl></li>
+<li><dl class="card"><dt>Still present</dt><dd><span class="n">{{.Summary.StillPresent}}</span></dd></dl></li>
+<li><dl class="card"><dt>Not seen again</dt><dd><span class="n">{{.Summary.Fixed}}</span></dd></dl></li>
+</ul>
+{{if .Fixed}}
+<div class="table-wrap" role="region" tabindex="0" aria-label="Fixed since the baseline">
+<table>
+<caption>Fixed since the baseline</caption>
+<thead><tr><th scope="col">Severity</th><th scope="col">Problem</th><th scope="col">Source</th></tr></thead>
+<tbody>
+{{- range .Fixed}}
+<tr><td>{{cap .Severity}}</td><th scope="row">{{.Title}}</th><td>{{if eq .Source "axe"}}Axe sweep{{else}}Persona run{{end}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+</div>
+{{else}}<p>Nothing from the baseline is missing from this report.</p>{{end}}
+</section>
+{{end}}
+<section id="method" aria-labelledby="h-method">
+<h2 id="h-method">How it was tested</h2>
 <p>Each run signs one fictional user, called a persona, in to the app in a real browser. The persona works through a scenario and reports what broke, what confused it and what its role should not have seen. Findings are folded together when they share a fingerprint, which is a hash of the route, the control and the kind of symptom.</p>
 {{if .Scope.Runs.Total}}
 <dl class="facts">
@@ -120,6 +541,7 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <dt>Routes visited</dt><dd>{{len .Scope.Routes}}{{if .Scope.Routes}}: {{range .Scope.Routes}}<code>{{.}}</code> {{end}}{{end}}</dd>
 </dl>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Target and build">
 <table>
 <caption>Target and build</caption>
 <thead><tr><th scope="col">Address</th><th scope="col">Environment</th><th scope="col">Build</th><th scope="col">Adapter</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -129,7 +551,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 {{- end}}
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Personas and the dimensions they varied">
 <table>
 <caption>Personas and the dimensions they varied</caption>
 <thead><tr><th scope="col">Persona</th><th scope="col">Role</th><th scope="col">Device</th><th scope="col">Dimensions</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -139,7 +563,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 {{- end}}
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Scenarios and whether the persona did what it came to do">
 <table>
 <caption>Scenarios and whether the persona did what it came to do</caption>
 <thead><tr><th scope="col">Scenario</th><th scope="col" class="num">Runs</th><th scope="col" class="num">Yes</th><th scope="col" class="num">Partly</th><th scope="col" class="num">No</th><th scope="col" class="num">Not recorded</th></tr></thead>
@@ -149,7 +575,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 {{- end}}
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Browsers">
 <table>
 <caption>Browsers</caption>
 <thead><tr><th scope="col">Browser</th><th scope="col">Version</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -159,7 +587,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 {{- end}}
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Models and providers">
 <table>
 <caption>Models and providers</caption>
 <thead><tr><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Region</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -169,14 +599,12 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 {{- end}}
 </tbody>
 </table>
+</div>
 {{else}}
 <p>No persona runs were given. This report holds the axe sweep only.</p>
 {{end}}
-{{if .Axe}}<p>The axe sweep ran {{.Axe.Tool}} with axe-core {{.Axe.AxeVersion}} on {{join .Axe.Browsers}}. It tested {{.Axe.Pages}} pages in {{.Axe.Runs}} settings.</p>{{end}}
-</section>
 
-<section id="coverage" aria-labelledby="h-coverage">
-<h2 id="h-coverage">Coverage</h2>
+<h3 class="sub" id="coverage">Coverage</h3>
 {{if .Coverage.Available}}
 <p>These numbers come from <code>dummyrun coverage</code> over the same runs. They say how much the sample can tell you.</p>
 <dl class="facts">
@@ -185,20 +613,20 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <dt>Distinct problems seen</dt><dd>{{.Coverage.Observed}}</dd>
 <dt>Still unfound</dt><dd>{{if .Coverage.UnfoundAtLeast}}At least {{f1 .Coverage.UnfoundAtLeast}} (Chao2 lower bound of {{f1 .Coverage.TotalAtLeast}} in total, {{.Coverage.Form}} form){{else}}Not estimable from these runs{{end}}</dd>
 <dt>Sample coverage</dt><dd>{{if .Coverage.SampleCoverage}}{{f2 .Coverage.SampleCoverage}}{{else}}Not estimable{{end}}</dd>
-<dt>New problems per extra run</dt><dd>{{if .Coverage.NewPerExtraRun}}{{f2 .Coverage.NewPerExtraRun}}{{else}}Not estimable{{end}}</dd>
+<dt>New per extra run</dt><dd>{{if .Coverage.NewPerExtraRun}}{{f2 .Coverage.NewPerExtraRun}}{{else}}Not estimable{{end}}</dd>
 {{- if .Coverage.RouteUniverse}}
 <dt>Routes visited</dt><dd>{{.Coverage.RoutesVisited}} of {{.Coverage.RouteUniverse}} known routes</dd>
 {{- end}}
 <dt>Stopping rule</dt><dd>{{.Coverage.StoppingRule}}</dd>
 </dl>
-<h3>How to read these numbers</h3>
+<h4>How to read these numbers</h4>
 <ul>
 <li>The Chao2 figure is a floor. The real number of problems is at least that high. It is never a count of what remains.</li>
 <li>Sample coverage is the share of the chance of finding a problem that sits in problems already found. Below 0.50 do not extrapolate from it.</li>
 <li>New problems per extra run is how many new problems one more run is expected to find. A low figure suggests more runs will add little.</li>
 <li>With fewer than 5 completed runs the estimates are weak. The stopping rule needs 4 completed runs in each group.</li>
 </ul>
-{{if .Coverage.Warnings}}<h3>Cautions</h3>
+{{if .Coverage.Warnings}}<h4>Cautions</h4>
 <ul>
 {{- range .Coverage.Warnings}}
 <li>{{.}}</li>
@@ -209,136 +637,6 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 {{end}}
 </section>
 
-<section id="findings" aria-labelledby="h-findings">
-<h2 id="h-findings">Findings</h2>
-<p>Findings are sorted by severity, then by the number of runs that found them. Each one is a distinct problem. A problem found in several runs appears once.</p>
-{{if not .Findings}}<p>This report has no persona findings.</p>{{end}}
-{{range $i, $f := .Findings}}
-<article class="finding" aria-labelledby="f-{{$i}}">
-<h3 id="f-{{$i}}"><span class="badge sev-{{$f.Severity}}">{{cap $f.Severity}}</span>{{$f.Title}}</h3>
-<p>
-<span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span>
-{{- if $f.Baseline}}<span class="badge bl-{{$f.Baseline}}">{{baselineText $f.Baseline}}</span>{{end}}
-</p>
-<dl class="facts">
-<dt>Kind</dt><dd>{{$f.Kind}}</dd>
-{{- if $f.Symptom}}
-<dt>Symptom</dt><dd>{{$f.Symptom}}</dd>
-{{- end}}
-{{- if $f.Route}}
-<dt>Route</dt><dd><code>{{$f.Route}}</code></dd>
-{{- end}}
-{{- if $f.Locus}}
-<dt>Control or region</dt><dd>{{$f.Locus}}</dd>
-{{- end}}
-{{- if $f.State}}
-<dt>Precondition</dt><dd>{{$f.State}}</dd>
-{{- end}}
-<dt>Evidence</dt><dd>{{$f.Evidence}}</dd>
-<dt>Found by</dt><dd>{{join $f.Personas}} in {{$f.Runs}} of {{$f.OfRuns}} runs</dd>
-<dt>WCAG 2.2 criterion</dt><dd>{{if $f.WCAG}}{{join $f.WCAG}}{{else}}Not recorded for this finding{{end}}</dd>
-<dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{$f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
-{{- if $f.HelpURL}}
-<dt>Fix guidance</dt><dd><a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a></dd>
-{{- end}}
-<dt>Fingerprint</dt><dd><code>{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}</code></dd>
-</dl>
-<h4>How to reproduce</h4>
-<p>Run {{$f.Reproduction.Run}}: persona {{$f.Reproduction.Persona}} signed in as {{$f.Reproduction.Role}} on a {{$f.Reproduction.Device}}{{if ne $f.Reproduction.Zoom 100}} at {{$f.Reproduction.Zoom}} percent zoom{{end}} in {{$f.Reproduction.Browser}}.</p>
-{{if $f.Reproduction.Steps}}<ol>
-{{- range $f.Reproduction.Steps}}
-<li value="{{.N}}">{{stepText .}}{{if .Note}} The persona said: {{.Note}}{{end}}</li>
-{{- end}}
-</ol>{{else}}<p>The record cites no step.</p>{{end}}
-{{if gt (len $f.Instances) 1}}<p>Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.</p>{{end}}
-{{range $f.Screenshots}}{{$u := shot .}}
-{{if $u}}<figure><img src="{{$u}}" alt="{{.Alt}}"><figcaption>{{.Alt}}</figcaption></figure>{{else}}<p>Screenshot <code>{{.Path}}</code> from run {{.Run}}, step {{.Step}}, was not found when this report was made.</p>{{end}}
-{{end}}
-</article>
-{{end}}
-</section>
-{{if .Worked}}
-<section id="worked" aria-labelledby="h-worked">
-<h2 id="h-worked">What worked</h2>
-<p>Personas also reported what worked. These notes are claims by a model. No person has checked them, and they are not findings.</p>
-<ul>
-{{- range .Worked}}
-<li>{{.Text}} ({{.Runs}} of {{$.Scope.Runs.Total}} runs; {{join .Personas}})</li>
-{{- end}}
-</ul>
-</section>
-{{end}}
-{{if .Axe}}
-<section id="axe-sweep" aria-labelledby="h-axe">
-<h2 id="h-axe">Axe sweep</h2>
-<p>The sweep ran axe-core {{.Axe.AxeVersion}} on {{.Axe.Pages}} pages in {{.Axe.Runs}} settings (browser, viewport and colour scheme). It checked the rules with these tags: {{range .Axe.Tags}}<code>{{.}}</code> {{end}}. It found {{.Axe.FailingNodes}} failing elements{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.</p>
-{{if .Axe.Rules}}
-{{range $i, $r := .Axe.Rules}}
-<article class="finding" aria-labelledby="a-{{$i}}">
-<h3 id="a-{{$i}}"><span class="badge sev-{{or $r.Impact "info"}}">{{if $r.Impact}}{{cap $r.Impact}}{{else}}No impact given{{end}}</span>{{$r.Help}}</h3>
-{{- if $r.Baseline}}<p><span class="badge bl-{{$r.Baseline}}">{{baselineText $r.Baseline}}</span></p>{{end}}
-<dl class="facts">
-<dt>Rule</dt><dd><code>{{$r.Rule}}</code></dd>
-<dt>WCAG 2.2 criterion</dt><dd>{{if $r.WCAG}}{{join $r.WCAG}}{{else}}Not recorded for this rule{{end}}</dd>
-<dt>Elements</dt><dd>{{$r.Elements}}</dd>
-<dt>Fix guidance</dt><dd>{{if $r.HelpURL}}<a href="{{$r.HelpURL}}">{{$r.HelpURL}}</a>{{else}}None recorded{{end}}</dd>
-</dl>
-<table>
-<caption>Where {{$r.Rule}} failed</caption>
-<thead><tr><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
-<tbody>
-{{- range $r.Pages}}
-<tr><td>{{.URL}}</td><td>{{range $k, $t := .Targets}}{{if $k}}<br>{{end}}<code>{{$t}}</code>{{end}}</td><td>{{range $k, $t := .Settings}}{{if $k}}<br>{{end}}{{$t}}{{end}}</td></tr>
-{{- end}}
-</tbody>
-</table>
-</article>
-{{end}}
-{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
-{{if .Axe.NeedsReview}}
-<h3>Needs a person to check</h3>
-<p>Axe cannot decide these rules alone. A person has to look.</p>
-<table>
-<caption>Rules that need review</caption>
-<thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col">WCAG 2.2 criterion</th><th scope="col">Pages</th></tr></thead>
-<tbody>
-{{- range .Axe.NeedsReview}}
-<tr><td><code>{{.Rule}}</code></td><td>{{.Help}}</td><td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
-{{- end}}
-</tbody>
-</table>
-{{end}}
-{{if .Axe.Errors}}
-<h3>Pages that could not be tested</h3>
-<table>
-<caption>Page errors</caption>
-<thead><tr><th scope="col">Page</th><th scope="col">Setting</th><th scope="col">Error</th></tr></thead>
-<tbody>
-{{- range .Axe.Errors}}
-<tr><td>{{.URL}}</td><td>{{.Setting}}</td><td>{{.Message}}</td></tr>
-{{- end}}
-</tbody>
-</table>
-{{end}}
-</section>
-{{end}}
-{{if .Baseline}}
-<section id="fixed" aria-labelledby="h-fixed">
-<h2 id="h-fixed">Since the baseline</h2>
-<p>The baseline is the report titled {{.Baseline.Title}} of {{.Baseline.Date}}. Findings are matched by fingerprint. A fixed finding is one that the baseline had and this report did not find again. A sample can miss a problem that is still there.</p>
-{{if .Fixed}}
-<table>
-<caption>Fixed since the baseline</caption>
-<thead><tr><th scope="col">Severity</th><th scope="col">Problem</th><th scope="col">Source</th></tr></thead>
-<tbody>
-{{- range .Fixed}}
-<tr><td>{{cap .Severity}}</td><td>{{.Title}}</td><td>{{if eq .Source "axe"}}Axe sweep{{else}}Persona run{{end}}</td></tr>
-{{- end}}
-</tbody>
-</table>
-{{else}}<p>Nothing from the baseline is missing from this report.</p>{{end}}
-</section>
-{{end}}
 <section id="limits" aria-labelledby="h-limits">
 <h2 id="h-limits">What this report is not</h2>
 <ul>
@@ -349,7 +647,8 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 </section>
 </main>
 <footer>
-<p>Made with dummyrun {{.ToolVersion}} on {{.Date}}. The report is one file. It loads nothing from the network.</p>
+<p>Made with dummyrun {{.ToolVersion}} on {{longDate .Date}}. This report is one file and loads nothing from the network.</p>
+<p>Set in Space Grotesk and Atkinson Hyperlegible Next, both under the SIL Open Font License 1.1.</p>
 </footer>
 </div>
 </body>
