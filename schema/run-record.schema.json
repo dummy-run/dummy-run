@@ -176,6 +176,10 @@
               "description": "Reduced-motion setting the run used"
             }
           }
+        },
+        "name": {
+          "type": "string",
+          "description": "The persona's first name from its profile, as the report names it. Left out when the profile has none"
         }
       }
     },
@@ -491,6 +495,10 @@
             "type": "string",
             "pattern": "^/",
             "description": "Normalised route of url: path only, numeric, UUID and long hex segments as :id, query reduced to its sorted parameter names. Present on every step that has a url"
+          },
+          "element": {
+            "type": "string",
+            "description": "The control the action used, as role and accessible name such as link \"Read more\", resolved by the engine from the @number. Left out when the action had no control"
           }
         }
       }
@@ -628,6 +636,39 @@
           "reason": {
             "type": "string",
             "description": "Why the reviewer set the verdict. Required by dummyrun review for a rejection and optional for a confirmation"
+          },
+          "body": {
+            "type": "string",
+            "description": "Who the problem affects and why it matters, in the persona's words"
+          },
+          "fix": {
+            "type": "string",
+            "description": "One sentence on what to change"
+          },
+          "wcag": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[1-4]\\.[0-9]{1,2}\\.[0-9]{1,2}$"
+            },
+            "description": "WCAG 2.2 success criteria the problem fails, where one applies. The engine keeps only numbers that exist"
+          },
+          "element": {
+            "type": "string",
+            "description": "The element the evidence shows, as role and accessible name, the quoted text, or an axe selector. Set by the engine from the cited step"
+          },
+          "quote": {
+            "type": "string",
+            "description": "Words copied from the page that show the problem. The engine checks they appear at a cited step"
+          },
+          "url": {
+            "type": "string",
+            "description": "Address of the page at the step whose evidence the engine checked"
+          },
+          "evidence_step": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The cited step where the engine found the control, the quoted words or the measured problem"
           }
         }
       }
@@ -646,7 +687,7 @@
           "text": {
             "type": "string",
             "minLength": 1,
-            "description": "One sentence: what worked or what was neutral"
+            "description": "One sentence: what worked or what was neutral, or the claimed problem for an unverified or downgraded note"
           },
           "steps": {
             "type": "array",
@@ -656,6 +697,56 @@
             },
             "minItems": 1,
             "description": "Step numbers that show it"
+          },
+          "kind": {
+            "enum": [
+              "unverified",
+              "downgraded"
+            ],
+            "description": "Left out for what worked. unverified: a problem the persona claimed whose evidence the engine could not find at the cited steps. downgraded: a problem the self-check judged not worth a finding. Neither is shown as a finding"
+          }
+        }
+      }
+    },
+    "self_check": {
+      "type": "array",
+      "description": "The self-check's decision on each finding before the record was written: a cheap model pass that compares the finding with its evidence and the kind of site. Left out when the self-check did not run",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding",
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "finding": {
+            "type": "string",
+            "description": "The finding's title as the persona wrote it"
+          },
+          "decision": {
+            "enum": [
+              "keep",
+              "rewrite",
+              "observation",
+              "drop",
+              "unchecked"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "The new title, for rewrite"
+          },
+          "body": {
+            "type": "string",
+            "description": "The new body, for rewrite"
+          },
+          "fix": {
+            "type": "string",
+            "description": "The new fix, for rewrite"
           }
         }
       }

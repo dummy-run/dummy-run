@@ -140,6 +140,8 @@ func commonFuncs() map[string]any {
 		"placeText":    placeText,
 		"whoText":      whoText,
 		"reproSteps":   reproSteps,
+		"whereText":    whereText,
+		"wcagText":     wcagText,
 		"shotCaption":  shotCaption,
 		"lookAt":       lookAt,
 		"lead":         lead,

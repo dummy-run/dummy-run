@@ -87,8 +87,16 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 {{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
 
+{{end}}{{if $f.Body}}{{$f.Body}}
+
 {{end}}| | |
 |---|---|
+{{- with whereText $f}}
+| Where it is | {{cell .}} |
+{{- end}}
+{{- if $f.Quote}}
+| On the page | "{{cell $f.Quote}}" |
+{{- end}}
 {{- if $f.Symptom}}
 | What went wrong | {{cell (symptomText $f.Symptom)}} |
 {{- end}}
@@ -97,7 +105,10 @@ The findings are sorted by severity, then by the number of runs that found them.
 | When | {{cell $f.State}} |
 {{- end}}
 {{- if $f.WCAG}}
-| WCAG 2.2 | {{cell (join $f.WCAG)}} |
+| WCAG 2.2 | {{cell (wcagText $f.WCAG)}} |
+{{- end}}
+{{- if $f.Fix}}
+| How to fix it | {{cell $f.Fix}} |
 {{- end}}
 | Review | {{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{cell (join $f.Reviewers)}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{cell $f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding{{end}} |
 {{- if $f.HelpURL}}

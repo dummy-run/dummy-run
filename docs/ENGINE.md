@@ -112,6 +112,40 @@ engine works out the finding's route, locus and fingerprint from the page. [COVE
 list and explains what the fingerprint is for. If the model gives a symptom that isn't on the list, it's sent
 back to `finish` up to twice, and after that the finding is dropped.
 
+### Evidence for every finding
+
+A finding has to show where it is. Besides its steps, it gives either the control as `@12` from one of those
+steps, or `quote`: words copied from the page that show the problem, up to about 15 words. The engine checks
+them against what the browser read at the cited steps. The quote can differ in case, spacing, curly quotes and
+dashes, and an ellipsis can join two parts. An axe finding is backed when the cited `a11y` step found that rule,
+and an error, dead link or slow page when the engine measured the status, console error, failed request or
+time at that step. A step where the browser couldn't read the page, such as a lost connection, is never
+evidence about the site.
+
+When a finding isn't backed, `finish` is sent back once with a note saying what's missing. If it's still not
+backed, the finding becomes an observation with `kind: unverified`. It stays in the run record and is never
+shown as a finding or as something that worked. A backed finding gets the `element` the engine found (for
+example `link "Read more"`), the page `url` and the `evidence_step`. Its route is that step's route.
+
+A finding also has a `body` (who it affects and why), a `fix` and, where one applies, `wcag` criteria such as
+`2.4.4`. The engine keeps only WCAG 2.2 numbers that exist. Each step records the `element` it used, so the
+report can say "Click the \"Read more\" link" instead of `@17`.
+
+### The self-check
+
+After the persona finishes, one more model call reads each finding next to its evidence: the page title,
+headings and text around the quote at the evidence step, and that step's screenshot (up to four). It also
+reads the scenario's `Site:` line and goal. For each finding it decides:
+
+- `keep`: relevant to this kind of site, shown by the evidence and specific
+- `rewrite`: relevant and shown, but vague, so it gets a new title that names the element and the page, a body and a fix
+- `observation`: true but not worth the owner's time for this site, such as asking for prices on a site that sells nothing. It becomes an observation with `kind: downgraded`
+- `drop`: the evidence doesn't show it, or it's about the test rather than the site
+
+The decisions go into the record's `self_check` list. If the call fails, every finding is kept as it was and
+marked `unchecked`. The call uses the run's model and counts towards its tokens and cost, usually a fraction
+of a penny on a small model. `dummyrun run --self-check=false` turns it off.
+
 ## Browser cleanup
 
 You shouldn't find browsers left running after a run. The engine starts the driver and the browser in their
@@ -561,6 +595,14 @@ the threats. Here is what the engine does about prompt injection.
   A request the page sent by itself, such as a beacon while the persona scrolled, doesn't count. A finding
   with at least one cited step that shows the real page is kept. The persona is also told that these limits
   aren't the site's faults.
+  `low confidence:` in its detail, and it neither warns the persona nor files a finding.
+- A strong match adds a `HARNESS WARNING` line to that step's result and a `suspected_injection` event to the
+  run record. It also adds one finding of kind `security` that cites every step with a match. The engine files
+  this finding itself, so it's there even if the persona obeyed the page. Its symptom is `misleading-copy` and
+  its verdict is `pending`. Its severity is `major` when the text was hidden or held invisible characters, and
+  `minor` otherwise.
+- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event. So is a
+  finding whose control or quote isn't at its cited steps, which is kept as an unverified observation.
 
 The record's `events` array is optional. Each event has a `kind` and a short `detail`, plus a `step` where one
 applies. A `suspected_injection` event also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.

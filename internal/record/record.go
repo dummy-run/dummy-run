@@ -64,7 +64,9 @@ type Record struct {
 	// Observations are things that worked and neutral notes. They are not findings and never enter
 	// coverage or the findings metric. Records written before observations had their own list have none.
 	Observations []Observation `json:"observations,omitempty"`
-	Usage        Usage         `json:"usage"`
+	// SelfCheck is the self-check's decision on each finding, made before the record was written. Nil when it did not run.
+	SelfCheck []SelfCheck `json:"self_check,omitempty"`
+	Usage     Usage       `json:"usage"`
 	// Events are things the engine saw that a reviewer should know about. Left out when there are none.
 	Events []Event `json:"events,omitempty"`
 }
@@ -90,17 +92,48 @@ type Event struct {
 	Detail  string `json:"detail"`
 }
 
-// Observation is a note that something worked or is neutral, with the steps that show it.
+// Observation kinds. An observation with no kind is something that worked or a neutral note.
+const (
+	// ObservationUnverified is a problem the persona claimed whose evidence the engine could not find at the cited steps.
+	ObservationUnverified = "unverified"
+	// ObservationDowngraded is a problem the self-check judged not worth a finding for this site.
+	ObservationDowngraded = "downgraded"
+)
+
+// Observation is a note that something worked or is neutral, with the steps that show it. Kind marks a problem
+// claim that did not become a finding; reports never show those as findings or as things that worked.
 type Observation struct {
 	Text  string `json:"text"`
 	Steps []int  `json:"steps"`
+	Kind  string `json:"kind,omitempty"`
+}
+
+// Self-check decisions.
+const (
+	CheckKeep        = "keep"
+	CheckRewrite     = "rewrite"
+	CheckObservation = "observation"
+	CheckDrop        = "drop"
+	CheckUnchecked   = "unchecked"
+)
+
+// SelfCheck is the self-check's decision on one finding. Title, Body and Fix are the new words for a rewrite.
+type SelfCheck struct {
+	Finding  string `json:"finding"`
+	Decision string `json:"decision"`
+	Reason   string `json:"reason"`
+	Title    string `json:"title,omitempty"`
+	Body     string `json:"body,omitempty"`
+	Fix      string `json:"fix,omitempty"`
 }
 
 // Persona identifies the persona and how it browsed in this run. Device and
 // Zoom are the values the run used: a scenario can replace the persona's own.
 type Persona struct {
-	ID     string `json:"id"`
-	Role   string `json:"role"`
+	ID   string `json:"id"`
+	Name string `json:"name,omitempty"`
+	Role string `json:"role"`
+	// Device is the device the run used.
 	Device string `json:"device"`
 	// Zoom is the page zoom in percent, 100 to 500. Zero leaves it out, meaning 100.
 	Zoom int `json:"zoom,omitempty"`
@@ -202,18 +235,20 @@ type SigninRequest struct {
 
 // Step is one action.
 type Step struct {
-	N              int       `json:"n"`
-	At             time.Time `json:"at"`
-	Action         string    `json:"action"`
-	Target         string    `json:"target,omitempty"`
-	URL            string    `json:"url,omitempty"`
-	Route          string    `json:"route,omitempty"`
-	Status         *int      `json:"status,omitempty"`
-	DurationMs     int       `json:"duration_ms"`
-	Screenshot     string    `json:"screenshot,omitempty"`
-	ConsoleErrors  *int      `json:"console_errors,omitempty"`
-	A11yViolations *int      `json:"a11y_violations,omitempty"`
-	Note           string    `json:"note,omitempty"`
+	N      int       `json:"n"`
+	At     time.Time `json:"at"`
+	Action string    `json:"action"`
+	Target string    `json:"target,omitempty"`
+	// Element is the control the action used, as role and name such as link "Read more", resolved from the @number.
+	Element        string `json:"element,omitempty"`
+	URL            string `json:"url,omitempty"`
+	Route          string `json:"route,omitempty"`
+	Status         *int   `json:"status,omitempty"`
+	DurationMs     int    `json:"duration_ms"`
+	Screenshot     string `json:"screenshot,omitempty"`
+	ConsoleErrors  *int   `json:"console_errors,omitempty"`
+	A11yViolations *int   `json:"a11y_violations,omitempty"`
+	Note           string `json:"note,omitempty"`
 }
 
 // Finding is a claim with evidence. The reviewer sets the verdict later.
@@ -225,6 +260,18 @@ type Finding struct {
 	Steps    []int  `json:"steps"`
 	Evidence string `json:"evidence"`
 	Verdict  string `json:"verdict"`
+	// Body says who the problem affects and why it matters. Fix says what to change.
+	Body string `json:"body,omitempty"`
+	Fix  string `json:"fix,omitempty"`
+	// WCAG lists WCAG 2.2 success criteria, such as 2.4.4, where one applies.
+	WCAG []string `json:"wcag,omitempty"`
+	// Element is what the evidence shows: a control as role and name, quoted text, or an axe rule's element.
+	Element string `json:"element,omitempty"`
+	// Quote is the words from the page the persona cited. The engine found them at EvidenceStep.
+	Quote string `json:"quote,omitempty"`
+	// URL is the page address at EvidenceStep.
+	URL          string `json:"url,omitempty"`
+	EvidenceStep int    `json:"evidence_step,omitempty"`
 	// Class is problem or observation. Only problems enter incidence statistics.
 	Class string `json:"class,omitempty"`
 	// Route is the normalised route where the problem appears.

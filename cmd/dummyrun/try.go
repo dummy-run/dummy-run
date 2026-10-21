@@ -140,7 +140,7 @@ func tryCmd(args []string) int {
 	fmt.Fprintf(os.Stderr, "Reading %s as a first-time visitor, read-only: requests that could change data are blocked.\n", tgt.BaseURL)
 	res, err := runner.Run(ctx, runner.Config{
 		Persona: persona, Scenario: scenario, Target: tgt, Provider: p, Browser: *browser, Headless: !*headful,
-		OutDir: *out, StepBudget: *steps, Log: os.Stderr, HTTPClient: requestClient(false),
+		OutDir: *out, StepBudget: *steps, Log: os.Stderr, HTTPClient: requestClient(false), SelfCheck: true,
 	})
 	if err != nil {
 		if res != nil {
