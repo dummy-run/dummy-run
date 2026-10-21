@@ -32,6 +32,8 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
+  --checks          also run the markup checks: a control whose visible words are missing from its name, and a field for
+                    your own details with no autocomplete value
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
@@ -66,6 +68,7 @@ func a11yCmd(args []string) int {
 	scheme := fs.String("scheme", "both", "light, dark or both")
 	textScale := fs.String("text-scale", "", "system text size in percent, or a comma-separated list")
 	layout := fs.Bool("layout", false, "run the layout checks")
+	checks := fs.Bool("checks", false, "run the markup checks")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
@@ -167,7 +170,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11y.Run(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Checks: *checks, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

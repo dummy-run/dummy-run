@@ -65,6 +65,9 @@ type Config struct {
 	// Layout adds the layout checks to each run: sideways overflow, clipped text, overlapping controls
 	// and small targets. A non-100 text scale turns it on.
 	Layout bool
+	// Checks adds the markup checks to each run: a control whose visible words are missing from its accessible
+	// name, and a field for the person's own details with no autocomplete value.
+	Checks bool
 	// ScreenshotDir, when set, receives a PNG crop of each element the layout checks flag.
 	ScreenshotDir string
 	Headless      bool
@@ -117,6 +120,8 @@ type PageResult struct {
 	// TextScale is the system text size in percent the run used. Zero means 100 and is left out.
 	TextScale int `json:"text_scale,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
+	// ChecksRan says the markup checks ran.
+	ChecksRan     bool   `json:"checks_ran,omitempty"`
 	LayoutChecked bool   `json:"layout_checked,omitempty"`
 	Error         string `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
@@ -480,6 +485,15 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		found, boxes := layoutFindings(l, path, cfg.Allow)
 		res.Violations = append(res.Violations, found...)
 		shoot(pctx, conn, cx, cfg.ScreenshotDir, &res, boxes)
+	}
+	if cfg.Checks {
+		m, err := page.RunMarkupChecks(pctx, conn, cx)
+		if err != nil {
+			res.Error = "markup checks: " + firstLine(err.Error())
+			return res
+		}
+		res.ChecksRan = true
+		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
 	}
 	return res
 }
