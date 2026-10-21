@@ -281,8 +281,9 @@ Names and visibility come from one script, `internal/page/names.js`, which the e
 numbering, the outline and the accessibility check, so an element is never named two ways. When axe-core is
 loaded in the page, the script uses axe's own functions: `axe.commons.text.accessibleText` for the name and
 `axe.commons.dom.isVisibleToScreenReaders` for whether a screen reader can reach it. The engine loads its own
-axe into each web page before it reads it, under a property name that's random for each page. Whatever the page
-has at `window.axe` is put back and never used, so a page can't plant a fake axe to change the names. Without axe, or when axe gives an empty name, the script follows Accessible
+axe into each web page before it reads it. It runs axe and its page scripts in a WebDriver BiDi sandbox, a realm
+that shares the page's DOM but none of the page scripts' globals. A page can't see the engine's axe, plant a fake
+one or change the functions the engine calls, and the page's own `window.axe`, if it has one, is never used. Without axe, or when axe gives an empty name, the script follows Accessible
 Name and Description Computation 1.2 and HTML-AAM for the common cases. That means `aria-labelledby`,
 `aria-label` and the element's `<label>` (buttons and comboboxes included), then `alt` on an image button and a
 button's value. Links and buttons are then named from their rendered content, with image `alt` and SVG
@@ -483,7 +484,9 @@ fails the same way, read-only or not. The only exception is the sign-in request,
 Documents load only from `allowed_hosts`: the page in the persona's tab, frames and pop-ups. What a page loads
 to show itself is different. These are its images, stylesheets, fonts, scripts, media and fetch calls. They may
 come from any public host by GET or HEAD. Sites keep them on CDNs, and a page without them isn't the page a
-visitor sees.
+visitor sees. A page's own scripts can therefore put data they can read into a GET address and send it to a
+public host, as they can for any visitor. The persona and the engine never put secrets in an address. See
+[the threat model](THREAT-MODEL.md).
 
 The engine tells the two apart from what the browser reports for each request. A request with a navigation id
 is a document load. So is one whose destination is a document, iframe, frame, object or embed. When the browser

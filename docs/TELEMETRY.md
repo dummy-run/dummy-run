@@ -57,11 +57,13 @@ The IDs are derived from the run ID, so exporting a run twice writes the same tr
 - The root span ID is the first 8 bytes of SHA-256 of `dummyrun.span:<id>:root`.
 - The span ID of step `n` is the first 8 bytes of SHA-256 of `dummyrun.span:<id>:step:<n>`.
 
-Each request the browser sends to the target's own origins during a step carries a `traceparent` with the
-run's trace ID and that step's span ID, so your app's spans become children of the step. The `baggage` header
-goes to the same requests. Requests to other hosts, such as a CDN's images, get neither. The one request the
-sign-in gate lets through also gets them, and it always goes to the target's own sign-in form. If the page's
-own instrumentation has already set a `traceparent`, the engine keeps it and adds only the baggage.
+The engine adds a `traceparent` to each request the browser sends to the target's own origins during a step,
+when the request doesn't already have one. It carries the run's trace ID and that step's span ID, so your app's
+spans become children of the step. If the page's own instrumentation has already set a `traceparent`, the
+engine keeps it, so that request carries the page's trace and not the run's, and only the baggage is added.
+The `baggage` header goes to the same requests. Requests to other hosts, such as a CDN's images, get neither.
+The one request the sign-in gate lets through also gets them, and it always goes to the target's own sign-in
+form.
 
 Root span attributes:
 

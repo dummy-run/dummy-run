@@ -74,7 +74,7 @@
       if (isFocus || isLandmark) priority = 0;
       else if (isHeading) priority = level <= 2 ? 1 : level === 3 ? 2 : 3;
       else priority = inChrome(el) ? 4 : 2;
-      rows.push({ text, priority, order: rows.length, kind: isHeading ? "heading" : isControl ? "control" : "landmark" });
+      rows.push({ text, priority, order: rows.length, focus: isFocus, kind: isHeading ? "heading" : isControl ? "control" : "landmark" });
     }
 
     // Keep landmarks and the focused element, then the top headings, then the main content's controls and H3s,
@@ -86,7 +86,9 @@
       for (const r of rows) {
         if (r.priority !== priority) continue;
         const cost = r.text.length + 1;
-        if (used + cost > maxChars - reserve && !(priority === 0 && r.text.includes("<- focus"))) continue;
+        // Only the focused element may go over the budget. That is a flag on the row, never read from the
+        // text, which carries names the page chose.
+        if (used + cost > maxChars - reserve && !r.focus) continue;
         keep.add(r.order);
         used += cost;
       }

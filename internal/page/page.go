@@ -618,7 +618,7 @@ func (p *Page) A11y(ctx context.Context) Observation {
 			return fmt.Errorf("%w, so the accessibility check did not run", ErrNotAWebPage)
 		}
 		var loaded bool
-		if err := p.conn.CallFunctionJSON(ctx, p.cx, p.loadAxeJS(), &loaded); err != nil {
+		if err := p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.loadAxeJS(), &loaded); err != nil {
 			return fmt.Errorf("inject axe-core: %w", err)
 		}
 		if !loaded {
@@ -626,7 +626,7 @@ func (p *Page) A11y(ctx context.Context) Observation {
 		}
 		actx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
-		if err := p.conn.CallFunctionJSON(actx, p.cx, p.withAxe(axeRunJS), &violations); err != nil {
+		if err := p.conn.CallFunctionJSONIn(actx, p.cx, sandbox, p.withAxe(axeRunJS), &violations); err != nil {
 			return fmt.Errorf("axe.run: %w", err)
 		}
 		if violations == nil {
@@ -731,8 +731,8 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 // can name controls with axe's own functions, then runs look.js. If axe cannot load, the spec computation names them.
 func (p *Page) lookWithAxe(ctx context.Context, snap *Snapshot, mark string) error {
 	var loaded bool
-	_ = p.conn.CallFunctionJSON(ctx, p.cx, p.loadAxeJS(), &loaded)
-	return p.conn.CallFunctionJSON(ctx, p.cx, p.withAxe(lookJS), snap, maxControls, textLimit, logLimit, mark)
+	_ = p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.loadAxeJS(), &loaded)
+	return p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.withAxe(lookJS), snap, maxControls, textLimit, logLimit, mark)
 }
 
 // loadAxeJS loads the engine's axe-core into a web page under p.axeName, once per document. Whatever the page had
@@ -748,6 +748,11 @@ func (p *Page) loadAxeJS() string {
 		"Object.defineProperty(window, '" + p.axeName + "', { value: mine, enumerable: false, configurable: false, writable: false }); return true; }"
 }
 
+// sandbox is the realm that look.js, tree.js and axe run in. It shares the page's DOM, so the @numbers look.js
+// writes are there for the click tools, but page scripts cannot reach its globals, axe included, or change the
+// functions the engine's scripts call.
+const sandbox = "dummyrun"
+
 // withAxe points a script at the engine's own axe for this page.
 func (p *Page) withAxe(script string) string {
 	return strings.ReplaceAll(script, "__DR_AXE__", p.axeName)
@@ -761,7 +766,7 @@ func (p *Page) addOutline(ctx context.Context, snap *Snapshot) {
 		Tree    string `json:"tree"`
 		Omitted int    `json:"omitted"`
 	}
-	if err := p.conn.CallFunctionJSON(ctx, p.cx, p.withAxe(treeJS), &out, TreeChars); err != nil {
+	if err := p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.withAxe(treeJS), &out, TreeChars); err != nil {
 		snap.TreeError = firstLine(err.Error())
 		return
 	}

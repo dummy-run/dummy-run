@@ -36,7 +36,9 @@ const namesPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><t
 
 // specPage plants a fake axe that would name every control "planted". The engine must not use it, so the names
 // match the plain page and the page's own window.axe is left as it was.
-const specPage = `<script>window.axe = { version: "4.13.0", setup() {}, teardown() {}, commons: { text: { accessibleText: () => "planted" }, dom: { isVisibleToScreenReaders: () => true } }, run: () => Promise.resolve({ violations: [] }) };</script>`
+// It also hunts for the engine's own axe on a timer and tries to change it, which the sandbox must prevent.
+const specPage = `<script>window.axe = { version: "4.13.0", setup() {}, teardown() {}, commons: { text: { accessibleText: () => "planted" }, dom: { isVisibleToScreenReaders: () => true } }, run: () => Promise.resolve({ violations: [] }) };
+setInterval(() => { for (const k of Object.getOwnPropertyNames(window)) { if (k.startsWith("__dr_axe")) { try { window[k].commons.text.accessibleText = () => "planted"; window[k].run = () => Promise.resolve({ violations: [] }); } catch (e) {} } } }, 5);</script>`
 
 const feed = `<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><item><title>Post</title></item></channel></rss>`
 

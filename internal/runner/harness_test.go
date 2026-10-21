@@ -12,7 +12,7 @@ import (
 
 func harnessSteps() []Step {
 	home := &page.Snapshot{URL: "https://example.test/", Title: "Home", ContentType: "text/html"}
-	feed := &page.Snapshot{URL: "https://example.test/feed.xml", ContentType: "application/rss+xml"}
+	feed := &page.Snapshot{URL: "https://example.test/feed.xml", ContentType: "application/rss+xml", Text: "Distinctive feed body"}
 	return []Step{
 		{N: 1, Obs: page.Observation{Action: "visit", URL: home.URL, Snapshot: home}},
 		{N: 2, Obs: page.Observation{Action: "click", Target: "@4", Error: "bidi: input.performActions: context deadline exceeded"}},
@@ -82,7 +82,8 @@ func TestDropHarnessOnlyRecordsAnEvent(t *testing.T) {
 func TestANonHTMLStepIsDescribedAsAFile(t *testing.T) {
 	s := harnessSteps()[4]
 	out := Render(s)
-	if !strings.Contains(out, "This is not a web page: application/rss+xml") || strings.Contains(out, "controls:") {
+	if !strings.Contains(out, "This is not a web page: application/rss+xml") || strings.Contains(out, "controls:") ||
+		strings.Contains(out, "Distinctive feed body") {
 		t.Errorf("render:\n%s", out)
 	}
 }
