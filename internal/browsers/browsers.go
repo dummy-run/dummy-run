@@ -10,7 +10,9 @@ package browsers
 import (
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -118,6 +120,15 @@ const marker = ".complete"
 func complete(dir string) bool {
 	_, err := os.Stat(filepath.Join(dir, marker))
 	return err == nil
+}
+
+// markerError returns an error when the completion marker cannot be read for a reason other than its absence,
+// so a permission problem is reported instead of being taken for a missing install and wiped.
+func markerError(dir string) error {
+	if _, err := os.Stat(filepath.Join(dir, marker)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("browsers: cannot read %s: %w", dir, err)
+	}
+	return nil
 }
 
 func isFile(p string) bool {

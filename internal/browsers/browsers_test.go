@@ -242,7 +242,7 @@ func TestInstallChromeRejectsAWrongHash(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "does not match its pinned SHA-256") {
 		t.Fatalf("got %v, want a hash error", err)
 	}
-	if _, _, ok := cachedIn(root); ok {
+	if _, _, ok := cachedIn(t, root); ok {
 		t.Error("a failed install was left usable")
 	}
 	if complete(filepath.Join(root, "9.9.9.9")) {
@@ -250,10 +250,9 @@ func TestInstallChromeRejectsAWrongHash(t *testing.T) {
 	}
 }
 
-func cachedIn(root string) (string, string, bool) {
-	old := os.Getenv(CacheEnv)
-	_ = os.Setenv(CacheEnv, root)
-	defer func() { _ = os.Setenv(CacheEnv, old) }()
+func cachedIn(t *testing.T, root string) (string, string, bool) {
+	t.Helper()
+	t.Setenv(CacheEnv, root)
 	return CachedChrome()
 }
 
@@ -353,4 +352,22 @@ type testWriter struct{ t *testing.T }
 func (w testWriter) Write(b []byte) (int, error) {
 	w.t.Log(strings.TrimSpace(string(b)))
 	return len(b), nil
+}
+
+func TestDownloadLimit(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Length", "2147483648")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+	_, err := Options{}.download(context.Background(), srv.URL+"/big.zip", strings.Repeat("0", 64), t.TempDir())
+	if err == nil || !strings.Contains(err.Error(), "limit") {
+		t.Fatalf("got %v, want the size limit error", err)
+	}
+}
+
+func TestMarkerErrorOnlyForReadProblems(t *testing.T) {
+	if err := markerError(t.TempDir()); err != nil {
+		t.Errorf("a missing marker is not an error: %v", err)
+	}
 }

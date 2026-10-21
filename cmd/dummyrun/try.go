@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"unicode"
 
 	"github.com/dummy-run/dummy-run/casts"
 	"github.com/dummy-run/dummy-run/internal/cast"
@@ -231,10 +232,10 @@ func tryPersona() (*cast.Persona, cast.Scenario, func(), error) {
 func tryReport(w interface{ Write([]byte) (int, error) }, rec *record.Record, recordPath, outDir string) {
 	fmt.Fprintf(w, "\n%s: %d steps, %d findings.\n", rec.Outcome, len(rec.Steps), len(rec.Findings))
 	if rec.Outcome != record.OutcomeCompleted && rec.OutcomeReason != "" {
-		fmt.Fprintf(w, "%s\n", rec.OutcomeReason)
+		fmt.Fprintf(w, "%s\n", plainText(rec.OutcomeReason))
 	}
 	for i, f := range rec.Findings {
-		fmt.Fprintf(w, "  %d. [%s] %s", i+1, f.Severity, f.Title)
+		fmt.Fprintf(w, "  %d. [%s] %s", i+1, plainText(f.Severity), plainText(f.Title))
 		if len(f.Steps) > 0 {
 			fmt.Fprintf(w, " (step %s)", joinInts(f.Steps))
 		}
@@ -258,4 +259,16 @@ func joinInts(n []int) string {
 		s[i] = fmt.Sprint(v)
 	}
 	return strings.Join(s, ", ")
+}
+
+// plainText makes text from the model safe to print on a terminal. A page can steer the model into writing
+// escape sequences, which could move the cursor, rewrite earlier lines or set the window title. Control
+// characters become spaces.
+func plainText(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return ' '
+		}
+		return r
+	}, s)
 }

@@ -26,6 +26,9 @@ const (
 // maxUnpacked bounds what one archive may write, so a corrupt or hostile file cannot fill the disk.
 const maxUnpacked = 4 << 30
 
+// maxDownload bounds one download. Chrome for Testing is under 250 MB and Firefox under 100 MB.
+const maxDownload = 1 << 30
+
 // Options configure an install. The zero value installs the pinned versions into the user's cache.
 type Options struct {
 	// Root is the cache directory. Empty means CacheRoot.
@@ -89,6 +92,9 @@ func InstallChrome(ctx context.Context, o Options) (chrome, driver string, err e
 	pins := o.pins()
 	ver := pins.ChromeForTesting
 	dir := filepath.Join(root, ver)
+	if err := markerError(dir); err != nil {
+		return "", "", err
+	}
 	if complete(dir) && isFile(chromeBinary(dir, platform)) && isFile(driverBinary(dir, platform)) {
 		o.say("Chrome for Testing %s is already installed in %s", ver, dir)
 		return chromeBinary(dir, platform), driverBinary(dir, platform), nil
@@ -167,6 +173,9 @@ func InstallFirefox(ctx context.Context, o Options) (FirefoxResult, error) {
 	}
 	pins := o.pins()
 	dir := filepath.Join(root, "firefox-"+pins.Firefox)
+	if err := markerError(dir); err != nil {
+		return FirefoxResult{}, err
+	}
 	if complete(dir) && isFile(firefoxBinary(dir)) {
 		o.say("Firefox %s is already installed in %s", pins.Firefox, dir)
 		return FirefoxResult{Path: firefoxBinary(dir)}, nil
@@ -241,6 +250,9 @@ func (o Options) download(ctx context.Context, url, wantSHA, dir string) (string
 	if resp.StatusCode != http.StatusOK {
 		return "", offline(url, fmt.Errorf("the server answered %s", resp.Status))
 	}
+	if resp.ContentLength > maxDownload {
+		return "", fmt.Errorf("browsers: %s is %d MB, more than the %d MB limit", url, resp.ContentLength>>20, maxDownload>>20)
+	}
 	f, err := os.CreateTemp(dir, "download-*")
 	if err != nil {
 		return "", err
@@ -253,8 +265,11 @@ func (o Options) download(ctx context.Context, url, wantSHA, dir string) (string
 	}
 	h := sha256.New()
 	pr := &progress{total: resp.ContentLength, out: o.Out}
-	if _, err := io.Copy(io.MultiWriter(f, h, pr), resp.Body); err != nil {
+	if _, err := io.Copy(io.MultiWriter(f, h, pr), io.LimitReader(resp.Body, maxDownload+1)); err != nil {
 		return fail(offline(url, err))
+	}
+	if pr.seen > maxDownload {
+		return fail(fmt.Errorf("browsers: %s is more than %d MB, so it was dropped", url, maxDownload>>20))
 	}
 	if err := f.Close(); err != nil {
 		return fail(err)
@@ -310,18 +325,16 @@ func unzip(archive, dest string) error {
 		return fmt.Errorf("browsers: %w", err)
 	}
 	defer func() { _ = zr.Close() }()
-	absDest, err := filepath.Abs(dest)
+	root, err := filepath.Abs(dest)
 	if err != nil {
 		return err
 	}
-	inside := func(p string) bool {
-		rel, err := filepath.Rel(absDest, p)
-		return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
-	}
+	root = filepath.Clean(root)
+	prefix := root + string(os.PathSeparator)
 	var written int64
 	for _, f := range zr.File {
-		target := filepath.Join(absDest, filepath.FromSlash(f.Name)) //nolint:gosec // checked by inside below
-		if !inside(target) {
+		target := filepath.Join(root, filepath.FromSlash(f.Name))
+		if target != root && !strings.HasPrefix(target, prefix) {
 			return fmt.Errorf("browsers: the archive has an entry outside its folder: %q", f.Name)
 		}
 		mode := f.Mode()
@@ -331,22 +344,7 @@ func unzip(archive, dest string) error {
 				return err
 			}
 		case mode&os.ModeSymlink != 0:
-			rc, err := f.Open()
-			if err != nil {
-				return err
-			}
-			link, err := io.ReadAll(io.LimitReader(rc, 4096))
-			_ = rc.Close()
-			if err != nil {
-				return err
-			}
-			if !inside(filepath.Join(filepath.Dir(target), string(link))) {
-				return fmt.Errorf("browsers: the archive has a link that points outside its folder: %q", f.Name)
-			}
-			if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
-				return err
-			}
-			if err := os.Symlink(string(link), target); err != nil {
+			if err := writeLink(f, target, prefix); err != nil {
 				return err
 			}
 		default:
@@ -361,6 +359,28 @@ func unzip(archive, dest string) error {
 		}
 	}
 	return nil
+}
+
+// writeLink creates the symbolic link an archive entry describes, if it points inside the folder. The app
+// bundle that Chrome for Testing has on macOS is made of such links.
+func writeLink(f *zip.File, target, prefix string) error {
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	link, err := io.ReadAll(io.LimitReader(rc, 4096))
+	_ = rc.Close()
+	if err != nil {
+		return err
+	}
+	resolved := filepath.Join(filepath.Dir(target), string(link))
+	if filepath.IsAbs(string(link)) || !strings.HasPrefix(resolved, prefix) {
+		return fmt.Errorf("browsers: the archive has a link that points outside its folder: %q", f.Name)
+	}
+	if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
+		return err
+	}
+	return os.Symlink(string(link), target)
 }
 
 func copyEntry(f *zip.File, target string, perm os.FileMode, limit int64) (int64, error) {

@@ -24,7 +24,7 @@ cache, so you don't match them by hand. The engine finds them there when you set
 
 To use your own Chrome, take Chrome for Testing and its chromedriver from the same
 [version listing](https://googlechromelabs.github.io/chrome-for-testing/) so they match. The project's own CI
-uses Chrome for Testing 155.0.8059.12 and Firefox 157.0, the versions `dummyrun browsers install` fetches.
+uses the versions that `dummyrun browsers list` shows, which are the ones `dummyrun browsers install` fetches.
 For Firefox the engine reads `DUMMYRUN_FIREFOX` first. After that it uses a Firefox that
 `dummyrun browsers install firefox` put in the cache, the Firefox app on macOS or `firefox` on the PATH.
 

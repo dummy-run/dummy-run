@@ -99,22 +99,23 @@ func browsersList(args []string) int {
 		return 2
 	}
 	pins := browsers.Pins()
-	root, rerr := browsers.CacheRoot()
-	if rerr != nil {
-		return fail(rerr)
+	if root, err := browsers.CacheRoot(); err != nil {
+		fmt.Printf("Cache folder: unknown (%v)\n\n", err)
+	} else {
+		fmt.Printf("Cache folder: %s\n\n", root)
 	}
-	fmt.Printf("Cache folder: %s\n\n", root)
 	fmt.Printf("%-9s %-14s %s\n", "Browser", "Pinned", "Where it is")
 	if c, d, ok := browsers.CachedChrome(); ok {
 		fmt.Printf("%-9s %-14s installed: %s\n%-24s with chromedriver %s\n", "chrome", pins.ChromeForTesting, c, "", d)
 	} else {
 		fmt.Printf("%-9s %-14s not installed. Run: dummyrun browsers install chrome\n", "chrome", pins.ChromeForTesting)
 	}
+	system := browsers.SystemFirefox()
 	switch ff, ok := browsers.CachedFirefox(); {
 	case ok:
 		fmt.Printf("%-9s %-14s installed: %s\n", "firefox", pins.Firefox, ff)
-	case browsers.SystemFirefox() != "":
-		fmt.Printf("%-9s %-14s using the Firefox on this machine: %s\n", "firefox", pins.Firefox, browsers.SystemFirefox())
+	case system != "":
+		fmt.Printf("%-9s %-14s using the Firefox on this machine: %s\n", "firefox", pins.Firefox, system)
 	default:
 		fmt.Printf("%-9s %-14s not found. Run: dummyrun browsers install firefox\n", "firefox", pins.Firefox)
 	}

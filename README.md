@@ -13,7 +13,7 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> New here? [docs/INSTALL.md](docs/INSTALL.md) gets you from download to your first run in about five minutes:
+> New here? [docs/INSTALL.md](docs/INSTALL.md) gets you from download to your first run in a few commands:
 > `dummyrun browsers install`, set one API key, then `dummyrun try https://your-site`. The website is
 > [dummyrun.dev](https://dummyrun.dev).
 
@@ -89,7 +89,7 @@ docker run --rm ghcr.io/dummy-run/dummyrun:VERSION a11y https://example.com
 go install github.com/dummy-run/dummy-run/cmd/dummyrun@vVERSION
 ```
 
-Replace `VERSION` with a release number from the releases page, such as `0.1.1`.
+Replace `VERSION` with the newest release number from the releases page.
 
 With a binary, your first run takes three commands:
 

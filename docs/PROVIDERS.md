@@ -25,12 +25,12 @@ Using Anthropic claude-haiku-5-5 (ANTHROPIC_API_KEY is set)
 ```
 
 Name `--model`, `--region` or `--endpoint` yourself and your value wins over the default. If nothing matches,
-the command lists the ways to set one up. Azure comes first because only someone who set it up for Dummy Run
-has `DUMMYRUN_AZURE_ENDPOINT`, and it was the only default before this table existed.
+the command lists the ways to set one up. Azure comes first because `DUMMYRUN_AZURE_ENDPOINT` is a variable only
+Dummy Run reads, so setting it is a deliberate choice.
 
-This table is generated from the code, so it matches this version of the engine. The defaults are the cheapest
-current model from each vendor that calls tools and reads images. Models change, so check the vendor page before
-you rely on one, and pass `--model` to use another.
+This table is generated from the code, so it matches this version of the engine. Each default is a low-priced model that the vendor's own page
+lists with tool calling and image input, as of this version. Models change, so check the vendor page before you
+rely on one, and pass `--model` to use another.
 
 <!-- docgen:defaults begin -->
 

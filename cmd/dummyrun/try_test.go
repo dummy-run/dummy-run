@@ -132,3 +132,48 @@ func TestTryReport(t *testing.T) {
 		}
 	}
 }
+
+func TestPlainTextStripsEscapes(t *testing.T) {
+	got := plainText("ok\x1b]0;owned\x07 and \x1b[2Jmore\r\nnext")
+	if strings.ContainsAny(got, "\x1b\x07\r\n") {
+		t.Errorf("control characters survived: %q", got)
+	}
+	if !strings.Contains(got, "ok") || !strings.Contains(got, "more") {
+		t.Errorf("text was lost: %q", got)
+	}
+	var b bytes.Buffer
+	rec := &record.Record{ID: "r", Outcome: record.OutcomeCompleted,
+		Findings: []record.Finding{{Severity: "minor", Title: "bad \x1b[31mred"}}}
+	tryReport(&b, rec, "/o/r.json", "/o")
+	if strings.Contains(b.String(), "\x1b") {
+		t.Errorf("tryReport printed an escape: %q", b.String())
+	}
+}
+
+func TestNewCommandsRejectBadArguments(t *testing.T) {
+	for name, args := range map[string][]string{
+		"try with nothing":          {"try"},
+		"try with two addresses":    {"try", "a.example", "b.example"},
+		"try with a bad address":    {"try", "ftp://example.com"},
+		"browsers with nothing":     {"browsers"},
+		"browsers unknown command":  {"browsers", "remove"},
+		"browsers install unknown":  {"browsers", "install", "safari"},
+		"browsers install too many": {"browsers", "install", "chrome", "firefox"},
+	} {
+		if code := run(args); code != 2 {
+			t.Errorf("%s: exit %d, want 2", name, code)
+		}
+	}
+	for _, args := range [][]string{{"try", "-h"}, {"browsers", "-h"}, {"browsers", "list", "-h"}} {
+		if code := run(args); code != 0 {
+			t.Errorf("%v: exit %d, want 0", args, code)
+		}
+	}
+}
+
+func TestBrowsersListWorksOnAnEmptyCache(t *testing.T) {
+	t.Setenv("DUMMYRUN_BROWSER_CACHE", t.TempDir())
+	if code := run([]string{"browsers", "list"}); code != 0 {
+		t.Errorf("exit %d, want 0", code)
+	}
+}

@@ -1,15 +1,15 @@
 # Install
 
-You can have a first run in about five minutes. Download Dummy Run, let it fetch a browser for you, give it one
+You can have a first run in a few minutes. Download Dummy Run, let it fetch a browser for you, give it one
 API key and point it at your site. Every release is signed, so you can check what you download before you run it.
 
-## Your first run in five minutes
+## Your first run
 
 1. Download the release for your machine from [GitHub Releases](https://github.com/dummy-run/dummy-run/releases),
    unpack it and put `dummyrun` on your path. On a Mac with Apple silicon:
 
    ```sh
-   VERSION=0.1.1
+   VERSION=...   # the newest release number on the releases page
    curl -fsSLO "https://github.com/dummy-run/dummy-run/releases/download/v${VERSION}/dummyrun_${VERSION}_darwin_arm64.tar.gz"
    tar -xzf "dummyrun_${VERSION}_darwin_arm64.tar.gz"
    ```
@@ -35,8 +35,8 @@ API key and point it at your site. Every release is signed, so you can check wha
    ```
 
 3. Give it a model. Set one key and Dummy Run finds it. Without `--provider` it looks for `OPENAI_API_KEY`
-   first and `ANTHROPIC_API_KEY` second. A running [Ollama](https://ollama.com/) comes third. It prints what it
-   chose on the first line. [PROVIDERS.md](PROVIDERS.md) lists the models it picks and how to choose your own.
+   first and `ANTHROPIC_API_KEY` second. A running [Ollama](https://ollama.com/) comes third. If you have
+   `DUMMYRUN_AZURE_ENDPOINT` set, Azure goes ahead of all three. It prints what it chose on the first line. [PROVIDERS.md](PROVIDERS.md) lists the models it picks and how to choose your own.
 
    ```sh
    export ANTHROPIC_API_KEY=...
@@ -64,7 +64,7 @@ Azure OpenAI, Gemini, Bedrock and local models all work too. [PROVIDERS.md](PROV
 
 `dummyrun browsers install` puts Chrome for Testing in `os.UserCacheDir()/dummyrun/browsers/<version>`. On
 macOS that is `~/Library/Caches/dummyrun/browsers`, on Linux `~/.cache/dummyrun/browsers`. Dummy Run finds it
-there by itself. Each download is checked against a SHA-256 hash that ships inside `dummyrun`, and a file that
+there by itself. Each download is checked against a hash that ships inside `dummyrun`, and a file that
 doesn't match is not unpacked.
 
 | Command | What it does |

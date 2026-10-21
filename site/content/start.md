@@ -1,7 +1,7 @@
 ---
 title: Get started
-lead: Download Dummy Run, set one API key and point it at your site. A first-time visitor plays through it without changing a thing. You can be reading what it found in about five minutes.
-description: Get started with Dummy Run in five minutes. Download the dummyrun command and fetch a browser. Then set one API key and run dummyrun try against your site in read-only mode.
+lead: Download Dummy Run, set one API key and point it at your site. A first-time visitor plays through it without changing a thing. You can be reading what it found in a few minutes.
+description: Get started with Dummy Run in a few minutes. Download the dummyrun command and fetch a browser. Then set one API key and run dummyrun try against your site in read-only mode.
 next:
   title: Pick personas to run
   text: The persona library holds ready-made personas for the users every site has.
@@ -28,7 +28,7 @@ Get the archive for your machine from [GitHub Releases](https://github.com/dummy
 it and put `dummyrun` on your path. On a Mac with Apple silicon, that looks like this:
 
 ```sh
-VERSION=0.1.1
+VERSION=...   # the newest release number on the releases page
 curl -fsSLO "https://github.com/dummy-run/dummy-run/releases/download/v${VERSION}/dummyrun_${VERSION}_darwin_arm64.tar.gz"
 tar -xzf "dummyrun_${VERSION}_darwin_arm64.tar.gz"
 ```
@@ -62,7 +62,7 @@ command tells you so and you can run it again later.
 ## 3. Give it a model {#model}
 
 Set one key. Dummy Run looks for `OPENAI_API_KEY` first and `ANTHROPIC_API_KEY` second. A running Ollama comes
-third. It uses the first it finds, with a small, cheap model that can read screenshots and call tools.
+third. If you have set `DUMMYRUN_AZURE_ENDPOINT`, Azure goes first. It uses the first it finds, with a small, cheap model that can read screenshots and call tools.
 
 ```sh
 export ANTHROPIC_API_KEY=...
