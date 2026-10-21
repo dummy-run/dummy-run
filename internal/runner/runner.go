@@ -351,6 +351,9 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 				continue
 			}
 			if call.Name == "finish" {
+				if r.forced == "" && r.usage.InputTokens+r.usage.OutputTokens >= r.tokens {
+					r.forced = "the token budget"
+				}
 				if msg := earlyFinish(r.minSteps, len(r.steps)-1, r.earlyFinishes, force != "" || r.patience.GaveUp() != nil || r.usage.InputTokens+r.usage.OutputTokens >= r.tokens, call.Args); msg != "" {
 					r.earlyFinishes++
 					r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID, text: msg})
