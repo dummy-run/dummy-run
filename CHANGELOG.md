@@ -5,6 +5,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- A "Docs move with the code" check on every pull request. A behaviour change in `cmd/`, `internal/`, `casts/library/`, `schema/`, `integrations/`, `docker/`, `.goreleaser.yaml` or `site/layouts/` fails unless the same pull request changes the docs and adds a line under Unreleased here. Tests, `testdata/` and `internal/tools/` are ignored. The message names the pages that path usually affects. The `no-docs-needed` label with a `Docs: not needed because ...` line in the description is the way out. `CONTRIBUTING.md` and the pull request template describe it (code: `.github/workflows/docs-guard.yml` and `.github/scripts/docs-guard.sh`).
+
 ### Changed
 - The website reads like a person wrote it. Every page a visitor reads is rewritten in a warmer voice with varied sentences, and none of them carries Sources sections, evidence tags or lists of what is planned. The style guide describes the new voice. `bin/check-prose` now only warns about long or comma-heavy sentences, fails on machine-copy words and em dashes, and has its own tests in `bin/check-prose-test`.
 - `dummyrun report` has a designed HTML report. It has a cover with the logo and the client. The cover also has the target, the dates, a plain summary and a bar of problems by severity. The summary page has key-number cards and a plain statement of how many problems are still unfound. Findings are cards with a severity band and badge, grouped by severity under a contents list. The axe sweep is a table, and baseline status has clear labels. The brand typefaces are embedded, with a light theme and a dark one on screen only. Print has page breaks, a running title and page numbers. The Markdown format has the same structure in headings and tables. The example report and its pictures are rebuilt, and `docs/REPORT.md` has a tour (code: `internal/report/templates/` and `internal/report/assets/`).
