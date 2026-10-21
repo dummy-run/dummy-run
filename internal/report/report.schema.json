@@ -91,6 +91,7 @@
             "required": ["id", "role", "devices", "dimensions", "runs"],
             "properties": {
               "id": { "type": "string" },
+              "name": { "type": "string", "description": "The persona's first name from its profile" },
               "role": { "type": "string" },
               "devices": { "type": "array", "items": { "type": "string" } },
               "dimensions": { "type": "array", "items": { "type": "string" } },
@@ -213,6 +214,11 @@
         "reason": { "type": "string" },
         "wcag": { "type": "array", "items": { "type": "string", "pattern": "^[1-4]\\.[0-9]+\\.[0-9]+$" }, "description": "WCAG 2.2 success criteria where known" },
         "help_url": { "type": "string" },
+        "body": { "type": "string", "description": "Who the problem affects and why it matters" },
+        "fix": { "type": "string", "description": "What to change, in one sentence" },
+        "element": { "type": "string", "description": "What the evidence shows, as the engine found it at the cited step: a control as role and name, quoted text, or an axe rule" },
+        "quote": { "type": "string", "description": "Words from the page that the engine found at the cited step" },
+        "url": { "type": "string", "description": "Address of the page where the evidence is" },
         "baseline": { "enum": ["new", "still-present"] },
         "personas": { "type": "array", "items": { "type": "string" } },
         "runs": { "type": "integer", "description": "Runs that found the problem" },
@@ -225,6 +231,7 @@
             "run": { "type": "string" },
             "persona": { "type": "string" },
             "role": { "type": "string" },
+            "signed_in": { "type": "boolean", "description": "True when the engine signed the persona in before the run" },
             "device": { "type": "string" },
             "zoom_percent": { "type": "integer" },
             "browser": { "type": "string" },
@@ -238,9 +245,11 @@
                   "n": { "type": "integer" },
                   "action": { "type": "string" },
                   "target": { "type": "string" },
+                  "element": { "type": "string", "description": "The control the action used, as role and name" },
                   "route": { "type": "string" },
                   "url": { "type": "string" },
-                  "note": { "type": "string" }
+                  "note": { "type": "string" },
+                  "evidence": { "type": "boolean", "description": "The step where the engine found what the finding claims" }
                 }
               }
             }
