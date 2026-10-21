@@ -710,8 +710,8 @@ dummyrun run ... --header-env 'x-vercel-protection-bypass:VERCEL_AUTOMATION_BYPA
 ### How the secrets travel
 
 - Only your own hosts get them, and only over https. A request over plain http carries nothing, except on
-  `localhost` and other loopback addresses, which is where `base_url` may use http too. In a run, that means the hosts in `allowed_hosts`, matched the way the
-  [read-only policy](#read-only-policy) matches them, port included. In `dummyrun a11y`, it means the origins of the
+  `localhost` and other loopback addresses, which is where `base_url` may use http too. In a run, that means the hosts in `allowed_hosts`. The
+  [read-only policy](#read-only-policy) matches them in the same way, including the port. In `dummyrun a11y`, it means the origins of the
   URLs, the sitemap and `--rebase` that you name. A request to any other host never carries a secret, and that
   includes a redirect from your site to another host.
 - The engine adds the headers to each request in the browser and keeps what the request already had. With Basic
