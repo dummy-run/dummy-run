@@ -343,3 +343,16 @@ func TestLoadScenarioRejectsAnOversizedMinSteps(t *testing.T) {
 		t.Errorf("want a min steps error, got %v", err)
 	}
 }
+
+func TestLoadScenarioRejectsAMalformedMinSteps(t *testing.T) {
+	for value, ok := range map[string]bool{"8": true, "8 steps": true, "nope": false, "8 or so": false, "": false, "-3": false} {
+		path := filepath.Join(t.TempDir(), "01-min.md")
+		if err := os.WriteFile(path, []byte("# Min\n\nMin steps: "+value+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := LoadScenario(path)
+		if (err == nil) != ok {
+			t.Errorf("Min steps: %q gave error %v, want ok=%v", value, err, ok)
+		}
+	}
+}

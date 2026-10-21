@@ -175,7 +175,8 @@ func (p *Persona) Scenario(id string) (Scenario, error) {
 var (
 	numberPrefix  = regexp.MustCompile(`^[0-9]+-`)
 	budgetLine    = regexp.MustCompile(`(?m)^Budget:\s*([0-9]+)`)
-	minStepsLine  = regexp.MustCompile(`(?mi)^Min steps:\s*([0-9]+)`)
+	minStepsLine  = regexp.MustCompile(`(?mi)^Min steps:[ \t]*([^\r\n]*)$`)
+	minStepsValue = regexp.MustCompile(`^([0-9]+)(?: steps?)?$`)
 	titleLine     = regexp.MustCompile(`(?m)^#\s+(.+)$`)
 	deviceLine    = regexp.MustCompile(`(?mi)^Device:[ \t]*([^\s.]*)`)
 	signinLine    = regexp.MustCompile(`(?mi)^Sign in(?: as)?:[ \t]*([^\s.]*)`)
@@ -360,7 +361,11 @@ func LoadScenario(path string) (Scenario, error) {
 		s.Budget, _ = strconv.Atoi(m[1])
 	}
 	if m := minStepsLine.FindStringSubmatch(s.Body); m != nil {
-		n, err := strconv.Atoi(m[1])
+		v := minStepsValue.FindStringSubmatch(strings.TrimSpace(strings.ToLower(m[1])))
+		if v == nil {
+			return Scenario{}, fmt.Errorf("cast: %s min steps %q must be a whole number such as \"Min steps: 8\"", path, strings.TrimSpace(m[1]))
+		}
+		n, err := strconv.Atoi(v[1])
 		if err != nil {
 			return Scenario{}, fmt.Errorf("cast: %s min steps: %w", path, err)
 		}
