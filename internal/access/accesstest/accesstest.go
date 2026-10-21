@@ -8,7 +8,7 @@ package accesstest
 
 import (
 	"encoding/base64"
-	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -98,7 +98,7 @@ func New(t *testing.T) *Fixture {
 	other.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		other.record(r)
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprint(w, page("Elsewhere"))
+		_, _ = io.WriteString(w, page("Elsewhere"))
 	}))
 	t.Cleanup(other.Close)
 
@@ -106,7 +106,7 @@ func New(t *testing.T) *Fixture {
 	mux := http.NewServeMux()
 	html := func(w http.ResponseWriter, title string) {
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprint(w, page(title))
+		_, _ = io.WriteString(w, page(title))
 	}
 	basicOK := func(r *http.Request) bool {
 		u, p, ok := r.BasicAuth()
@@ -143,7 +143,7 @@ func New(t *testing.T) *Fixture {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form</title></head><body><main><h1>Form</h1><form method="post" action="/submit"><button type="submit">Send it</button></form></main></body></html>`)
+		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form</title></head><body><main><h1>Form</h1><form method="post" action="/submit"><button type="submit">Send it</button></form></main></body></html>`)
 	})
 	mux.HandleFunc("/redirect", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, other.URL+"/landing", http.StatusFound)

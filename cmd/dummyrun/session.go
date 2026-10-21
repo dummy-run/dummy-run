@@ -31,6 +31,10 @@ Flags:
   --role ROLE       which of the target's credentials roles to sign in as
   --out FILE        where to write the session
   --browser NAME    chrome or firefox (default chrome)
+  --basic-auth-env USER_ENV:PASS_ENV
+                    answer HTTP Basic auth on a protected preview, with the names of two environment variables
+  --header-env 'Name:ENV'
+                    send a request header whose value is in an environment variable. Repeat for more
   --headful         show the browser window`
 
 func sessionCmd(args []string) int {
@@ -56,6 +60,8 @@ func sessionSave(args []string) int {
 	out := fs.String("out", "", "session file to write")
 	browser := fs.String("browser", "chrome", "chrome or firefox")
 	headful := fs.Bool("headful", false, "show the browser window")
+	var preview authFlags
+	preview.register(fs)
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -73,6 +79,13 @@ func sessionSave(args []string) int {
 	}
 	target, err := loadTarget(*targetPath)
 	if err != nil {
+		return fail(err)
+	}
+	if target.Auth, err = preview.auth(target.Auth); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun session save:", err)
+		return 2
+	}
+	if err := target.Validate(); err != nil {
 		return fail(err)
 	}
 	plan, err := signin.ResolveForm(target, *role, os.Getenv)

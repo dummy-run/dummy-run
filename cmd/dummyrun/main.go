@@ -101,7 +101,8 @@ func usage() {
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
-  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox]
+  dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun doctor [--stop]
   dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version

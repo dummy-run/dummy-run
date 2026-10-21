@@ -176,6 +176,30 @@ func TestEmptyDirectoryIsAnError(t *testing.T) {
 	}
 }
 
+func TestPreviewAccessLoads(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-17-lin-contributor-008.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	m["preview_access"] = map[string]any{"methods": []string{"basic", "headers"}, "header_names": []string{"x-vercel-protection-bypass"}}
+	withAccess, _ := json.Marshal(m)
+	run, err := v.Parse(withAccess)
+	if err != nil {
+		t.Fatalf("a record with preview_access was rejected: %v", err)
+	}
+	if run.PreviewAccess == nil || len(run.PreviewAccess.Methods) != 2 {
+		t.Errorf("preview_access %+v", run.PreviewAccess)
+	}
+}
+
 func TestFirstStepAndConfirmedFindings(t *testing.T) {
 	v, err := NewValidator()
 	if err != nil {

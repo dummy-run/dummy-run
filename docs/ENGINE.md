@@ -653,8 +653,8 @@ secret itself.
 {
   "adapter": "url",
   "environment": "pr-42",
-  "base_url": "https://my-app-git-pr-42.vercel.app/",
-  "allowed_hosts": ["my-app-git-pr-42.vercel.app"],
+  "base_url": "https://pr-42.preview.example.test/",
+  "allowed_hosts": ["pr-42.preview.example.test"],
   "read_only": true,
   "auth": {
     "headers": {
@@ -698,7 +698,8 @@ dummyrun run ... --header-env 'x-vercel-protection-bypass:VERCEL_AUTOMATION_BYPA
 
 ### How the secrets travel
 
-- Only your own hosts get them. In a run, that means the hosts in `allowed_hosts`, matched the way the
+- Only your own hosts get them, and only over https. A request over plain http carries nothing, except on
+  `localhost` and other loopback addresses, which is where `base_url` may use http too. In a run, that means the hosts in `allowed_hosts`, matched the way the
   [read-only policy](#read-only-policy) matches them, port included. In `dummyrun a11y`, it means the origins of the
   URLs, the sitemap and `--rebase` that you name. A request to any other host never carries a secret, and that
   includes a redirect from your site to another host.
@@ -706,15 +707,15 @@ dummyrun run ... --header-env 'x-vercel-protection-bypass:VERCEL_AUTOMATION_BYPA
   auth it sends the `Authorization` header up front, unless the page set its own, and it also answers the
   browser's Basic challenge as a fallback. It answers once per request, so a wrong password fails with the
   site's 401 instead of looping.
-- The read-only policy is unchanged. The headers don't make a write any more allowed than it was.
+- The headers never let a write through the read-only policy.
 - The engine's own requests for `robots.txt`, sitemaps and the home page hash carry the headers too, on your
   hosts only.
 - The values are read from the environment when the run starts. A missing or empty variable stops the run
   before the browser opens, and the error names the variable. A secret written into the target file is refused
   with an error that tells you to name a variable instead. The error never repeats the secret.
-- The run record, the log, the screenshots, the telemetry and the errors never hold a secret. The record has an
-  optional `preview_access` block, added in schema version 2, with the methods used and the names of the
-  headers, nothing else:
+- No secret reaches the run record, the log or the screenshots. The telemetry and the errors stay clean too. The
+  record has an optional `preview_access` block, added in schema version 2, with the methods used and the names
+  of the headers, nothing else:
 
 ```json
 "preview_access": { "methods": ["basic", "headers"], "header_names": ["x-vercel-protection-bypass"] }

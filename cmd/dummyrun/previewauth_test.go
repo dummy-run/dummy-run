@@ -70,3 +70,14 @@ func TestAuthFlagErrorsDoNotEchoInput(t *testing.T) {
 		}
 	}
 }
+
+// Every command that opens the target takes the flags, and refuses a malformed one with a usage error.
+func TestPreviewFlagsOnSessionSaveAndA11y(t *testing.T) {
+	signin := "../../examples/targets/signin.json"
+	if got := run([]string{"session", "save", "--target", signin, "--role", "viewer", "--out", t.TempDir() + "/s.json", "--basic-auth-env", "nocolon"}); got != 2 {
+		t.Errorf("session save with a bad --basic-auth-env exited %d, want 2", got)
+	}
+	if got := run([]string{"a11y", "https://example.test/", "--header-env", "nocolon"}); got != 2 {
+		t.Errorf("a11y with a bad --header-env exited %d, want 2", got)
+	}
+}

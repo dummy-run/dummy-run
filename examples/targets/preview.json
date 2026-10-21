@@ -1,8 +1,8 @@
 {
   "adapter": "url",
   "environment": "pr-42",
-  "base_url": "https://my-app-git-pr-42.vercel.app/",
-  "allowed_hosts": ["my-app-git-pr-42.vercel.app"],
+  "base_url": "https://pr-42.preview.example.test/",
+  "allowed_hosts": ["pr-42.preview.example.test"],
   "read_only": true,
   "auth": {
     "headers": {

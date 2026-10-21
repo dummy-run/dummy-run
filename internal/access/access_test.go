@@ -56,6 +56,33 @@ func TestHeadersAreScopedToTheTarget(t *testing.T) {
 	}
 }
 
+// A cleartext request would show the password and the bypass token to anyone on the network.
+func TestNoCredentialsOverCleartext(t *testing.T) {
+	r := resolve(t, accesstest.Auth())
+	for _, url := range []string{"http://preview.example.com/page", "http://assets.example.com:8443/a.js", "ws://preview.example.com/socket"} {
+		if got := r.Headers(url, nil); got != nil {
+			t.Errorf("%s: sent %s over cleartext", url, names(got))
+		}
+		if _, _, ok := r.Challenge("c", url); ok {
+			t.Errorf("%s: answered a challenge over cleartext", url)
+		}
+	}
+	local := policy.Target{Environment: "p", BaseURL: "http://127.0.0.1:8080/", AllowedHosts: []string{"127.0.0.1:8080", "localhost:3000"}}
+	lr, err := access.Resolve(accesstest.Auth(), accesstest.Getenv, access.TargetScope(local))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, url := range []string{"http://127.0.0.1:8080/", "http://localhost:3000/x"} {
+		if got := lr.Headers(url, nil); got == nil {
+			t.Errorf("%s: loopback over http should get the headers", url)
+		}
+	}
+	scope := access.OriginScope([]string{"http://staging.example.com/", "https://staging.example.com/", "http://127.0.0.1:9000/"})
+	if scope("http://staging.example.com/a") || !scope("https://staging.example.com/a") || !scope("http://127.0.0.1:9000/a") {
+		t.Error("OriginScope must refuse cleartext off loopback and keep https and loopback")
+	}
+}
+
 func TestPagesOwnAuthorizationIsKept(t *testing.T) {
 	r := resolve(t, accesstest.Auth())
 	own := []bidi.Header{bidi.StringHeader("authorization", "Bearer app-token")}

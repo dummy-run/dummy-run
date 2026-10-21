@@ -53,15 +53,23 @@ type Run struct {
 	Provider      Provider  `json:"provider"`
 	Browser       Browser   `json:"browser"`
 	Signin        *Signin   `json:"signin,omitempty"`
-	Outcome       string    `json:"outcome"`
-	Steps         []Step    `json:"steps"`
-	Findings      []Finding `json:"findings"`
-	Usage         Usage     `json:"usage"`
+	// PreviewAccess names the protection the engine answered. The exporter accepts it and sends nothing for it.
+	PreviewAccess *PreviewAccess `json:"preview_access,omitempty"`
+	Outcome       string         `json:"outcome"`
+	Steps         []Step         `json:"steps"`
+	Findings      []Finding      `json:"findings"`
+	Usage         Usage          `json:"usage"`
 	// Observations are read so that the strict decoder accepts them. The exporter does not send them.
 	Observations []Observation `json:"observations,omitempty"`
 	// Events are accepted so a record that has them loads. The exporter does not send them,
 	// because an event's detail is page text.
 	Events []json.RawMessage `json:"events,omitempty"`
+}
+
+// PreviewAccess holds names only: the methods and the header names, never a value.
+type PreviewAccess struct {
+	Methods     []string `json:"methods"`
+	HeaderNames []string `json:"header_names,omitempty"`
 }
 
 // Observation is a note that something worked. It is not a finding and the exporter ignores it.

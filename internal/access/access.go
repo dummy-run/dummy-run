@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -185,24 +186,47 @@ func (r *Resolved) HandleAuth(ctx context.Context, c *bidi.Conn, e bidi.AuthRequ
 }
 
 // OriginScope returns a scope that accepts the scheme, host and port of each given URL, and nothing else.
+// A URL that is not https, and not on a loopback host, adds nothing.
 func OriginScope(rawURLs []string) func(string) bool {
 	origins := map[string]bool{}
 	for _, raw := range rawURLs {
-		if k, ok := originKey(raw); ok {
+		if k, ok := originKey(raw); ok && secure(raw) {
 			origins[k] = true
 		}
 	}
 	return func(raw string) bool {
 		k, ok := originKey(raw)
-		return ok && origins[k]
+		return ok && secure(raw) && origins[k]
 	}
 }
 
-// TargetScope returns a scope that accepts exactly what the target's allowed_hosts accept.
+// secure reports whether credentials may travel to rawURL: https, or http on a loopback host, which
+// is the same rule that base_url follows. A cleartext request to any other host never carries them,
+// even when the host is in scope, since anyone on the network could read them.
+func secure(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "https":
+		return true
+	case "http":
+		h := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+		if h == "localhost" {
+			return true
+		}
+		ip := net.ParseIP(h)
+		return ip != nil && ip.IsLoopback()
+	}
+	return false
+}
+
+// TargetScope returns a scope that accepts what the target's allowed_hosts accept, over https or on a loopback host.
 func TargetScope(t policy.Target) func(string) bool {
 	return func(raw string) bool {
 		u, err := url.Parse(raw)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		if err != nil || !secure(raw) {
 			return false
 		}
 		return t.OriginAllowed(u.Scheme, u.Hostname(), u.Port())
