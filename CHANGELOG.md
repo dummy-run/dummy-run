@@ -6,6 +6,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- A scenario can ask for a minimum number of steps with a `Min steps: 8` line. The engine answers a `finish` that comes sooner with a note to carry on, and the run continues. It lets the `finish` through when the verdict is `blocked`, when the step budget, the token budget or the persona's patience forced it. After three refusals it lets the next one through too. `dummyrun run --scenario-file FILE` plays a scenario file that is not in the cast (code: `internal/runner/patience.go`, `internal/cast/cast.go`, `cmd/dummyrun/main.go`).
+
 - A "Docs move with the code" check on every pull request. A behaviour change in `cmd/`, `internal/`, `casts/library/`, `schema/`, `integrations/`, `docker/`, `.goreleaser.yaml` or `site/layouts/` fails unless the same pull request changes the docs and adds a line under Unreleased here. Tests, `testdata/` and `internal/tools/` are ignored. The message names the pages that path usually affects. The `no-docs-needed` label with a `Docs: not needed because ...` line in the description is the way out. `CONTRIBUTING.md` and the pull request template describe it (code: `.github/workflows/docs-guard.yml` and `.github/scripts/docs-guard.sh`).
 
 ### Changed

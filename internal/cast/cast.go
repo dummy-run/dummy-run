@@ -19,8 +19,8 @@
 // The persona key "signin: editor" and the scenario line "Sign in as: editor" pick which of the target's
 // credentials roles the engine signs in as before the run. "none" turns it off.
 //
-// A scenario file can set "Device: phone", "Zoom: 200%", "Text scale: 200%" and "Budget: 30 steps"
-// on lines of their own; Device, Zoom and Text scale there replace the persona's. A Device
+// A scenario file can set "Device: phone", "Zoom: 200%", "Text scale: 200%", "Budget: 30 steps" and
+// "Min steps: 8" on lines of their own; Device, Zoom and Text scale there replace the persona's. A Device
 // line may carry prose after the device name ("Device: desktop. Start at the
 // home page."); a Zoom or Text scale value has the line to itself. A value that is not valid
 // is an error, never ignored.
@@ -73,6 +73,8 @@ type Scenario struct {
 	Title string
 	// Budget is the step budget the scenario asked for, or 0 for the default.
 	Budget int
+	// MinSteps is how many steps the persona must take before finish is accepted, or 0 for no minimum.
+	MinSteps int
 	// Device is the device the scenario asked for, or "" to use the persona's.
 	Device string
 	// Zoom is the page zoom in percent the scenario asked for, or 0 to use the persona's.
@@ -173,6 +175,8 @@ func (p *Persona) Scenario(id string) (Scenario, error) {
 var (
 	numberPrefix  = regexp.MustCompile(`^[0-9]+-`)
 	budgetLine    = regexp.MustCompile(`(?m)^Budget:\s*([0-9]+)`)
+	minStepsLine  = regexp.MustCompile(`(?mi)^Min steps:[ \t]*([^\n]*)$`)
+	minStepsValue = regexp.MustCompile(`^([0-9]+)(?: steps?)?$`)
 	titleLine     = regexp.MustCompile(`(?m)^#\s+(.+)$`)
 	deviceLine    = regexp.MustCompile(`(?mi)^Device:[ \t]*([^\s.]*)`)
 	signinLine    = regexp.MustCompile(`(?mi)^Sign in(?: as)?:[ \t]*([^\s.]*)`)
@@ -355,6 +359,17 @@ func LoadScenario(path string) (Scenario, error) {
 	}
 	if m := budgetLine.FindStringSubmatch(s.Body); m != nil {
 		s.Budget, _ = strconv.Atoi(m[1])
+	}
+	if m := minStepsLine.FindStringSubmatch(s.Body); m != nil {
+		v := minStepsValue.FindStringSubmatch(strings.TrimSpace(strings.ToLower(m[1])))
+		if v == nil {
+			return Scenario{}, fmt.Errorf("cast: %s min steps %q must be a whole number such as \"Min steps: 8\"", path, strings.TrimSpace(m[1]))
+		}
+		n, err := strconv.Atoi(v[1])
+		if err != nil {
+			return Scenario{}, fmt.Errorf("cast: %s min steps: %w", path, err)
+		}
+		s.MinSteps = n
 	}
 	if m := deviceLine.FindStringSubmatch(s.Body); m != nil {
 		s.Device = strings.ToLower(m[1])
