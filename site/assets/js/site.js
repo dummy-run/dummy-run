@@ -1,3 +1,28 @@
+// The menu. Without JavaScript the links stay in view as a wrapped list. With it, they fold behind a Menu
+// button wherever the line is too narrow, and the button says whether they are showing.
+(function () {
+  var header = document.querySelector(".masthead");
+  var button = header && header.querySelector(".nav-toggle");
+  if (!button) {
+    return;
+  }
+  button.hidden = false;
+  header.classList.add("is-collapsible");
+  function set(open) {
+    header.classList.toggle("is-open", open);
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  button.addEventListener("click", function () {
+    set(button.getAttribute("aria-expanded") !== "true");
+  });
+  header.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
+      set(false);
+      button.focus();
+    }
+  });
+})();
+
 // The theme toggle. Without JavaScript the page follows the system setting and the button stays hidden.
 (function () {
   var root = document.documentElement;
@@ -88,6 +113,148 @@
     });
     button.hidden = false;
   });
+})();
+
+// The terminal on the Get started page. The whole transcript is already in the page as text. This types the
+// commands and shows the output in small chunks, with a pause button. With reduced motion it does nothing.
+(function () {
+  var term = document.querySelector("[data-terminal]");
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (!term || (reduce && reduce.matches)) {
+    return;
+  }
+  var button = term.querySelector(".t-pause");
+  var lines = Array.prototype.slice.call(term.querySelectorAll(".t-line"));
+  var texts = lines.map(function (l) {
+    var t = l.querySelector(".t-text");
+    return t ? t.textContent : null;
+  });
+  var timer = null;
+  var paused = false;
+  var next = null;
+  var started = false;
+  var index = 0;
+
+  function later(fn, ms) {
+    next = fn;
+    timer = window.setTimeout(function () {
+      timer = null;
+      next = null;
+      fn();
+    }, ms);
+  }
+
+  function reset() {
+    index = 0;
+    lines.forEach(function (l, i) {
+      l.classList.add("t-wait");
+      var t = l.querySelector(".t-text");
+      if (t) {
+        t.textContent = texts[i];
+      }
+    });
+  }
+
+  function finish() {
+    lines.forEach(function (l) {
+      l.classList.remove("t-wait", "t-caret");
+    });
+    button.textContent = "Replay";
+    button.setAttribute("data-state", "done");
+  }
+
+  function type(i, n) {
+    var t = lines[i].querySelector(".t-text");
+    var full = texts[i];
+    var step = Math.max(1, Math.ceil(full.length / 80));
+    n = Math.min(full.length, n + step);
+    t.textContent = "";
+    t.appendChild(document.createTextNode(full.slice(0, n)));
+    var rest = document.createElement("span");
+    rest.className = "t-wait";
+    rest.textContent = full.slice(n);
+    t.appendChild(rest);
+    if (n < full.length) {
+      later(function () { type(i, n); }, 30);
+      return;
+    }
+    t.textContent = full;
+    lines[i].classList.remove("t-caret");
+    index = i + 1;
+    later(run, 700);
+  }
+
+  function run() {
+    if (index >= lines.length) {
+      finish();
+      return;
+    }
+    var i = index;
+    if (texts[i] !== null) {
+      lines[i].classList.remove("t-wait");
+      lines[i].classList.add("t-caret");
+      type(i, 0);
+      return;
+    }
+    var shown = 0;
+    while (index < lines.length && texts[index] === null && shown < 2) {
+      lines[index].classList.remove("t-wait");
+      index++;
+      shown++;
+    }
+    later(run, index < lines.length && texts[index] === null ? 420 : 300);
+  }
+
+  function start() {
+    if (started) {
+      return;
+    }
+    started = true;
+    if (paused) {
+      next = run;
+      return;
+    }
+    later(run, 600);
+  }
+
+  reset();
+  button.hidden = false;
+  button.addEventListener("click", function () {
+    if (button.getAttribute("data-state") === "done") {
+      button.setAttribute("data-state", "");
+      button.textContent = "Pause";
+      paused = false;
+      reset();
+      later(run, 400);
+      return;
+    }
+    if (paused) {
+      paused = false;
+      button.textContent = "Pause";
+      if (next) {
+        later(next, 100);
+      }
+    } else {
+      paused = true;
+      button.textContent = "Resume";
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
+    }
+  });
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      if (entries.some(function (e) { return e.isIntersecting; })) {
+        io.disconnect();
+        start();
+      }
+    });
+    io.observe(term);
+  } else {
+    start();
+  }
 })();
 
 // A copy button on every code block. Without JavaScript the code stays as plain text.
@@ -327,10 +494,16 @@
 
 // The waitlist form. Without JavaScript the form posts to the API and the API redirects to a result page.
 (function () {
-  var form = document.querySelector("[data-waitlist] form");
-  if (!form || !window.fetch) {
+  if (!window.fetch) {
     return;
   }
+  var forms = document.querySelectorAll("[data-waitlist] form");
+  for (var i = 0; i < forms.length; i++) {
+    setupWaitlist(forms[i]);
+  }
+})();
+
+function setupWaitlist(form) {
   var status = form.querySelector(".waitlist-status");
   var messages = {
     invalid_email: "That email address does not look right. Check it and try again.",
@@ -381,4 +554,4 @@
       }
     });
   });
-})();
+}

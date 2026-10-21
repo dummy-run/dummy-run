@@ -37,6 +37,31 @@ func sample() *Record {
 	}
 }
 
+func TestObservationsAreOptionalAndValidated(t *testing.T) {
+	r := sample()
+	if data, err := Marshal(r); err != nil || bytes.Contains(data, []byte("observations")) {
+		t.Fatalf("a record without observations must be valid and leave the key out: %v", err)
+	}
+	r.Observations = []Observation{{Text: "The home page check found no violations.", Steps: []int{2}}}
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatalf("valid observations rejected: %v", err)
+	}
+	if !bytes.Contains(data, []byte(`"observations"`)) {
+		t.Error("observations missing from the output")
+	}
+	for name, bad := range map[string]Observation{
+		"no text":  {Text: "", Steps: []int{1}},
+		"no steps": {Text: "ok", Steps: []int{}},
+		"step 0":   {Text: "ok", Steps: []int{0}},
+	} {
+		r.Observations = []Observation{bad}
+		if _, err := Marshal(r); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
 func TestMarshalValidRecord(t *testing.T) {
 	data, err := Marshal(sample())
 	if err != nil {
@@ -134,6 +159,31 @@ func TestZoomIsOptionalAndRecorded(t *testing.T) {
 	}
 	if !bytes.Contains(data, []byte(`"zoom": 200`)) { // persona.zoom, in percent
 		t.Errorf("zoom missing from %s", data)
+	}
+}
+
+func TestTextScaleIsOptionalAndRecorded(t *testing.T) {
+	r := sample()
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte("text_scale")) {
+		t.Error("a record without a text scale wrote one")
+	}
+	r.Persona.TextScale = 200
+	data, err = Marshal(r)
+	if err != nil {
+		t.Fatalf("text scale 200 rejected: %v", err)
+	}
+	if !bytes.Contains(data, []byte(`"text_scale": 200`)) {
+		t.Errorf("text_scale missing from %s", data)
+	}
+	for _, n := range []int{50, 99, 301, 500} {
+		r.Persona.TextScale = n
+		if _, err := Marshal(r); err == nil {
+			t.Errorf("text scale %d was accepted", n)
+		}
 	}
 }
 

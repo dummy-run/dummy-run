@@ -8,8 +8,8 @@ tags: accessibility keyboard focus
 leans-on: press look a11y
 label: Keyboard-only user
 need: movement
-summary: Uses only the keyboard. The engine refuses every click.
-finds: Controls that Tab skips, focus you cannot see, and menus you cannot leave.
+summary: Uses only the keyboard, and the engine won't let it click anything.
+finds: Controls that Tab skips, focus you can't see and menus you can't get out of.
 ---
 # Kit, keyboard-only user
 

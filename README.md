@@ -13,40 +13,62 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> Pre-release, with no tagged version yet. The engine installs with
-> `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. It runs personas on six kinds of
-> model provider; [docs/ENGINE.md](docs/ENGINE.md) shows
-> how. A person confirms findings with `dummyrun review`. The results board is not built yet. The website is at [dummyrun.dev](https://dummyrun.dev).
+> Dummy Run is pre-release, and the first release isn't published yet. Until it is, build the newest commit
+> on `main` with `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. Then follow
+> [docs/ENGINE.md](docs/ENGINE.md) to run your first persona. The website is [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
-A persona is a fictional user. It has a role with permissions, plus goals, habits and a device.
+A persona is a made-up user. It has a role and permissions, plus goals, habits and a device. You point one at your
+app, usually a preview built for a pull request, and it tries to get its job done in Chrome or Firefox. If you give it a
+test account, it signs in first.
 
-A run signs one persona in to your app in Chrome or Firefox. The app is usually a preview built for one
-pull request. The persona tries to do its job and reports what broke, what confused it and what its role
-should not have seen. A reviewer checks each claim against screenshots, logs and code. Only claims with
-evidence reach the results board.
+When it's finished, you get a run record. It holds every step with a screenshot, what broke, what
+confused the persona and anything its role shouldn't have been able to see. You then go through the
+findings with `dummyrun review` and confirm or reject each one. `dummyrun report` turns the confirmed
+findings into a report you can share.
 
 ```mermaid
 flowchart LR
     A[Cast of personas<br/>role, goals, device, permissions]:::step --> B[Run<br/>real browser, your preview URL]:::agent
-    B --> C[Report<br/>steps, screenshots, logs]:::step
-    C --> D[Reviewer<br/>every claim checked against evidence and code]:::agent
-    D --> E[Results board<br/>findings only, text and screenshots]:::out
+    B --> C[Run record<br/>steps, screenshots, findings]:::step
+    C --> D[Review<br/>a person confirms or rejects each finding]:::agent
+    D --> E[Report<br/>confirmed findings with their evidence]:::out
     classDef step fill:#ffffff,stroke:#1d1d1b,color:#1d1d1b
     classDef agent fill:#fbad18,stroke:#1d1d1b,color:#1d1d1b
     classDef out fill:#f0fdf4,stroke:#15803d,color:#0c2030
 ```
 
-- **Targets.** An adapter finds the preview for a pull request, creates a test user with the right role
-  and loads test data. The `url` adapter takes a plain URL. Adapters for GitHub Deployments, Vercel,
-  Netlify and Cloudflare Pages are planned.
-- **Model providers.** Azure OpenAI, Anthropic, Gemini and Amazon Bedrock. Any OpenAI-compatible service
-  works too, such as a local server. Choose one per market to keep runs inside a
-  jurisdiction such as the UK or the EU.
-- **Nothing is posted for you.** Findings go to the board. A person decides what becomes a ticket.
+You tell the engine where your app lives with a small JSON target file: the base URL, the hosts it may
+visit and how to sign in. Examples are in [examples/targets/](examples/targets/).
 
-## Who it is for
+The persona runs on a model provider you choose. That can be Azure OpenAI, Anthropic or Amazon Bedrock.
+It can also be Gemini, directly or on Vertex AI, or any OpenAI-compatible service such as a server on
+your own machine. To keep model calls in a market such as the UK
+or the EU, choose an endpoint or region there. On Vertex AI and Bedrock, `--region` picks where calls go.
+For the others, the endpoint you configure decides, and `--region` is only recorded.
+[docs/PROVIDERS.md](docs/PROVIDERS.md) covers each one.
+
+If you turn on telemetry, it goes to your own OpenTelemetry backend. OpenTelemetry is the open standard for
+traces, metrics and logs.
+
+Nothing turns into a ticket on its own. You decide what goes in your tracker, either by copying a finding
+across or by scripting against the run record JSON.
+
+## Does it replace a scripted regression suite?
+
+No, keep your suite. A script checks the steps you wrote, the same way every time. A persona picks its own
+actions as it goes, so it can find problems nobody thought to script. When it finds one you want guarded
+for good, write a test for it.
+
+## What leaves your network
+
+The persona is a model reading what the browser shows, so screenshots and page text go to the model
+provider you choose. Telemetry is optional and holds no screenshots. It carries step URLs, step targets
+and finding titles, which can quote a few words from the page. It goes only to the OpenTelemetry
+backend you configure, plus Grafana annotations if you ask for them. [docs/TELEMETRY.md](docs/TELEMETRY.md) lists every field.
+
+## Who it's for
 
 | You are | What you get |
 |---|---|
@@ -54,34 +76,55 @@ flowchart LR
 | A developer | Your product used the way a customer uses it, on your laptop or in CI |
 | An agency | One cast run against every client's preview, with each client's data kept in its market |
 | Product and UX | Friction and confusion, each tied to the step and screenshot |
-| Compliance and security | What each role can see or do beyond its rights, verified before it is raised |
-| An executive | One board showing what is broken, who it affects and the evidence |
+| Compliance and security | What each role can see or do beyond its rights, checked by a person before it's raised |
+| An executive | A report of what's broken, who it affects and the evidence |
+
+## Install
+
+Once the first release is out, you can download a binary from
+[GitHub Releases](https://github.com/dummy-run/dummy-run/releases). Or pull the container image, which comes with
+Chrome for Testing and Firefox, or build from source.
+
+```sh
+docker run --rm ghcr.io/dummy-run/dummyrun:VERSION a11y https://example.com
+go install github.com/dummy-run/dummy-run/cmd/dummyrun@vVERSION
+```
+
+Replace `VERSION` with a release number from the releases page, such as `0.1.0`.
+
+Every release is signed with cosign and comes with SLSA build provenance. To check a download before you
+run it, follow [docs/INSTALL.md](docs/INSTALL.md).
 
 ## Documentation
 
 | Document | What it covers |
 |---|---|
-| [docs/PLAN.md](docs/PLAN.md) | What ships, in what order |
-| [docs/ENGINE.md](docs/ENGINE.md) | Installing and running the engine, the tools a persona has, zoom, focus, reviewing findings, the read-only policy and the accessibility sweep |
-| [docs/MCP.md](docs/MCP.md) | Using Dummy Run from Claude Code, Cursor, VS Code or Codex through `dummyrun mcp`, and what each tool costs |
-| [docs/CLI.md](docs/CLI.md) | The help text of each command, written from the code |
-| [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, their sign-in and what each can do |
-| [docs/PERSONAS.md](docs/PERSONAS.md) | The persona library in [casts/library](casts/library/README.md), and how to copy one into your cast |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Adapters, the evidence pipeline and data residency |
+| [docs/INSTALL.md](docs/INSTALL.md) | Release binaries, the container image and how to verify a download |
+| [docs/ENGINE.md](docs/ENGINE.md) | Install the engine, run a persona, review findings, sign in, zoom and text size, the read-only policy, and the accessibility sweep with its layout checks |
+| [docs/MCP.md](docs/MCP.md) | Use Dummy Run from Claude Code, Cursor, VS Code or Codex through `dummyrun mcp` |
+| [docs/CLI.md](docs/CLI.md) | Every command and flag, from the built-in help |
+| [docs/PROVIDERS.md](docs/PROVIDERS.md) | The model providers, how to sign in to each and what each supports |
+| [docs/PERSONAS.md](docs/PERSONAS.md) | Copy a persona from the [library](casts/library/README.md) into your cast and adapt it |
+| [docs/COVERAGE.md](docs/COVERAGE.md) | What `dummyrun coverage` counts and how to read each number |
+| [docs/REPORT.md](docs/REPORT.md) | What goes in a `dummyrun report` audit report and how to read a finding |
+| [docs/BADGES.md](docs/BADGES.md) | The report badge and how to publish it from GitHub Actions |
+| [docs/INKWELL.md](docs/INKWELL.md) | Inkwell, a small app with planted defects to try personas on |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How a run is put together and where data lives |
 | [docs/TELEMETRY.md](docs/TELEMETRY.md) | How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations |
-| [docs/COVERAGE.md](docs/COVERAGE.md) | What `dummyrun coverage` measures and when to trust each number |
-| [docs/REPORT.md](docs/REPORT.md) | What `dummyrun report` puts in an audit report, how to read it and what it does not claim |
-| [docs/BADGES.md](docs/BADGES.md) | The SVG badge and shields.io endpoint from `dummyrun report`, what they say and how to publish them from GitHub Actions |
-| [schema/run-record.schema.json](schema/run-record.schema.json) | The format of a run record, with examples in [examples/runs/](examples/runs/) |
-| [schema/report.schema.json](schema/report.schema.json) | The format of the report in JSON, with an example report in [examples/report/](examples/report/) |
-| [docs/integrations/grafana.md](docs/integrations/grafana.md) | Sending runs to Grafana, linking them to your app's traces, and alerts |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, the automated checks, and the rules on evidence and privacy |
-| [SECURITY.md](SECURITY.md) | Reporting a vulnerability, and findings about apps you do not own |
+| [docs/integrations/grafana.md](docs/integrations/grafana.md) | Send runs to Grafana, link them to your app's traces and set up alerts |
+| [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md) | What a hostile page could try and what stops it |
+| [docs/ETHICS.md](docs/ETHICS.md) | What a persona can and can't tell you |
+| [schema/run-record.schema.json](schema/run-record.schema.json) | The run record format, with examples in [examples/runs/](examples/runs/) |
+| [schema/report.schema.json](schema/report.schema.json) | The JSON report format, with an example in [examples/report/](examples/report/) |
+| [SECURITY.md](SECURITY.md) | Report a vulnerability, and what to do about findings in apps you don't own |
 | [docs/LICENSING.md](docs/LICENSING.md) | What the licence lets you do |
-| [docs/STYLE.md](docs/STYLE.md), [docs/TYPOGRAPHY.md](docs/TYPOGRAPHY.md) | How we write and set type |
-| [docs/NAMING.md](docs/NAMING.md) | How the name was chosen |
-| [brand/README.md](brand/README.md) | The logo, mascot and colours |
-| [site/](site/README.md) | The website at dummyrun.dev, built from these documents |
+
+If you'd like to work on Dummy Run itself, start with [CONTRIBUTING.md](CONTRIBUTING.md). The project
+docs sit next to it in [docs/](docs/): [PLAN.md](docs/PLAN.md) for what's next and
+[STYLE.md](docs/STYLE.md) for how we write. [TYPOGRAPHY.md](docs/TYPOGRAPHY.md) has the type scale,
+[NAMING.md](docs/NAMING.md) the name, and [DECISIONS.md](docs/DECISIONS.md) the reasons behind past choices.
+[RELEASING.md](docs/RELEASING.md) is the release checklist. The logo and mascot are in [brand/](brand/README.md), and the
+website source is in [site/](site/README.md).
 
 ## Licence
 

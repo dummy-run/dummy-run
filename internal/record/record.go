@@ -59,7 +59,10 @@ type Record struct {
 	OutcomeReason string    `json:"outcome_reason,omitempty"`
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
-	Usage         Usage     `json:"usage"`
+	// Observations are things that worked and neutral notes. They are not findings and never enter
+	// coverage or the findings metric. Records written before observations had their own list have none.
+	Observations []Observation `json:"observations,omitempty"`
+	Usage        Usage         `json:"usage"`
 	// Events are things the engine saw that a reviewer should know about. Left out when there are none.
 	Events []Event `json:"events,omitempty"`
 }
@@ -82,6 +85,12 @@ type Event struct {
 	Detail  string `json:"detail"`
 }
 
+// Observation is a note that something worked or is neutral, with the steps that show it.
+type Observation struct {
+	Text  string `json:"text"`
+	Steps []int  `json:"steps"`
+}
+
 // Persona identifies the persona and how it browsed in this run. Device and
 // Zoom are the values the run used: a scenario can replace the persona's own.
 type Persona struct {
@@ -90,6 +99,9 @@ type Persona struct {
 	Device string `json:"device"`
 	// Zoom is the page zoom in percent, 100 to 500. Zero leaves it out, meaning 100.
 	Zoom int `json:"zoom,omitempty"`
+	// TextScale is the system text size in percent, 100 to 300: the browser's default font size
+	// raised, with the page not zoomed. Zero leaves it out, meaning 100.
+	TextScale int `json:"text_scale,omitempty"`
 	// Dimensions are the persona's dimensions for diversity coverage. Nil in a version 1 record.
 	Dimensions *Dimensions `json:"dimensions,omitempty"`
 }

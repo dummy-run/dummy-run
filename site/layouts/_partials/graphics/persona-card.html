@@ -1,5 +1,5 @@
 {{- $who := .who | default "sam-author" -}}
-<div class="graphic persona" role="group" aria-label="A persona card">
+<div class="graphic persona" role="group" aria-label="{{ if eq $who "lin-contributor" }}Lin, a contributor on a tablet{{ else }}Sam, an author on a phone{{ end }}">
   {{- if eq $who "lin-contributor" }}
   <div class="persona-head">{{ partial "icons/mascot.html" (dict) }}<div class="persona-name">Lin<span class="g-code">lin-contributor</span></div></div>
   <dl>

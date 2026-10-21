@@ -1,22 +1,187 @@
 # {{.Title}}
 
-{{if .Client}}Prepared for {{.Client}}. {{end}}Report date {{.Date}}. Made with dummyrun {{.ToolVersion}}. Findings included: {{.Basis}}.
+*Audit report*
 
-## Summary
+{{if .Client}}- Prepared for: {{.Client}}
+{{end -}}
+{{range .Scope.Targets}}{{if .BaseURL}}- Target: {{.BaseURL}}
+{{end}}{{end -}}
+{{if .Scope.StartedAt}}- Tested: {{period .Scope}}
+{{end -}}
+- Report date: {{longDate .Date}}
+{{if .Baseline}}- Compared with: {{.Baseline.Title}}, {{longDate .Baseline.Date}}
+{{end -}}
+- Findings included: {{.Basis}}
+- Made with: dummyrun {{.ToolVersion}}
 
 {{range .Summary.Text}}{{.}}
 
-{{end}}| Severity | Distinct problems |
-|---|---|
+{{end}}## Summary
+
+| Severity | Problems found |
+|---|---:|
 {{- range $sev := severities}}
-| {{cap $sev}} | {{index $.Summary.BySeverity $sev}} |
+| {{cell (cap $sev)}} | {{index $.Summary.BySeverity $sev}} |
 {{- end}}
 
-{{if .Summary.NotReviewed}}Not reviewed: {{.Summary.NotReviewed}}. A model reported these findings and no person has checked them against the evidence.
+{{if .Summary.NotReviewed}}Not reviewed: {{plural .Summary.NotReviewed "finding" "findings"}}. A model reported what it found and no person has checked the evidence.
 
 {{end}}{{range .Warnings}}{{.}}
 
-{{end}}## Scope and method
+{{end}}### The key numbers
+
+| Measure | Value |
+|---|---:|
+| Problems found | {{cell .Summary.FindingsTotal}} ({{cell .Summary.Confirmed}} confirmed by a person) |
+| Runs | {{cell .Scope.Runs.Total}} ({{cell .Scope.Runs.Completed}} completed) |
+| Personas | {{len .Scope.Personas}} |
+| Routes visited | {{len .Scope.Routes}}{{if .Coverage.RouteUniverse}} of {{cell .Coverage.RouteUniverse}} known{{end}} |
+{{- if .Axe}}
+| Pages in the axe sweep | {{cell .Axe.Pages}} ({{cell .Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}) |
+{{- end}}
+{{- if .Baseline}}
+| Since the baseline | {{cell .Summary.New}} new, {{cell .Summary.StillPresent}} still present, {{cell .Summary.Fixed}} not seen again |
+{{- end}}
+
+### How sure you can be
+
+{{howSure .Coverage}}
+
+### What was tested
+
+{{if .Scope.Runs.Total -}}
+{{range .Scope.Targets}}- Target: {{.BaseURL}}, build `{{.Build}}` ({{.BuildKind}}), {{.Environment}}
+{{end -}}
+- Personas: {{range $i, $p := .Scope.Personas}}{{if $i}}, {{end}}{{$p.ID}} ({{$p.Role}}){{end}}
+- Scenarios: {{range $i, $s := .Scope.Scenarios}}{{if $i}}; {{end}}{{$s.Title}}{{end}}
+- Browsers: {{range $i, $b := .Scope.Browsers}}{{if $i}}, {{end}}{{$b.Name}} {{$b.Version}}{{end}}
+{{- if .Axe}}
+- Axe sweep: {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}}
+{{- end}}
+{{else -}}
+No persona runs were given. This report holds the axe sweep only.
+{{end}}
+{{if .Worked -}}
+### What worked
+
+Personas also reported what went well. A model wrote these notes and no person has checked them, so they are observations and not findings.
+
+{{range .Worked -}}
+- {{.Text}} ({{.Runs}} of {{$.Scope.Runs.Total}} runs; {{join .Personas}})
+{{end}}
+{{end -}}
+> Read this as a sample. This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. See [What this report is not](#what-this-report-is-not).
+
+## Findings
+
+The findings are sorted by severity, then by the number of runs that found them. Each is a distinct problem, and one found in several runs appears once.
+
+{{if not .Findings}}This report has no persona findings.
+
+{{end}}
+{{- range sevGroups .Findings}}### {{cap .Severity}} ({{plural (len .Items) "finding" "findings"}})
+
+{{range .Items}}{{$f := .Finding}}#### {{$f.Title}}
+
+{{cap $f.Severity}}. {{statusText $f.Status}}.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
+
+{{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
+
+{{end}}| | |
+|---|---|
+{{- if $f.Symptom}}
+| What went wrong | {{cell (symptomText $f.Symptom)}} |
+{{- end}}
+| Who hit it | {{cell (whoText $ $f)}} |
+{{- if $f.State}}
+| When | {{cell $f.State}} |
+{{- end}}
+{{- if $f.WCAG}}
+| WCAG 2.2 | {{cell (join $f.WCAG)}} |
+{{- end}}
+| Review | {{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{cell (join $f.Reviewers)}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{cell $f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding{{end}} |
+{{- if $f.HelpURL}}
+| Fix guidance | {{cell $f.HelpURL}} |
+{{- end}}
+
+How to reproduce:
+
+{{range $n, $step := reproSteps $f}}{{$n | inc}}. {{$step}}
+{{end}}
+What goes wrong: {{$f.Title}}
+
+{{range $f.Screenshots}}*{{shotCaption $f .}}.*{{with lookAt $f}} {{.}}{{end}}
+
+{{end}}Technical details: run `{{inline $f.Reproduction.Run}}`{{if $f.Reproduction.Steps}}, step{{if gt (len $f.Reproduction.Steps) 1}}s{{end}} {{range $j, $st := $f.Reproduction.Steps}}{{if $j}}, {{end}}{{$st.N}}{{end}}{{end}}; persona `{{inline $f.Reproduction.Persona}}` on {{inline $f.Reproduction.Device}} in {{inline $f.Reproduction.Browser}}; kind {{$f.Kind}}{{if $f.Symptom}}; symptom `{{$f.Symptom}}`{{end}}{{if $f.Locus}}; locus `{{inline $f.Locus}}`{{end}}; evidence {{inline $f.Evidence}}; fingerprint `{{if $f.Fingerprint}}{{inline $f.Fingerprint}}{{else}}none{{end}}`{{range $f.Screenshots}}; screenshot `{{inline .Path}}` next to the run record{{end}}.
+{{- if gt (len $f.Instances) 1}} Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.
+{{- end}}
+
+{{end}}{{end}}
+{{- if .Axe}}## Axe sweep and layout checks
+
+The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{codes .Axe.Tags}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.
+
+{{if .Axe.Rules -}}
+### Rules that failed
+
+| Rule | What it checks | Impact | WCAG 2.2 | Elements | Fix guidance |
+|---|---|---|---|---:|---|
+{{- range .Axe.Rules}}
+| `{{cell .Rule}}` | {{cell .Help}}{{if .Baseline}} ({{cell (baselineText .Baseline)}}){{end}} | {{if .Impact}}{{cell (cap .Impact)}}{{else}}No impact given{{end}} | {{if .WCAG}}{{cell (join .WCAG)}}{{else}}Not recorded{{end}} | {{cell .Elements}} | {{if .HelpURL}}{{cell .HelpURL}}{{else}}None recorded{{end}} |
+{{- end}}
+
+### Where each rule failed
+
+| Rule | Page | Elements | Settings |
+|---|---|---|---|
+{{- range $r := .Axe.Rules}}{{range $r.Pages}}
+| `{{cell $r.Rule}}` | {{cell .URL}} | {{range $k, $t := .Targets}}{{if $k}}, {{end}}`{{cell $t}}`{{end}} | {{cell (join .Settings)}} |
+{{- end}}{{end}}
+
+{{else -}}
+No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.
+
+{{end -}}
+{{- if .Axe.NeedsReview}}### Needs a person to check
+
+Axe cannot decide these rules alone. A person has to look.
+
+| Rule | What it checks | WCAG 2.2 | Pages |
+|---|---|---|---|
+{{- range .Axe.NeedsReview}}
+| `{{cell .Rule}}` | {{cell .Help}} | {{if .WCAG}}{{cell (join .WCAG)}}{{else}}Not recorded{{end}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{cell $p.URL}}{{end}} |
+{{- end}}
+
+{{end -}}
+{{- if .Axe.Errors}}### Pages that could not be tested
+
+| Page | Setting | Error |
+|---|---|---|
+{{- range .Axe.Errors}}
+| {{cell .URL}} | {{cell .Setting}} | {{cell .Message}} |
+{{- end}}
+
+{{end -}}
+{{end -}}
+{{- if .Baseline}}## Since the baseline
+
+The baseline is the report titled {{.Baseline.Title}} of {{longDate .Baseline.Date}}. Findings are matched by fingerprint. A finding the baseline had and this report did not find again is marked fixed. A sample can miss a problem that is still there.
+
+| New since the baseline | Still present | Not seen again |
+|---:|---:|---:|
+| {{cell .Summary.New}} | {{cell .Summary.StillPresent}} | {{cell .Summary.Fixed}} |
+
+{{if .Fixed -}}
+| Severity | Problem | Source |
+|---|---|---|
+{{- range .Fixed}}
+| {{cell (cap .Severity)}} | {{cell .Title}} | {{if eq .Source "axe"}}Axe sweep{{else}}Persona run{{end}} |
+{{- end}}
+{{else -}}
+Nothing from the baseline is missing from this report.
+{{end}}
+{{end -}}
+## How it was tested
 
 Each run signs one fictional user, called a persona, in to the app in a real browser. The persona works through a scenario and reports what broke, what confused it and what its role should not have seen. Findings are folded together when they share a fingerprint, which is a hash of the route, the control and the kind of symptom.
 
@@ -27,40 +192,37 @@ Each run signs one fictional user, called a persona, in to the app in a real bro
 - Routes visited: {{len .Scope.Routes}}{{if .Scope.Routes}} ({{codes .Scope.Routes}}){{end}}
 
 | Address | Environment | Build | Adapter | Runs |
-|---|---|---|---|---|
+|---|---|---|---|---:|
 {{- range .Scope.Targets}}
-| {{.BaseURL}} | {{.Environment}} | `{{.Build}}` ({{.BuildKind}}) | {{.Adapter}} | {{.Runs}} |
+| {{cell .BaseURL}} | {{cell .Environment}} | `{{cell .Build}}` ({{cell .BuildKind}}) | {{cell .Adapter}} | {{cell .Runs}} |
 {{- end}}
 
 | Persona | Role | Device | Dimensions | Runs |
-|---|---|---|---|---|
+|---|---|---|---|---:|
 {{- range .Scope.Personas}}
-| {{.ID}} | {{.Role}} | {{join .Devices}} | {{if .Dimensions}}{{join .Dimensions}}{{else}}None recorded{{end}} | {{.Runs}} |
+| {{cell .ID}} | {{cell .Role}} | {{cell (join .Devices)}} | {{if .Dimensions}}{{cell (join .Dimensions)}}{{else}}None recorded{{end}} | {{cell .Runs}} |
 {{- end}}
 
 | Scenario | Runs | Goal met | Partly | Not met | Not recorded |
-|---|---|---|---|---|---|
+|---|---:|---:|---:|---:|---:|
 {{- range .Scope.Scenarios}}
-| {{.Title}} | {{.Runs}} | {{.GoalMet}} | {{.GoalPartly}} | {{.GoalNotMet}} | {{.GoalUnknown}} |
+| {{cell .Title}} | {{cell .Runs}} | {{cell .GoalMet}} | {{cell .GoalPartly}} | {{cell .GoalNotMet}} | {{cell .GoalUnknown}} |
 {{- end}}
 
 | Browser | Version | Runs |
-|---|---|---|
+|---|---|---:|
 {{- range .Scope.Browsers}}
-| {{.Name}} | {{.Version}} | {{.Runs}} |
+| {{cell .Name}} | {{cell .Version}} | {{cell .Runs}} |
 {{- end}}
 
 | Model | Provider | Region | Runs |
-|---|---|---|---|
+|---|---|---|---:|
 {{- range .Scope.Models}}
-| {{.Model}} | {{.Kind}} | {{.Region}} | {{.Runs}} |
+| {{cell .Model}} | {{cell .Kind}} | {{cell .Region}} | {{cell .Runs}} |
 {{- end}}
 {{else}}No persona runs were given. This report holds the axe sweep only.
 {{end}}
-{{- if .Axe}}
-The axe sweep ran {{.Axe.Tool}} with axe-core {{.Axe.AxeVersion}} on {{join .Axe.Browsers}}. It tested {{.Axe.Pages}} pages in {{.Axe.Runs}} settings.
-{{end}}
-## Coverage
+### Coverage
 
 {{if .Coverage.Available -}}
 These numbers come from `dummyrun coverage` over the same runs. They say how much the sample can tell you.
@@ -90,111 +252,6 @@ Cautions:
 {{else -}}
 Coverage was not computed. {{.Coverage.Unavailable}}
 {{end}}
-## Findings
-
-Findings are sorted by severity, then by the number of runs that found them. Each one is a distinct problem. A problem found in several runs appears once.
-
-{{if not .Findings}}This report has no persona findings.
-
-{{end}}
-{{- range $i, $f := .Findings}}### {{cap $f.Severity}}: {{$f.Title}}
-
-- Status: {{statusText $f.Status}}{{if $f.Baseline}}. {{baselineText $f.Baseline}}{{end}}
-- Kind: {{$f.Kind}}
-{{- if $f.Symptom}}
-- Symptom: {{$f.Symptom}}
-{{- end}}
-{{- if $f.Route}}
-- Route: `{{$f.Route}}`
-{{- end}}
-{{- if $f.Locus}}
-- Control or region: {{$f.Locus}}
-{{- end}}
-{{- if $f.State}}
-- Precondition: {{$f.State}}
-{{- end}}
-- Evidence: {{$f.Evidence}}
-- Found by: {{join $f.Personas}} in {{$f.Runs}} of {{$f.OfRuns}} runs
-- WCAG 2.2 criterion: {{if $f.WCAG}}{{join $f.WCAG}}{{else}}not recorded for this finding{{end}}
-- Review: {{if eq $f.Status "confirmed"}}confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{$f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}not reviewed. No person has checked this finding{{end}}
-{{- if $f.HelpURL}}
-- Fix guidance: {{$f.HelpURL}}
-{{- end}}
-- Fingerprint: `{{if $f.Fingerprint}}{{$f.Fingerprint}}{{else}}none{{end}}`
-
-How to reproduce. Run {{$f.Reproduction.Run}}: persona {{$f.Reproduction.Persona}} signed in as {{$f.Reproduction.Role}} on a {{$f.Reproduction.Device}}{{if ne $f.Reproduction.Zoom 100}} at {{$f.Reproduction.Zoom}} percent zoom{{end}} in {{$f.Reproduction.Browser}}.
-
-{{if $f.Reproduction.Steps}}{{range $f.Reproduction.Steps}}{{.N}}. {{stepText .}}{{if .Note}} The persona said: {{.Note}}{{end}}
-{{end}}{{else}}The record cites no step.
-{{end}}
-{{- if gt (len $f.Instances) 1}}
-Also seen in: {{range $j, $in := $f.Instances}}{{if $j}}, {{end}}{{$in.Run}}{{if ne $in.Status "confirmed"}} (not reviewed){{end}}{{end}}.
-{{end}}
-{{- range $f.Screenshots}}
-{{.Alt}}. The file is `{{.Path}}`, next to the run record.
-{{end}}
-{{end}}
-{{- if .Axe}}## Axe sweep
-
-The sweep ran axe-core {{.Axe.AxeVersion}} on {{.Axe.Pages}} pages in {{.Axe.Runs}} settings (browser, viewport and colour scheme). It checked the rules with these tags: {{codes .Axe.Tags}}. It found {{.Axe.FailingNodes}} failing elements{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.
-
-{{if .Axe.Rules -}}
-{{range .Axe.Rules}}### {{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}: {{.Help}}
-
-- Rule: `{{.Rule}}`
-{{- if .Baseline}}
-- Since the baseline: {{baselineText .Baseline}}
-{{- end}}
-- WCAG 2.2 criterion: {{if .WCAG}}{{join .WCAG}}{{else}}not recorded for this rule{{end}}
-- Elements: {{.Elements}}
-- Fix guidance: {{if .HelpURL}}{{.HelpURL}}{{else}}none recorded{{end}}
-
-| Page | Elements | Settings |
-|---|---|---|
-{{- range .Pages}}
-| {{.URL}} | {{range $k, $t := .Targets}}{{if $k}}, {{end}}`{{$t}}`{{end}} | {{join .Settings}} |
-{{- end}}
-
-{{end -}}
-{{else -}}
-No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.
-
-{{end -}}
-{{- if .Axe.NeedsReview}}### Needs a person to check
-
-Axe cannot decide these rules alone. A person has to look.
-
-| Rule | What it checks | WCAG 2.2 criterion | Pages |
-|---|---|---|---|
-{{- range .Axe.NeedsReview}}
-| `{{.Rule}}` | {{.Help}} | {{if .WCAG}}{{join .WCAG}}{{else}}not recorded{{end}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{$p.URL}}{{end}} |
-{{- end}}
-
-{{end -}}
-{{- if .Axe.Errors}}### Pages that could not be tested
-
-| Page | Setting | Error |
-|---|---|---|
-{{- range .Axe.Errors}}
-| {{.URL}} | {{.Setting}} | {{.Message}} |
-{{- end}}
-
-{{end -}}
-{{end -}}
-{{- if .Baseline}}## Since the baseline
-
-The baseline is the report titled {{.Baseline.Title}} of {{.Baseline.Date}}. Findings are matched by fingerprint. A fixed finding is one that the baseline had and this report did not find again. A sample can miss a problem that is still there.
-
-{{if .Fixed -}}
-| Severity | Problem | Source |
-|---|---|---|
-{{- range .Fixed}}
-| {{cap .Severity}} | {{.Title}} | {{if eq .Source "axe"}}Axe sweep{{else}}Persona run{{end}} |
-{{- end}}
-{{else -}}
-Nothing from the baseline is missing from this report.
-{{end}}
-{{end -}}
 ## What this report is not
 
 {{range .Limits}}- {{.}}

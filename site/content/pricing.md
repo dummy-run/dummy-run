@@ -1,6 +1,6 @@
 ---
 title: Pricing
-lead: What Dummy Run sells and what it costs. Paid plans open soon.
+lead: The engine is free and open source. If you'd rather we ran it for you, here's what that costs. Paid plans open soon.
 description: Dummy Run prices in pounds. A free scan, a one-off full report, a monthly Watch plan and a scoped audit.
 layout: pricing
 plans:
@@ -8,11 +8,11 @@ plans:
     name: Free scan
     price: Free
     unit: Opening soon
-    for: For a first look at a public site.
+    for: A first look at your public site.
     includes:
-      - Reads public pages only. It does not log in or submit forms.
-      - Takes a sample of pages and may stop early.
-      - Results are for information. They are not an audit.
+      - Reads your public pages. It never logs in or submits forms.
+      - Looks at a sample of pages and may stop early.
+      - Useful as a first look. It isn't an audit.
     cta:
       kind: link
       label: Join the waitlist
@@ -21,11 +21,11 @@ plans:
     name: Full report
     price: "£295"
     unit: one-off
-    for: For a report you can download and share.
+    for: A report you can download and share.
     includes:
-      - More pages and personas than the free scan.
-      - A branded report you can download.
-      - One payment. No subscription.
+      - More pages and more personas than the free scan.
+      - A branded report you can download and pass on.
+      - Pay once, with no subscription.
     cta:
       kind: soon
       label: Opening soon
@@ -36,10 +36,10 @@ plans:
     pick: true
     for: For a site that keeps changing.
     includes:
-      - Scheduled scans of your public site.
-      - A comparison with the last scan.
-      - An email when something new appears.
-      - Cancel any time.
+      - Regular scans of your public site.
+      - Each scan compared with the one before.
+      - An email when something new turns up.
+      - Cancel whenever you like.
     cta:
       kind: soon
       label: Opening soon
@@ -48,11 +48,10 @@ plans:
     prefix: From
     price: "£1,950"
     unit: scoped to your site
-    for: For a team that wants a person to do the work.
+    for: When you want a person to do the work.
     includes:
-      - A scoped audit delivered by a person.
+      - An accessibility audit carried out by a person, scoped to your site.
       - Invoiced by Dummy Run directly.
-      - No VAT added. We are not registered for VAT.
     cta:
       kind: link
       label: Request an audit

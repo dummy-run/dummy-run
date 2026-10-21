@@ -3,8 +3,11 @@
   <article class="prose">
     {{ partial "breadcrumbs.html" . }}
     <header class="page-header">
-      <h1 class="u-title">{{ .Title }}</h1>
-      {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
+      <div class="page-header-text">
+        <h1 class="u-title">{{ .Title }}</h1>
+        {{ with .Params.lead }}<p class="u-lead">{{ . | markdownify }}</p>{{ end }}
+      </div>
+      {{ with .Params.mascot }}{{ partial "mascot.html" (dict "name" . "class" "page-mascot") }}{{ end }}
     </header>
     {{ .Content }}
     {{ if eq .Section "for" }}

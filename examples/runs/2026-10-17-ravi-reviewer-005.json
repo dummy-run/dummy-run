@@ -186,6 +186,14 @@
     }
   ],
   "findings": [],
+  "observations": [
+    {
+      "text": "The accessibility check on the drafts page found no violations.",
+      "steps": [
+        5
+      ]
+    }
+  ],
   "usage": {
     "model_calls": 17,
     "input_tokens": 108018,

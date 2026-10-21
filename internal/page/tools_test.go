@@ -21,6 +21,7 @@ const toolsPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><t
 <main>
 <h1 id="h">Welcome</h1>
 <p>Some text for the persona to read.</p>
+<p>Run <code>QUOTED-EXAMPLE</code> to start.</p>
 <nav><a href="/about">About us</a> <a href="/pricing">Pricing</a></nav>
 <label for="name">Your name</label><input id="name" value="old">
 <input id="unlabelled" placeholder="">
@@ -143,6 +144,16 @@ func TestTools(t *testing.T) {
 				}
 				if !strings.Contains(o.Snapshot.Text, "Some text for the persona") {
 					t.Errorf("text missing: %q", o.Snapshot.Text)
+				}
+				// The model sees the code. The injection scan reads a copy with the code cut out. Neither holds a marker.
+				if !strings.Contains(o.Snapshot.Text, "QUOTED-EXAMPLE") || strings.Contains(o.Snapshot.ScanText, "QUOTED-EXAMPLE") ||
+					!strings.Contains(o.Snapshot.ScanText, "Some text for the persona") || !strings.Contains(o.Snapshot.ScanText, "to start.") {
+					t.Errorf("text %q, scan text %q", o.Snapshot.Text, o.Snapshot.ScanText)
+				}
+				for _, got := range []string{o.Snapshot.Text, o.Snapshot.ScanText} {
+					if strings.ContainsAny(got, "\uE000\uE001\uE002\uE003") {
+						t.Errorf("a marker is left in %q", got)
+					}
 				}
 				var labels []string
 				for _, c := range o.Snapshot.Controls {

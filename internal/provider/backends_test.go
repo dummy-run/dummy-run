@@ -84,6 +84,39 @@ func TestOpenAICompatibleRequestShape(t *testing.T) {
 	}
 }
 
+// A tool-only assistant turn has no text. Ollama rejects a missing content field with a 400,
+// so the compatible provider sends an empty string. The Azure provider is left as it was.
+func TestOpenAICompatibleSendsEmptyContentForToolOnlyTurns(t *testing.T) {
+	srv := newReplay(t)
+	srv.serve(t, 200, "openai-compatible", "tool.json")
+	p, err := NewOpenAICompatible(Config{Endpoint: srv.URL + "/v1", Model: "m", Region: "local"})
+	must(t, err)
+	req := contractRequest()
+	req.Turns[1].Text = ""
+	_, err = p.Chat(context.Background(), req)
+	must(t, err)
+	var body struct {
+		Messages []map[string]any `json:"messages"`
+	}
+	must(t, json.Unmarshal([]byte(srv.last(t).body), &body))
+	found := false
+	for _, m := range body.Messages {
+		if m["role"] != "assistant" {
+			continue
+		}
+		found = true
+		if c, ok := m["content"].(string); !ok || c != "" {
+			t.Errorf("assistant content %#v, want an empty string", m["content"])
+		}
+		if _, ok := m["tool_calls"]; !ok {
+			t.Error("tool_calls missing")
+		}
+	}
+	if !found {
+		t.Fatal("no assistant message was sent")
+	}
+}
+
 func TestOpenAICompatibleRejectsBadConfig(t *testing.T) {
 	for name, cfg := range map[string]Config{
 		"no endpoint":  {Model: "m", Region: "r"},

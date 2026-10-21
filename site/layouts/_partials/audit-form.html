@@ -14,15 +14,15 @@
     <input id="audit-organisation" name="organisation" type="text" maxlength="150" autocomplete="organization">
   </div>
   <div class="field">
-    <label for="audit-website">Website to audit</label>
+    <label for="audit-website">Website you&rsquo;d like audited</label>
     <input id="audit-website" name="site_url" type="text" inputmode="url" autocomplete="url" placeholder="example.com" required>
   </div>
   <div class="field">
-    <label for="audit-needs">What do you need?</label>
+    <label for="audit-needs">What do you need from the audit?</label>
     <textarea id="audit-needs" name="need" rows="6" maxlength="2000" required></textarea>
   </div>
   <div class="field">
-    <label for="audit-timing">Preferred timing</label>
+    <label for="audit-timing">When do you need it?</label>
     <select id="audit-timing" name="timing" required>
       <option value="" selected disabled>Choose one</option>
       <option value="asap">As soon as possible</option>
@@ -36,7 +36,7 @@
   </div>
   <div class="field field-check">
     <input id="audit-consent" name="consent" type="checkbox" value="on" required>
-    <label for="audit-consent">Contact me about this request</label>
+    <label for="audit-consent">You can contact me about this request</label>
   </div>
   {{- with site.Params.waitlist_turnstile_sitekey }}
   <div class="cf-turnstile" data-sitekey="{{ . }}" data-theme="auto"></div>
@@ -44,19 +44,19 @@
   <button class="btn" type="submit">Send the request</button>
   <p id="audit-status" class="form-status" role="status" aria-live="polite"></p>
 </form>
-<noscript><p class="field-hint">Without JavaScript the human check may not show. If it does not, email <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p></noscript>
-<p class="field-hint">This form loads Cloudflare Turnstile, a human check. <a href="/privacy/">Privacy</a>. You can also write to <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p>
+<noscript><p class="field-hint">Without JavaScript the human check may not appear. If it doesn&rsquo;t, email <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a> instead.</p></noscript>
+<p class="field-hint">This form loads Cloudflare Turnstile to check that you&rsquo;re human. Our <a href="/privacy/">privacy page</a> explains what we keep. Prefer email? Write to <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>.</p>
 {{- with site.Params.waitlist_turnstile_sitekey }}
 {{- /* nosemgrep: html.security.audit.missing-integrity.missing-integrity -- Cloudflare says not to pin Turnstile with SRI, because the script must update itself. */}}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 {{- end }}
 {{- else -}}
 <div class="req-fallback">
-  <p>The request form is not open yet. Email <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a> instead and tell us:</p>
+  <p>The request form isn&rsquo;t open yet, so email <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a> instead and tell us:</p>
   <ul>
     <li>the website to audit</li>
     <li>what you need</li>
-    <li>when you would like it done</li>
+    <li>when you&rsquo;d like it done</li>
   </ul>
   <p class="actions"><a class="btn" href="mailto:hello@dummyrun.dev?subject=Audit%20request">Email hello@dummyrun.dev</a></p>
 </div>

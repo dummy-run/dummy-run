@@ -6,6 +6,7 @@ on:
       - "site/**"
       - "docs/**"
       - "brand/**"
+      - "casts/**"
       - "schema/**"
       - "examples/runs/**"
       - "CONTRIBUTING.md"
@@ -13,7 +14,9 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/bidi/**"
       - "internal/tools/**"
+      - "bin/check-start-session"
       - ".github/workflows/site.yml"
   push:
     branches: [main]
@@ -21,6 +24,7 @@ on:
       - "site/**"
       - "docs/**"
       - "brand/**"
+      - "casts/**"
       - "schema/**"
       - "examples/runs/**"
       - "CONTRIBUTING.md"
@@ -28,7 +32,9 @@ on:
       - "TRADEMARKS.md"
       - "cmd/dummyrun/a11y.go"
       - "internal/a11y/**"
+      - "internal/bidi/**"
       - "internal/tools/**"
+      - "bin/check-start-session"
       - ".github/workflows/site.yml"
 
 permissions:
@@ -72,6 +78,8 @@ jobs:
       - name: Install the check tools
         working-directory: site
         run: npm ci --no-audit --no-fund
+      - name: The start page terminal matches its capture
+        run: bin/check-start-session
       - name: Social cards are up to date
         run: go run ./internal/tools/socialcards -check
       - name: Build
@@ -128,6 +136,13 @@ jobs:
           --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
           --allow site/a11y-allow.txt --json "$RUNNER_TEMP/a11y-firefox.json"
           http://127.0.0.1:1313/404.html
+      - name: Large text, Chrome, 320 pixels, 100 and 200 percent text, light and dark
+        run: >-
+          "$RUNNER_TEMP/dummyrun" a11y --browser chrome --viewport small --text-scale 100,200 --layout
+          --sitemap http://127.0.0.1:1313/sitemap.xml --rebase http://127.0.0.1:1313
+          --allow site/a11y-allow.txt --screenshots "$RUNNER_TEMP/large-text"
+          --json "$RUNNER_TEMP/a11y-large-text.json"
+          http://127.0.0.1:1313/404.html
       - name: No engine browser or profile directory is left behind
         if: ${{ !cancelled() }}
         run: '"$RUNNER_TEMP/dummyrun" doctor'
@@ -135,7 +150,9 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: a11y-reports
-          path: ${{ runner.temp }}/a11y-*.json
+          path: |
+            ${{ runner.temp }}/a11y-*.json
+            ${{ runner.temp }}/large-text
           retention-days: 7
           if-no-files-found: ignore
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

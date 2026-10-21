@@ -1,11 +1,12 @@
 ---
 title: Request received
-lead: Thank you. We will reply to the email address you gave.
+lead: Thanks, we've got it. We'll reply to the email address you gave us.
 description: Your audit request has been sent to Dummy Run.
 layout: audit-result
+mascot: dummy-thumbs-up
 noindex: true
 sitemap:
   disable: true
 ---
 
-We reply by email. If you need to add something, write to hello@dummyrun.dev.
+If you think of anything else, write to hello@dummyrun.dev.

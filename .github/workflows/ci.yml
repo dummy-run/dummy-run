@@ -64,6 +64,8 @@ jobs:
           exit $fail
       - name: Example run records match the schema
         run: pipx run check-jsonschema==0.38.1 --schemafile schema/run-record.schema.json examples/runs/*.json
+      - name: The prose checker's own tests
+        run: bin/check-prose-test
       - name: Plain wording on user-facing pages
         run: bin/check-prose
       - name: No em dashes in Markdown

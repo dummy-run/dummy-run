@@ -1,10 +1,10 @@
 ---
 title: Who it is for
-lead: Six jobs use Dummy Run for different reasons. Pick yours. Each page shows what you get and ends with one next step.
-description: Dummy Run written for six jobs, from the QA lead who runs it to the executive who reads the board.
+lead: A QA lead and an executive want very different things from the same run. Pick the job closest to yours to see what you get from Dummy Run.
+description: What Dummy Run gives six different jobs, from the QA lead who runs it to the executive who reads the report.
 next:
   title: Not sure which job fits
-  text: How it works explains the five stages that every role shares.
+  text: How it works follows one run from start to finish, whatever your job.
   label: Read how it works
   href: /how-it-works/
 ---

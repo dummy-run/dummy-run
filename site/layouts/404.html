@@ -1,10 +1,8 @@
 {{ define "main" }}
 <section class="not-found">
-  {{ with resources.Get "brand/mascot/dummy.svg" }}
-  <img class="not-found-mascot" src="{{ .RelPermalink }}" width="160" height="160" alt="The Dummy mascot, a crash-test dummy head with a target on its temple">
-  {{ end }}
-  <h1 class="u-title">There is no page at this address.</h1>
-  <p>The persona would log this as a 404 and move on. Start again at the <a href="/">home page</a> or pick a page from the <a href="/docs/">docs</a>. If a link brought you here, <a href="{{ .Site.Params.repo }}/issues">open an issue</a>.</p>
+  {{ partial "mascot.html" (dict "name" "dummy-oops" "class" "not-found-mascot") }}
+  <h1 class="u-title">There&rsquo;s nothing at this address.</h1>
+  <p>A persona would note this as a 404 and carry on, and you can too. Try the <a href="/">home page</a> or the <a href="/docs/">docs</a>. If one of our links sent you here, we&rsquo;d be grateful if you <a href="{{ .Site.Params.repo }}/issues">opened an issue</a> so we can fix it.</p>
   <p class="actions">
     <a class="btn" href="/start/">Get started</a>
     <a class="btn btn-quiet" href="/">Go to the home page</a>

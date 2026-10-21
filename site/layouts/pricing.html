@@ -1,6 +1,6 @@
 {{ define "main" }}
 {{- $repo := site.Params.repo -}}
-{{- /* The free scan page ships in its own change. Until it exists the card shows the same state as the paid plans. */ -}}
+{{- /* Until the free scan page exists, its card shows the same state as the paid plans. */ -}}
 {{- $scan := site.GetPage "/scan" -}}
 <div class="pricing">
   <header class="pricing-head">
@@ -37,15 +37,14 @@
       </li>
       {{- end }}
     </ul>
-    <p class="tax-line">Prices are in pounds sterling and exclude tax. Paddle is our reseller and merchant of record for the full report and Watch. Paddle adds any VAT or sales tax due at checkout, based on where you are. Audits are invoiced by Dummy Run directly. We are not registered for VAT, so no VAT is added.</p>
   </section>
 
   <section class="band" aria-labelledby="oss-heading">
     <div class="stage oss">
-      <div class="oss-mark">{{ partial "icons/mascot.html" (dict) }}</div>
+      <div class="oss-mark">{{ partial "mascot.html" (dict "name" "dummy-friendly" "class" "oss-mascot") }}</div>
       <div class="oss-copy">
         <h2 id="oss-heading" class="u-title-sm">The engine is open source and free</h2>
-        <p class="band-lede">The engine is free under the Apache-2.0 licence. Install it, run personas against your own site and read the code.</p>
+        <p class="band-lede">You don&rsquo;t have to buy anything. The engine is free under the Apache-2.0 licence, so you can install it, run personas against your own site and read every line of the code.</p>
         <p class="actions">
           <a class="btn" href="/start/">Install it</a>
           <a class="btn btn-quiet btn-on-stage" href="{{ $repo }}">View it on GitHub</a>
@@ -59,24 +58,20 @@
     <h2 id="faq-heading" class="u-title-sm">Questions about buying</h2>
     <dl class="faq">
       <div>
-        <dt>What does &ldquo;excludes tax&rdquo; mean?</dt>
-        <dd>The price on the card is before tax. For the full report and Watch, Paddle adds any VAT or sales tax due at checkout, based on where you are. Audits are invoiced by Dummy Run directly. We are not registered for VAT, so no VAT is added.</dd>
-      </div>
-      <div>
         <dt>Who is Paddle?</dt>
-        <dd>Paddle.com is the merchant of record for the full report and Watch. It handles their payment, tax and refunds, and its buyer terms apply to those purchases. It takes your payment details. We never see your card number. We invoice audits ourselves. <a href="/terms/">Terms</a></dd>
+        <dd>Paddle.com sells the full report and Watch on our behalf as merchant of record. Paddle handles your payment, tax and refunds, its buyer terms apply to those purchases, and we never see your card number. Audits we invoice ourselves. <a href="/terms/">Terms</a></dd>
       </div>
       <div>
         <dt>Can I cancel Watch?</dt>
-        <dd>Yes, any time. Cancel from your account or from the link on your Paddle receipt. Access continues to the end of the paid month. We do not refund a part month except where the law requires it. <a href="/refunds/">Refund policy</a></dd>
+        <dd>Yes, whenever you like, from your account or the link on your Paddle receipt. You keep access until the end of the month you&rsquo;ve paid for. We don&rsquo;t refund part months unless the law requires it. <a href="/refunds/">Refund policy</a></dd>
       </div>
       <div>
         <dt>Is the free scan really free?</dt>
-        <dd>Yes. It costs nothing. It is not open yet.{{ if $scan }} Join the waitlist.{{ end }} Its results are for information and are not an audit.{{ if $scan }} <a href="/scan/">The free scan</a>{{ end }}</dd>
+        <dd>Yes, it costs nothing. It isn&rsquo;t open yet{{ if $scan }}, so join the waitlist to hear when it is{{ end }}. Treat it as a useful first look rather than an audit.{{ if $scan }} <a href="/scan/">The free scan</a>{{ end }}</dd>
       </div>
       <div>
         <dt>Do you store my site&rsquo;s content?</dt>
-        <dd>The free scan will get its own privacy notice before it opens. Today the privacy page covers this site, the waitlist and purchases. The scan only reads public pages. It does not log in, submit forms or change anything. <a href="/privacy/">Privacy</a></dd>
+        <dd>The privacy page covers this site, the waitlist and purchases. The free scan only loads public pages, and it doesn&rsquo;t log in or submit forms. <a href="/privacy/">Privacy</a></dd>
       </div>
     </dl>
     <p class="band-more">Other questions? Write to <a href="mailto:hello@dummyrun.dev">hello@dummyrun.dev</a>. The <a href="/refunds/">refund policy</a> and <a href="/terms/">terms</a> apply to every purchase.</p>

@@ -15,6 +15,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
 
@@ -56,6 +57,9 @@ func TestGolden(t *testing.T) {
 	}
 	for format, file := range map[string]string{"html": "report.html", "md": "report.md", "json": "report.json", "sarif": "report.sarif", "junit": "report.junit.xml"} {
 		got := render(t, rep, format)
+		if format == "html" {
+			got = shortenAssets(got)
+		}
 		path := filepath.Join("testdata", "golden", file)
 		if *update {
 			if err := os.WriteFile(path, []byte(got), 0o644); err != nil { //nolint:gosec // test data
@@ -69,6 +73,34 @@ func TestGolden(t *testing.T) {
 		}
 		if got != string(want) {
 			t.Errorf("%s differs from %s. Run go test ./internal/report -update and read the diff", format, path)
+		}
+	}
+}
+
+// shortenAssets replaces the inlined fonts and logos, which are large and tested on their own, so the
+// golden file stays readable.
+func shortenAssets(html string) string {
+	return regexp.MustCompile(`data:(font/woff2|image/svg(?:\+|&#43;)xml);base64,(?:[A-Za-z0-9/=]|\+|&#43;)+`).ReplaceAllString(html, "data:$1;base64,...")
+}
+
+// The SVG files in assets/ are copies of the brand files and must not drift from them.
+func TestAssetsMatchBrand(t *testing.T) {
+	for name, src := range map[string]string{
+		"mark.svg":                   "../../brand/logo/mark.svg",
+		"lockup-horizontal.svg":      "../../brand/logo/lockup-horizontal.svg",
+		"lockup-horizontal-dark.svg": "../../brand/logo/lockup-horizontal-dark.svg",
+		"dummy-reading.svg":          "../../brand/mascot/dummy-reading.svg",
+	} {
+		want, err := os.ReadFile(src) //nolint:gosec // fixed paths
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := assetFS.ReadFile("assets/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Errorf("internal/report/assets/%s differs from %s: copy the brand file again", name, src)
 		}
 	}
 }
@@ -379,9 +411,17 @@ func TestHTMLIsSelfContained(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := render(t, rep, "html")
-	for _, bad := range []string{"<link", "<script", "@import", "url(", "<iframe", "<video", "<audio", "srcset"} {
+	for _, bad := range []string{"<script", "@import", "<iframe", "<video", "<audio"} {
 		if strings.Contains(out, bad) {
 			t.Errorf("the HTML contains %q, which could load something", bad)
+		}
+	}
+	// Fonts, logos and the icon are inlined, so every URL a style, link or image source holds is a data URI.
+	for _, re := range []string{`url\(["']?([^"')]*)`, `<link[^>]*href="([^"]*)"`, `srcset="([^"]*)"`, `<img[^>]*src="([^"]*)"`} {
+		for _, m := range regexp.MustCompile(re).FindAllStringSubmatch(out, -1) {
+			if !strings.HasPrefix(m[1], "data:") {
+				t.Errorf("the HTML loads %q", m[1])
+			}
 		}
 	}
 	for _, m := range regexp.MustCompile(`(?:src|action|poster|data)=["'](https?:)?//[^"']*`).FindAllString(out, -1) {
@@ -718,5 +758,103 @@ func TestAxeRulesAreNotFixedWhenTheSweepHadPageErrors(t *testing.T) {
 		if f.Source == "axe" {
 			t.Errorf("axe rule %q is listed as fixed although the sweep could not test every page", f.Title)
 		}
+	}
+}
+
+func TestWhatWorkedListsObservationsAndNeverCountsThem(t *testing.T) {
+	runs := loadFixture(t)
+	base, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, r := range runs {
+		if i < 2 {
+			r.Rec.Observations = append(r.Rec.Observations, record.Observation{Text: "The search box found the draft at once", Steps: []int{1}})
+		}
+	}
+	rep, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Worked) != 1 || rep.Worked[0].Runs != 2 {
+		t.Fatalf("worked %+v, want one note seen in 2 runs", rep.Worked)
+	}
+	if rep.Summary.FindingsTotal != base.Summary.FindingsTotal {
+		t.Errorf("observations changed the finding count from %d to %d", base.Summary.FindingsTotal, rep.Summary.FindingsTotal)
+	}
+	for _, format := range []string{"html", "md", "json"} {
+		out := render(t, rep, format)
+		if !strings.Contains(out, "The search box found the draft at once") {
+			t.Errorf("%s output lacks the note", format)
+		}
+	}
+	if strings.Contains(render(t, base, "md"), "What worked") {
+		t.Error("a report with no observations has a What worked section")
+	}
+}
+
+func TestEverySymptomHasPlainWords(t *testing.T) {
+	for _, s := range identity.Symptoms {
+		if _, ok := symptomWords[s]; !ok {
+			t.Errorf("symptom %q has no plain wording", s)
+		}
+		if strings.Contains(symptomText(s), "-") {
+			t.Errorf("symptom %q reads as %q", s, symptomText(s))
+		}
+	}
+	if got := symptomText("missing-information:rates"); got != "Information that was needed is missing (rates)" {
+		t.Errorf("a parameter is lost: %q", got)
+	}
+}
+
+func TestFindingCardsAreInPlainWords(t *testing.T) {
+	rep, err := Build(loadFixture(t), fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, format := range []string{"html", "md"} {
+		out := render(t, rep, format)
+		for _, bad := range []string{"No criterion recorded", "None recorded for this finding", "Run 2026-", "persona lin-contributor signed in"} {
+			if strings.Contains(out, bad) {
+				t.Errorf("%s still has %q", format, bad)
+			}
+		}
+		for _, want := range []string{"Sign in as a", "Technical details"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("%s is missing %q", format, want)
+			}
+		}
+	}
+	if got := placeText("/payments", "link:rates"); got != "the Payments page, the Rates link" {
+		t.Errorf("place reads %q", got)
+	}
+}
+
+func TestMarkdownCellsHoldFreeText(t *testing.T) {
+	if got := mdCell("a | b\nc"); got != `a \| b c` {
+		t.Errorf("cell is %q", got)
+	}
+	if got := whenText(Scope{StartedAt: "2026-10-16T10:00:00Z"}); got != "on 16 October 2026" {
+		t.Errorf("a missing end gives %q", got)
+	}
+	if got := howSure(CoverageSection{Unavailable: "The runs span two builds."}); !strings.Contains(got, "two builds") {
+		t.Errorf("the reason is lost: %q", got)
+	}
+}
+
+func TestMarkdownFindingWithoutALocation(t *testing.T) {
+	rep, err := Build(loadFixture(t), fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep.Findings[0].Route = ""
+	rep.Findings[0].Locus = ""
+	rep.Findings[0].Evidence = "line one\nline `two`"
+	out := render(t, rep, "md")
+	if !strings.Contains(out, ".\n\n| | |\n|---|---|") && !strings.Contains(out, "\n\n\n| | |\n|---|---|") {
+		t.Error("a finding with no location should still start its table on its own line")
+	}
+	if strings.Contains(out, "evidence line one\nline") || strings.Contains(out, "`two`") {
+		t.Error("newlines and backticks in free text should be flattened in the technical details")
 	}
 }

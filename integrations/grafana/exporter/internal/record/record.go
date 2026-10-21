@@ -57,9 +57,17 @@ type Run struct {
 	Steps         []Step    `json:"steps"`
 	Findings      []Finding `json:"findings"`
 	Usage         Usage     `json:"usage"`
+	// Observations are read so that the strict decoder accepts them. The exporter does not send them.
+	Observations []Observation `json:"observations,omitempty"`
 	// Events are accepted so a record that has them loads. The exporter does not send them,
 	// because an event's detail is page text.
 	Events []json.RawMessage `json:"events,omitempty"`
+}
+
+// Observation is a note that something worked. It is not a finding and the exporter ignores it.
+type Observation struct {
+	Text  string `json:"text"`
+	Steps []int  `json:"steps"`
 }
 
 // Persona is the fictional user who ran the scenario.
@@ -69,6 +77,8 @@ type Persona struct {
 	Device string `json:"device"`
 	// Zoom is the page zoom in percent, or 0 when the record has none (100).
 	Zoom int `json:"zoom,omitempty"`
+	// TextScale is the system text size in percent, or 0 when the record has none (100).
+	TextScale int `json:"text_scale,omitempty"`
 	// Dimensions are set in version 2 records.
 	Dimensions *Dimensions `json:"dimensions,omitempty"`
 }

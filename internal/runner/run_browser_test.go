@@ -43,7 +43,7 @@ func (s *scripted) Chat(_ context.Context, req provider.Request) (provider.Respo
 	resp := provider.Response{Usage: provider.Usage{InputTokens: 1000, OutputTokens: 50}, FinishReason: "tool_calls"}
 	if req.ForceTool == "finish" || n >= len(s.calls) {
 		resp.ToolCalls = []provider.ToolCall{{ID: fmt.Sprintf("call_%d", n), Name: "finish", Args: json.RawMessage(
-			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}]}`)}}
+			`{"verdict":"friction","goal_met":"partly","report":"Done. See step 2.","findings":[{"kind":"friction","severity":"minor","symptom":"not-operable","control":"@3","title":"The subscribe form cannot be used","steps":[4,1],"evidence":"measured"}],"observations":[{"text":"The home page loaded with its heading.","steps":[1]}]}`)}}
 		return resp, nil
 	}
 	c := s.calls[n]
@@ -152,6 +152,9 @@ func TestRunEndToEnd(t *testing.T) {
 			}
 			if rec.Outcome != record.OutcomeCompleted || res.Finish == nil || res.Finish.Verdict != "friction" {
 				t.Errorf("outcome %s finish %+v", rec.Outcome, res.Finish)
+			}
+			if len(rec.Observations) != 1 || rec.Observations[0].Steps[0] != 1 || len(rec.Findings) != 1 {
+				t.Errorf("observations %+v, findings %d: want one of each, kept apart", rec.Observations, len(rec.Findings))
 			}
 			if len(rec.Steps) != 7 {
 				t.Fatalf("%d steps: %+v", len(rec.Steps), rec.Steps)
@@ -400,6 +403,53 @@ func TestScenarioDeviceAndZoom(t *testing.T) {
 			}
 			if cfg.Width != 390 || cfg.Height != 844 {
 				t.Errorf("screenshot is %d by %d pixels, want the phone window 390 by 844", cfg.Width, cfg.Height)
+			}
+		})
+	}
+}
+
+const overlapSite = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title>
+<style>body{margin:0;font:1rem sans-serif} button{position:absolute;top:20px;height:48px;font:inherit}</style></head>
+<body><main><h1>Shop</h1><button style="left:10px;width:150px">Add to basket</button><button style="left:100px;width:150px">Buy now</button></main></body></html>`
+
+// TestTextScaleRun plays a persona with a text scale of 200 on a phone. The record says so, the model is
+// told, the first observation shows the text size and names the two overlapping buttons, and the page is
+// not zoomed: the window and the device pixel ratio stay as the phone's.
+func TestTextScaleRun(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the end-to-end test")
+	}
+	for _, browser := range strings.Split(browsers, ",") {
+		t.Run(browser, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "text/html")
+				_, _ = io.WriteString(w, overlapSite)
+			}))
+			t.Cleanup(srv.Close)
+			castDir := writePersonaCast(t, "text_scale: 200\n", "Device: phone. Start at the home page.")
+			res, prov := runScripted(t, browser, castDir, []provider.ToolCall{{Name: "look", Args: json.RawMessage(`{}`)}}, srv.URL)
+			rec := res.Record
+			if rec.Persona.TextScale != 200 || rec.Persona.Zoom != 0 || rec.Persona.Device != "phone" {
+				t.Errorf("persona block %+v, want phone at text scale 200 and no zoom", rec.Persona)
+			}
+			if z := rec.Persona.Dimensions.Zoom; z == nil || *z != 1 {
+				t.Errorf("dimensions zoom %v, want 1: text scale is not zoom", z)
+			}
+			if _, err := record.Read(res.Path); err != nil {
+				t.Errorf("the record does not validate: %v", err)
+			}
+			if sys := prov.requests[0].System; !strings.Contains(sys, "system text size raised to 200 percent") {
+				t.Errorf("the model was not told about the text size")
+			}
+			first := prov.requests[0].Turns[0].Text
+			for _, want := range []string{"text size: 200% of normal", "layout: 1 pair of controls overlap (@1 @2)"} {
+				if !strings.Contains(first, want) {
+					t.Errorf("the first observation lacks %q:\n%s", want, first)
+				}
+			}
+			if strings.Contains(first, "zoom:") {
+				t.Errorf("a text scale run shows a zoom line:\n%s", first)
 			}
 		})
 	}

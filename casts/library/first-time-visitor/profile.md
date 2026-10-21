@@ -7,8 +7,8 @@ tags: general comprehension value-proposition
 leans-on: look click back
 label: First-time visitor
 need: understanding
-summary: Knows nothing about your product and gives it five minutes.
-finds: Jargon, no clear first step, and empty screens that do not say what to do.
+summary: Has never heard of your product and gives it five minutes to make sense.
+finds: Jargon, no clear first step and empty screens that don't say what to do next.
 ---
 # Alex, first-time visitor
 

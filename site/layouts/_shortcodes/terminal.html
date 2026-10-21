@@ -1,13 +1,22 @@
-{{- /* A transcript of real commands and their real output, played line by line with CSS only. The output is from the built binary: dummyrun version, and dummyrun run with no flags, trimmed to its first lines. Regenerate it if the commands change. */ -}}
-<figure class="terminal">
-  <input class="t-pause-input" type="checkbox" id="t-pause">
+{{- /* A transcript of one real run, from data/start-session.json. The full text is in the page. site.js plays it (typing, then output in chunks) unless the visitor prefers reduced motion. bin/check-start-session checks every output line against the raw capture. */ -}}
+{{- $s := index hugo.Data "start-session" -}}
+{{- $p := partial "persona-who.html" (dict "id" $s.persona "scenario" $s.scenario) -}}
+<figure class="terminal" data-terminal>
   <div class="t-bar">
     <span class="t-dots" aria-hidden="true"><i></i><i></i><i></i></span>
     <span class="t-title">Terminal</span>
-    <label class="t-pause" for="t-pause">Pause animation</label>
+    <button type="button" class="t-pause" hidden>Pause</button>
   </div>
-  <div class="t-window" tabindex="0" role="group" aria-label="Terminal transcript">
-<pre class="t-body" data-copy=".t-text"><code><span class="t-line t-cmd"><span class="t-prompt" aria-hidden="true">$ </span><span class="t-text">go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest</span></span><span class="t-line t-cmd"><span class="t-prompt" aria-hidden="true">$ </span><span class="t-text">dummyrun version</span></span><span class="t-line t-out">dummyrun 0.1.0-dev</span><span class="t-line t-cmd"><span class="t-prompt" aria-hidden="true">$ </span><span class="t-text">dummyrun run</span></span><span class="t-line t-out">dummyrun run: missing [--scenario --target --out --model --cast --persona]</span><span class="t-line t-out">Usage:</span><span class="t-line t-out">  dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \</span><span class="t-line t-out">      --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \</span><span class="t-line t-out">      [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \</span><span class="t-line t-out">      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL]</span></code></pre>
+  <div class="t-window" tabindex="0" role="group" aria-label="{{ $p.name }}&rsquo;s run in the terminal">
+<pre class="t-body" data-copy=".t-text"><code>
+{{- range $s.transcript -}}
+{{- if eq .t "cmd" -}}
+<span class="t-line t-cmd"><span class="t-prompt" aria-hidden="true">$ </span><span class="t-text">{{ .text }}</span></span>
+{{- else -}}
+<span class="t-line t-out{{ if .wide }} t-wide{{ end }}">{{ .text }}</span>
+{{- end -}}
+{{- end -}}
+</code></pre>
   </div>
-  <figcaption class="t-note">Output from the built binary, trimmed to the first lines. Select any of it to copy.</figcaption>
+  <figcaption class="t-note">{{ $p.who }}, {{ if $p.question }}wanted to know &ldquo;{{ $p.task }}?&rdquo;{{ else if $p.task }}set out to {{ $p.task }}{{ else }}tried this site{{ end }}. It took {{ $s.steps }} steps and turned up {{ $s.findings }} {{ cond (eq (int $s.findings) 1) "thing" "things" }} worth a look, for ${{ printf "%.2f" $s.cost_usd }} in model costs. From a real run on dummyrun.dev, with some lines left out. <a href="https://github.com/dummy-run/dummy-run/blob/main/site/data/start-session.json">See the session data</a>.</figcaption>
 </figure>

@@ -3,110 +3,553 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <meta name="generator" content="dummyrun 0.0.0-test">
 <title>Inkwell audit</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg&#43;xml;base64,...">
+
 <style>
-:root { --ink: #1a1a1a; --muted: #4a4a4a; --line: #767676; --soft: #eef0f2; --link: #0b4f9c; --paper: #ffffff; }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 500 700; font-display: swap; src: url("data:font/woff2;base64,...") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400 700; font-display: swap; src: url("data:font/woff2;base64,...") format("woff2"); }
+
+:root {
+  color-scheme: light;
+  --paper: #ffffff;
+  --ink: #1d1d1b;
+  --muted: #55524d;
+  --rule: #d9d6cf;
+  --panel: #f5f3ee;
+  --amber: #fbad18;
+  --link: #7d5200;
+  --focus: #1d1d1b;
+  --blocker: #b3192f; --blocker-bg: #fdeaec; --blocker-ink: #7a0a1e;
+  --major: #b85c00;   --major-bg: #ffecd2;   --major-ink: #6b3400;
+  --minor: #946f00;   --minor-bg: #fff5c4;   --minor-ink: #5a4500;
+  --info: #4f7a9b;    --info-bg: #e5eff7;    --info-ink: #1c3d5a;
+  --good-bg: #e3f1e6; --good-ink: #0d3d1b;
+  --font-heading: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Atkinson Hyperlegible Next", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #161616;
+    --ink: #f3f1ec;
+    --muted: #b5b1a8;
+    --rule: #3a3936;
+    --panel: #1f1f1e;
+    --link: #fbad18;
+    --focus: #f3f1ec;
+    --blocker: #ff7b72; --blocker-bg: #3a1a1d; --blocker-ink: #ffb9b3;
+    --major: #ffa657;   --major-bg: #3a2612;   --major-ink: #ffd3a6;
+    --minor: #e3b341;   --minor-bg: #33290b;   --minor-ink: #f0da8e;
+    --info: #8fb6d4;    --info-bg: #1c2a36;    --info-ink: #c3dcee;
+    --good-bg: #16301d; --good-ink: #a8e3b8;
+  }
+}
+
 * { box-sizing: border-box; }
-html { font-size: 100%; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow-wrap: anywhere; }
-a { color: var(--link); text-underline-offset: 0.15em; }
-a:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-.skip { position: absolute; left: 0.5rem; top: -4rem; background: var(--ink); color: #fff; padding: 0.6rem 1rem; z-index: 10; }
-.skip:focus { top: 0.5rem; }
-.wrap { max-width: 62rem; margin: 0 auto; padding: 0 1rem; }
-header[role="banner"], body > header { border-bottom: 4px solid var(--ink); padding: 2rem 0 1.25rem; }
-h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); line-height: 1.15; margin: 0 0 0.5rem; }
-h2 { font-size: 1.6rem; line-height: 1.25; margin: 2.75rem 0 0.75rem; padding-top: 0.75rem; border-top: 2px solid var(--ink); }
-h3 { font-size: 1.25rem; line-height: 1.3; margin: 0 0 0.5rem; }
-h4 { font-size: 1rem; margin: 1.25rem 0 0.25rem; }
+html { font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--paper); }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.65; overflow-wrap: anywhere; text-rendering: optimizeLegibility; }
+a { color: var(--link); text-underline-offset: 0.18em; text-decoration-thickness: 0.08em; }
+a:focus-visible, .skip:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
+.skip { position: absolute; left: 0.75rem; top: -5rem; background: var(--ink); color: var(--paper); padding: 0.6rem 1rem; z-index: 10; border-radius: 6px; }
+.skip:focus { top: 0.75rem; }
+.wrap { max-width: 54rem; margin: 0 auto; padding: 0 1.25rem; }
+h1, h2, h3, h4, h5 { font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; margin: 0; }
+h2 { font-size: 1.9rem; margin: 0 0 1rem; }
+h3 { font-size: 1.3rem; margin: 2rem 0 0.75rem; }
+h4 { font-size: 1.15rem; }
+h5 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 0.4rem; }
 p, ul, ol, dl, table, figure { margin: 0 0 1rem; }
-.meta { color: var(--muted); font-size: 1rem; margin: 0; }
-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
-nav a { display: inline-block; padding: 0.25rem 0; }
-table { border-collapse: collapse; width: 100%; font-size: 1rem; table-layout: auto; }
-caption { text-align: left; font-weight: 700; padding: 0.5rem 0; }
-th, td { border: 1px solid var(--line); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
-thead th { background: var(--soft); }
-tbody th { background: #f7f8f9; font-weight: 600; }
-.num { text-align: right; }
-article.finding { border: 2px solid var(--ink); padding: 1rem 1.25rem; margin: 0 0 1.5rem; }
-.badge { display: inline-block; padding: 0.05rem 0.55rem; font-size: 1rem; font-weight: 700; border: 2px solid var(--ink); margin-right: 0.4rem; }
-.sev-blocker, .sev-critical { background: #7a0019; color: #fff; }
-.sev-major, .sev-serious { background: #8a3b00; color: #fff; }
-.sev-minor, .sev-moderate { background: #594700; color: #fff; }
-.sev-info { background: #3d4852; color: #fff; }
-.st-confirmed { background: #e3f1e6; color: #0d3d1b; }
-.st-not-reviewed { background: #fff3c4; color: var(--ink); border-style: dashed; }
-.bl-new { background: #dbe8f8; color: #0b2f5c; }
-.bl-still-present, .bl-fixed { background: var(--soft); color: var(--ink); }
-dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; font-size: 1rem; }
-dl.facts dt { font-weight: 700; }
-dl.facts dd { margin: 0; }
-figure { border: 1px solid var(--line); padding: 0.5rem; }
-figure img { max-width: 100%; height: auto; display: block; }
-figcaption { font-size: 1rem; color: var(--muted); margin-top: 0.4rem; }
-.notice { border-left: 6px solid var(--ink); background: var(--soft); padding: 0.75rem 1rem; margin: 0 0 1rem; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; background: var(--soft); padding: 0 0.2em; }
-footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2rem; font-size: 1rem; color: var(--muted); }
-.big { font-size: 1.1rem; }
-@page { margin: 16mm; }
+p, li { max-width: 68ch; }
+code { font-family: var(--font-mono); font-size: 0.88em; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+section { padding: 3rem 0 0.5rem; }
+section > h2::before { content: ""; display: block; width: 2.5rem; height: 0.3rem; background: var(--amber); border-radius: 2px; margin-bottom: 0.9rem; }
+
+ 
+.cover { border-bottom: 1px solid var(--rule); padding: 2.5rem 0 3rem; }
+.cover .wrap { position: relative; }
+.cover-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 3.5rem; }
+.cover-brand { display: block; width: 11rem; height: auto; }
+.cover-brand img { width: 100%; height: auto; display: block; }
+.cover-brand .logo-dark { display: none; }
+@media screen and (prefers-color-scheme: dark) { .cover-brand .logo-light { display: none; } .cover-brand .logo-dark { display: block; } }
+.eyebrow { font-family: var(--font-heading); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.75rem; }
+.cover h1 { font-size: clamp(2.4rem, 1.7rem + 3.4vw, 3.6rem); line-height: 1.08; letter-spacing: -0.025em; max-width: 18ch; margin: 0 0 0.9rem; }
+.cover .for { font-size: 1.25rem; margin: 0 0 2rem; }
+.cover-body { display: grid; grid-template-columns: 1fr; gap: 1.5rem 2.5rem; align-items: end; }
+.cover-body.has-mascot { grid-template-columns: 1fr 9.5rem; }
+.mascot { width: 9.5rem; height: auto; }
+.cover-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem 2rem; border-top: 3px solid var(--amber); padding-top: 1.1rem; margin: 0 0 1.75rem; }
+.cover-meta div { min-width: 0; }
+dt.k, .cover-meta dt { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.cover-meta dd { margin: 0.15rem 0 0; font-size: 1.0625rem; }
+.cover-lead { font-size: 1.2rem; line-height: 1.55; max-width: 60ch; margin: 0 0 1.75rem; }
+.overview { background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 1.1rem 1.25rem 1.2rem; max-width: 40rem; }
+.overview h2, .overview .ov-title { font-family: var(--font-heading); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.7rem; }
+.overview h2::before { display: none; }
+.bar { display: block; width: 100%; height: 0.85rem; border-radius: 99px; overflow: hidden; margin: 0 0 0.85rem; background: var(--rule); }
+.seg { stroke: var(--panel); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.seg-blocker { fill: var(--blocker); } .seg-major { fill: var(--major); } .seg-minor { fill: var(--minor); } .seg-info { fill: var(--info); }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem 0.5rem; margin: 0; padding: 0; }
+.chips li { max-width: none; }
+.chip { display: inline-flex; align-items: baseline; gap: 0.4rem; border: 1.5px solid; border-radius: 99px; padding: 0.1rem 0.8rem 0.1rem 0.55rem; font-size: 0.9375rem; font-weight: 700; }
+.chip b { font-family: var(--font-heading); font-size: 1.05rem; }
+.chip.is-zero { border-style: dashed; font-weight: 400; }
+
+ 
+.b-blocker { background: var(--blocker-bg); color: var(--blocker-ink); border-color: var(--blocker); }
+.b-major { background: var(--major-bg); color: var(--major-ink); border-color: var(--major); }
+.b-minor { background: var(--minor-bg); color: var(--minor-ink); border-color: var(--minor); }
+.b-info { background: var(--info-bg); color: var(--info-ink); border-color: var(--info); }
+.badge { display: inline-block; border: 1.5px solid; border-radius: 6px; padding: 0 0.55rem; font-size: 0.875rem; font-weight: 700; line-height: 1.6; margin: 0 0.35rem 0.25rem 0; vertical-align: middle; }
+.st-confirmed { background: var(--good-bg); color: var(--good-ink); border-color: var(--good-ink); }
+.st-not-reviewed { background: transparent; color: var(--ink); border: 1.5px dashed var(--muted); }
+.bl-new { background: var(--info-bg); color: var(--info-ink); border-color: var(--info); }
+.bl-still-present, .bl-fixed { background: var(--panel); color: var(--ink); border-color: var(--muted); }
+
+ 
+.contents { padding: 2rem 0 0; }
+.contents h2 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.6rem; }
+.contents h2::before { display: none; }
+.contents > ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+.contents > ol > li { counter-increment: toc; max-width: none; padding: 0.2rem 0; }
+.contents > ol > li > a { font-weight: 700; }
+.contents > ol > li > a::before { content: counter(toc, decimal-leading-zero); display: inline-block; min-width: 2rem; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.toc-findings { list-style: none; margin: 0.2rem 0 0.4rem; padding: 0 0 0 2rem; }
+.toc-findings li { font-size: 0.9375rem; line-height: 1.4; padding: 0.12rem 0; max-width: none; display: grid; grid-template-columns: 4.5rem 1fr; gap: 0 0.5rem; }
+.toc-findings .sevname { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding-top: 0.12rem; }
+
+ 
+.cards { list-style: none; padding: 0; margin: 0 0 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); gap: 0.75rem; }
+.cards li { max-width: none; margin: 0; }
+.card { border: 1px solid var(--rule); border-radius: 14px; padding: 0.9rem 1rem 0.95rem; background: var(--panel); height: 100%; display: flex; flex-direction: column; gap: 0.1rem; margin: 0; }
+.card dt { order: 2; font-size: 0.875rem; font-weight: 700; color: var(--muted); }
+.card dd { display: contents; }
+.card .sub { order: 3; }
+.card .n { order: 1; }
+.card .n { font-family: var(--font-heading); font-size: 2.1rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; display: block; }
+.card .n.words { font-size: 1.35rem; padding-top: 0.45rem; }
+.card .sub { display: block; font-size: 0.875rem; color: var(--muted); line-height: 1.35; margin-top: 0.15rem; }
+.cardwrap { display: block; }
+.panel { border: 1px solid var(--rule); border-radius: 14px; padding: 1rem 1.25rem; background: var(--panel); margin: 0 0 1.25rem; }
+.panel h3 { margin: 0 0 0.4rem; font-size: 1.1rem; }
+.panel p:last-child { margin-bottom: 0; }
+.note { border-left: 6px solid var(--amber); background: var(--panel); border-radius: 0 10px 10px 0; padding: 0.9rem 1.25rem; margin: 1.5rem 0 0; }
+.note h3 { margin: 0 0 0.3rem; font-size: 1.05rem; }
+.note p:last-child { margin-bottom: 0; }
+.notice { border: 1px dashed var(--muted); border-radius: 10px; padding: 0.7rem 1rem; margin: 0 0 1rem; }
+.worked { padding-left: 1.2rem; }
+.worked li { margin-bottom: 0.45rem; }
+
+ 
+.group-head { display: flex; align-items: baseline; gap: 0.75rem; margin: 2.25rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--rule); }
+.group-head h3 { margin: 0; }
+.group-head .count { color: var(--muted); font-size: 0.9375rem; }
+article.finding { position: relative; border: 1px solid var(--rule); border-left: 8px solid var(--muted); border-radius: 12px; padding: 1.15rem 1.4rem 0.7rem 1.3rem; margin: 0 0 1.5rem; background: var(--paper); }
+article.finding.f-blocker { border-left-color: var(--blocker); }
+article.finding.f-major { border-left-color: var(--major); }
+article.finding.f-minor { border-left-color: var(--minor); }
+article.finding.f-info { border-left-color: var(--info); }
+.f-badges { margin: 0 0 0.35rem; max-width: none; }
+article.finding h4 { margin: 0 0 0.3rem; font-size: 1.3rem; }
+.f-where { color: var(--muted); margin: 0 0 1rem; font-size: 0.9375rem; }
+dl.facts { display: grid; grid-template-columns: minmax(7.5rem, max-content) 1fr; gap: 0.35rem 1.25rem; margin: 0 0 0.5rem; font-size: 1rem; }
+dl.facts dt { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding-top: 0.2rem; }
+dl.facts dd { margin: 0; min-width: 0; }
+dl.facts.small { font-size: 0.9375rem; }
+ol.steps { padding-left: 1.5rem; margin: 0 0 1rem; }
+ol.steps li { padding-left: 0.3rem; margin-bottom: 0.3rem; }
+ol.steps li::marker { font-family: var(--font-heading); font-weight: 700; color: var(--muted); }
+figure { margin: 0 0 1rem; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
+figcaption { font-size: 0.875rem; color: var(--muted); margin-top: 0.4rem; }
+.outcome { margin: 0 0 1rem; }
+details.tech { border-top: 1px solid var(--rule); margin-top: 1rem; padding: 0.5rem 0 0.4rem; }
+details.tech summary { cursor: pointer; font-size: 0.875rem; font-weight: 700; color: var(--muted); padding: 0.2rem 0; }
+details.tech summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+details.tech dl { margin-top: 0.5rem; }
+
+ 
+.table-wrap { overflow-x: auto; margin: 0 0 1.25rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.96rem; margin: 0; }
+caption { text-align: left; font-family: var(--font-heading); font-weight: 600; font-size: 1.05rem; padding: 0 0 0.5rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); }
+thead th { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--ink); white-space: nowrap; }
+tbody th { font-weight: 700; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+td code { white-space: normal; }
+.help { font-weight: 400; }
+h3.sub { font-size: 1.15rem; margin: 2rem 0 0.6rem; }
+
+footer { margin-top: 4rem; border-top: 1px solid var(--rule); padding: 1.25rem 0 2.5rem; font-size: 0.9375rem; color: var(--muted); }
+footer p { margin: 0 0 0.4rem; }
+
+@media (max-width: 40rem) {
+  .cover-body.has-mascot { grid-template-columns: 1fr; }
+  .mascot { width: 7rem; }
+  dl.facts { grid-template-columns: 1fr; gap: 0; }
+  dl.facts dd { margin-bottom: 0.5rem; }
+  article.finding { padding: 1rem 1rem 0.5rem; }
+}
+
 @media print {
-  body { font-size: 11pt; line-height: 1.45; }
-  .skip, nav { display: none; }
-  h2 { break-after: avoid; margin-top: 1.5rem; }
-  article.finding, figure, tr { break-inside: avoid; }
+  :root { color-scheme: light; }
+  @page { size: A4; margin: 20mm 16mm 20mm;
+    @top-left { content: "Inkwell audit"; font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: bottom; padding-bottom: 4mm; }
+    @top-right { content: "Prepared for Inkwell Press"; font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: bottom; padding-bottom: 4mm; }
+    @bottom-left { content: "Made with dummyrun 0.0.0-test"; font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: top; padding-top: 4mm; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt/1 "Atkinson Hyperlegible Next", Arial, sans-serif; color: #55524d; vertical-align: top; padding-top: 4mm; }
+  }
+  @page :first { @top-left { content: none; } @top-right { content: none; } }
+  body { font-size: 10.5pt; line-height: 1.5; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .skip { display: none; }
   .wrap { max-width: none; padding: 0; }
-  a { color: var(--ink); }
-  .badge, thead th, .notice { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cover { padding: 0; border: 0; min-height: 235mm; display: flex; flex-direction: column; justify-content: space-between; break-after: page; }
+  .cover > .wrap { flex: 1; display: flex; flex-direction: column; }
+  .cover-top { margin-bottom: 22mm; }
+  .cover h1 { font-size: 36pt; }
+  .cover-body { margin-top: auto; }
+  .contents { padding-top: 0; }
+  section { padding-top: 0; break-before: page; }
+  section.flow { break-before: auto; padding-top: 1.5rem; }
+  h2, h3, h4, h5 { break-after: avoid; }
+  article.finding, figure, tr, .card, .panel, .note, .overview { break-inside: avoid; }
+  thead { display: table-header-group; }
+  .table-wrap { overflow: visible; }
+  a { color: var(--ink); text-decoration: underline; }
+  article.finding { border-radius: 6px; }
+  details.tech:not([open])::details-content { content-visibility: visible; display: block; }
+  details.tech summary { list-style: none; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  figure img { max-height: 100mm; object-fit: contain; object-position: left top; }
+  footer { margin-top: 1.5rem; }
 }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to the report</a>
-<header>
+
+<header class="cover">
 <div class="wrap">
+<div class="cover-top">
+<span class="cover-brand">
+<img class="logo-light" src="data:image/svg&#43;xml;base64,..." alt="Dummy Run" width="351" height="88">
+<img class="logo-dark" src="data:image/svg&#43;xml;base64,..." alt="Dummy Run" width="351" height="88">
+</span>
+</div>
+<p class="eyebrow">Audit report</p>
 <h1>Inkwell audit</h1>
-<p class="meta">Prepared for Inkwell Press. Report date 2026-10-19. Made with dummyrun 0.0.0-test. Findings included: confirmed findings and findings not reviewed.</p>
+<p class="for">Prepared for <strong>Inkwell Press</strong></p>
+<dl class="cover-meta">
+<div><dt>Target</dt><dd>https://pr-41.inkwell.example</dd></div>
+<div><dt>Tested</dt><dd>16 October 2026 to 17 October 2026</dd></div>
+<div><dt>Report date</dt><dd>19 October 2026</dd></div>
+<div><dt>Findings included</dt><dd>Confirmed findings and findings not reviewed</dd></div>
+</dl>
+<div class="cover-body has-mascot">
+<div>
+<p class="cover-lead">Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 16 October 2026 and 17 October 2026. The runs found 4 distinct problems: 2 major, 1 minor, 1 info. A person has confirmed 3 of them. 1 is marked not reviewed. No person has checked it yet.</p>
+<div class="overview" role="group" aria-labelledby="ov-title">
+<p class="ov-title" id="ov-title">Problems found, by severity</p>
+<svg class="bar" viewBox="0 0 100 10" preserveAspectRatio="none" role="img" aria-label="2 major, 1 minor, 1 info"><rect class="seg seg-major" x="0.00" y="0" width="50.00" height="10"/><rect class="seg seg-minor" x="50.00" y="0" width="25.00" height="10"/><rect class="seg seg-info" x="75.00" y="0" width="25.00" height="10"/></svg>
+<ul class="chips">
+<li><span class="chip b-blocker is-zero"><b>0</b> Blocker</span></li>
+<li><span class="chip b-major"><b>2</b> Major</span></li>
+<li><span class="chip b-minor"><b>1</b> Minor</span></li>
+<li><span class="chip b-info"><b>1</b> Info</span></li>
+</ul>
+</div>
+</div>
+<img class="mascot" src="data:image/svg&#43;xml;base64,..." alt="" width="152" height="182">
+</div>
 </div>
 </header>
+
 <div class="wrap">
-<nav aria-label="Contents">
-<ul>
+<nav class="contents" aria-labelledby="h-contents">
+<h2 id="h-contents">Contents</h2>
+<ol>
 <li><a href="#summary">Summary</a></li>
-<li><a href="#scope">Scope and method</a></li>
-<li><a href="#coverage">Coverage</a></li>
-<li><a href="#findings">Findings</a></li>
-<li><a href="#axe-sweep">Axe sweep</a></li>
-<li><a href="#limits">What this report is not</a></li>
+<li><a href="#findings">Findings</a>
+<ul class="toc-findings">
+<li><span class="sevname">Major</span><a href="#f-0">A contributor can open the rates table for all writers</a></li>
+<li><span class="sevname">Major</span><a href="#f-1">Scheduling an issue for a past date returns a server error</a></li>
+<li><span class="sevname">Minor</span><a href="#f-2">The hint under the schedule field is too faint to read</a></li>
+<li><span class="sevname">Info</span><a href="#f-3">The payment status &#39;settled&#39; is unclear to a contributor</a></li>
 </ul>
+</li>
+<li><a href="#axe-sweep">Axe sweep and layout checks</a></li>
+<li><a href="#method">How it was tested</a></li>
+<li><a href="#limits">What this report is not</a></li>
+</ol>
 </nav>
+
 <main id="main">
 
-<section id="summary" aria-labelledby="h-summary">
+<section id="summary" class="flow" aria-labelledby="h-summary">
 <h2 id="h-summary">Summary</h2>
-<p class="big">Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 2026-10-16 and 2026-10-17.</p>
-<p class="big">The runs found 4 distinct problems: 2 major, 1 minor, 1 info. A person has confirmed 3 of them. 1 is marked not reviewed. No person has checked it yet.</p>
-<p class="big">The axe sweep tested 2 pages and found 2 failing elements on 2 rules. 1 setting could not be tested.</p>
-<p class="big">There are too few repeated findings to estimate how many problems are still unfound.</p>
+<p class="notice"><strong>Not reviewed:</strong> 1 finding. A model reported what it found and no person has checked the evidence.</p>
 
-<table>
-<caption>Findings by severity</caption>
-<thead><tr><th scope="col">Severity</th><th scope="col" class="num">Distinct problems</th></tr></thead>
-<tbody>
-<tr><th scope="row">Blocker</th><td class="num">0</td></tr>
-<tr><th scope="row">Major</th><td class="num">2</td></tr>
-<tr><th scope="row">Minor</th><td class="num">1</td></tr>
-<tr><th scope="row">Info</th><td class="num">1</td></tr>
-</tbody>
-</table>
-<p class="notice">Not reviewed: 1. A model reported these findings and no person has checked them against the evidence.</p>
+
+<h3 class="sub">The key numbers</h3>
+<ul class="cards">
+<li><dl class="card"><dt>Problems found</dt><dd><span class="n">4</span><span class="sub">3 confirmed by a person</span></dd></dl></li>
+<li><dl class="card"><dt>Runs</dt><dd><span class="n">4</span><span class="sub">3 completed</span></dd></dl></li>
+<li><dl class="card"><dt>Personas</dt><dd><span class="n">2</span><span class="sub">fictional users</span></dd></dl></li>
+<li><dl class="card"><dt>Routes visited</dt><dd><span class="n">4</span></dd></dl></li>
+<li><dl class="card"><dt>Pages in the axe sweep</dt><dd><span class="n">2</span><span class="sub">2 failing elements</span></dd></dl></li>
+</ul>
+
+<div class="panel">
+<h3>How sure you can be</h3>
+<p>Too few findings repeated to estimate how many problems are still unfound.</p>
+</div>
+
+
+<h3 class="sub">What was tested</h3>
+<dl class="facts">
+<dt>Target</dt><dd>https://pr-41.inkwell.example, build <code>a865ffd</code> (commit), pr-41</dd>
+<dt>Personas</dt><dd>ada-editor (editor), lin-contributor (contributor)</dd>
+<dt>Scenarios</dt><dd>Check a payment status; Send a first pitch; Reassign a stalled draft</dd>
+<dt>Browsers</dt><dd>chrome 148.0, firefox 146.0</dd>
+<dt>Axe sweep</dt><dd>2 pages in 3 settings</dd>
+</dl>
+
+
+
+
+<aside class="note" aria-labelledby="h-note">
+<h3 id="h-note">Read this as a sample</h3>
+<p>This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. <a href="#limits">What this report is not</a> says more.</p>
+</aside>
+</section>
+
+<section id="findings" aria-labelledby="h-findings">
+<h2 id="h-findings">Findings</h2>
+<p>The findings are sorted by severity, then by the number of runs that found them. Each is a distinct problem, and one found in several runs appears once.</p>
+
+
+<div class="group-head"><h3 id="g-major">Major</h3><span class="count">2 findings</span></div>
+
+<article class="finding f-major" id="f-0" aria-labelledby="f-0-t">
+<p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
+<h4 id="f-0-t">A contributor can open the rates table for all writers</h4>
+<p class="f-where">The Payments page, the Rates link <code>/payments</code></p>
+<dl class="facts">
+<dt>What went wrong</dt><dd>Let in when it should have been blocked</dd>
+<dt>Who hit it</dt><dd>Lin, a contributor, in 1 of 4 runs</dd>
+<dt>Review</dt><dd>Confirmed by example-reviewer on 18 October 2026. Reason: Reproduced on the preview with a contributor account.</dd>
+</dl>
+<h5>How to reproduce</h5>
+<ol class="steps">
+<li>Sign in as a contributor.</li>
+<li>Use a tablet at 200% zoom in Firefox.</li>
+<li>On the Payments page, look at what is shown.</li>
+</ol>
+<p class="outcome"><strong>What goes wrong:</strong> A contributor can open the rates table for all writers</p>
+
+<p class="muted">The screenshot for this finding was not found when this report was made.</p>
+
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-17-lin-contributor-008</code>, step 7</dd>
+<dt>Persona</dt><dd><code>lin-contributor</code>, tablet, firefox 146.0</dd>
+<dt>Kind</dt><dd>permission</dd>
+<dt>Symptom</dt><dd><code>access-wrongly-allowed</code></dd>
+<dt>Location</dt><dd><code>/payments</code> <code>link:rates</code></dd>
+<dt>Evidence</dt><dd>code</dd>
+<dt>Fingerprint</dt><dd><code>933d06cb3cee90e4</code></dd>
+<dt>Screenshot</dt><dd>run 2026-10-17-lin-contributor-008, step 7, <code>screens/008-07.png</code></dd>
+
+</dl>
+</details>
+</article>
+
+<article class="finding f-major" id="f-1" aria-labelledby="f-1-t">
+<p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
+<h4 id="f-1-t">Scheduling an issue for a past date returns a server error</h4>
+<p class="f-where">The Issues page, the Schedule button <code>/issues</code></p>
+<dl class="facts">
+<dt>What went wrong</dt><dd>An error appeared</dd>
+<dt>Who hit it</dt><dd>Ada, an editor, in 1 of 4 runs</dd>
+<dt>Review</dt><dd>Confirmed</dd>
+</dl>
+<h5>How to reproduce</h5>
+<ol class="steps">
+<li>Sign in as an editor.</li>
+<li>Use a desktop computer in Chrome.</li>
+<li>Type into Submit.</li>
+</ol>
+<p class="outcome"><strong>What goes wrong:</strong> Scheduling an issue for a past date returns a server error</p>
+
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-16-ada-editor-003</code>, step 7</dd>
+<dt>Persona</dt><dd><code>ada-editor</code>, desktop, chrome 148.0</dd>
+<dt>Kind</dt><dd>bug</dd>
+<dt>Symptom</dt><dd><code>error-shown</code></dd>
+<dt>Location</dt><dd><code>/issues</code> <code>button:schedule</code></dd>
+<dt>Evidence</dt><dd>measured</dd>
+<dt>Fingerprint</dt><dd><code>72be5e1e780d79bb</code></dd>
+
+</dl>
+</details>
+</article>
+
+
+<div class="group-head"><h3 id="g-minor">Minor</h3><span class="count">1 finding</span></div>
+
+<article class="finding f-minor" id="f-2" aria-labelledby="f-2-t">
+<p class="f-badges"><span class="badge b-minor">Minor</span><span class="badge st-not-reviewed">Not reviewed</span></p>
+<h4 id="f-2-t">The hint under the schedule field is too faint to read</h4>
+<p class="f-where">The Issues page, the Schedule form area <code>/issues</code></p>
+<dl class="facts">
+<dt>What went wrong</dt><dd>An automated accessibility check failed (color-contrast)</dd>
+<dt>Who hit it</dt><dd>Ada, an editor, in 1 of 4 runs</dd>
+<dt>WCAG 2.2</dt><dd>1.4.3</dd>
+<dt>Review</dt><dd>Not reviewed. No person has checked this finding.</dd>
+<dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">https://dequeuniversity.com/rules/axe/4.13/color-contrast</a></dd>
+</dl>
+<h5>How to reproduce</h5>
+<ol class="steps">
+<li>Sign in as an editor.</li>
+<li>Use a desktop computer in Chrome.</li>
+<li>Open the Drafts page.</li>
+</ol>
+<p class="outcome"><strong>What goes wrong:</strong> The hint under the schedule field is too faint to read</p>
+
+<figure><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="Screenshot: The Drafts page as Ada saw it"><figcaption>The Drafts page as Ada saw it.</figcaption></figure>
+
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-16-ada-editor-003</code>, step 3</dd>
+<dt>Persona</dt><dd><code>ada-editor</code>, desktop, chrome 148.0</dd>
+<dt>Kind</dt><dd>accessibility</dd>
+<dt>Symptom</dt><dd><code>a11y:color-contrast</code></dd>
+<dt>Location</dt><dd><code>/issues</code> <code>region:schedule form</code></dd>
+<dt>Evidence</dt><dd>measured</dd>
+<dt>Fingerprint</dt><dd><code>64afd5191821762c</code></dd>
+<dt>Screenshot</dt><dd>run 2026-10-16-ada-editor-003, step 3, <code>screens/003-03.png</code></dd>
+
+</dl>
+</details>
+</article>
+
+
+<div class="group-head"><h3 id="g-info">Info</h3><span class="count">1 finding</span></div>
+
+<article class="finding f-info" id="f-3" aria-labelledby="f-3-t">
+<p class="f-badges"><span class="badge b-info">Info</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
+<h4 id="f-3-t">The payment status &#39;settled&#39; is unclear to a contributor</h4>
+<p class="f-where">The Payments page, the Payment status area <code>/payments</code></p>
+<dl class="facts">
+<dt>What went wrong</dt><dd>The name does not say what it does</dd>
+<dt>Who hit it</dt><dd>Lin, a contributor, in 3 of 4 runs</dd>
+<dt>Review</dt><dd>Confirmed</dd>
+</dl>
+<h5>How to reproduce</h5>
+<ol class="steps">
+<li>Sign in as a contributor.</li>
+<li>Use a tablet at 200% zoom in Chrome.</li>
+<li>Click Submit.</li>
+</ol>
+<p class="outcome"><strong>What goes wrong:</strong> The payment status &#39;settled&#39; is unclear to a contributor</p>
+
+<details class="tech">
+<summary>Technical details</summary>
+<dl class="facts small">
+<dt>Run</dt><dd><code>2026-10-16-lin-contributor-002</code>, step 7</dd>
+<dt>Persona</dt><dd><code>lin-contributor</code>, tablet, chrome 148.0</dd>
+<dt>Kind</dt><dd>question</dd>
+<dt>Symptom</dt><dd><code>unclear-label</code></dd>
+<dt>Location</dt><dd><code>/payments</code> <code>region:payment status</code></dd>
+<dt>Evidence</dt><dd>inferred</dd>
+<dt>Fingerprint</dt><dd><code>1718b75300702f7b</code></dd>
+<dt>Also seen in</dt><dd>2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed)</dd>
+
+</dl>
+</details>
+</article>
+
 
 </section>
 
-<section id="scope" aria-labelledby="h-scope">
-<h2 id="h-scope">Scope and method</h2>
+<section id="axe-sweep" aria-labelledby="h-axe">
+<h2 id="h-axe">Axe sweep and layout checks</h2>
+<p>The sweep ran axe-core 4.13.0 with dummyrun a11y on 2 pages in 3 settings (browser, viewport and colour scheme), on chrome 148.0.7778.97. It checked the rules with these tags: <code>wcag21a</code> <code>wcag21aa</code> <code>wcag22aa</code> <code>wcag2a</code> <code>wcag2aa</code> . It found 2 failing elements and set aside 1 on the allow-list.</p>
+
+<div class="table-wrap" role="region" tabindex="0" aria-label="Rules that failed">
+<table>
+<caption>Rules that failed</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">Impact</th><th scope="col">WCAG 2.2</th><th scope="col" class="num">Elements</th><th scope="col">Fix guidance</th></tr></thead>
+<tbody>
+<tr>
+<th scope="row"><code>button-name</code><br><span class="muted help">Buttons must have discernible text</span></th>
+<td><span class="badge b-blocker">Critical</span></td>
+<td>4.1.2</td>
+<td class="num">1</td>
+<td><a href="https://dequeuniversity.com/rules/axe/4.13/button-name">How to fix button-name</a></td>
+</tr>
+<tr>
+<th scope="row"><code>color-contrast</code><br><span class="muted help">Elements must meet minimum color contrast ratio thresholds</span></th>
+<td><span class="badge b-major">Serious</span></td>
+<td>1.4.3</td>
+<td class="num">1</td>
+<td><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">How to fix color-contrast</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="table-wrap" role="region" tabindex="0" aria-label="Where each rule failed">
+<table>
+<caption>Where each rule failed</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>button-name</code></th><td>https://pr-41.inkwell.example/issues</td><td><code>#menu-toggle</code></td><td>chrome/desktop/light</td></tr>
+<tr><th scope="row"><code>color-contrast</code></th><td>https://pr-41.inkwell.example/issues</td><td><code>.hint</code></td><td>chrome/desktop/light<br>chrome/phone/light</td></tr>
+</tbody>
+</table>
+</div>
+
+
+<h3 class="sub">Needs a person to check</h3>
+<p>Axe cannot decide these rules alone. A person has to look.</p>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Rules that need review">
+<table>
+<caption>Rules that need review</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col">WCAG 2.2</th><th scope="col">Pages</th></tr></thead>
+<tbody>
+<tr><th scope="row"><code>color-contrast</code></th><td>Elements must meet minimum color contrast ratio thresholds</td><td>1.4.3</td><td>https://pr-41.inkwell.example/issues</td></tr>
+</tbody>
+</table>
+</div>
+
+
+<h3 class="sub">Pages that could not be tested</h3>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Page errors">
+<table>
+<caption>Page errors</caption>
+<thead><tr><th scope="col">Page</th><th scope="col">Setting</th><th scope="col">Error</th></tr></thead>
+<tbody>
+<tr><td>https://pr-41.inkwell.example/payments</td><td>chrome/desktop/light</td><td>the page did not load within 30 seconds</td></tr>
+</tbody>
+</table>
+</div>
+
+</section>
+
+
+<section id="method" aria-labelledby="h-method">
+<h2 id="h-method">How it was tested</h2>
 <p>Each run signs one fictional user, called a persona, in to the app in a real browser. The persona works through a scenario and reports what broke, what confused it and what its role should not have seen. Findings are folded together when they share a fingerprint, which is a hash of the route, the control and the kind of symptom.</p>
 
 <dl class="facts">
@@ -116,6 +559,7 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <dt>Routes visited</dt><dd>4: <code>/drafts</code> <code>/issues</code> <code>/payments</code> <code>/reviews</code> </dd>
 </dl>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Target and build">
 <table>
 <caption>Target and build</caption>
 <thead><tr><th scope="col">Address</th><th scope="col">Environment</th><th scope="col">Build</th><th scope="col">Adapter</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -123,7 +567,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <tr><td>https://pr-41.inkwell.example</td><td>pr-41</td><td><code>a865ffd</code> (commit)</td><td>url</td><td class="num">4</td></tr>
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Personas and the dimensions they varied">
 <table>
 <caption>Personas and the dimensions they varied</caption>
 <thead><tr><th scope="col">Persona</th><th scope="col">Role</th><th scope="col">Device</th><th scope="col">Dimensions</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -132,7 +578,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <tr><th scope="row">lin-contributor</th><td>contributor</td><td>tablet at 200 percent zoom</td><td>viewport 410x590</td><td class="num">3</td></tr>
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Scenarios and whether the persona did what it came to do">
 <table>
 <caption>Scenarios and whether the persona did what it came to do</caption>
 <thead><tr><th scope="col">Scenario</th><th scope="col" class="num">Runs</th><th scope="col" class="num">Yes</th><th scope="col" class="num">Partly</th><th scope="col" class="num">No</th><th scope="col" class="num">Not recorded</th></tr></thead>
@@ -142,7 +590,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <tr><th scope="row">Reassign a stalled draft</th><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">0</td></tr>
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Browsers">
 <table>
 <caption>Browsers</caption>
 <thead><tr><th scope="col">Browser</th><th scope="col">Version</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -151,7 +601,9 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <tr><td>firefox</td><td>146.0</td><td class="num">2</td></tr>
 </tbody>
 </table>
+</div>
 
+<div class="table-wrap" role="region" tabindex="0" aria-label="Models and providers">
 <table>
 <caption>Models and providers</caption>
 <thead><tr><th scope="col">Model</th><th scope="col">Provider</th><th scope="col">Region</th><th scope="col" class="num">Runs</th></tr></thead>
@@ -160,12 +612,10 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <tr><td>gemini-3.5-flash-lite</td><td>vertex-gemini</td><td>europe-west2</td><td class="num">2</td></tr>
 </tbody>
 </table>
+</div>
 
-<p>The axe sweep ran dummyrun a11y with axe-core 4.13.0 on chrome 148.0.7778.97. It tested 2 pages in 3 settings.</p>
-</section>
 
-<section id="coverage" aria-labelledby="h-coverage">
-<h2 id="h-coverage">Coverage</h2>
+<h3 class="sub" id="coverage">Coverage</h3>
 
 <p>These numbers come from <code>dummyrun coverage</code> over the same runs. They say how much the sample can tell you.</p>
 <dl class="facts">
@@ -174,17 +624,17 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 <dt>Distinct problems seen</dt><dd>2</dd>
 <dt>Still unfound</dt><dd>Not estimable from these runs</dd>
 <dt>Sample coverage</dt><dd>Not estimable</dd>
-<dt>New problems per extra run</dt><dd>0.33</dd>
+<dt>New per extra run</dt><dd>0.33</dd>
 <dt>Stopping rule</dt><dd>Stopped: none; not stopped: desktop (0 completed runs, need 4); tablet (3 completed runs, need 4)</dd>
 </dl>
-<h3>How to read these numbers</h3>
+<h4>How to read these numbers</h4>
 <ul>
 <li>The Chao2 figure is a floor. The real number of problems is at least that high. It is never a count of what remains.</li>
 <li>Sample coverage is the share of the chance of finding a problem that sits in problems already found. Below 0.50 do not extrapolate from it.</li>
 <li>New problems per extra run is how many new problems one more run is expected to find. A low figure suggests more runs will add little.</li>
 <li>With fewer than 5 completed runs the estimates are weak. The stopping rule needs 4 completed runs in each group.</li>
 </ul>
-<h3>Cautions</h3>
+<h4>Cautions</h4>
 <ul>
 <li>Findings that no person has confirmed are counted. Read these numbers as a demonstration of the method and not as an estimate.</li>
 <li>Identity reliability is not measured (no reviewer clusters): every problem count is conditional on the fingerprint rule.</li>
@@ -194,182 +644,6 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 </ul>
 
 </section>
-
-<section id="findings" aria-labelledby="h-findings">
-<h2 id="h-findings">Findings</h2>
-<p>Findings are sorted by severity, then by the number of runs that found them. Each one is a distinct problem. A problem found in several runs appears once.</p>
-
-
-<article class="finding" aria-labelledby="f-0">
-<h3 id="f-0"><span class="badge sev-major">Major</span>A contributor can open the rates table for all writers</h3>
-<p>
-<span class="badge st-confirmed">Confirmed by a reviewer</span>
-</p>
-<dl class="facts">
-<dt>Kind</dt><dd>permission</dd>
-<dt>Symptom</dt><dd>access-wrongly-allowed</dd>
-<dt>Route</dt><dd><code>/payments</code></dd>
-<dt>Control or region</dt><dd>link:rates</dd>
-<dt>Evidence</dt><dd>code</dd>
-<dt>Found by</dt><dd>lin-contributor in 1 of 4 runs</dd>
-<dt>WCAG 2.2 criterion</dt><dd>Not recorded for this finding</dd>
-<dt>Review</dt><dd>Confirmed by example-reviewer on 2026-10-18T09:30:00Z. Reason: Reproduced on the preview with a contributor account.</dd>
-<dt>Fingerprint</dt><dd><code>933d06cb3cee90e4</code></dd>
-</dl>
-<h4>How to reproduce</h4>
-<p>Run 2026-10-17-lin-contributor-008: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in firefox 146.0.</p>
-<ol>
-<li value="7">Look on /payments.</li>
-</ol>
-
-
-<p>Screenshot <code>screens/008-07.png</code> from run 2026-10-17-lin-contributor-008, step 7, was not found when this report was made.</p>
-
-</article>
-
-<article class="finding" aria-labelledby="f-1">
-<h3 id="f-1"><span class="badge sev-major">Major</span>Scheduling an issue for a past date returns a server error</h3>
-<p>
-<span class="badge st-confirmed">Confirmed by a reviewer</span>
-</p>
-<dl class="facts">
-<dt>Kind</dt><dd>bug</dd>
-<dt>Symptom</dt><dd>error-shown</dd>
-<dt>Route</dt><dd><code>/issues</code></dd>
-<dt>Control or region</dt><dd>button:schedule</dd>
-<dt>Evidence</dt><dd>measured</dd>
-<dt>Found by</dt><dd>ada-editor in 1 of 4 runs</dd>
-<dt>WCAG 2.2 criterion</dt><dd>Not recorded for this finding</dd>
-<dt>Review</dt><dd>Confirmed</dd>
-<dt>Fingerprint</dt><dd><code>72be5e1e780d79bb</code></dd>
-</dl>
-<h4>How to reproduce</h4>
-<p>Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.</p>
-<ol>
-<li value="7">Fill Submit on /issues.</li>
-</ol>
-
-
-</article>
-
-<article class="finding" aria-labelledby="f-2">
-<h3 id="f-2"><span class="badge sev-minor">Minor</span>The hint under the schedule field is too faint to read</h3>
-<p>
-<span class="badge st-not-reviewed">Not reviewed</span>
-</p>
-<dl class="facts">
-<dt>Kind</dt><dd>accessibility</dd>
-<dt>Symptom</dt><dd>a11y:color-contrast</dd>
-<dt>Route</dt><dd><code>/issues</code></dd>
-<dt>Control or region</dt><dd>region:schedule form</dd>
-<dt>Evidence</dt><dd>measured</dd>
-<dt>Found by</dt><dd>ada-editor in 1 of 4 runs</dd>
-<dt>WCAG 2.2 criterion</dt><dd>1.4.3</dd>
-<dt>Review</dt><dd>Not reviewed. No person has checked this finding.</dd>
-<dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">https://dequeuniversity.com/rules/axe/4.13/color-contrast</a></dd>
-<dt>Fingerprint</dt><dd><code>64afd5191821762c</code></dd>
-</dl>
-<h4>How to reproduce</h4>
-<p>Run 2026-10-16-ada-editor-003: persona ada-editor signed in as editor on a desktop in chrome 148.0.</p>
-<ol>
-<li value="3">Visit on /drafts.</li>
-</ol>
-
-
-<figure><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" alt="Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts"><figcaption>Screenshot from run 2026-10-16-ada-editor-003, step 3: visit on /drafts</figcaption></figure>
-
-</article>
-
-<article class="finding" aria-labelledby="f-3">
-<h3 id="f-3"><span class="badge sev-info">Info</span>The payment status &#39;settled&#39; is unclear to a contributor</h3>
-<p>
-<span class="badge st-confirmed">Confirmed by a reviewer</span>
-</p>
-<dl class="facts">
-<dt>Kind</dt><dd>question</dd>
-<dt>Symptom</dt><dd>unclear-label</dd>
-<dt>Route</dt><dd><code>/payments</code></dd>
-<dt>Control or region</dt><dd>region:payment status</dd>
-<dt>Evidence</dt><dd>inferred</dd>
-<dt>Found by</dt><dd>lin-contributor in 3 of 4 runs</dd>
-<dt>WCAG 2.2 criterion</dt><dd>Not recorded for this finding</dd>
-<dt>Review</dt><dd>Confirmed</dd>
-<dt>Fingerprint</dt><dd><code>1718b75300702f7b</code></dd>
-</dl>
-<h4>How to reproduce</h4>
-<p>Run 2026-10-16-lin-contributor-002: persona lin-contributor signed in as contributor on a tablet at 200 percent zoom in chrome 148.0.</p>
-<ol>
-<li value="7">Click Submit on /payments.</li>
-</ol>
-<p>Also seen in: 2026-10-16-lin-contributor-002, 2026-10-16-lin-contributor-004 (not reviewed), 2026-10-17-lin-contributor-008 (not reviewed).</p>
-
-</article>
-
-</section>
-
-<section id="axe-sweep" aria-labelledby="h-axe">
-<h2 id="h-axe">Axe sweep</h2>
-<p>The sweep ran axe-core 4.13.0 on 2 pages in 3 settings (browser, viewport and colour scheme). It checked the rules with these tags: <code>wcag21a</code> <code>wcag21aa</code> <code>wcag22aa</code> <code>wcag2a</code> <code>wcag2aa</code> . It found 2 failing elements and set aside 1 on the allow-list.</p>
-
-
-<article class="finding" aria-labelledby="a-0">
-<h3 id="a-0"><span class="badge sev-critical">Critical</span>Buttons must have discernible text</h3>
-<dl class="facts">
-<dt>Rule</dt><dd><code>button-name</code></dd>
-<dt>WCAG 2.2 criterion</dt><dd>4.1.2</dd>
-<dt>Elements</dt><dd>1</dd>
-<dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/button-name">https://dequeuniversity.com/rules/axe/4.13/button-name</a></dd>
-</dl>
-<table>
-<caption>Where button-name failed</caption>
-<thead><tr><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
-<tbody>
-<tr><td>https://pr-41.inkwell.example/issues</td><td><code>#menu-toggle</code></td><td>chrome/desktop/light</td></tr>
-</tbody>
-</table>
-</article>
-
-<article class="finding" aria-labelledby="a-1">
-<h3 id="a-1"><span class="badge sev-serious">Serious</span>Elements must meet minimum color contrast ratio thresholds</h3>
-<dl class="facts">
-<dt>Rule</dt><dd><code>color-contrast</code></dd>
-<dt>WCAG 2.2 criterion</dt><dd>1.4.3</dd>
-<dt>Elements</dt><dd>1</dd>
-<dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">https://dequeuniversity.com/rules/axe/4.13/color-contrast</a></dd>
-</dl>
-<table>
-<caption>Where color-contrast failed</caption>
-<thead><tr><th scope="col">Page</th><th scope="col">Elements</th><th scope="col">Settings</th></tr></thead>
-<tbody>
-<tr><td>https://pr-41.inkwell.example/issues</td><td><code>.hint</code></td><td>chrome/desktop/light<br>chrome/phone/light</td></tr>
-</tbody>
-</table>
-</article>
-
-
-
-<h3>Needs a person to check</h3>
-<p>Axe cannot decide these rules alone. A person has to look.</p>
-<table>
-<caption>Rules that need review</caption>
-<thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col">WCAG 2.2 criterion</th><th scope="col">Pages</th></tr></thead>
-<tbody>
-<tr><td><code>color-contrast</code></td><td>Elements must meet minimum color contrast ratio thresholds</td><td>1.4.3</td><td>https://pr-41.inkwell.example/issues</td></tr>
-</tbody>
-</table>
-
-
-<h3>Pages that could not be tested</h3>
-<table>
-<caption>Page errors</caption>
-<thead><tr><th scope="col">Page</th><th scope="col">Setting</th><th scope="col">Error</th></tr></thead>
-<tbody>
-<tr><td>https://pr-41.inkwell.example/payments</td><td>chrome/desktop/light</td><td>the page did not load within 30 seconds</td></tr>
-</tbody>
-</table>
-
-</section>
-
 
 <section id="limits" aria-labelledby="h-limits">
 <h2 id="h-limits">What this report is not</h2>
@@ -384,7 +658,8 @@ footer { border-top: 2px solid var(--ink); margin-top: 3rem; padding: 1rem 0 2re
 </section>
 </main>
 <footer>
-<p>Made with dummyrun 0.0.0-test on 2026-10-19. The report is one file. It loads nothing from the network.</p>
+<p>Made with dummyrun 0.0.0-test on 19 October 2026. This report is one file and loads nothing from the network.</p>
+<p>Set in Space Grotesk and Atkinson Hyperlegible Next, both under the SIL Open Font License 1.1.</p>
 </footer>
 </div>
 </body>

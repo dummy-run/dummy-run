@@ -3,22 +3,37 @@
 
 Usage: bin/check-prose [FILE...]   (with no arguments, every tracked Markdown file)
 
-Per sentence it flags: more than two commas, signposts, and staged contrasts ("not X, but Y",
-"X, not Y"). Per paragraph or list item it flags bold anywhere but a run-in head at the start, and
-bold labels ending in a colon. In tables, only cells written as sentences (ending in a full stop) are
-checked for commas, since a cell may list an inventory and a bold cell may name a row. Code, inline code, URLs, link targets and HTML are ignored. Exits 1 on any finding.
+It fails on: signposts, staged contrasts ("not X, but Y", "X, not Y"), words that read as machine copy
+("seamless", "leverage", "unlock", "empower", "robust", "in today's world"), em dashes, project state
+(pull request numbers, "in review", "once #N merges"), bold anywhere in a paragraph, bold in a list item
+other than a run-in head at its start, and bold labels ending in a colon. Exits 1 on any of these.
+
+It warns, without failing, about rhythm: a sentence of more than 45 words or with more than five commas.
+Those are prompts to read the sentence aloud, not rules. Varied sentence length is the aim, so there is no
+check that pushes sentences shorter. It also warns when a page written for the reader (site/content/for/,
+the home, pricing, scan and start pages) says "their" after "a QA lead", "a developer", "an agency",
+"teams", "buyers" or "readers" in one sentence. Those pages address the reader as "you".
+
+In tables, only cells written as sentences (ending in a full stop) are checked, since a cell may list an
+inventory and a bold cell may name a row. Code, inline code, URLs, link targets and HTML are ignored.
 """
 import re
 import sys
 from pathlib import Path
 
 import subprocess
-MAX_COMMAS = 2
+WARN_COMMAS = 5
+WARN_WORDS = 45
+MACHINE = re.compile(r"\b(seamless(?:ly)?|leverag(?:e|es|ed|ing)|unlock(?:s|ed|ing)?|empower(?:s|ed|ing)?|"
+                     r"robust(?:ly)?|in today's world)\b", re.I)
+EM_DASH = "\u2014"
 SIGNPOSTS = re.compile(
     r"\b(it is worth noting|worth noting|note that|in summary|in short|to summarise|importantly|"
     r"needless to say|simply put|at the end of the day|here's the thing|let's dive)\b", re.I)
 PROJECT_STATE = re.compile(r"\bPR #\d+|/pull/\d+|\bin review\b|\bonce (?:PR|#)\S* (?:merges|lands)|\buntil (?:PR|#)\S* (?:merges|lands)", re.I)
 STAGED = [re.compile(r"\bnot\b[^.;:]{1,80}?,\s*but\b", re.I), re.compile(r",\s+not\s+(?!only\b)\w", re.I)]
+AUDIENCE_PAGE = re.compile(r"site/content/(?:for/[^/]+|_index|pricing|scan|start)\.md$")
+THIRD_PERSON = re.compile(r"\b(?:a QA lead|a developer|an agency|teams?|buyers?|readers?)\b[^.!?]*\btheir\b", re.I)
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s+")
 
 
@@ -31,15 +46,17 @@ def clean(text):
 
 def blocks(lines):
     """Yield (first line number, kind, text) for paragraphs, list items and table rows."""
-    in_code, buf, start = False, [], 0
+    in_code, fence, buf, start, kind = False, "", [], 0, "prose"
     def flush():
         if buf:
-            yield start, "prose", " ".join(buf)
+            yield start, kind, " ".join(buf)
     for n, raw in enumerate(lines, 1):
         s = raw.strip()
-        if s.startswith("```"):
+        marker = re.match(r"(`{3,}|~{3,})", s)
+        if marker and (not in_code or (marker.group(1)[0] == fence[0] and len(marker.group(1)) >= len(fence))):
             yield from flush(); buf = []
             in_code = not in_code
+            fence = marker.group(1) if in_code else ""
             continue
         if in_code:
             continue
@@ -53,34 +70,50 @@ def blocks(lines):
                 yield n, "table", s
             continue
         if ITEM.match(s):
-            yield from flush(); buf, start = [ITEM.sub("", s)], n
+            yield from flush(); buf, start, kind = [ITEM.sub("", s)], n, "item"
             continue
         if not buf:
-            start = n
+            start, kind = n, "prose"
         buf.append(s)
     yield from flush()
 
 
+def warn(path, n, msg):
+    print(f"{path}:{n}: warning: {msg}", file=sys.stderr)
+
+
 def check(path):
     hits = []
+    if AUDIENCE_PAGE.search(str(path)):
+        for n, _, text in blocks(Path(path).read_text().splitlines()):
+            for sent in re.split(r"(?<=[.!?])\s+", clean(text)):
+                if THIRD_PERSON.search(sent):
+                    print(f"{path}:{n}: warning: \"their\" for the reader; write \"you\" or \"your\": \"{sent.strip()[:80]}\"", file=sys.stderr)
     for n, kind, text in blocks(Path(path).read_text().splitlines()):
         text = clean(text)
         parts = [c for c in text.split("|") if c.strip().endswith(".")] if kind == "table" else [text]
-        if kind == "prose":
+        if kind != "table":
             if re.search(r"\*\*[^*]+:\*\*|\*\*[^*]+\*\*:", text):
                 hits.append((n, "bold label with a colon; write the sentence"))
-            if re.search(r"\*\*[^*]+\*\*", re.sub(r"^\*\*[^*]+\*\*", "", text)):
-                hits.append((n, "bold inside prose; bold is only for a run-in head at the start"))
+            rest = re.sub(r"^\*\*[^*]+\*\*", "", text) if kind == "item" else text
+            if re.search(r"\*\*[^*]+\*\*", rest):
+                hits.append((n, "bold inside prose; bold is only for a run-in head at the start of a list item"))
         for part in parts:
             for sent in re.split(r"(?<=[.!?])\s+", part):
-                if sent.count(",") > MAX_COMMAS:
-                    hits.append((n, f"{sent.count(',')} commas in one sentence: \"{sent.strip()[:80]}\""))
+                if sent.count(",") > WARN_COMMAS:
+                    warn(path, n, f"{sent.count(',')} commas in one sentence; read it aloud: \"{sent.strip()[:80]}\"")
+                if len(sent.split()) > WARN_WORDS:
+                    warn(path, n, f"{len(sent.split())} words in one sentence; read it aloud: \"{sent.strip()[:80]}\"")
+                if EM_DASH in sent:
+                    hits.append((n, "em dash; use a comma, a colon or a full stop"))
+                if MACHINE.search(sent):
+                    hits.append((n, f"machine-copy word \"{MACHINE.search(sent).group(0)}\": write the plain word for what happens"))
                 if PROJECT_STATE.search(sent) and not path.endswith("CHANGELOG.md"):
                     hits.append((n, f"project state \"{PROJECT_STATE.search(sent).group(0)}\": write for users, not about this repo's pull requests"))
-                if kind == "prose" and SIGNPOSTS.search(sent):
+                if kind != "table" and SIGNPOSTS.search(sent):
                     hits.append((n, f"signpost \"{SIGNPOSTS.search(sent).group(0)}\""))
                 for rx in STAGED:
-                    if kind == "prose" and rx.search(sent):
+                    if kind != "table" and rx.search(sent):
                         hits.append((n, f"staged contrast \"{rx.search(sent).group(0).strip()}\": \"{sent.strip()[:80]}\""))
     return [f"{path}:{n}: {msg}" for n, msg in hits]
 

@@ -1,0 +1,18 @@
+{{- /* What the free scan gives you and what it is not. Pass h (2 or 3) for the heading level. */ -}}
+{{- $h := .h | default 3 -}}
+<div class="scan-facts">
+  <div>
+    <h{{ $h }} class="scan-facts-title">What you get</h{{ $h }}>
+    <ul>
+      <li>An accessibility check of your public pages against WCAG 2.2 levels A and AA.</li>
+      <li>What a persona, a fictional visitor, ran into while trying your site, with the evidence for each problem so you can check it yourself.</li>
+    </ul>
+  </div>
+  <div>
+    <h{{ $h }} class="scan-facts-title">What it is not</h{{ $h }}>
+    <ul>
+      <li>It isn&rsquo;t an audit, and it isn&rsquo;t a certificate that your site meets WCAG or any law.</li>
+      <li>It looks at a sample of pages, so a clean report doesn&rsquo;t clear the rest of your site.</li>
+    </ul>
+  </div>
+</div>
