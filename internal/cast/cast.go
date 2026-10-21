@@ -360,7 +360,11 @@ func LoadScenario(path string) (Scenario, error) {
 		s.Budget, _ = strconv.Atoi(m[1])
 	}
 	if m := minStepsLine.FindStringSubmatch(s.Body); m != nil {
-		s.MinSteps, _ = strconv.Atoi(m[1])
+		n, err := strconv.Atoi(m[1])
+		if err != nil {
+			return Scenario{}, fmt.Errorf("cast: %s min steps: %w", path, err)
+		}
+		s.MinSteps = n
 	}
 	if m := deviceLine.FindStringSubmatch(s.Body); m != nil {
 		s.Device = strings.ToLower(m[1])

@@ -333,3 +333,13 @@ func TestTextScale(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadScenarioRejectsAnOversizedMinSteps(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "01-big.md")
+	if err := os.WriteFile(path, []byte("# Big\n\nMin steps: 99999999999999999999999\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadScenario(path); err == nil || !strings.Contains(err.Error(), "min steps") {
+		t.Errorf("want a min steps error, got %v", err)
+	}
+}

@@ -145,8 +145,8 @@ itself. A `Budget: 30 steps` line works the same way.
 A scenario can say `Min steps: 8` on a line of its own. Until the persona has taken 8 steps of its own (the
 engine's opening visit is not one of them), a call to `finish` is sent back with a note to carry on. The system prompt
 tells the persona about the minimum too. Three cases still end the run early. A `finish` with the verdict
-`blocked` is accepted, because the site stopped the persona. A run the engine ends for its step or token
-budget, or because the persona ran out of patience, is accepted. And after three refusals the next `finish` is
+`blocked` is accepted. The engine takes the persona's word that the site stopped it. A run the engine ends for its step or token
+budget, or because the persona ran out of patience, is accepted. So is a `finish` on the call that reaches the token budget. And after three refusals the next `finish` is
 accepted, so a persona that insists can't use up the budget. The engine keeps at least three steps of the
 budget for the work after the minimum, so a minimum above the budget less three is lowered to fit.
 
