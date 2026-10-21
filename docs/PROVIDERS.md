@@ -46,7 +46,8 @@ you rely on one, and pass `--model` to use another.
 With `--provider anthropic` and no `--model`, you get the Anthropic default. Every other provider needs `--model`.
 Ollama must have the model: `ollama pull gemma4:e4b` is one download of a few gigabytes, and the first run
 checks for it. Ollama also needs room for a screenshot in every request. Its default context of 4096 tokens fills
-up after a dozen steps, so start it with a larger one: `OLLAMA_CONTEXT_LENGTH=16384 ollama serve`. Expect a small local model to be slower and less careful than a hosted one.
+up after a dozen steps, so start it with a larger one: `OLLAMA_CONTEXT_LENGTH=16384 ollama serve`. Expect a small local model to be slower and less careful than a hosted one. On a busy laptop with no GPU, a single
+step can take a minute, and a call that takes longer than two minutes ends the run. For a first run, a hosted key is the quicker way in.
 
 ## What each backend can do
 
