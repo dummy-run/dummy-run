@@ -38,7 +38,7 @@ func (m *scriptedModel) Chat(_ context.Context, req provider.Request) (provider.
 		call.Name = "finish"
 		call.Args = json.RawMessage(`{"verdict":"friction","goal_met":"no","report":"The form did not submit.","findings":[` +
 			`{"kind":"bug","severity":"minor","symptom":"not-operable","title":"Subscribe does nothing","steps":[2],"evidence":"measured"},` +
-			`{"kind":"accessibility","severity":"minor","symptom":"unclear-label","title":"The first button has no name","steps":[1],"evidence":"measured"}]}`)
+			`{"kind":"accessibility","severity":"minor","symptom":"unclear-label","title":"The first button has no name","steps":[1],"quote":"Subscribe","evidence":"measured"}]}`)
 	}
 	resp.ToolCalls = []provider.ToolCall{call}
 	return resp, nil
