@@ -28,6 +28,8 @@ cd dummy-run
 
 ## 1. Install the commands {#install}
 
+{{< mascot "dummy-keyboard" >}}
+
 There are two commands. `dummyrun` plays the persona, and `dummyrun-otel` sends the finished run to Grafana or any other OpenTelemetry backend.
 
 ```sh

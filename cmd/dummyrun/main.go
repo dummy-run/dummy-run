@@ -69,7 +69,7 @@ func run(args []string) int {
 		fmt.Fprintln(os.Stderr, "dummyrun audit: want \"a11y\"")
 		return 2
 	case "version":
-		fmt.Println("dummyrun", telemetry.Version)
+		fmt.Println(versionLine())
 		return 0
 	case "-h", "--help", "help":
 		usage()
@@ -79,6 +79,11 @@ func run(args []string) int {
 		usage()
 		return 2
 	}
+}
+
+// versionLine is what "dummyrun version" prints. A release build sets both values (see .goreleaser.yaml).
+func versionLine() string {
+	return fmt.Sprintf("dummyrun %s (commit %s)", telemetry.Version, telemetry.Commit)
 }
 
 func usage() {
@@ -136,8 +141,8 @@ func runCmd(args []string) int {
 	steps := fs.Int("steps", 0, "step budget override (up to 40)")
 	tokens := fs.Int("tokens", 0, "token budget (input plus output)")
 	batch := fs.String("batch", "", "batch ID grouping runs started together")
-	seed := fs.Int64("seed", -1, "sampling seed sent to the model API where the provider takes one (0 or more); recorded as seed, null where it is not sent")
-	repeat := fs.Int("repeat-index", -1, "repeat count for this persona, scenario and model in the batch (default: counted from the records in --out)")
+	seed := fs.Int64("seed", -1, "sampling seed (0 or more), sent to providers that take one; the record shows null where it was not sent")
+	repeat := fs.Int("repeat-index", -1, "which repeat this is for the persona, scenario and model in the batch; -1 counts the records already in --out")
 	sessionFile := fs.String("session", "", "sign in from this saved session file (see \"dummyrun session save\") instead of the login form")
 	universe := fs.String("universe", "", "where the routes that exist come from, for route coverage: \"sitemap\" (base_url/sitemap.xml) or a sitemap URL")
 	headful := fs.Bool("headful", false, "show the browser window")

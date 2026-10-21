@@ -45,6 +45,28 @@ engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, an
 (`DUMMYRUN_CHROME`, `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
 to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a reason.
 
+## Large text
+
+Phones apply a larger system text size in different ways. Some raise the browser's default font size, and some
+scale the page. The site is sized in `rem` and `em` and its layout breaks (media queries) are in `em`, so it
+follows the first kind and a larger size reaches the narrow layout on a wider screen. Do not give anything that
+holds text a fixed `px` height or width. Use `min-height`, let buttons wrap their own text, and give grid and
+flex children `min-width: 0` (`minmax(0, 1fr)` in grids) so they can shrink. Long words, URLs and emails wrap.
+Code blocks and tables scroll inside themselves, never the page.
+
+`dummyrun a11y --text-scale 100,200 --layout` checks it. With the built site served on port 1313, run this from
+the repository root:
+
+<!-- doctest site -->
+```sh
+dummyrun a11y --viewport small --scheme light --text-scale 200 --layout --allow site/a11y-allow.txt http://127.0.0.1:1313/start/
+```
+
+It opens each page in Chrome at 320 pixels wide with the browser's default font size doubled. It fails when the
+page scrolls sideways. It fails when a button or label clips its text. It fails when two controls overlap. Add `--sitemap` and
+`--rebase` to test every page, and `--screenshots DIR` to save a crop of each fault. `docs/ENGINE.md` describes the
+rules. The site workflow runs it on every page in the sitemap.
+
 ## Social cards and structured data
 
 Each main page has a 1200 by 630 link-preview card in `static/social/`, named for the page path with

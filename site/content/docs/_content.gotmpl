@@ -1,5 +1,6 @@
 {{/* Build the reference pages from the repository's own Markdown, so there is one source of truth. */}}
 {{ $pages := slice
+  (dict "src" "repo/docs/INSTALL.md" "path" "install" "group" "use" "weight" 0 "summary" "Binaries, the container image, and how to verify a release")
   (dict "src" "repo/docs/ENGINE.md" "path" "engine" "group" "use" "weight" 1 "summary" "Install the engine, run a persona, the read-only policy and the accessibility sweep")
   (dict "src" "repo/docs/MCP.md" "path" "mcp" "group" "use" "weight" 2 "title" "Dummy Run as an MCP server" "summary" "Use Dummy Run from Claude Code, Cursor, VS Code or Codex, with the limits on what it will test")
   (dict "src" "repo/docs/CLI.md" "path" "cli" "group" "use" "weight" 3 "summary" "Every command and flag, generated from the engine's own help text")
@@ -14,12 +15,11 @@
   (dict "src" "repo/docs/THREAT-MODEL.md" "path" "threat-model" "group" "understand" "weight" 13 "summary" "Assets, trust boundaries, the threats from a hostile page and what stops each one")
   (dict "src" "repo/docs/TELEMETRY.md" "path" "telemetry" "group" "understand" "weight" 12 "summary" "How runs map to OpenTelemetry traces, metrics, logs and Grafana annotations")
   (dict "src" "repo/docs/integrations/grafana.md" "path" "grafana-guide" "title" "Grafana guide" "group" "integrate" "weight" 21 "summary" "Wire runs into Grafana, Tempo, Loki and your own app's traces")
-  (dict "src" "repo/docs/PLAN.md" "path" "plan" "group" "project" "weight" 30 "summary" "What ships, in what order")
-  (dict "src" "repo/CONTRIBUTING.md" "path" "contributing" "group" "project" "weight" 31 "summary" "How to contribute, the automated checks, and the rules on evidence and privacy")
-  (dict "src" "repo/docs/STYLE.md" "path" "style" "group" "project" "weight" 32 "summary" "How we write and cite")
-  (dict "src" "repo/docs/TYPOGRAPHY.md" "path" "typography" "group" "project" "weight" 33 "summary" "Body text at 18px, nothing read below 16px and headings that scale with the viewport")
+  (dict "src" "repo/CONTRIBUTING.md" "path" "contributing" "group" "project" "weight" 31 "summary" "Set up, run the checks and send a pull request")
+  (dict "src" "repo/docs/STYLE.md" "path" "style" "group" "project" "weight" 32 "summary" "How the docs are written")
+  (dict "src" "repo/docs/TYPOGRAPHY.md" "path" "typography" "group" "project" "weight" 33 "summary" "The type scale and minimum sizes for the site and reports")
+  (dict "src" "repo/docs/RELEASING.md" "path" "releasing" "group" "project" "weight" 36 "summary" "How to cut a release, and the one-time setup")
   (dict "src" "repo/brand/README.md" "path" "brand" "group" "project" "weight" 34 "summary" "The logo, mascot and colours")
-  (dict "src" "repo/docs/NAMING.md" "path" "naming" "group" "project" "weight" 35 "summary" "Why the project is called Dummy Run, and the cautions on the mascot")
   (dict "src" "repo/docs/LICENSING.md" "path" "licensing" "group" "policy" "weight" 40 "summary" "What the Apache-2.0 licence lets you do")
   (dict "src" "repo/TRADEMARKS.md" "path" "trademarks" "group" "policy" "weight" 41 "summary" "What you may do with the name and logo")
   (dict "src" "repo/SECURITY.md" "path" "security" "group" "policy" "weight" 42 "summary" "Reporting a vulnerability, and findings about apps you do not own")

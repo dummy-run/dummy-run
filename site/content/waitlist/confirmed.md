@@ -2,6 +2,7 @@
 title: You're on the list
 lead: Thanks for confirming. We'll email you once, when the free scan opens.
 description: Thanks for confirming. We'll email you once, when the free scan opens.
+mascot: dummy-thumbs-up
 noindex: true
 sitemap:
   disable: true

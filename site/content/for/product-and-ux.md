@@ -23,7 +23,7 @@ Sam, an author on a phone, tried to reply to an editor's comments and found the 
 
 {{< graphic name="persona-card" who="sam-author" >}}
 
-The device sets the window size, so the same job on a phone and on a desktop can turn up quite different problems. A persona can also read at 200 percent zoom, use only the keyboard or have very little patience with long pages. Write your own personas in Markdown, or start from the library and adjust them to your product.
+The device sets the window size, so the same job on a phone and on a desktop can turn up quite different problems. A persona can also read at 200 percent zoom, which narrows the page, or at a larger system text size, which leaves the window as it is and makes the text bigger. It can use only the keyboard, or have very little patience with long pages. Write your own personas in Markdown, or start from the library and adjust them to your product.
 
 ## Questions are findings too
 

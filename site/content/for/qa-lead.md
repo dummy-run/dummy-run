@@ -49,7 +49,7 @@ Every finding has a stable fingerprint, so the same problem turning up in three 
 
 | Browser | Driven through | Notes |
 |---|---|---|
-| Chrome | WebDriver BiDi | Desktop, tablet or phone-sized window, with page zoom if the persona needs it |
+| Chrome | WebDriver BiDi | Desktop, tablet or phone-sized window, with page zoom or a larger system text size if the persona needs it |
 | Firefox | WebDriver BiDi | The same session code as Chrome |
 | Real phones and tablets | Not available | Phone and tablet personas use a window at the device's size |
 | Safari | Not supported | Dummy Run doesn't drive it |

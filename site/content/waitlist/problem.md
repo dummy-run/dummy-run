@@ -2,6 +2,7 @@
 title: That did not work
 lead: Your sign-up, or the link you followed, didn't go through.
 description: Your sign-up, or the link you followed, didn't go through.
+mascot: dummy-oops
 noindex: true
 sitemap:
   disable: true

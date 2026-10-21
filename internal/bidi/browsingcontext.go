@@ -79,6 +79,24 @@ func (c *Conn) CaptureScreenshot(ctx context.Context, context string) (string, e
 	return out.Data, err
 }
 
+// Clip is a box in CSS pixels of the whole page, measured from the top left of the document.
+type Clip struct{ X, Y, Width, Height float64 }
+
+// CaptureScreenshotClip returns one box of the page as a PNG, base64 encoded. The box is in document
+// coordinates, so it can lie below the fold.
+func (c *Conn) CaptureScreenshotClip(ctx context.Context, context string, clip Clip) (string, error) {
+	var out struct {
+		Data string `json:"data"`
+	}
+	err := c.Call(ctx, "browsingContext.captureScreenshot", map[string]any{
+		"context": context,
+		"origin":  "document",
+		"clip":    map[string]any{"type": "box", "x": clip.X, "y": clip.Y, "width": clip.Width, "height": clip.Height},
+		"format":  map[string]any{"type": "image/png"},
+	}, &out)
+	return out.Data, err
+}
+
 // NodeRef is a node handle returned by locateNodes, usable as a script argument.
 type NodeRef struct {
 	SharedID string `json:"sharedId"`

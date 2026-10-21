@@ -8,7 +8,7 @@
   "basis": "confirmed findings and findings not reviewed",
   "summary": {
     "text": [
-      "Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 2026-10-16 and 2026-10-17.",
+      "Dummy Run played 2 fictional users in 4 runs against https://pr-41.inkwell.example between 16 October 2026 and 17 October 2026.",
       "The runs found 4 distinct problems: 2 major, 1 minor, 1 info. A person has confirmed 3 of them. 1 is marked not reviewed. No person has checked it yet.",
       "The axe sweep tested 2 pages and found 2 failing elements on 2 rules. 1 setting could not be tested.",
       "There are too few repeated findings to estimate how many problems are still unfound."

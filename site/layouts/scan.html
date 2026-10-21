@@ -4,7 +4,10 @@
     <div>
       {{ partial "breadcrumbs.html" . }}
       <p class="scan-badge">Opening soon</p>
-      <h1 id="scan-title" class="u-display-sm">{{ .Title }}</h1>
+      <div class="scan-title-row">
+        <h1 id="scan-title" class="u-display-sm">{{ .Title }}</h1>
+        {{ partial "mascot.html" (dict "name" "dummy-friendly" "class" "scan-title-mascot") }}
+      </div>
       <p class="u-lead">{{ .Params.lead }}</p>
     </div>
     {{- if site.Params.waitlist_enabled }}
@@ -30,8 +33,8 @@
       {{- with resources.Get "repo/docs/images/report-example.png" }}
       {{- $crop := .Fill "1100x720 Top q90" }}
       <figure class="scan-example">
-        <img src="{{ $crop.RelPermalink }}" width="{{ $crop.Width }}" height="{{ $crop.Height }}" alt="A report opening with a short summary and a count of problems at each severity, before the list of what was tested." loading="lazy">
-        <figcaption>You see at a glance how many problems there are and how serious they are, before the detail. The report we email you is shorter.</figcaption>
+        <img src="{{ $crop.RelPermalink }}" width="{{ $crop.Width }}" height="{{ $crop.Height }}" alt="The top of an example report cover: the logo, a title, who it is for, the target and dates, and a short summary." loading="lazy">
+        <figcaption>This is the cover of an example report from the open-source engine. The report we email you is shorter.</figcaption>
       </figure>
       {{- end }}
     </div>

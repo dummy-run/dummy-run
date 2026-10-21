@@ -3,6 +3,7 @@ title: That did not work
 lead: Your audit request didn't go through.
 description: Your audit request didn't go through.
 layout: audit-result
+mascot: dummy-oops
 noindex: true
 sitemap:
   disable: true

@@ -25,12 +25,14 @@ func (r *Report) WriteSummary(w io.Writer) {
 	type row struct {
 		f      Finding
 		target string
+		detail string
+		shot   string
 		combos []string
 	}
 	rows := map[key]*row{}
 	var order []key
 	for _, p := range r.Results {
-		combo := fmt.Sprintf("%s/%s/%s", p.Browser, p.Viewport, p.Scheme)
+		combo := p.Setting()
 		for _, f := range p.Violations {
 			for _, n := range f.Nodes {
 				if n.Allowed {
@@ -38,7 +40,7 @@ func (r *Report) WriteSummary(w io.Writer) {
 				}
 				k := key{p.URL, f.Rule, n.Target}
 				if rows[k] == nil {
-					rows[k] = &row{f: f, target: n.Target}
+					rows[k] = &row{f: f, target: n.Target, detail: n.Detail, shot: n.Screenshot}
 					order = append(order, k)
 				}
 				rows[k].combos = append(rows[k].combos, combo)
@@ -61,14 +63,21 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if len(rw.f.WCAG) > 0 {
 			wcag = ", WCAG " + strings.Join(rw.f.WCAG, " ")
 		}
-		_, _ = fmt.Fprintf(w, "FAIL %s\n     %s (%s%s) at %s\n     %s\n     in %s\n     %s\n", k.url, k.rule, orUnknown(rw.f.Impact), wcag, rw.target, rw.f.Help, strings.Join(rw.combos, ", "), rw.f.HelpURL)
+		_, _ = fmt.Fprintf(w, "FAIL %s\n     %s (%s%s) at %s\n     %s\n", k.url, k.rule, orUnknown(rw.f.Impact), wcag, rw.target, rw.f.Help)
+		if rw.detail != "" {
+			_, _ = fmt.Fprintf(w, "     %s\n", rw.detail)
+		}
+		if rw.shot != "" {
+			_, _ = fmt.Fprintf(w, "     screenshot %s\n", rw.shot)
+		}
+		_, _ = fmt.Fprintf(w, "     in %s\n     %s\n", strings.Join(rw.combos, ", "), rw.f.HelpURL)
 	}
 	for _, p := range r.Results {
 		if p.Skipped != "" {
 			_, _ = fmt.Fprintf(w, "SKIPPED %s: %s\n", p.URL, p.Skipped)
 		}
 		if p.Error != "" {
-			_, _ = fmt.Fprintf(w, "ERROR %s (%s/%s/%s): %s\n", p.URL, p.Browser, p.Viewport, p.Scheme, p.Error)
+			_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
 		}
 	}
 	s := r.Summary

@@ -1,5 +1,6 @@
 ---
 title: About
+mascot: dummy-friendly
 lead: Dummy Run is an open-source project for finding the problems your users would hit, before they hit them.
 description: Who is behind Dummy Run, why it exists, and how to get in touch or contribute.
 next:

@@ -156,5 +156,13 @@
     "input_tokens": 64570,
     "output_tokens": 6600,
     "cost_usd": 0.0359
-  }
+  },
+  "observations": [
+    {
+      "text": "Every page kept the same navigation in the same place",
+      "steps": [
+        1
+      ]
+    }
+  ]
 }

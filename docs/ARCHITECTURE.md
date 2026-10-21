@@ -1,22 +1,19 @@
 # Architecture
 
-A run has four stages: cast, run, review and board. Each stage reads and writes plain files, so you can
-replace any stage or run it by hand. Anything that touches a cloud, a model or a target platform sits
-behind an adapter. Data residency is a per-market setting that every adapter must satisfy.
+A run goes through a few stages: you pick a persona from a cast, the engine runs it in a browser, and a
+person reviews what it found. Each stage reads and writes plain files, so you can swap one out or do it by
+hand. Anything that talks to a model or a target app sits behind an adapter.
 
 ## Stages
 
 ```mermaid
 flowchart TB
     CAST[Cast<br/>personas/*/profile.md, prompt, scenarios]:::step --> RUN
-    TGT[Target adapter<br/>preview URL, test user, fixtures]:::adapter --> RUN
-    LLM[LLM provider adapter<br/>chosen per market]:::adapter --> RUN
-    RUN[Run<br/>real browser over WebDriver BiDi<br/>steps, screenshots, console, network]:::agent --> REP[Run record<br/>JSON + PNG]:::step
-    REP --> CHK[Deterministic checks<br/>axe, CSP, status codes, allowed hosts]:::step
-    CHK --> REV[Reviewer<br/>claim by claim, code references, 3 votes]:::agent
-    REV --> REC[Record batch<br/>corroborations, candidates]:::step
-    REC --> PER[Person checks high-severity candidates]:::step
-    PER --> BOARD[Results board<br/>static HTML + JSON]:::out
+    TGT[Target adapter<br/>base URL, allowed hosts, sign-in]:::adapter --> RUN
+    LLM[Model provider adapter<br/>you choose the region]:::adapter --> RUN
+    RUN[Run<br/>real browser over WebDriver BiDi<br/>steps, screenshots, console, network]:::agent --> REC[Run record<br/>JSON + PNG]:::step
+    REC --> REV[dummyrun review<br/>a person confirms or rejects each finding]:::step
+    REV --> OUT[Report, coverage and telemetry<br/>dummyrun report, dummyrun coverage, dummyrun-otel]:::out
     classDef step fill:#ffffff,stroke:#1d1d1b,color:#1d1d1b
     classDef adapter fill:#e6eef4,stroke:#1d1d1b,color:#1d1d1b
     classDef agent fill:#fbad18,stroke:#1d1d1b,color:#1d1d1b
@@ -25,48 +22,46 @@ flowchart TB
 
 ## Adapters
 
-| Adapter | Responsibility | First implementations |
+| Adapter | What it does | What you can use today |
 |---|---|---|
-| Target | Resolve a preview for a change (PR number, branch or URL); create a test user with a named role; seed fixtures; say which hosts a run may touch | Plain URL, built; then Vercel, Netlify, Cloudflare Pages, GitHub Deployments |
-| LLM provider | Play the persona; review claims. Separate models for the two jobs | Azure OpenAI, Anthropic, Gemini on Vertex AI or the Developer API, Amazon Bedrock and any OpenAI-compatible service, all built. See [PROVIDERS.md](PROVIDERS.md) |
-| Runner host | Where the browser runs | Laptop; GitHub Actions; Kubernetes job (Helm); Cloud Run jobs; Azure Container Apps jobs |
-| Results store | Where run records and the board live | Local directory; object storage (GCS, Azure Blob, S3); the board is always static files on top |
-| Secrets | Test-user credentials and provider keys | Environment variables, filled from the OS keychain, CI secrets, Secret Manager or Key Vault. Test-user credentials are read by name from the target file's `signin` block |
+| Target | Says where the app is, which hosts a run may touch, whether the run is read-only and how a role signs in | A target file with a plain URL. See `examples/targets/` and "Sign in" in [ENGINE.md](ENGINE.md) |
+| Model provider | Plays the persona | Azure OpenAI, Anthropic, Gemini on Vertex AI or the Developer API, Amazon Bedrock, and any OpenAI-compatible service. See [PROVIDERS.md](PROVIDERS.md) |
+| Runner host | Where the browser runs | Your laptop, or a CI job such as GitHub Actions |
+| Results store | Where run records live | A local directory, set with `--out` |
+| Secrets | Test-user passwords and provider keys | Environment variables. The target file's `signin` block names them, and the engine reads them at run time |
 
-The model providers are Azure OpenAI, Anthropic, Gemini and Amazon Bedrock (code: `internal/provider`). Gemini runs on Vertex AI or the Developer API. Any OpenAI-compatible service works too. [PROVIDERS.md](PROVIDERS.md) has the table of what each one needs and can do.
-
-An adapter declares the regions it can run in. A market profile (for example `uk`) lists the regions
-that satisfy it (`europe-west2`, `uksouth`, `ukwest`). A run refuses to start if any adapter in the chain
-cannot satisfy the market (sourced: the design in this document). The profile covers adapters only. Telemetry residency is wherever your own
-OpenTelemetry backend is (inferred), and [TELEMETRY.md](TELEMETRY.md) says what leaves the network.
+You choose the provider and its region on each run with `--provider` and `--region`. To keep a run inside
+a jurisdiction, use a model deployment in that market, such as Azure OpenAI in `uksouth` for the UK. The
+persona's screenshots and page text go to that provider, and the region is written into the run record. Telemetry goes only to the OpenTelemetry backend
+you configure, and [TELEMETRY.md](TELEMETRY.md) lists what it carries.
 
 ## The evidence rule
 
-A finding is a claim plus evidence. The reviewer rejects a claim unless a step in the run record
-supports it. That support is a screenshot, a console or network line, or a code reference. Each finding
-carries one of four tags:
+A finding is a claim plus evidence. Each one points at the steps in the run record that support it, such
+as a screenshot or a console or network line. Each finding also says how the persona knows it:
 
 | Tag | Meaning |
 |---|---|
-| measured | Seen in a run |
+| measured | Seen in the run |
 | code | Read in the source |
-| sourced | Stated in an issue or document |
-| inferred | Our reasoning, labelled as such |
+| sourced | Stated in an issue or a document |
+| inferred | The persona's reasoning, labelled as such |
 
-High-severity findings wait for a person to confirm them. The page is untrusted input. The engine fences its text (code: `internal/inject/inject.go` and `internal/runner/observe.go`). It flags text that tries to instruct the persona (code: `internal/inject/inject.go` and `internal/runner/inspect.go`). It files a `security` finding for that text (code: `internal/runner/inspect.go`). See [Threat model](THREAT-MODEL.md).
+Every finding starts as pending. A person confirms or rejects it with `dummyrun review`, and the verdict
+goes into the run record.
+
+The page is untrusted input. The engine fences page text off from its instructions, flags text that tries
+to instruct the persona and files a `security` finding for it. The [threat model](THREAT-MODEL.md) has
+the details.
 
 ## Browsers
 
-Chrome and Firefox are driven through WebDriver BiDi, so the same session code drives both. A persona's
-device sets the window size (desktop, tablet or phone), and a persona or scenario may set page zoom. The
-user agent is the browser's own, with `DummyRun/<version>` added at the end (`--identify` also adds a contact URL). Real devices will come
-through an adapter for a hosted browser grid.
+The engine drives Chrome and Firefox over WebDriver BiDi, so the same session code works in both. A
+persona's device sets the window size (desktop, tablet or phone). A persona or scenario can also set page
+zoom or a larger system text size. The user agent is the browser's own with `DummyRun/<version>` on the end,
+and `--identify` adds a contact URL as well.
 
 ## Deployment
 
-Packaging is planned and none of it is built yet.
-
-- `deploy/compose` will run everything on one machine with one command.
-- `deploy/helm/dummyrun` will be a Helm chart with jobs for the runner and the reviewer and a board
-  publisher. It will have a values file per cloud (`values-gcp.yaml` and `values-azure.yaml`).
-- Every release will run the demo cast against the demo app on both clouds and compare the two boards.
+Run the engine on your laptop, in a CI job or as a container job on a hosted platform. [INSTALL.md](INSTALL.md)
+covers the binaries, the container image and `go install`.
