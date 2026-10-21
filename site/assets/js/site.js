@@ -115,11 +115,11 @@
   });
 })();
 
-// The terminal on the Get started page. The whole transcript is already in the page as text and stays there,
-// readable by a screen reader and by the page's own text. This only masks the lines that have not been
-// played yet, then types the commands and shows the output in small chunks, with a pause button. It never
-// hides the text itself (no opacity, no removal), so nothing on the page is concealed. With reduced motion it
-// does nothing.
+// The terminal on the Get started page. The whole transcript is already in the page as text, inside pre and
+// code, readable by a screen reader. This masks the lines that have not played yet, then types the commands and
+// shows the output in small chunks, with a pause button. It sets no opacity and removes nothing, because the
+// engine reads zero-opacity text as concealed. The engine's scan does not look at CSS masks, so it treats the
+// transcript as quoted output. With reduced motion this does nothing.
 (function () {
   var term = document.querySelector("[data-terminal]");
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");

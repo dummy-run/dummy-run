@@ -50,7 +50,8 @@ to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a re
 The transcript is in the page as ordinary text inside `pre` and `code`. `site.js` plays it by masking the
 lines that have not played yet with a CSS mask. It never sets opacity to zero on the text and never removes
 it. The engine reads zero-opacity text as concealed, even inside code, so a demo that fades lines in would be
-flagged when a persona visits the page. `internal/runner/site_terminal_test.go` loads the real stylesheet and
+flagged when a persona visits the page. The scan does not look at CSS masks, so it reads the masked lines as
+quoted output. `internal/runner/site_terminal_test.go` loads the real stylesheet and
 script and checks that nothing is flagged.
 
 ## Large text
