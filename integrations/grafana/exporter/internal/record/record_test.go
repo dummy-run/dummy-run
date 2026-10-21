@@ -188,7 +188,7 @@ func TestFirstStepAndConfirmedFindings(t *testing.T) {
 	if got := run.ConfirmedFindings(); got != 1 {
 		t.Errorf("confirmed findings = %d, want 1", got)
 	}
-	f := record(run.Findings, "contributor-sees-rates-table")
+	f := record(run.Findings, "author-edits-others-draft")
 	if s := run.FirstStep(f); s == nil || s.N != 7 {
 		t.Errorf("first step = %v, want step 7", s)
 	}
@@ -223,6 +223,7 @@ func TestVersionOneRecordsStillLoad(t *testing.T) {
 	m["schema_version"] = 1
 	delete(m, "repeat_index")
 	delete(m, "seed")
+	delete(m, "observations")
 	delete(m["persona"].(map[string]any), "dimensions")
 	delete(m["scenario"].(map[string]any), "goal_met")
 	delete(m["usage"].(map[string]any), "cost_usd")
