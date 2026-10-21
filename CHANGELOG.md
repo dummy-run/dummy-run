@@ -6,11 +6,12 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- A scenario can ask for a minimum number of steps with a `Min steps: 8` line. The engine answers a `finish` that comes sooner with a note to carry on, and the run continues. It lets the `finish` through when the verdict is `blocked`, when a budget or patience limit forced it, and after three refusals. `dummyrun run --scenario-file FILE` plays a scenario file that is not in the cast (code: `internal/runner/patience.go`, `internal/cast/cast.go`, `cmd/dummyrun/main.go`).
+- A scenario can ask for a minimum number of steps with a `Min steps: 8` line. The engine answers a `finish` that comes sooner with a note to carry on, and the run continues. It lets the `finish` through when the verdict is `blocked`, when the step budget, the token budget or the persona's patience forced it. After three refusals it lets the next one through too. `dummyrun run --scenario-file FILE` plays a scenario file that is not in the cast (code: `internal/runner/patience.go`, `internal/cast/cast.go`, `cmd/dummyrun/main.go`).
 
 ### Changed
 - The website reads like a person wrote it. Every page a visitor reads is rewritten in a warmer voice with varied sentences, and none of them carries Sources sections, evidence tags or lists of what is planned. The style guide describes the new voice. `bin/check-prose` now only warns about long or comma-heavy sentences, fails on machine-copy words and em dashes, and has its own tests in `bin/check-prose-test`.
 - `dummyrun report` has a designed HTML report. It has a cover with the logo and the client. The cover also has the target, the dates, a plain summary and a bar of problems by severity. The summary page has key-number cards and a plain statement of how many problems are still unfound. Findings are cards with a severity band and badge, grouped by severity under a contents list. The axe sweep is a table, and baseline status has clear labels. The brand typefaces are embedded, with a light theme and a dark one on screen only. Print has page breaks, a running title and page numbers. The Markdown format has the same structure in headings and tables. The example report and its pictures are rebuilt, and `docs/REPORT.md` has a tour (code: `internal/report/templates/` and `internal/report/assets/`).
+- The animated flow on the how-it-works page breaks out of the text column to the width of the header. Gaps, cards and mini-stages are larger. It follows 3, 2 or 1 columns by width. Each card shows its finished content until its turn, so no card looks empty. Reduced motion and no JavaScript still show every finished state (code: `site/assets/css/site.css`).
 
 ## [0.1.1] - 2026-10-20
 
