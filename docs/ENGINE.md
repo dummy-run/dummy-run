@@ -724,9 +724,9 @@ dummyrun run ... --header-env 'x-vercel-protection-bypass:VERCEL_AUTOMATION_BYPA
 - The values are read from the environment when the run starts. A missing or empty variable stops the run
   before the browser opens, and the error names the variable. A secret written into the target file is refused
   with an error that tells you to name a variable instead. The error never repeats the secret.
-- No secret reaches the run record, the log or the screenshots. The telemetry and the errors stay clean too. The
-  record has an optional `preview_access` block, added in schema version 2, with the methods used and the names
-  of the headers, nothing else:
+- The engine never writes a secret into the run record, the log, the screenshots, the telemetry or an error.
+  Page content is the exception, as the last paragraph explains. The record has an optional `preview_access`
+  block. It was added in schema version 2. It holds the methods used and the header names, nothing else:
 
 ```json
 "preview_access": { "methods": ["basic", "headers"], "header_names": ["x-vercel-protection-bypass"] }

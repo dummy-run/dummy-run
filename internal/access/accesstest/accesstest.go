@@ -146,7 +146,8 @@ func New(t *testing.T) *Fixture {
 		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form</title></head><body><main><h1>Form</h1><form method="post" action="/submit"><button type="submit">Send it</button></form></main></body></html>`) // nosemgrep: go.lang.security.audit.xss.no-io-writestring-to-responsewriter.no-io-writestring-to-responsewriter // constant fixture pages
 	})
 	mux.HandleFunc("/redirect", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, other.URL+"/landing", http.StatusFound)
+		// A different host name, not just a different port: localhost against 127.0.0.1.
+		http.Redirect(w, r, strings.Replace(other.URL, "127.0.0.1", "localhost", 1)+"/landing", http.StatusFound)
 	})
 	prev.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		prev.record(r)
