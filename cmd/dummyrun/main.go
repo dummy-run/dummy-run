@@ -49,6 +49,8 @@ func run(args []string) int {
 	switch args[0] {
 	case "try":
 		return tryCmd(args[1:])
+	case "plan":
+		return planCmd(args[1:])
 	case "browsers":
 		return browsersCmd(args[1:])
 	case "run":
@@ -97,6 +99,8 @@ func usage() {
   dummyrun browsers list
   dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
+  dummyrun plan URL --out DIR [--personas N] [--steps N] [--pages URL]... [--no-model] [--identify] [--respect-robots] \
+      [--provider PROVIDER --model MODEL ...]
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
@@ -104,8 +108,8 @@ func usage() {
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
-  dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
-      [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+  dummyrun report --runs DIR [--a11y FILE]... [--plan FILE] [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] \
+      [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
@@ -116,7 +120,7 @@ func usage() {
   dummyrun version
 
 First run: "dummyrun browsers install" once, set one model key, then "dummyrun try https://your-site".
-Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun try -h", "dummyrun plan -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers (leave out --provider and --model to have them chosen from your environment, in this order:
 DUMMYRUN_AZURE_ENDPOINT, OPENAI_API_KEY, ANTHROPIC_API_KEY, then Ollama on OLLAMA_HOST or localhost:11434;

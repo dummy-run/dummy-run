@@ -34,6 +34,9 @@ type Options struct {
 	Baseline    *Report
 	// Thresholds are passed to the coverage model. The zero value means the defaults.
 	Thresholds coverage.Thresholds
+	// Plan is the "What we tested and why" section, from LoadPlan. PlanUsage is added to the cost.
+	Plan      *PlanSection
+	PlanUsage PlanUsage
 }
 
 // defaultAxeVersion is the axe-core minor version used to link rule help when a sweep names none.
@@ -95,6 +98,8 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 		rep.Basis = "confirmed findings and findings not reviewed"
 	}
 	rep.Scope = buildScope(runs)
+	rep.Plan = opt.Plan
+	addPlanCost(&rep.Scope.Cost, opt.PlanUsage)
 	rep.Axe = buildAxe(opt.A11y)
 	var axeRules map[string]AxeRule
 	if rep.Axe != nil {

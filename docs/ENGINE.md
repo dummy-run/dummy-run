@@ -32,6 +32,47 @@ Inside a container or a VM, set `DUMMYRUN_NO_SANDBOX=1` to start the browsers wi
 The container image does this already, and so does any run where `CI` is set. Don't set it on your own
 machine.
 
+## Plan
+
+`dummyrun plan` works out what your site is for before anyone visits it, and writes a cast that fits.
+
+```sh
+dummyrun plan https://your-site --out ./cast --personas 1 --identify --respect-robots
+```
+
+It does three things.
+
+1. **Read.** It reads up to 10 pages over plain HTTP, with no browser and no model. It takes them from the sitemap,
+   or the links on the start page, spread across the top-level folders, or from `--pages`. It only sends GET
+   requests and only to the site's own host. From each page it keeps the title, the headings, the menu, the forms
+   and the language. Across all of them it looks for signs of what the site is for. Those are a sign-in form, a
+   basket, prices or a pricing page, booking, donations and contact links. It also notes articles, dates, a feed,
+   code samples and public-service names. With `--respect-robots` it skips what `robots.txt` disallows.
+2. **Plan.** One short model call reads a summary of that, under 4,000 tokens, with the page text fenced as
+   untrusted data. It names the kind of site (personal, blog, shop, software product, docs, public service,
+   organisation, charity, news, local business, education, open-source or other), who it is for and two to four
+   key journeys. It picks up to `--personas` personas from the library, or uses the ones you name with `--persona`,
+   and gives each its journeys, starting pages, how it knows each worked and what not to do. Each persona brings
+   its own way of working. The keyboard user plans its Tab presses, notes the first
+   stops and the skip link, and counts Tab presses per journey. The screen reader user moves by headings, landmarks
+   and link names. Zoom and large-text users check each screenshot for clipped or overlapping content. Every
+   persona has its own minimum steps (12 for the keyboard user, 10 for the screen reader user, 6 for most), kept at
+   least three below the budget, and `--min-steps` overrides it. The engine checks the answer. It keeps only
+   personas from the library and pages it read, and takes out any question about prices when the site sells nothing. If the call fails or the answer
+   does not hold up, the plan comes from the signs alone and `plan.json` says why. `--no-model` skips the call.
+3. **Write.** `DIR` gets one folder per persona, with its `profile.md` and `prompt.md` copied from the library and
+   `scenarios/01-<id>.md`, and `plan.json`. Each scenario has a `Site:` line, says not to send forms, sign in or pay,
+   and asks the persona to name the control or quote the words for every finding.
+
+Play the cast with `dummyrun run --cast DIR --persona ID --scenario ID`, and pass `--plan DIR/plan.json` to
+`dummyrun report` for its "What we tested and why" section. `dummyrun try` plans one persona this way first, and
+falls back to its built-in look-around when planning fails. On `gpt-5-4-mini` a plan costs about half a penny.
+
+<!-- doctest -->
+```sh
+dummyrun plan -h
+```
+
 ## Run
 
 To run a persona against your app, sign in to your model provider and point the engine at a cast and a

@@ -25,6 +25,7 @@ piece where it fits. Browsers that print page margins put the title and page num
 | `--title`, `--client` | The title, and free text naming who the report is for |
 | `--format` | `html` (the default), `md`, `json`, `sarif`, `junit`, `badge` or `shields`. [BADGES.md](BADGES.md) covers the last two |
 | `--include pending` | Also include findings no reviewer has confirmed. Without it, you only see confirmed findings |
+| `--plan FILE` | The `plan.json` that `dummyrun plan` wrote. It adds "What we tested and why" and counts the planning call in the cost |
 | `--baseline FILE` | An earlier report in JSON, so each finding is marked new or still present |
 | `--build SHA` | Report on one commit or build hash, at least 7 characters long |
 | `--date` | The report date as `YYYY-MM-DD`. The default is today |
@@ -46,6 +47,13 @@ It has the logo, the title and who the report is for (`--title` and `--client`).
 Cards give the key numbers. They cover problems found, runs, personas and routes visited. They also cover the pages in the axe sweep and, with a baseline, what is new. "How sure you can be" says in plain words how many problems are still unfound, as a floor and not a count. The page also says what was tested and what worked. It ends with a short reminder that the report is a sample.
 
 ![The summary page: key number cards and how sure you can be](images/report-summary.png)
+
+### What we tested and why
+
+With `--plan`, a short section after the summary tells the reader what kind of site you have, the journeys that
+were tried and why each persona was sent. For example: "Your site looks like a personal site for people who want
+to know who Sam is, so we tried the things its visitors come to do", then the journeys, then "We sent Alex, a
+first-time visitor, to find out who Sam is, read a post and get in touch." The JSON report has the same in `plan`.
 
 ### The findings
 
