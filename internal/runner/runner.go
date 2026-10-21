@@ -117,6 +117,8 @@ type run struct {
 	log      io.Writer
 	// finishRetries counts how often finish was sent back for a symptom outside the closed list.
 	finishRetries int
+	// offSiteNoted is true once an observation has said that the test stops requests to other sites.
+	offSiteNoted bool
 	// minSteps is how many steps the persona must take before finish is accepted. earlyFinishes counts
 	// the finish calls sent back for coming sooner.
 	minSteps      int
@@ -272,8 +274,12 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		if r.gate.Take(req.Method, req.URL) {
 			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
 		}
-		switch v := r.cfg.Target.Decide(req.Method, req.URL); v {
+		switch v := r.cfg.Target.DecideRequest(req.Method, req.URL, policy.KindOf(req.Navigation)); v {
 		case policy.Allow:
+			// The run headers carry the run and persona IDs, so they go only to the target's own origins.
+			if !r.cfg.Target.TargetOrigin(req.URL) {
+				return page.Decision{}
+			}
 			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
 		default:
 			return page.Decision{Block: true, Reason: v.String()}
@@ -397,6 +403,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 					}
 					fmt.Fprintf(r.log, "finish: %d finding(s) dropped, their symptom was not in the closed list\n", f.DropInvalid())
 				}
+				r.dropHarnessOnly(&f)
 				r.finishStep(ctx, f)
 				return &f, r.patience.GaveUp(), nil
 			}
@@ -406,6 +413,17 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		}
 	}
 	return nil, r.patience.GaveUp(), errors.New("the model made too many calls without finishing")
+}
+
+// offSite counts the requests to other hosts that the policy stopped.
+func offSite(blocked []string) int {
+	n := 0
+	for _, b := range blocked {
+		if strings.HasSuffix(b, "(host not allowed)") {
+			n++
+		}
+	}
+	return n
 }
 
 // execute runs one tool and records the step.
@@ -487,6 +505,10 @@ func (r *run) finishExecute(obs page.Observation, controlsBefore []page.Control,
 	step := &Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: sig != r.lastSig, Refusal: refusal}
 	r.lastSig = sig
 	step.Hits = r.inspect(step)
+	if n := offSite(obs.Blocked); n > 0 && !r.offSiteNoted {
+		r.offSiteNoted = true
+		step.OffSiteNote = fmt.Sprintf("the test stops pages and writes on other sites by its own rule, here %d request(s); later steps do not repeat this. It is not a fault of the site", n)
+	}
 	r.patience.Note(step.N, obs.URL, obs.Action, obs.Target, controlsBefore, obs.Error != "" || !step.PageChanged)
 	if obs.Snapshot != nil {
 		r.controls = obs.Snapshot.Controls
@@ -777,6 +799,8 @@ func (r *run) systemPrompt() string {
 	fmt.Fprintf(&b, "- Patience: you have %d actions. After three failed tries at the same thing, give up and report where you got stuck, as a real user would.\n", r.budget)
 	b.WriteString("- Look, then act. Use the numbered controls (@12) from the latest result. Type an address only when the scenario says to.\n")
 	b.WriteString("- Evidence or it did not happen: every finding names the step numbers that show it.\n")
+	b.WriteString("- A control shown as \"(no name)\" is only a candidate. Before you report a missing name, run the accessibility check on that page, and report it only when the check confirms it with a rule such as link-name, button-name, label, select-name, image-alt or input-image-alt. A control marked \"(hidden)\" is hidden from screen readers on purpose and is not a finding. Controls inside a closed menu or a collapsed section are not listed at all until you open it.\n")
+	b.WriteString("- The test's own limits are not the site's faults: requests the test blocks (other sites, anything that would send or change data), read-only refusals, failed or timed-out tools, a page the browser could not read, and files that are not web pages, such as feeds and PDFs. Never report them as findings. Say in your report if one stopped you.\n")
 	b.WriteString("- Likely, not certain: write \"possible bug\" and \"I think\". A reviewer and a person decide.\n")
 	b.WriteString("- Never copy a person's name, email address or other personal data from the site into your report. Describe what you saw.\n")
 	b.WriteString("- Stop on harm: anything that could reach a real person (email, payment, someone else's account) ends the run with verdict blocked.\n")
@@ -861,9 +885,8 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 		rec.Observations = RecordObservations(*finish)
 		rec.Scenario.GoalMet = finish.GoalMet
 	}
-	// The harness files this finding, not the model, so a page that talks the model out of reporting
-	// anything cannot hide that it tried.
-	rec.Findings = r.addInjectionFinding(rec.Findings, loc)
+	// Suspected injection is in the events for the operator and is never a finding: the detector also fires
+	// on ordinary text, and a site owner cannot act on a guess about what the page meant.
 	rec.Events = r.events
 	rec.Usage.CostUSD = price.Cost(rec.Provider.Model, rec.Usage.InputTokens, rec.Usage.CachedInputTokens, rec.Usage.OutputTokens)
 	return rec

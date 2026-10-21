@@ -132,7 +132,7 @@ func Hook(t policy.Target, g *policy.Gate) func(page.Request) page.Decision {
 		if g.Take(req.Method, req.URL) {
 			return page.Decision{}
 		}
-		if v := t.Decide(req.Method, req.URL); v != policy.Allow {
+		if v := t.DecideRequest(req.Method, req.URL, policy.KindOf(req.Navigation)); v != policy.Allow {
 			return page.Decision{Block: true, Reason: v.String()}
 		}
 		return page.Decision{}

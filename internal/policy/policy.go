@@ -19,7 +19,8 @@ type Target struct {
 	Environment string `json:"environment"`
 	// BaseURL is where the persona starts.
 	BaseURL string `json:"base_url"`
-	// AllowedHosts are the only hosts the browser may send requests to. An entry is a host name or
+	// AllowedHosts are the hosts pages may be loaded from and the only hosts any write may go to. A page's own
+	// images, styles, fonts and scripts may come from any public host by GET or HEAD (see DecideRequest). An entry is a host name or
 	// host:port. A bare host matches the default port of the request's scheme, and also the port of
 	// base_url when it is the base URL's own host. Another port needs its own host:port entry.
 	AllowedHosts []string `json:"allowed_hosts"`
@@ -37,6 +38,8 @@ type Target struct {
 	Signin *Signin `json:"signin,omitempty"`
 	// Auth gets the browser past Basic auth or header-based protection on a staging or preview site. Nil means none.
 	Auth *Auth `json:"auth,omitempty"`
+	// Lookup resolves host names for the subresource rule. Nil uses the system resolver with a short cache.
+	Lookup LookupFunc `json:"-"`
 }
 
 // Validate checks the target configuration.

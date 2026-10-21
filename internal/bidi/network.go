@@ -29,6 +29,9 @@ type RequestData struct {
 	URL     string   `json:"url"`
 	Method  string   `json:"method"`
 	Headers []Header `json:"headers"`
+	// Destination is the fetch destination, such as document, iframe, image, style or script, where the
+	// browser reports it. It is empty when it does not.
+	Destination string `json:"destination,omitempty"`
 }
 
 // BeforeRequestSent is a network.beforeRequestSent event.

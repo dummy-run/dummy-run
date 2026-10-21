@@ -54,10 +54,23 @@ func (c *Conn) Evaluate(ctx context.Context, context, expression string) (Remote
 // CallFunction calls a function declaration with arguments. Arguments are
 // local values (string, number, bool) or node references.
 func (c *Conn) CallFunction(ctx context.Context, context, declaration string, args ...any) (RemoteValue, error) {
+	return c.callFunction(ctx, target(context), declaration, args...)
+}
+
+// CallFunctionIn is CallFunction in a sandbox: a realm of its own that shares the page's DOM but none of its
+// scripts' globals, so page code can neither see nor change what runs there. The same name reuses the realm
+// for as long as the document lives.
+func (c *Conn) CallFunctionIn(ctx context.Context, context, sandbox, declaration string, args ...any) (RemoteValue, error) {
+	t := target(context)
+	t["sandbox"] = sandbox
+	return c.callFunction(ctx, t, declaration, args...)
+}
+
+func (c *Conn) callFunction(ctx context.Context, tgt map[string]any, declaration string, args ...any) (RemoteValue, error) {
 	var out EvaluateResult
 	err := c.Call(ctx, "script.callFunction", map[string]any{
 		"functionDeclaration": declaration,
-		"target":              target(context),
+		"target":              tgt,
 		"arguments":           localValues(args),
 		"awaitPromise":        true,
 		"resultOwnership":     "none",
@@ -139,9 +152,20 @@ func (c *Conn) EvaluateJSON(ctx context.Context, context, expression string, out
 // CallFunctionJSON calls a function whose return value is JSON.stringify'd in
 // the page, and decodes it into out.
 func (c *Conn) CallFunctionJSON(ctx context.Context, context, declaration string, out any, args ...any) error {
+	return c.callFunctionJSON(ctx, target(context), declaration, out, args...)
+}
+
+// CallFunctionJSONIn is CallFunctionJSON in a sandbox (see CallFunctionIn).
+func (c *Conn) CallFunctionJSONIn(ctx context.Context, context, sandbox, declaration string, out any, args ...any) error {
+	t := target(context)
+	t["sandbox"] = sandbox
+	return c.callFunctionJSON(ctx, t, declaration, out, args...)
+}
+
+func (c *Conn) callFunctionJSON(ctx context.Context, tgt map[string]any, declaration string, out any, args ...any) error {
 	wrapped := "function(...a){ const r = (" + declaration + ").apply(this, a); " +
 		"return Promise.resolve(r).then((x) => JSON.stringify(x === undefined ? null : x)); }"
-	v, err := c.CallFunction(ctx, context, wrapped, args...)
+	v, err := c.callFunction(ctx, tgt, wrapped, args...)
 	if err != nil {
 		return err
 	}
