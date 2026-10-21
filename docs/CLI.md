@@ -10,7 +10,7 @@ The list of commands and the model providers.
 
 ```text
 Usage:
-  dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
+  dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots]

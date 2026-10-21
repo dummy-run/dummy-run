@@ -17,7 +17,7 @@ func writeCast(t *testing.T) string {
 	files := map[string]string{
 		"profile.md":                 "---\nid: qa-lead\nname: Priya\nrole: visitor\ndevice: desktop\n---\n\n# Priya, QA lead\n\nShe tests things.\n",
 		"prompt.md":                  "You are Priya.\n",
-		"scenarios/01-first-look.md": "# First look at the home page\n\nBudget: 30 steps\n\nRead the home page.\n",
+		"scenarios/01-first-look.md": "# First look at the home page\n\nBudget: 30 steps\nMin steps: 8\n\nRead the home page.\n",
 		"scenarios/02-find-docs.md":  "# Find the documentation\n\nLook for docs.\n",
 	}
 	for name, body := range files {
@@ -46,8 +46,11 @@ func TestLoad(t *testing.T) {
 	if len(p.Scenarios) != 2 || p.Scenarios[0].ID != "first-look" || p.Scenarios[1].ID != "find-docs" {
 		t.Fatalf("scenarios %+v", p.Scenarios)
 	}
-	if p.Scenarios[0].Title != "First look at the home page" || p.Scenarios[0].Budget != 30 {
+	if p.Scenarios[0].Title != "First look at the home page" || p.Scenarios[0].Budget != 30 || p.Scenarios[0].MinSteps != 8 {
 		t.Errorf("scenario %+v", p.Scenarios[0])
+	}
+	if p.Scenarios[1].MinSteps != 0 {
+		t.Errorf("scenario without a minimum got %d", p.Scenarios[1].MinSteps)
 	}
 	if p.Scenarios[1].Budget != 0 {
 		t.Errorf("scenario without a budget line got %d", p.Scenarios[1].Budget)

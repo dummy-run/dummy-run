@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 
@@ -23,6 +24,38 @@ func StepBudget(requested int) int {
 		return DefaultStepBudget
 	}
 	return min(max(requested, DefaultStepBudget), MaxStepBudget)
+}
+
+// maxEarlyFinishes is how many times finish is sent back for coming before the scenario's minimum.
+// After that it is accepted, so a model that insists cannot loop until the budget is gone.
+const maxEarlyFinishes = 3
+
+// MinSteps clamps a scenario's "Min steps" request. It leaves at least three steps of the budget
+// for the work after the minimum, so a minimum can never use the whole budget.
+func MinSteps(requested, budget int) int {
+	if requested <= 0 {
+		return 0
+	}
+	return min(requested, max(budget-3, 0))
+}
+
+// earlyFinish answers a finish call that comes before the scenario's minimum, or returns "" to accept it.
+// taken is the number of steps the persona took itself. Finish is accepted when the verdict is blocked
+// (the persona really cannot go on), when the engine has forced the finish or the persona has given up,
+// and after maxEarlyFinishes refusals.
+func earlyFinish(minSteps, taken, refused int, forced bool, args json.RawMessage) string {
+	if minSteps <= 0 || taken >= minSteps || forced || refused >= maxEarlyFinishes {
+		return ""
+	}
+	var v struct {
+		Verdict string `json:"verdict"`
+	}
+	_ = json.Unmarshal(args, &v)
+	if v.Verdict == "blocked" {
+		return ""
+	}
+	return fmt.Sprintf("Not finished yet: you have taken %d of at least %d actions. Carry on with the scenario: open another page, read it and try the next thing. "+
+		"Call finish early only with the verdict blocked, when the site really stops you from going on.", max(taken, 0), minSteps)
 }
 
 var tryActions = map[string]bool{"click": true, "fill": true, "type": true, "select": true, "visit": true}

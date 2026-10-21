@@ -5,6 +5,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- A scenario can ask for a minimum number of steps with a `Min steps: 8` line. The engine sends back a `finish` that comes sooner. It lets one through when the verdict is `blocked` or the engine ended the run, and after three refusals. `dummyrun run --scenario-file FILE` plays a scenario file that is not in the cast (code: `internal/runner/patience.go`, `internal/cast/cast.go`, `cmd/dummyrun/main.go`).
+
 ## [0.1.1] - 2026-10-20
 
 ### Fixed
