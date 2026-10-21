@@ -116,6 +116,14 @@ A change a user would notice is done when the same pull request has all of these
 5. **Examples.** `examples/`, the library in `casts/library` and the run records in `examples/runs/` still
    work with the change. A new feature has an example where one helps.
 
+A check called "Docs move with the code" enforces the docs and changelog items. Change anything
+in `cmd/`, `internal/`, `casts/library/`, `schema/`, `integrations/`, `docker/` or `.goreleaser.yaml` and the pull
+request needs two more things. One is a change under `docs/`, in a README or in `site/content/`. The other is a new line
+under Unreleased in `CHANGELOG.md`. The failure
+message tells you which pages your paths usually affect. If you really have nothing to document, add the
+`no-docs-needed` label and put `Docs: not needed because ...` with a one-line reason in the description of your
+pull request. The check needs both. Dependabot is exempt. `.github/scripts/docs-guard-test.sh` tests the rules.
+
 Two generators and a doctest runner keep part of this honest. Run them before you push, though the
 pre-push hook runs them too.
 

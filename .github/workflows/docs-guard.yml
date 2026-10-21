@@ -1,0 +1,36 @@
+name: Docs guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: docs-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Docs move with the code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: The path mapping behaves
+        run: .github/scripts/docs-guard-test.sh
+      - name: Behaviour changes bring docs and a CHANGELOG entry
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          DOCS_GUARD_AUTHOR: ${{ github.event.pull_request.user.login }}
+          DOCS_GUARD_BODY: ${{ github.event.pull_request.body }}
+          DOCS_GUARD_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          set -euo pipefail
+          export DOCS_GUARD_BASE="$BASE" DOCS_GUARD_HEAD="$HEAD"
+          git diff --name-only "$BASE...$HEAD" | .github/scripts/docs-guard.sh
