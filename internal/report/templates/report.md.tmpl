@@ -85,8 +85,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 **{{cap $f.Severity}}**. {{statusText $f.Status}}.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
 
-{{- $place := placeText $f.Route $f.Locus}}
-{{- if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
+{{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
 
 {{end}}| | |
 |---|---|

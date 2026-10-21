@@ -95,11 +95,23 @@ func placeText(route, locus string) string {
 	return strings.Join(parts, ", ")
 }
 
+// withArticle puts "a" or "an" before a word by how it sounds. It looks at the first letter, with
+// exceptions for words that start with a vowel but sound like "you" or "wun", such as user and one.
 func withArticle(word string) string {
-	if word != "" && strings.ContainsRune("aeiouAEIOU", rune(word[0])) {
+	lower := strings.ToLower(word)
+	if lower != "" && strings.ContainsRune("aeiou", rune(lower[0])) && !soundsConsonant(lower) {
 		return "an " + word
 	}
 	return "a " + word
+}
+
+func soundsConsonant(lower string) bool {
+	for _, prefix := range []string{"user", "uni", "use", "eu", "one", "ubiq", "util"} {
+		if strings.HasPrefix(lower, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // personaName is the first part of a persona ID, as a name: lin-contributor gives Lin.
@@ -145,12 +157,18 @@ func deviceText(d string) string {
 // reproSteps writes the steps in the words of a person following them, from the persona's setup and the cited steps.
 func reproSteps(f *Finding) []string {
 	r := f.Reproduction
-	out := []string{"Sign in as " + withArticle(r.Role) + "."}
+	var out []string
+	if r.Role != "" {
+		out = append(out, "Sign in as "+withArticle(r.Role)+".")
+	}
 	use := "Use " + deviceText(r.Device)
-	if r.Zoom != 100 {
+	if r.Zoom > 0 && r.Zoom != 100 {
 		use += fmt.Sprintf(" at %d%% zoom", r.Zoom)
 	}
-	out = append(out, use+" in "+browserName(r.Browser)+".")
+	if b := browserName(r.Browser); b != "" {
+		use += " in " + b
+	}
+	out = append(out, use+".")
 	for _, st := range r.Steps {
 		page := ""
 		if st.Route != "" {

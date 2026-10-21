@@ -619,14 +619,14 @@ footer p { margin: 0 0 0.4rem; }
 {{- end}}
 <dt>Stopping rule</dt><dd>{{.Coverage.StoppingRule}}</dd>
 </dl>
-<h5>How to read these numbers</h5>
+<h4>How to read these numbers</h4>
 <ul>
 <li>The Chao2 figure is a floor. The real number of problems is at least that high. It is never a count of what remains.</li>
 <li>Sample coverage is the share of the chance of finding a problem that sits in problems already found. Below 0.50 do not extrapolate from it.</li>
 <li>New problems per extra run is how many new problems one more run is expected to find. A low figure suggests more runs will add little.</li>
 <li>With fewer than 5 completed runs the estimates are weak. The stopping rule needs 4 completed runs in each group.</li>
 </ul>
-{{if .Coverage.Warnings}}<h5>Cautions</h5>
+{{if .Coverage.Warnings}}<h4>Cautions</h4>
 <ul>
 {{- range .Coverage.Warnings}}
 <li>{{.}}</li>

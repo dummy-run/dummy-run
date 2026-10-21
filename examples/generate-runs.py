@@ -110,7 +110,7 @@ def make_run(rng, start, n, seen):
     for fid, kind, sev, ftitle, evidence, p, froute, flocus, symptom in FINDINGS.get(persona["id"], []):
         if rng.random() < p:
             at = rng.randint(2, count - 1)
-            steps[at - 1]["url"] = f"https://{env}.inkwell.example{froute}"
+            steps[at - 1]["url"] = f"https://{env}.inkwell.example{froute.replace(':id', '1')}"
             steps[at - 1]["route"] = froute
             if kind == "bug":
                 steps[at - 1]["status"] = 500

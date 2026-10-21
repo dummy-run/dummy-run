@@ -60,7 +60,9 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 #### A contributor can open the rates table for all writers
 
-**Major**. Confirmed by a reviewer.The Payments page, the Rates link (`/payments`)
+**Major**. Confirmed by a reviewer.
+
+The Payments page, the Rates link (`/payments`)
 
 | | |
 |---|---|
@@ -82,7 +84,9 @@ Technical details: run `2026-10-17-lin-contributor-008`, step 7; persona `lin-co
 
 #### Scheduling an issue for a past date returns a server error
 
-**Major**. Confirmed by a reviewer.The Issues page, the Schedule button (`/issues`)
+**Major**. Confirmed by a reviewer.
+
+The Issues page, the Schedule button (`/issues`)
 
 | | |
 |---|---|
@@ -104,7 +108,9 @@ Technical details: run `2026-10-16-ada-editor-003`, step 7; persona `ada-editor`
 
 #### The hint under the schedule field is too faint to read
 
-**Minor**. Not reviewed.The Issues page, the Schedule form area (`/issues`)
+**Minor**. Not reviewed.
+
+The Issues page, the Schedule form area (`/issues`)
 
 | | |
 |---|---|
@@ -130,7 +136,9 @@ Technical details: run `2026-10-16-ada-editor-003`, step 3; persona `ada-editor`
 
 #### The payment status 'settled' is unclear to a contributor
 
-**Info**. Confirmed by a reviewer.The Payments page, the Payment status area (`/payments`)
+**Info**. Confirmed by a reviewer.
+
+The Payments page, the Payment status area (`/payments`)
 
 | | |
 |---|---|
