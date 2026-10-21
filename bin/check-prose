@@ -52,7 +52,7 @@ def blocks(lines):
             yield start, kind, " ".join(buf)
     for n, raw in enumerate(lines, 1):
         s = raw.strip()
-        if s.startswith("```"):
+        if s.startswith(("```", "~~~")):
             yield from flush(); buf = []
             in_code = not in_code
             continue

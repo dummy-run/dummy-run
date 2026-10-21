@@ -18,5 +18,5 @@
 {{- end -}}
 </code></pre>
   </div>
-  <figcaption class="t-note">{{ $p.who }}, {{ if $p.question }}wanted to know &ldquo;{{ $p.task }}?&rdquo;{{ else if $p.task }}set out to {{ $p.task }}{{ else }}tried this site{{ end }}. It took {{ $s.steps }} steps and turned up {{ $s.findings }} {{ cond (eq (int $s.findings) 1) "thing" "things" }} worth a look, for ${{ printf "%.2f" $s.cost_usd }} in model costs. From a real run on dummyrun.dev. <a href="https://github.com/dummy-run/dummy-run/blob/main/site/data/start-session.json">See the full output</a>.</figcaption>
+  <figcaption class="t-note">{{ $p.who }}, {{ if $p.question }}wanted to know &ldquo;{{ $p.task }}?&rdquo;{{ else if $p.task }}set out to {{ $p.task }}{{ else }}tried this site{{ end }}. It took {{ $s.steps }} steps and turned up {{ $s.findings }} {{ cond (eq (int $s.findings) 1) "thing" "things" }} worth a look, for ${{ printf "%.2f" $s.cost_usd }} in model costs. From a real run on dummyrun.dev, with some lines left out. <a href="https://github.com/dummy-run/dummy-run/blob/main/site/data/start-session.json">See the session data</a>.</figcaption>
 </figure>

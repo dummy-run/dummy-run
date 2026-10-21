@@ -18,7 +18,7 @@ The engine doesn't run a real screen reader. The screen-reader persona works fro
 
 ## What goes to the model provider
 
-The persona is a model reading what the browser shows, so the provider you choose receives page text and screenshots. You choose the provider with `--provider`, and [Providers](PROVIDERS.md) lists what each one needs.
+The persona is a model reading what the browser shows, so the provider you choose receives page text and, for every persona except the screen-reader one, screenshots. You choose the provider with `--provider`, and [Providers](PROVIDERS.md) lists what each one needs.
 
 Some providers keep prompts and responses for a while to monitor abuse. Azure OpenAI, for example, can keep them for up to 30 days unless you have an approved opt-out, as Microsoft's [data, privacy and security page for Azure OpenAI](https://learn.microsoft.com/legal/cognitive-services/openai/data-privacy) explains. Check your provider's terms before you point a run at anything sensitive, and run against previews that hold test data rather than real customers. A page can also try to give the model instructions, and the [threat model](THREAT-MODEL.md) explains how the engine handles that. Exported telemetry carries no screenshots, and [Telemetry](TELEMETRY.md) lists what it does carry.
 

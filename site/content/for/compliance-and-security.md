@@ -18,7 +18,7 @@ next:
 | Question | Answer |
 |---|---|
 | Where do run records and screenshots live? | Wherever you keep your runs, such as a local folder or your own object storage. |
-| Do screenshots reach the model provider? | Yes. The persona is a model reading what the browser shows, so the provider you choose receives page text and screenshots. |
+| Do screenshots reach the model provider? | Yes, for every persona except the screen-reader one, which is never sent screenshots. The persona is a model reading what the browser shows, so the provider you choose receives the page text and those screenshots. |
 | Does exported telemetry carry screenshots or page text? | No screenshots and no page snapshots. It carries run IDs, outcomes and the target environment, plus page addresses, what each step acted on, the model, its region and the cost. It also carries each finding's title, evidence label and verdict. A step's target can be a button label and a title is a sentence the persona wrote, so either can quote a few words of the page. |
 | Where does telemetry live? | In your own OpenTelemetry backend. Dummy Run sends it nowhere else. |
 | Can I keep the model in one region? | Yes. You choose the provider and region for each run, and the run record notes the region the model used. Keep your OpenTelemetry backend in the same region too. |
@@ -45,6 +45,6 @@ The run record and its screenshots stay wherever you run Dummy Run. The exporter
 
 {{< graphic name="residency" >}}
 
-You choose the provider and the region for every run, so a UK team can keep its runs on `uksouth` or `europe-west2`. Each run record stores the region as `provider.region`, and each exported trace carries it as `cloud.region`, so you can show where every run happened. Market profiles that refuse to start a run outside the regions you allow are coming soon.
+You choose the provider and the region for every run, so a UK team can keep the model on `uksouth` or `europe-west2`. Each run record stores the model's region as `provider.region`, and each exported trace carries it as `cloud.region`, so you can show where every run's model ran. Where the run record lives is up to you, and so is the telemetry backend. Market profiles that refuse to start a run outside the regions you allow are coming soon.
 
 The personas are fictional. The [contributing](../../../CONTRIBUTING.md) rules bar real names, contact details and data from a live environment. If you find a security problem in Dummy Run itself, [Security](../../../SECURITY.md) explains how to tell us privately.

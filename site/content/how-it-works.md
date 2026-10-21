@@ -48,7 +48,7 @@ You can also send runs to Grafana, or any OpenTelemetry backend, and follow a pe
 
 ## What leaves your network
 
-The persona is a model looking at your pages, so the provider you choose receives the page text and screenshots. Use previews that hold test data. The telemetry you export carries no screenshots. It does carry page addresses, button labels and finding titles, and a title can quote a few words from the page. It goes only to the OpenTelemetry backend you configure. [Telemetry](../../docs/TELEMETRY.md) lists every field.
+The persona is a model looking at your pages, so the provider you choose receives the page text, and screenshots for every persona except the screen-reader one. Use previews that hold test data. The telemetry you export carries no screenshots. It does carry page addresses, button labels and finding titles, and a title can quote a few words from the page. It goes only to the OpenTelemetry backend you configure. [Telemetry](../../docs/TELEMETRY.md) lists every field.
 
 ## Words we use
 

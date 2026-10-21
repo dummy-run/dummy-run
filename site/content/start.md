@@ -1,6 +1,6 @@
 ---
 title: Get started
-lead: Install Dummy Run, send one persona to a website without changing a thing, and read what it found. You can be looking at your first run in a few commands.
+lead: Install Dummy Run, send one persona to a website in read-only mode, and read what it found. If the site needs a sign-in, use a test account. You can be looking at your first run in a few commands.
 description: Get started with Dummy Run. Install the dummyrun command, run one persona against a site in read-only mode, then export the run to a local Grafana.
 next:
   title: Pick personas to run
