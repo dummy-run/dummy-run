@@ -5,6 +5,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `dummyrun browsers install [chrome|firefox|all]` downloads the pinned Chrome for Testing and its matching chromedriver into your user cache (`os.UserCacheDir()/dummyrun/browsers/<version>`), checks each file against a SHA-256 hash that ships with the program, and the engine finds them there when `DUMMYRUN_CHROME` and `DUMMYRUN_CHROMEDRIVER` are unset. `dummyrun browsers list` shows what is installed. Firefox uses the copy on your machine, or the pinned release on Linux. The pins live in `internal/browsers/versions.json`, and a test checks them against `.github/workflows/engine.yml` and `docker/Dockerfile` (code: `internal/browsers`).
+- `dummyrun try URL` plays the first-time visitor from the persona library against one page for about 15 steps, read-only, and prints the findings and where the run is saved.
+- `dummyrun run` and `dummyrun try` choose a provider when you leave out `--provider`. They try `DUMMYRUN_AZURE_ENDPOINT` first. Then come `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and Ollama on `OLLAMA_HOST` or `localhost:11434`. The first line of output names the provider and model. `--model` is optional for these. The defaults are in `internal/provider/detect.go` and a generated table in `docs/PROVIDERS.md`.
+
+### Changed
+- `--provider` no longer defaults to `azure`. With `DUMMYRUN_AZURE_ENDPOINT` set, Azure is still the first choice, so existing commands keep working.
+- The install guide, the Get started page, the README and the engine guide now start from the release download. Next come `dummyrun browsers install`, one API key and `dummyrun try`. Azure is one option among several. The "pre-release" wording is gone now that 0.1.1 is out, and `SECURITY.md` supports the newest release.
+
 ## [0.1.1] - 2026-10-20
 
 ### Fixed

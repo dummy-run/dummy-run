@@ -5,22 +5,28 @@ record. It drives Chrome or Firefox over WebDriver BiDi, so the same run works i
 
 ## Install
 
-To skip building, download a release binary or use the container image, which has both browsers in it.
-[INSTALL.md](INSTALL.md) covers both. To build from source, you'll need Go 1.27.1 or later and a browser.
-For Chrome you also need a chromedriver that matches it.
+Download a release binary or use the container image, which has both browsers in it. [INSTALL.md](INSTALL.md)
+covers both and walks through a first run in five minutes. To build from source, you'll need Go 1.27.1 or later.
 
 ```sh
 go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
+dummyrun browsers install
 ```
+
+`dummyrun browsers install` downloads the pinned Chrome for Testing and its matching chromedriver into your user
+cache, so you don't match them by hand. The engine finds them there when you set no `DUMMYRUN_CHROME` or
+`DUMMYRUN_CHROMEDRIVER`.
 
 | Browser | What the engine starts | Where it looks |
 |---|---|---|
 | Firefox | Firefox itself with `--remote-debugging-port`. No driver | `DUMMYRUN_FIREFOX`, then the Firefox app on macOS, then `firefox` on the PATH |
-| Chrome | chromedriver, which starts Chrome for Testing or Chrome | `DUMMYRUN_CHROMEDRIVER` and `DUMMYRUN_CHROME`, then the PATH |
+| Chrome | chromedriver, which starts Chrome for Testing or Chrome | `DUMMYRUN_CHROMEDRIVER` and `DUMMYRUN_CHROME`, then the pair from `dummyrun browsers install`, then the PATH |
 
-Download Chrome for Testing and its chromedriver from the same
+To use your own Chrome, take Chrome for Testing and its chromedriver from the same
 [version listing](https://googlechromelabs.github.io/chrome-for-testing/) so they match. The project's own CI
-uses Chrome for Testing 155.0.8059.12 and Firefox 157.0.
+uses Chrome for Testing 155.0.8059.12 and Firefox 157.0, the versions `dummyrun browsers install` fetches.
+For Firefox the engine reads `DUMMYRUN_FIREFOX` first. After that it uses a Firefox that
+`dummyrun browsers install firefox` put in the cache, the Firefox app on macOS or `firefox` on the PATH.
 
 Inside a container or a VM, set `DUMMYRUN_NO_SANDBOX=1` to start the browsers without their own sandboxes.
 The container image does this already, and so does any run where `CI` is set. Don't set it on your own

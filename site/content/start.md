@@ -1,7 +1,7 @@
 ---
 title: Get started
-lead: Install Dummy Run, run one persona against a site without changing anything, and look at the run in Grafana.
-description: Get started with Dummy Run. Install the dummyrun command, run one persona against a site in read-only mode, then export the run to a local Grafana.
+lead: Download Dummy Run, set one API key and point it at your site. A first-time visitor plays through it without changing a thing. You can be reading what it found in about five minutes.
+description: Get started with Dummy Run in five minutes. Download the dummyrun command and fetch a browser. Then set one API key and run dummyrun try against your site in read-only mode.
 next:
   title: Pick personas to run
   text: The persona library holds ready-made personas for the users every site has.
@@ -15,52 +15,112 @@ next:
 
 ## What you need
 
-- Go 1.27.1 or later
-- Firefox, or Chrome with a matching chromedriver
-- A model provider. The steps below use an Azure OpenAI deployment signed in with `az login`. Other providers also work, and [the provider guide](../../docs/PROVIDERS.md) lists what each needs
-- Docker, for the local Grafana
-- A clone of the repository, for the example cast
+- A Mac, Linux or Windows machine. You don't need Go or a clone of the repository
+- One way to reach a model: an OpenAI or Anthropic API key, or [Ollama](https://ollama.com/) running on your own machine. Azure OpenAI, Gemini and Bedrock work too, and [the provider guide](../../docs/PROVIDERS.md) shows how to set each one up
+- About 400 MB of room for the browser Dummy Run fetches for you
+- Docker, if you want to see the run in a local Grafana later
+
+## 1. Download Dummy Run {#install}
+
+{{< mascot "dummy-keyboard" >}}
+
+Get the archive for your machine from [GitHub Releases](https://github.com/dummy-run/dummy-run/releases), unpack
+it and put `dummyrun` on your path. On a Mac with Apple silicon, that looks like this:
+
+```sh
+VERSION=0.1.1
+curl -fsSLO "https://github.com/dummy-run/dummy-run/releases/download/v${VERSION}/dummyrun_${VERSION}_darwin_arm64.tar.gz"
+tar -xzf "dummyrun_${VERSION}_darwin_arm64.tar.gz"
+```
+
+Every release is signed. [The install guide](../../docs/INSTALL.md) shows how to check a download, and has the other
+archives and the container image. If you already have Go 1.27.1 or later, this works as well:
+
+```sh
+go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
+```
+
+Check that it's on your path.
+
+<!-- doctest -->
+```sh
+dummyrun version
+```
+
+## 2. Fetch a browser {#browsers}
+
+Dummy Run drives a real browser. This downloads the Chrome for Testing it was tested with and the chromedriver that
+matches it, so you never match the two by hand. Each file is checked against a hash that ships with Dummy Run.
+
+```sh
+dummyrun browsers install
+```
+
+You only do this once. It lands in your user cache, and Dummy Run finds it from there. If you're offline, the
+command tells you so and you can run it again later.
+
+## 3. Give it a model {#model}
+
+Set one key. Dummy Run looks for `OPENAI_API_KEY` first and `ANTHROPIC_API_KEY` second. A running Ollama comes
+third. It uses the first it finds, with a small, cheap model that can read screenshots and call tools.
+
+```sh
+export ANTHROPIC_API_KEY=...
+```
+
+The first line of every run says which provider and model it chose. [The provider guide](../../docs/PROVIDERS.md)
+lists the defaults and how to pick your own.
+
+## 4. Try your site {#try}
+
+```sh
+dummyrun try https://your-site
+```
+
+A first-time visitor called Alex lands on your page with no idea what it is. Alex works out what it is for,
+what it costs and how to start, for a few minutes and about 15 steps. The browser blocks every request that could
+change data and every request to another host, so nothing on your site is touched.
+
+When it's done you get the findings in your terminal, each with its step number. You also get Alex's own report in
+plain words, a screenshot of every step and the run record, with the path to each.
+
+Every finding starts as `pending`, because a model can be wrong. Look at each one next to its screenshots, then
+confirm or reject it with `dummyrun review`. The command prints the exact line to run. Reports count only the
+findings you've confirmed unless you ask for the rest. The [engine guide](../../docs/ENGINE.md) explains the review
+keys and the flags for scripting it.
+
+## 5. Pick the persona yourself {#run}
+
+`dummyrun try` is a shortcut. To choose the persona, the scenario and the pages the browser may visit, use
+`dummyrun run`. This sends Tom, a developer looking for the quickstart, to dummyrun.dev. You'll need a copy of the
+repository for its example personas:
 
 ```sh
 git clone https://github.com/dummy-run/dummy-run.git
 cd dummy-run
 ```
 
-## 1. Install the commands {#install}
+```sh
+dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-the-quickstart \
+  --target examples/targets/dummyrun-dev.json --out ~/.local/share/dummyrun/runs/dummyrun-dev
+```
 
-{{< mascot "dummy-keyboard" >}}
+The target file sets `"read_only": true`. To test your own site, copy `examples/targets/dummyrun-dev.json` and
+change `base_url` and `allowed_hosts`. To practise on something you're free to break, run [Inkwell](../../docs/INKWELL.md). It is a small made-up app,
+and `go run ./examples/inkwell -test-login` starts it. The
+terminal at the top of this page is a real run like this one, on Azure OpenAI. The [command line
+reference](../../docs/CLI.md) has every flag, and Azure is one choice among several in the provider guide.
 
-`dummyrun` plays a persona. `dummyrun-otel` sends the run to an OpenTelemetry backend.
+## 6. Look at it in Grafana {#grafana}
+
+`dummyrun-otel` sends a finished run to Grafana or any other OpenTelemetry backend. It is a second command, with its own
+release archive, or you can install it with Go:
 
 ```sh
-go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest
 ```
 
-Check that both are on your path.
-
-<!-- doctest -->
-```sh
-dummyrun version
-dummyrun-otel version
-```
-
-## 2. Run one persona {#run}
-
-The example cast visits dummyrun.dev. The target file sets `"read_only": true`, so the browser blocks every request that could change data and every request to another host.
-
-```sh
-export DUMMYRUN_AZURE_ENDPOINT=https://<resource>.openai.azure.com
-dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-the-quickstart \
-  --target examples/targets/dummyrun-dev.json --out ~/.local/share/dummyrun/runs/dummyrun-dev \
-  --browser firefox --provider azure --model <deployment> --region uksouth
-```
-
-The run ends with a JSON record, the persona's own report and a screenshot for each step. To test your own site, copy `examples/targets/dummyrun-dev.json` and change `base_url` and `allowed_hosts`. To try a persona on an app you are free to break, start [Inkwell](../../docs/INKWELL.md) with `go run ./examples/inkwell -test-login`. To use another provider, change `--provider`, `--model` and the sign-in. The [command line reference](../../docs/CLI.md) lists every flag.
-
-Every finding starts as `pending`. Check each one against its screenshots, then confirm or reject it with `dummyrun review ~/.local/share/dummyrun/runs/dummyrun-dev`. Confirmed findings count in a report by default. The option `--confirmed-only=false` also counts pending ones and marks the report as a demonstration (code: `internal/coverage/report.go`). The Review section of the [engine guide](../../docs/ENGINE.md) has the keys and the flags for scripts.
-
-## 3. Look at it in Grafana {#grafana}
+Then start a local Grafana and export the run.
 
 ```sh
 docker run --rm -p 127.0.0.1:4318:4318 -p 127.0.0.1:3000:3000 grafana/otel-lgtm:0.35.0
@@ -69,7 +129,7 @@ dummyrun-otel export ~/.local/share/dummyrun/runs/dummyrun-dev
 
 Open `http://localhost:3000` and sign in as `admin` with the password `admin`. Pick Explore, choose Loki and query `{service_name="dummyrun"}` over the last 7 days. Each line links to its trace. To see Grafana without a model deployment, export the example records with `dummyrun-otel export examples/runs`.
 
-## 4. Read the record {#read}
+## 7. Read the record {#read}
 
 Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The [Grafana guide](../../docs/integrations/grafana.md) covers the dashboards and alerts.
 
@@ -79,4 +139,4 @@ To hand the runs to someone else, run `dummyrun report --runs examples/runs --bu
 
 ## Sources
 
-The install and run commands are in `docs/ENGINE.md`, code. The export commands are in `integrations/grafana/exporter/README.md`, code. The read-only behaviour is the engine's request interception, code.
+The download steps are in `docs/INSTALL.md`. The browser and `try` commands are in `cmd/dummyrun/browsers.go` and `cmd/dummyrun/try.go`. The model defaults are in `internal/provider/detect.go`. All three are code. The run command is in `docs/ENGINE.md`, code. The export commands are in `integrations/grafana/exporter/README.md`, code. The read-only behaviour is the engine's request interception, code.

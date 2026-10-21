@@ -46,6 +46,10 @@ func run(args []string) int {
 		return 2
 	}
 	switch args[0] {
+	case "try":
+		return tryCmd(args[1:])
+	case "browsers":
+		return browsersCmd(args[1:])
 	case "run":
 		return runCmd(args[1:])
 	case "review":
@@ -88,8 +92,11 @@ func versionLine() string {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
+  dummyrun browsers install [chrome|firefox|all]
+  dummyrun browsers list
+  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL]
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
-      --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
+      --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots]
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
@@ -103,9 +110,12 @@ func usage() {
   dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+First run: "dummyrun browsers install" once, set one model key, then "dummyrun try https://your-site".
+Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
-Providers:
+Providers (leave out --provider and --model to have them chosen from your environment, in this order:
+DUMMYRUN_AZURE_ENDPOINT, OPENAI_API_KEY, ANTHROPIC_API_KEY, then Ollama on OLLAMA_HOST or localhost:11434;
+the first line of the output says what was chosen, and docs/PROVIDERS.md lists the default models):
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
                      DefaultAzureCredential source. --region is required.
   openai-compatible  Any OpenAI-style service or local server. --endpoint is the base URL, such as
@@ -129,15 +139,7 @@ func runCmd(args []string) int {
 	targetPath := fs.String("target", "", "target configuration (JSON)")
 	out := fs.String("out", "", "directory for run records")
 	browser := fs.String("browser", "chrome", "chrome or firefox")
-	prov := fs.String("provider", "azure", "model provider: "+strings.Join(provider.Names, ", "))
-	model := fs.String("model", "", "deployment or model name")
-	region := fs.String("region", "", "region the model runs in, such as uksouth or global (optional where the provider has a default)")
-	endpoint := fs.String("endpoint", "", "base URL of the provider (Azure endpoint, or the OpenAI-compatible base URL)")
-	apiKeyEnv := fs.String("api-key-env", "", "name of the environment variable that holds the API key")
-	effort := fs.String("reasoning-effort", "", "reasoning effort for OpenAI-style models: none, minimal, low, medium, high or xhigh")
-	apiKind := fs.String("openai-api", "", "OpenAI-style API: chat (default) or responses, for models that need it to call tools")
-	project := fs.String("project", "", "Google Cloud project for the vertex provider")
-	apiVersion := fs.String("api-version", "", "Azure OpenAI API version (default "+provider.DefaultAPIVersion+")")
+	pf := addProviderFlags(fs)
 	steps := fs.Int("steps", 0, "step budget override (up to 40)")
 	tokens := fs.Int("tokens", 0, "token budget (input plus output)")
 	batch := fs.String("batch", "", "batch ID grouping runs started together")
@@ -156,7 +158,7 @@ func runCmd(args []string) int {
 	}
 	missing := []string{}
 	for name, v := range map[string]string{"cast": *castDir, "persona": *personaID, "scenario": *scenarioID,
-		"target": *targetPath, "out": *out, "model": *model} {
+		"target": *targetPath, "out": *out} {
 		if v == "" {
 			missing = append(missing, "--"+name)
 		}
@@ -180,16 +182,12 @@ func runCmd(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	if *endpoint == "" && *prov == provider.NameAzure {
-		*endpoint = os.Getenv("DUMMYRUN_AZURE_ENDPOINT")
-	}
-	p, err := provider.New(provider.Config{Provider: *prov, Model: *model, Region: *region, Endpoint: *endpoint,
-		APIVersion: *apiVersion, APIKeyEnv: *apiKeyEnv, Project: *project, ReasoningEffort: *effort, API: *apiKind})
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	p, err := pf.build(ctx, os.Stderr)
 	if err != nil {
 		return fail(err)
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	cfg := runner.Config{
 		Persona: persona, Scenario: scenario, Target: target, Provider: p, Browser: *browser, Headless: !*headful,
 		OutDir: *out, SessionFile: *sessionFile, StepBudget: *steps, TokenBudget: *tokens, Batch: *batch, Log: os.Stderr,

@@ -49,4 +49,4 @@ A target file can name test accounts, so the engine signs in before a persona st
 
 ## Supported versions
 
-Only `main`, until the first release.
+The newest release, and `main`. Fixes go into a new release, so update to the latest version. [Releases](https://github.com/dummy-run/dummy-run/releases) lists them.

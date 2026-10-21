@@ -15,13 +15,19 @@ import (
 const (
 	providersBegin = "<!-- docgen:providers begin -->"
 	providersEnd   = "<!-- docgen:providers end -->"
+	defaultsBegin  = "<!-- docgen:defaults begin -->"
+	defaultsEnd    = "<!-- docgen:defaults end -->"
 )
 
 func providerNames() []string { return provider.Names }
 
 // replaceBetween swaps the text between the provider table markers for body, keeping the markers.
 func replaceBetween(doc, body string) (string, error) {
-	begin, end := providersBegin, providersEnd
+	return replaceMarked(doc, providersBegin, providersEnd, body)
+}
+
+// replaceMarked swaps the text between two markers for body, keeping the markers.
+func replaceMarked(doc, begin, end, body string) (string, error) {
 	b := strings.Index(doc, begin)
 	e := strings.Index(doc, end)
 	switch {
@@ -31,6 +37,24 @@ func replaceBetween(doc, body string) (string, error) {
 		return "", errors.New("the end marker comes before the begin marker")
 	}
 	return doc[:b+len(begin)] + "\n\n" + strings.TrimRight(body, "\n") + "\n\n" + doc[e:], nil
+}
+
+// renderDefaults writes the table of what Dummy Run picks when you name no provider, from provider.Defaults.
+func renderDefaults() string {
+	var b strings.Builder
+	b.WriteString("| Order | Chosen when | Provider | Model | Why this model |\n|---|---|---|---|---|\n")
+	for i, d := range provider.Defaults() {
+		model := "`" + d.Model + "`"
+		if d.Model == "" {
+			model = "yours: pass `--model`"
+		}
+		extra := ""
+		if d.ReasoningEffort != "" {
+			extra = " with `--reasoning-effort " + d.ReasoningEffort + "`"
+		}
+		fmt.Fprintf(&b, "| %d | %s | `%s`%s | %s | %s |\n", i+1, d.Trigger, d.Provider, extra, model, d.Why)
+	}
+	return b.String()
 }
 
 func yesNo(v bool) string {

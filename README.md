@@ -13,9 +13,9 @@
   <a href="https://coderabbit.ai"><img src="https://img.shields.io/coderabbit/prs/github/dummy-run/dummy-run?labelColor=171717&color=FF570A&label=CodeRabbit+Reviews" alt="CodeRabbit pull request reviews"></a>
 </p>
 
-> Dummy Run is pre-release, and the first release isn't published yet. Until it is, build the newest commit
-> on `main` with `go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest`. Then follow
-> [docs/ENGINE.md](docs/ENGINE.md) to run your first persona. The website is [dummyrun.dev](https://dummyrun.dev).
+> New here? [docs/INSTALL.md](docs/INSTALL.md) gets you from download to your first run in about five minutes:
+> `dummyrun browsers install`, set one API key, then `dummyrun try https://your-site`. The website is
+> [dummyrun.dev](https://dummyrun.dev).
 
 ## How it works
 
@@ -81,16 +81,23 @@ backend you configure, plus Grafana annotations if you ask for them. [docs/TELEM
 
 ## Install
 
-Once the first release is out, you can download a binary from
-[GitHub Releases](https://github.com/dummy-run/dummy-run/releases). Or pull the container image, which comes with
-Chrome for Testing and Firefox, or build from source.
+Download a binary from [GitHub Releases](https://github.com/dummy-run/dummy-run/releases). Or pull the container
+image, which comes with Chrome for Testing and Firefox, or build from source.
 
 ```sh
 docker run --rm ghcr.io/dummy-run/dummyrun:VERSION a11y https://example.com
 go install github.com/dummy-run/dummy-run/cmd/dummyrun@vVERSION
 ```
 
-Replace `VERSION` with a release number from the releases page, such as `0.1.0`.
+Replace `VERSION` with a release number from the releases page, such as `0.1.1`.
+
+With a binary, your first run takes three commands:
+
+```sh
+dummyrun browsers install                # fetches Chrome for Testing and the matching chromedriver
+export ANTHROPIC_API_KEY=...             # or OPENAI_API_KEY, or run Ollama
+dummyrun try https://your-site           # a first-time visitor, read-only
+```
 
 Every release is signed with cosign and comes with SLSA build provenance. To check a download before you
 run it, follow [docs/INSTALL.md](docs/INSTALL.md).
