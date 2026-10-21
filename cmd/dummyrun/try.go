@@ -24,13 +24,14 @@ import (
 const tryUsage = `Usage:
   dummyrun try URL [--browser chrome|firefox] [--out DIR] [--steps N] [--provider PROVIDER --model MODEL ...]
 
-Plays the first-time visitor from the persona library against one page, for a few minutes, without changing
-anything. The browser blocks every request that could change data and every request to another host. Then it
+Plays the first-time visitor from the persona library against one page, for a few minutes, in read-only mode.
+The browser blocks every request that could change data and every request to another host. Then it
 prints what the visitor found and where the run is saved.
 
 You need a browser (run "dummyrun browsers install" once) and a model. With no --provider, the model comes from
-your environment: OPENAI_API_KEY, ANTHROPIC_API_KEY, a running Ollama, or DUMMYRUN_AZURE_ENDPOINT. The first line
-of the output says which one it chose. docs/PROVIDERS.md lists the defaults.
+your environment, in this order: DUMMYRUN_AZURE_ENDPOINT (then --model and --region are needed), OPENAI_API_KEY,
+ANTHROPIC_API_KEY, then a running Ollama. The first line of the output says which one it chose.
+docs/PROVIDERS.md lists the defaults.
 
 Flags:
   --browser NAME   chrome or firefox (default chrome)
@@ -50,7 +51,7 @@ Device: desktop. Start at the page you were given.
 
 ## Given
 
-Alex has just landed here from a link with no explanation. Nothing on the site may be changed, so Alex stops at any form.
+Alex has just landed here from a link with no explanation. The browser blocks anything that could change data, so Alex stops at any form.
 
 ## Goal
 
@@ -125,7 +126,7 @@ func tryCmd(args []string) int {
 		return fail(err)
 	}
 	defer cleanup()
-	fmt.Fprintf(os.Stderr, "Reading %s as a first-time visitor. Nothing on the site will be changed.\n", tgt.BaseURL)
+	fmt.Fprintf(os.Stderr, "Reading %s as a first-time visitor, read-only: requests that could change data are blocked.\n", tgt.BaseURL)
 	res, err := runner.Run(ctx, runner.Config{
 		Persona: persona, Scenario: scenario, Target: tgt, Provider: p, Browser: *browser, Headless: !*headful,
 		OutDir: *out, StepBudget: *steps, Log: os.Stderr, HTTPClient: requestClient(false),

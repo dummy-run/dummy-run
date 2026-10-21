@@ -23,7 +23,7 @@ API key and point it at your site. Every release is signed, so you can check wha
    ```
 
 2. Fetch a browser. This downloads the Chrome for Testing that Dummy Run was tested with, and the chromedriver
-   that matches it, into your user cache. You do it once, and there is nothing to match by hand.
+   that matches it, into your user cache. You usually do it once, and there is nothing to match by hand.
 
    ```sh
    dummyrun browsers install
@@ -48,7 +48,7 @@ API key and point it at your site. Every release is signed, so you can check wha
    dummyrun try https://your-site
    ```
 
-   A first-time visitor plays through your page for a few minutes. It reads and clicks but changes nothing: the
+   A first-time visitor plays through your page for a few minutes. It reads and clicks in read-only mode: the
    browser blocks every request that could change data and every request to another host. You get the findings
    in your terminal. You also get the visitor's own report, a screenshot of every step and the run record, each
    with its path.

@@ -1,6 +1,6 @@
 ---
 title: Get started
-lead: Download Dummy Run, set one API key and point it at your site. A first-time visitor plays through it without changing a thing. You can be reading what it found in a few minutes.
+lead: Download Dummy Run, set one API key and point it at your site. A first-time visitor plays through it in read-only mode. You can be reading what it found in a few minutes.
 description: Get started with Dummy Run in a few minutes. Download the dummyrun command and fetch a browser. Then set one API key and run dummyrun try against your site in read-only mode.
 next:
   title: Pick personas to run
@@ -56,13 +56,13 @@ matches it, so you never match the two by hand. Each file is checked against a h
 dummyrun browsers install
 ```
 
-You only do this once. It lands in your user cache, and Dummy Run finds it from there. If you're offline, the
+You usually do this once. It lands in your user cache, and Dummy Run finds it from there. A later release may pin a newer browser. It keeps using the one you have until you run the command again. If you're offline, the
 command tells you so and you can run it again later.
 
 ## 3. Give it a model {#model}
 
 Set one key. Dummy Run looks for `OPENAI_API_KEY` first and `ANTHROPIC_API_KEY` second. A running Ollama comes
-third. If you have set `DUMMYRUN_AZURE_ENDPOINT`, Azure goes first. It uses the first it finds, with a small, cheap model that can read screenshots and call tools.
+third. If you have set `DUMMYRUN_AZURE_ENDPOINT`, Azure goes first, and you then pass your own deployment as `--model` and `--region`. Otherwise it uses the first it finds, with a small, cheap model that can read screenshots and call tools.
 
 ```sh
 export ANTHROPIC_API_KEY=...
@@ -79,7 +79,7 @@ dummyrun try https://your-site
 
 A first-time visitor called Alex lands on your page with no idea what it is. Alex works out what it is for,
 what it costs and how to start, for a few minutes and about 15 steps. The browser blocks every request that could
-change data and every request to another host, so nothing on your site is touched.
+change data and every request to another host.
 
 When it's done you get the findings in your terminal, each with its step number. You also get Alex's own report in
 plain words, a screenshot of every step and the run record, with the path to each.
