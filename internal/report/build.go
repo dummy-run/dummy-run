@@ -134,7 +134,8 @@ func buildWorked(runs []*Run) []WorkedNote {
 	for _, run := range runs {
 		for _, o := range run.Rec.Observations {
 			text := strings.TrimSpace(o.Text)
-			if text == "" {
+			// A problem claim that did not become a finding is not something that worked, and has no evidence to show.
+			if text == "" || o.Kind != "" {
 				continue
 			}
 			a := byText[text]
@@ -234,7 +235,7 @@ func buildScope(runs []*Run) Scope {
 		}
 		p := personas[r.Persona.ID]
 		if p == nil {
-			p = &pAgg{use: &PersonaUse{ID: r.Persona.ID, Role: r.Persona.Role}, devices: map[string]bool{}, dims: map[string]bool{}}
+			p = &pAgg{use: &PersonaUse{ID: r.Persona.ID, Name: r.Persona.Name, Role: r.Persona.Role}, devices: map[string]bool{}, dims: map[string]bool{}}
 			personas[r.Persona.ID] = p
 		}
 		p.use.Runs++
@@ -430,7 +431,8 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 		Fingerprint: key, Title: lead.f.Title, Severity: lead.f.Severity, Kind: lead.f.Kind,
 		Symptom: lead.f.Symptom, Route: lead.f.Route, Locus: lead.f.Locus, State: lead.f.State,
 		Evidence: lead.f.Evidence, Status: status, Personas: []string{}, Instances: []Instance{},
-		OfRuns: total,
+		OfRuns: total, Body: lead.f.Body, Fix: lead.f.Fix, Element: lead.f.Element, Quote: lead.f.Quote, URL: lead.f.URL,
+		WCAG: lead.f.WCAG,
 	}
 	if strings.HasPrefix(key, "unfingerprinted-") {
 		f.Fingerprint = ""
@@ -481,7 +483,7 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 		}
 	}
 	r := rep.run.Rec
-	f.Reproduction = Reproduction{Run: r.ID, Persona: r.Persona.ID, Role: r.Persona.Role, Device: r.Persona.Device,
+	f.Reproduction = Reproduction{Run: r.ID, Persona: r.Persona.ID, Role: r.Persona.Role, SignedIn: r.Signin != nil && r.Signin.OK, Device: r.Persona.Device,
 		Zoom: orHundred(r.Persona.Zoom), Browser: strings.TrimSpace(r.Browser.Name + " " + r.Browser.Version), Steps: []StepRef{}}
 	cited := map[int]bool{}
 	for _, n := range rep.f.Steps {
@@ -490,13 +492,17 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 	for _, st := range r.Steps {
 		if cited[st.N] {
 			f.Reproduction.Steps = append(f.Reproduction.Steps, StepRef{N: st.N, Action: st.Action, Target: st.Target,
-				Route: st.Route, URL: st.URL, Note: st.Note})
+				Element: st.Element, Route: st.Route, URL: st.URL, Note: st.Note, Evidence: st.N == rep.f.EvidenceStep})
 		}
 	}
 	f.Screenshots = screenshotsFor(rep)
+	// The screenshot of the step where the engine found the evidence comes first.
+	sort.SliceStable(f.Screenshots, func(i, j int) bool {
+		return f.Screenshots[i].Step == rep.f.EvidenceStep && f.Screenshots[j].Step != rep.f.EvidenceStep
+	})
 
 	if rule, ok := strings.CutPrefix(f.Symptom, "a11y:"); ok {
-		if ax, ok := axe[rule]; ok {
+		if ax, ok := axe[rule]; ok && len(ax.WCAG) > 0 {
 			f.WCAG = ax.WCAG
 			f.HelpURL = ax.HelpURL
 		}

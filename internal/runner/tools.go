@@ -9,6 +9,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
+	"github.com/dummy-run/dummy-run/internal/wcag"
 )
 
 func str(desc string) map[string]any { return map[string]any{"type": "string", "description": desc} }
@@ -58,12 +59,19 @@ var Tools = []provider.Tool{
 						"description": "What is wrong, in the closest of these words. " + symptomHelp()},
 					"topic":   str("Only with symptom missing-information: what the missing content is about, at most four words, such as 'uk data residency'."),
 					"rule":    str("Only with symptom a11y: the axe rule id, such as image-alt."),
-					"control": str("The control the finding is about, as @ref from the results (for example @12). Leave out when it is about the page."),
-					"title":   str("One sentence, who cannot do what"),
-					"steps":   map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "minItems": 1},
+					"control": str("The control the finding is about, as @ref from the result of a step you cite (for example @12). Give this or quote."),
+					"quote": str("Words copied exactly from the page at a step you cite that show the problem: a link's text, a heading, a label or a short sentence, at most 15 words. " +
+						"The engine checks the words are there. Give this or control."),
+					"title": str("One sentence that names the element and the page and says what is wrong, such as " +
+						"'The three \"Read more\" links on /blog have the same name, so a screen reader user cannot tell them apart.' Not 'Links are unclear.'"),
+					"body": str("One or two sentences to the site's owner: who this affects (for example screen reader users, people on phones, a first-time visitor) and why it matters to them."),
+					"fix":  str("One sentence: what to change, such as 'Add the post title to each link, for example \"Read more about X\".'"),
+					"wcag": map[string]any{"type": "array", "items": map[string]any{"type": "string"},
+						"description": "WCAG 2.2 success criteria this fails, as numbers such as 2.4.4, only when one clearly applies. Leave empty otherwise."},
+					"steps": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "minItems": 1},
 					"evidence": map[string]any{"type": "string", "enum": []string{"measured", "inferred"},
 						"description": "measured: you saw it in a step. inferred: your reasoning, labelled as such."},
-				}, "kind", "severity", "symptom", "title", "steps", "evidence")},
+				}, "kind", "severity", "symptom", "title", "body", "steps", "evidence")},
 			"observations": map[string]any{"type": "array", "description": "Things that worked and neutral notes, such as 'The home page accessibility check found no violations.' Not problems. Leave empty when there is nothing to note.",
 				"items": object(map[string]any{
 					"text":  str("One sentence: what worked or what was neutral"),
@@ -88,21 +96,32 @@ type Finish struct {
 type FinishObservation struct {
 	Text  string `json:"text"`
 	Steps []int  `json:"steps"`
+	// Kind is set by the engine for a problem claim that did not become a finding: record.ObservationUnverified
+	// or record.ObservationDowngraded. The persona never sets it.
+	Kind string `json:"-"`
 }
 
 // FinishFinding is one finding as the persona reported it. Class is not in the tool any more. It is
 // read so that a model that still sends class observation has the finding moved to the observations.
 type FinishFinding struct {
-	Class    string `json:"class"`
-	Symptom  string `json:"symptom"`
-	Topic    string `json:"topic"`
-	Rule     string `json:"rule"`
-	Control  string `json:"control"`
-	Kind     string `json:"kind"`
-	Severity string `json:"severity"`
-	Title    string `json:"title"`
-	Steps    []int  `json:"steps"`
-	Evidence string `json:"evidence"`
+	Class    string   `json:"class"`
+	Symptom  string   `json:"symptom"`
+	Topic    string   `json:"topic"`
+	Rule     string   `json:"rule"`
+	Control  string   `json:"control"`
+	Kind     string   `json:"kind"`
+	Severity string   `json:"severity"`
+	Title    string   `json:"title"`
+	Body     string   `json:"body"`
+	Fix      string   `json:"fix"`
+	WCAG     []string `json:"wcag"`
+	Quote    string   `json:"quote"`
+	Steps    []int    `json:"steps"`
+	Evidence string   `json:"evidence"`
+	// Set by VerifyEvidence from what the engine saw, never from the model.
+	Element      string `json:"-"`
+	URL          string `json:"-"`
+	EvidenceStep int    `json:"-"`
 }
 
 // symptomHelp lists the symptoms with their meaning, for the finish tool.
@@ -193,6 +212,10 @@ func ParseFinish(args json.RawMessage, maxStep int) (Finish, error) {
 		}
 		ff.Steps = steps
 		ff.Title = strings.TrimSpace(ff.Title)
+		ff.Body = strings.TrimSpace(ff.Body)
+		ff.Fix = strings.TrimSpace(ff.Fix)
+		ff.Quote = strings.TrimSpace(ff.Quote)
+		ff.WCAG = wcag.Clean(ff.WCAG)
 		kept = append(kept, ff)
 	}
 	f.Findings = kept
@@ -221,7 +244,7 @@ func cleanObservation(o FinishObservation, maxStep int) FinishObservation {
 func RecordObservations(f Finish) []record.Observation {
 	var out []record.Observation
 	for _, o := range f.Observations {
-		out = append(out, record.Observation{Text: o.Text, Steps: o.Steps})
+		out = append(out, record.Observation{Text: o.Text, Steps: o.Steps, Kind: o.Kind})
 	}
 	return out
 }
@@ -272,9 +295,19 @@ func RecordFindings(f Finish, loc *Locator) []record.Finding {
 		if err != nil {
 			continue
 		}
+		if ff.EvidenceStep > 0 {
+			// The route of the page where the evidence is, not of the first step the persona happened to cite.
+			if r := loc.StepRoute(ff.EvidenceStep); r != "" {
+				route = r
+				if fp, err = identity.Fingerprint(route, locus, symptom); err != nil {
+					continue
+				}
+			}
+		}
 		out = append(out, record.Finding{ID: id, Kind: ff.Kind, Severity: ff.Severity, Title: ff.Title,
 			Steps: ff.Steps, Evidence: ff.Evidence, Verdict: record.VerdictPending, Class: record.ClassProblem,
-			Route: route, Locus: locus, Symptom: symptom, TaxonomyVersion: identity.TaxonomyVersion, Fingerprint: fp})
+			Route: route, Locus: locus, Symptom: symptom, TaxonomyVersion: identity.TaxonomyVersion, Fingerprint: fp,
+			Body: ff.Body, Fix: ff.Fix, WCAG: ff.WCAG, Element: ff.Element, Quote: ff.Quote, URL: ff.URL, EvidenceStep: ff.EvidenceStep})
 	}
 	return out
 }

@@ -17,7 +17,7 @@ Usage:
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] \
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] [--self-check=false] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
@@ -106,6 +106,8 @@ Usage of run:
     	a scenario file to play instead of --scenario, named NN-<id>.md; it is not looked up in the cast
   -seed int
     	sampling seed (0 or more), sent to providers that take one; the record shows null where it was not sent (default -1)
+  -self-check
+    	after the persona finishes, one cheap model call checks each finding against its evidence and the scenario's Site line, and keeps, rewrites, downgrades or drops it; --self-check=false turns it off (default true)
   -session string
     	sign in from this saved session file (see "dummyrun session save") instead of the login form
   -steps int

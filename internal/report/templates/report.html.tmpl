@@ -172,6 +172,7 @@ figure { margin: 0 0 1rem; }
 figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
 figcaption { font-size: 0.875rem; color: var(--muted); margin-top: 0.4rem; }
 .outcome { margin: 0 0 1rem; }
+.f-body { margin: 0 0 1rem; }
 details.tech { border-top: 1px solid var(--rule); margin-top: 1rem; padding: 0.5rem 0 0.4rem; }
 details.tech summary { cursor: pointer; font-size: 0.875rem; font-weight: 700; color: var(--muted); padding: 0.2rem 0; }
 details.tech summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
@@ -389,7 +390,16 @@ footer p { margin: 0 0 0.4rem; }
 <h4 id="f-{{$i}}-t">{{$f.Title}}</h4>
 {{- $place := placeText $f.Route $f.Locus}}
 {{if $place}}<p class="f-where">{{upper $place}}{{if $f.Route}} <code>{{$f.Route}}</code>{{end}}</p>{{end}}
+{{- if $f.Body}}
+<p class="f-body">{{$f.Body}}</p>
+{{- end}}
 <dl class="facts">
+{{- with whereText $f}}
+<dt>Where it is</dt><dd>{{.}}</dd>
+{{- end}}
+{{- if $f.Quote}}
+<dt>On the page</dt><dd><q>{{$f.Quote}}</q></dd>
+{{- end}}
 {{- if $f.Symptom}}
 <dt>What went wrong</dt><dd>{{symptomText $f.Symptom}}</dd>
 {{- end}}
@@ -398,7 +408,10 @@ footer p { margin: 0 0 0.4rem; }
 <dt>When</dt><dd>{{$f.State}}</dd>
 {{- end}}
 {{- if $f.WCAG}}
-<dt>WCAG 2.2</dt><dd>{{join $f.WCAG}}</dd>
+<dt>WCAG 2.2</dt><dd>{{wcagText $f.WCAG}}</dd>
+{{- end}}
+{{- if $f.Fix}}
+<dt>How to fix it</dt><dd>{{$f.Fix}}</dd>
 {{- end}}
 <dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
 {{- if $f.HelpURL}}

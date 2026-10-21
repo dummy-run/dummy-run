@@ -116,7 +116,7 @@ The Issues page, the Schedule form area (`/issues`)
 |---|---|
 | What went wrong | An automated accessibility check failed (color-contrast) |
 | Who hit it | Ada, an editor, in 1 of 4 runs |
-| WCAG 2.2 | 1.4.3 |
+| WCAG 2.2 | 1.4.3 Contrast (Minimum) |
 | Review | Not reviewed. No person has checked this finding |
 | Fix guidance | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
 
