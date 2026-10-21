@@ -15,6 +15,40 @@ needs tool calling and must accept images.
 The engine reads your API key from the environment when the run starts. It never prints the key or writes
 it to a run record. The record keeps only the provider kind, the model and the region.
 
+## Leave the provider out
+
+For a first run you don't have to choose. `dummyrun try` and `dummyrun run` look at your environment when you
+leave out `--provider`, take the first match in the table and print what they chose on the first line:
+
+```text
+Using Anthropic claude-haiku-5-5 (ANTHROPIC_API_KEY is set)
+```
+
+Name `--model`, `--region` or `--endpoint` yourself and your value wins over the default. If nothing matches,
+the command lists the ways to set one up. Azure comes first because `DUMMYRUN_AZURE_ENDPOINT` is a variable only
+Dummy Run reads, so setting it is a deliberate choice.
+
+This table is generated from the code, so it matches this version of the engine. Each default is a low-priced model that the vendor's own page
+lists with tool calling and image input, as of this version. Models change, so check the vendor page before you
+rely on one, and pass `--model` to use another.
+
+<!-- docgen:defaults begin -->
+
+| Order | Chosen when | Provider | Model | Why this model |
+|---|---|---|---|---|
+| 1 | `DUMMYRUN_AZURE_ENDPOINT` is set | `azure` | yours: pass `--model` | Deployment names are your own, so there is no default model. Pass `--model` and `--region`. |
+| 2 | `OPENAI_API_KEY` is set | `openai-compatible` with `--reasoning-effort none` | `gpt-6-luna` | The cheapest GPT-6 model, with function calling and image input. On chat completions it calls tools only with reasoning off, so the default sends `--reasoning-effort none`. [OpenAI models](https://developers.openai.com/api/docs/models/gpt-6-luna) |
+| 3 | `ANTHROPIC_API_KEY` is set | `anthropic` | `claude-haiku-5-5` | The fastest and cheapest Claude, with tool use and image input. [Anthropic models](https://platform.claude.com/docs/en/about-claude/models/overview) |
+| 4 | `OLLAMA_HOST` is set, or Ollama answers on `localhost:11434` | `openai-compatible` | `gemma4:e4b` | A local model that lists both tools and vision, so your data stays on your machine. Run `ollama pull gemma4:e4b` once. [Ollama gemma4](https://ollama.com/library/gemma4) |
+
+<!-- docgen:defaults end -->
+
+With `--provider anthropic` and no `--model`, you get the Anthropic default. Every other provider needs `--model`.
+Ollama must have the model: `ollama pull gemma4:e4b` is one download of a few gigabytes, and the first run
+checks for it. Ollama also needs room for a screenshot in every request. Its default context of 4096 tokens fills
+up after a dozen steps, so start it with a larger one: `OLLAMA_CONTEXT_LENGTH=16384 ollama serve`. Expect a small local model to be slower and less careful than a hosted one. On a busy laptop with no GPU, a single
+step can take a minute, and a call that takes longer than two minutes ends the run. For a first run, a hosted key is the quicker way in.
+
 ## What each backend can do
 
 Backends differ in a few ways that change how a run behaves. If a backend can't force a tool call, the
@@ -80,7 +114,7 @@ With a local server, your data stays on your machine.
 
 | Server | Base URL | Notes | Vendor docs |
 |---|---|---|---|
-| Ollama | `http://localhost:11434/v1` | Tools work. Images work as base64 only. The page lists `tool_choice` as unsupported, so the engine uses the finish instruction. Pick a model that lists `tools` and `vision` | [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility) |
+| Ollama | `http://localhost:11434/v1` | Raise the context past its 4096-token default, such as `OLLAMA_CONTEXT_LENGTH=16384 ollama serve`. Tools work. Images work as base64 only. The page lists `tool_choice` as unsupported, so the engine uses the finish instruction. Pick a model that lists `tools` and `vision` | [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility) |
 | vLLM | `http://localhost:8000/v1` | Start it with `--enable-auto-tool-choice` and a `--tool-call-parser` for the model | [vLLM tool calling](https://docs.vllm.ai/en/latest/features/tool_calling/) |
 | llama.cpp server | The host and `--port` you start it with, plus `/v1` | Tool calls need the `--jinja` flag. Images need a multimodal projector and are marked experimental | [llama.cpp server](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) |
 

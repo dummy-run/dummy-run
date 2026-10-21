@@ -1,8 +1,82 @@
 # Install
 
-You can install Dummy Run as a binary, as a container image or from Go source. Every release is signed,
-so check what you download before you run it. The first release isn't published yet. For now, use
-[Go install](#go-install).
+You can have a first run in a few minutes. Download Dummy Run, let it fetch a browser for you, give it one
+API key and point it at your site. Every release is signed, so you can check what you download before you run it.
+
+## Your first run
+
+1. Download the release for your machine from [GitHub Releases](https://github.com/dummy-run/dummy-run/releases),
+   unpack it and put `dummyrun` on your path. On a Mac with Apple silicon:
+
+   ```sh
+   VERSION=...   # the newest release number on the releases page
+   curl -fsSLO "https://github.com/dummy-run/dummy-run/releases/download/v${VERSION}/dummyrun_${VERSION}_darwin_arm64.tar.gz"
+   tar -xzf "dummyrun_${VERSION}_darwin_arm64.tar.gz"
+   ```
+
+   The other archives are listed under [Binaries](#binaries). If you have Go, `go install` works instead (see
+   [Go install](#go-install)). Check the install:
+
+   <!-- doctest -->
+   ```sh
+   dummyrun version
+   ```
+
+2. Fetch a browser. This downloads the Chrome for Testing that Dummy Run was tested with, and the chromedriver
+   that matches it, into your user cache. You usually do it once, and there is nothing to match by hand.
+
+   ```sh
+   dummyrun browsers install
+   ```
+
+   <!-- doctest -->
+   ```sh
+   dummyrun browsers list
+   ```
+
+3. Give it a model. Set one key and Dummy Run finds it. Without `--provider` it looks for `OPENAI_API_KEY`
+   first and `ANTHROPIC_API_KEY` second. A running [Ollama](https://ollama.com/) comes third. If you have
+   `DUMMYRUN_AZURE_ENDPOINT` set, Azure goes ahead of all three. It prints what it chose on the first line. [PROVIDERS.md](PROVIDERS.md) lists the models it picks and how to choose your own.
+
+   ```sh
+   export ANTHROPIC_API_KEY=...
+   ```
+
+4. Point it at your site.
+
+   ```sh
+   dummyrun try https://your-site
+   ```
+
+   A first-time visitor plays through your page for a few minutes. It reads and clicks in read-only mode: the
+   browser blocks every request that could change data and every request to another host. You get the findings
+   in your terminal. You also get the visitor's own report, a screenshot of every step and the run record, each
+   with its path.
+
+   <!-- doctest -->
+   ```sh
+   dummyrun try -h
+   ```
+
+Azure OpenAI, Gemini, Bedrock and local models all work too. [PROVIDERS.md](PROVIDERS.md) covers each of them.
+
+## Where the browsers live
+
+`dummyrun browsers install` puts Chrome for Testing in `os.UserCacheDir()/dummyrun/browsers/<version>`. On
+macOS that is `~/Library/Caches/dummyrun/browsers`, on Linux `~/.cache/dummyrun/browsers`. Dummy Run finds it
+there by itself. Each download is checked against a hash that ships inside `dummyrun`, and a file that
+doesn't match is not unpacked.
+
+| Command | What it does |
+|---|---|
+| `dummyrun browsers install` | Installs Chrome for Testing and its chromedriver. Run it again and nothing happens |
+| `dummyrun browsers install firefox` | Uses the Firefox already on your machine. On Linux with none, downloads the pinned release |
+| `dummyrun browsers install all` | Both of the above |
+| `dummyrun browsers list` | Shows the pinned versions, where each is, and the cache folder |
+
+If you set `DUMMYRUN_CHROME`, `DUMMYRUN_CHROMEDRIVER` or `DUMMYRUN_FIREFOX`, those win over the cache.
+`DUMMYRUN_BROWSER_CACHE` moves the cache. With no network, the command says so and names itself, so you can
+run it again when you're online. The container image already has both browsers.
 
 ## Binaries
 
@@ -16,15 +90,15 @@ Linux, macOS and Windows on amd64 and arm64.
 
 The archives are `dummyrun_<version>_<os>_<arch>.tar.gz`, or `.zip` on Windows. Each holds the command,
 `LICENSE`, `NOTICE` and `README.md`. `checksums.txt` lists the SHA-256 of every archive and SBOM, and each
-archive has an SPDX SBOM next to it. The engine needs a browser, so read [ENGINE.md](ENGINE.md) for Chrome
-for Testing and Firefox. The container image already has both.
+archive has an SPDX SBOM next to it. The engine needs a browser, and `dummyrun browsers install` fetches one
+(see above). The container image already has both.
 
 ### Verify a download
 
 Set the version and download the archive, `checksums.txt` and `checksums.txt.sigstore.json`.
 
 ```sh
-VERSION=0.1.0
+VERSION=0.1.1
 cosign verify-blob checksums.txt \
   --bundle checksums.txt.sigstore.json \
   --certificate-identity "https://github.com/dummy-run/dummy-run/.github/workflows/release.yml@refs/tags/v${VERSION}" \
@@ -54,16 +128,16 @@ and [tini](https://github.com/krallin/tini) as the init process. The versions of
 
 | Tag | Meaning |
 |---|---|
-| `0.1.0` | That release. Use this one for anything repeatable |
+| `0.1.1` | That release. Use this one for anything repeatable |
 | `0.1` | The newest patch release of that minor version |
 | `latest` | The newest release that is not a pre-release |
 
-The image digest is the safest reference. `docker buildx imagetools inspect ghcr.io/dummy-run/dummyrun:0.1.0`
+The image digest is the safest reference. `docker buildx imagetools inspect ghcr.io/dummy-run/dummyrun:0.1.1`
 prints it.
 
 ```sh
-docker run --rm ghcr.io/dummy-run/dummyrun:0.1.0 version
-docker run --rm ghcr.io/dummy-run/dummyrun:0.1.0 a11y https://example.com
+docker run --rm ghcr.io/dummy-run/dummyrun:0.1.1 version
+docker run --rm ghcr.io/dummy-run/dummyrun:0.1.1 a11y https://example.com
 ```
 
 ### Verify the image
@@ -78,6 +152,15 @@ gh attestation verify oci://ghcr.io/dummy-run/dummyrun:${VERSION} --repo dummy-r
 The second command checks the SLSA provenance. The release also attaches an SBOM attestation, which
 `gh attestation verify --predicate-type https://spdx.dev/Document/v2.3` checks. The SBOM describes the
 `linux/amd64` image.
+
+### Try your site from the container
+
+The image has both browsers, so there's nothing to install. Pass one key and the address:
+
+```sh
+docker run --rm -e ANTHROPIC_API_KEY -v "$PWD/results:/data" \
+  ghcr.io/dummy-run/dummyrun:${VERSION} try https://your-site --out /data/runs
+```
 
 ### Run a persona in the container
 
@@ -148,5 +231,5 @@ go install github.com/dummy-run/dummy-run/cmd/dummyrun@latest
 go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dummyrun-otel@latest
 ```
 
-A build made this way reports the version `0.1.0-dev` for `dummyrun` and `dev` for `dummyrun-otel`. Use a
+A build made this way reports a `-dev` version for `dummyrun` and `dev` for `dummyrun-otel`. Use a
 release binary when you need to know which release you run.

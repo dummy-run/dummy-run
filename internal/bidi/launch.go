@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/dummy-run/dummy-run/internal/browsers"
 )
 
 // LaunchOptions says which browser to start and how.
@@ -216,10 +218,11 @@ func noSandbox() bool {
 }
 
 func launchFirefox(ctx context.Context, opts LaunchOptions, b *Browser) error {
-	bin := firstExisting(opts.FirefoxPath, os.Getenv("DUMMYRUN_FIREFOX"),
+	cached, _ := browsers.CachedFirefox()
+	bin := firstExisting(opts.FirefoxPath, os.Getenv("DUMMYRUN_FIREFOX"), cached,
 		"/Applications/Firefox.app/Contents/MacOS/firefox", "firefox", "firefox-esr")
 	if bin == "" {
-		return errors.New("bidi: firefox not found; set DUMMYRUN_FIREFOX")
+		return errors.New("bidi: firefox not found. Install Firefox, or run: dummyrun browsers install firefox (or set DUMMYRUN_FIREFOX)")
 	}
 	port, err := freePort()
 	if err != nil {
@@ -307,11 +310,17 @@ func dialUntilReady(ctx context.Context, url string) (*Conn, error) {
 }
 
 func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
-	driver := firstExisting(opts.ChromedriverPath, os.Getenv("DUMMYRUN_CHROMEDRIVER"), "chromedriver")
-	if driver == "" {
-		return errors.New("bidi: chromedriver not found; set DUMMYRUN_CHROMEDRIVER")
+	// The browsers installed by "dummyrun browsers install" are a matched pair, so they are used only when
+	// neither program was named by the caller or the environment.
+	var cachedChrome, cachedDriver string
+	if opts.ChromePath == "" && opts.ChromedriverPath == "" && os.Getenv("DUMMYRUN_CHROME") == "" && os.Getenv("DUMMYRUN_CHROMEDRIVER") == "" {
+		cachedChrome, cachedDriver, _ = browsers.CachedChrome()
 	}
-	chrome := firstExisting(opts.ChromePath, os.Getenv("DUMMYRUN_CHROME"),
+	driver := firstExisting(opts.ChromedriverPath, os.Getenv("DUMMYRUN_CHROMEDRIVER"), cachedDriver, "chromedriver")
+	if driver == "" {
+		return errors.New("bidi: chromedriver not found. Run: dummyrun browsers install chrome (or set DUMMYRUN_CHROME and DUMMYRUN_CHROMEDRIVER)")
+	}
+	chrome := firstExisting(opts.ChromePath, os.Getenv("DUMMYRUN_CHROME"), cachedChrome,
 		"/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
 		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 		"google-chrome", "chrome", "chromium")

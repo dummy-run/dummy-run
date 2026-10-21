@@ -27,6 +27,8 @@ permissions:
   contents: read
 
 env:
+  # The browser pins also live in internal/browsers/versions.json, which `dummyrun browsers install` reads, and in
+  # docker/Dockerfile. TestPinsMatchWorkflowAndDockerfile fails when the three differ.
   # Chrome for Testing and the matching chromedriver, 2026-09-22.
   CHROME_FOR_TESTING: 155.0.8059.12
   # Firefox 157.0, released 2026-09-29.
@@ -125,6 +127,10 @@ jobs:
         env:
           DUMMYRUN_BROWSERS: chrome,firefox
         run: go test -race -count=1 -v -run 'TestConformance|TestTools|TestRunEndToEnd|TestLaunchAndClose|TestServerWithRealBrowsers|TestLayoutChecksInBrowser' ./internal/bidi/ ./internal/page/ ./internal/runner/ ./internal/a11y/ ./internal/mcpserver/
+      - name: dummyrun browsers install downloads and unpacks the real pinned Chrome for Testing
+        env:
+          DUMMYRUN_TEST_BROWSER_DOWNLOAD: "1"
+        run: go test -count=1 -v -run TestInstallIntegration ./internal/browsers/
       - name: No engine browser or profile directory is left behind
         if: always()
         run: go run ./cmd/dummyrun doctor
