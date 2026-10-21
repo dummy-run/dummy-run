@@ -271,8 +271,10 @@ type AxeSection struct {
 	NeedsReview  []AxeRule `json:"needs_review"`
 	// Advice holds the axe best-practice rules that failed. They are not WCAG failures, never count as failing
 	// elements and are shown apart from them.
-	Advice []AxeRule  `json:"advice,omitempty"`
-	Errors []AxeError `json:"errors,omitempty"`
+	Advice []AxeRule `json:"advice,omitempty"`
+	// AdviceTags are the best-practice tags the sweep also checked. Their rules are advice, not failures.
+	AdviceTags []string   `json:"advice_tags,omitempty"`
+	Errors     []AxeError `json:"errors,omitempty"`
 }
 
 // AxeRule is one rule that failed (or needs a person to look), folded across pages.

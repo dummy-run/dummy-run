@@ -119,7 +119,7 @@ What goes wrong: {{$f.Title}}
 {{end}}{{end}}
 {{- if .Axe}}## Axe sweep and layout checks
 
-The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{codes .Axe.Tags}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.
+The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{codes .Axe.Tags}}{{if .Axe.AdviceTags}}, and as advice {{codes .Axe.AdviceTags}}{{end}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.
 
 {{if .Axe.Rules -}}
 ### Rules that failed
@@ -153,9 +153,9 @@ Axe cannot decide these rules alone. A person has to look.
 {{- end}}
 
 {{end -}}
-{{- if .Axe.Advice}}### Advice beyond WCAG
+{{- if .Axe.Advice}}### Advice beyond WCAG A and AA
 
-These are axe's best-practice rules. They are not WCAG failures, and they are not counted above, but each one makes the site harder to use for someone.
+These are axe's best-practice rules and any rule that is only WCAG AAA. They are not WCAG A or AA failures and are not counted above, but each one makes the site harder to use for someone.
 
 | Rule | What it checks | Elements | Pages |
 |---|---|---|---|

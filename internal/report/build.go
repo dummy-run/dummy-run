@@ -565,6 +565,7 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 	pages := map[string]bool{}
 	browsers := map[string]bool{}
 	tags := map[string]bool{}
+	adviceTags := map[string]bool{}
 	type acc struct {
 		rule  AxeRule
 		pages map[string]*AxePage
@@ -615,6 +616,9 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 		for _, t := range rep.Tags {
 			tags[t] = true
 		}
+		for _, t := range rep.AdviceTags {
+			adviceTags[t] = true
+		}
 		for _, p := range rep.Results {
 			pages[p.URL] = true
 			sec.Runs++
@@ -637,6 +641,9 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 	sec.Pages = len(pages)
 	sec.Browsers = sortedKeys(browsers)
 	sec.Tags = sortedKeys(tags)
+	if len(adviceTags) > 0 {
+		sec.AdviceTags = sortedKeys(adviceTags)
+	}
 	flatten := func(m map[string]*acc, countFailing bool) []AxeRule {
 		out := []AxeRule{}
 		for _, a := range m {

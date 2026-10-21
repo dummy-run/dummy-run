@@ -334,7 +334,8 @@
         "page_errors": { "type": "integer" },
         "rules": { "type": "array", "items": { "$ref": "#/$defs/axeRule" } },
         "needs_review": { "type": "array", "items": { "$ref": "#/$defs/axeRule" } },
-        "advice": { "type": "array", "items": { "$ref": "#/$defs/axeRule" }, "description": "Axe best-practice rules that failed. Not WCAG failures and not counted in failing_elements" },
+        "advice": { "type": "array", "items": { "$ref": "#/$defs/axeRule" }, "description": "Axe rules outside the WCAG A and AA levels tested (best-practice and AAA-only rules) that failed. Not WCAG A or AA failures and not counted in failing_elements" },
+        "advice_tags": { "type": "array", "items": { "type": "string" }, "description": "The best-practice tags the sweep also checked" },
         "errors": {
           "type": "array",
           "items": {
