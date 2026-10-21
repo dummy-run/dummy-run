@@ -52,7 +52,7 @@ lines that have not played yet with a CSS mask. It never sets opacity to zero on
 it. The engine reads zero-opacity text as concealed, even inside code, so a demo that fades lines in would be
 flagged when a persona visits the page. The scan does not look at CSS masks, so it reads the masked lines as
 quoted output. `internal/runner/site_terminal_test.go` loads the real stylesheet and
-script and checks that nothing is flagged.
+script and checks that the run records no `suspected_injection` event and no finding of kind `security`.
 
 ## Large text
 
