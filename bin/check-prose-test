@@ -34,9 +34,6 @@ class Failures(unittest.TestCase):
         self.assertFails("It finds problems, not certificates.\n", "staged contrast")
         self.assertFails("It is not a test suite, but a persona.\n", "staged contrast")
 
-    def test_tilde_fenced_code_is_ignored(self):
-        self.assertClean("Run it.\n\n~~~sh\necho a robust thing\n~~~\n")
-
     def test_machine_words(self):
         for word in ("seamless", "leverage", "unlock", "empowers", "robust"):
             with self.subTest(word=word):
@@ -81,6 +78,9 @@ class Passes(unittest.TestCase):
 
     def test_code_is_ignored(self):
         self.assertClean("Run `dummyrun --robust --seamless`.\n\n```sh\necho not this, but that\n```\n")
+
+    def test_tilde_fenced_code_is_ignored(self):
+        self.assertClean("Run it.\n\n~~~sh\necho a robust thing\n~~~\n")
 
 
 class Warnings(unittest.TestCase):
