@@ -51,7 +51,7 @@ FINDINGS = {
                          "The payment status 'settled' is unclear to a contributor", "inferred", 0.4,
                          "/payments", "region:payment status", "unclear-label"),
                         ("author-edits-others-draft", "permission", "major",
-                         "An author can edit another author's draft by its address", "code", 0.25,
+                         "An author can open another author's draft editor by its address", "code", 0.25,
                          "/drafts/:id/edit", "page", "access-wrongly-allowed")],
 }
 DEVICES = {"desktop": (1400, 1000), "tablet": (820, 1180), "phone": (390, 844)}

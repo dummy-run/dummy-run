@@ -19,3 +19,14 @@ func TestReproStepsOmitsMissingSetup(t *testing.T) {
 		t.Fatalf("empty reproduction gave %q", steps)
 	}
 }
+
+func TestPlaceFallbacks(t *testing.T) {
+	for route, want := range map[string]string{"/": "the Home page", "/:id": "the Home page", "/draft-list": "the Draft list page"} {
+		if got := pageName(route); got != want {
+			t.Errorf("pageName(%q) = %q, want %q", route, got, want)
+		}
+	}
+	if got := locusText("page"); got != "" {
+		t.Errorf("locusText(page) = %q, want empty", got)
+	}
+}

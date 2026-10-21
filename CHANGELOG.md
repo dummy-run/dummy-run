@@ -5,6 +5,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- `dummyrun report` has a designed HTML report. It has a cover with the logo and the client. The cover also has the target, the dates, a plain summary and a bar of problems by severity. The summary page has key-number cards and a plain statement of how many problems are still unfound. Findings are cards with a severity band and badge, grouped by severity under a contents list. The axe sweep is a table, and baseline status has clear labels. The brand typefaces are embedded, with a light theme and a dark one on screen only. Print has page breaks, a running title and page numbers. The Markdown format has the same structure in headings and tables. The example report and its pictures are rebuilt, and `docs/REPORT.md` has a tour (code: `internal/report/templates/` and `internal/report/assets/`).
+
 ## [0.1.1] - 2026-10-20
 
 ### Fixed
@@ -16,7 +19,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [0.1.0] - 2026-10-20
 
 ### Changed
-- `dummyrun report` has a designed HTML report. It has a cover with the logo and the client. The cover also has the target, the dates, a plain summary and a bar of problems by severity. The summary page has key-number cards and a plain statement of how many problems are still unfound. Findings are cards with a severity band and badge, grouped by severity under a contents list. The axe sweep is a table, and baseline status has clear labels. The brand typefaces are embedded, with a light theme and a dark one on screen only. Print has page breaks, a running title and page numbers. The Markdown format has the same structure in headings and tables. The example report and its pictures are rebuilt, and `docs/REPORT.md` has a tour (code: `internal/report/templates/` and `internal/report/assets/`).
 - The terminal on the Get started page now plays one real run. You see a persona run against dummyrun.dev, the steps it took, and the report command with its result. The commands type out, the output appears in chunks, and a button pauses it. With reduced motion, the whole transcript shows at once. The raw capture and its run ID are in `site/data/start-session.json`, and `bin/check-start-session` checks that each output line is in the capture, is a shortened captured line or is an ellipsis.
 - The home page hero shows a real step and a real finding from the recorded run, in place of the made-up Inkwell phone.
 - The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and the other listed audience phrases (code: `bin/check-prose` and `docs/STYLE.md`).

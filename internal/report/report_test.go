@@ -841,3 +841,20 @@ func TestMarkdownCellsHoldFreeText(t *testing.T) {
 		t.Errorf("the reason is lost: %q", got)
 	}
 }
+
+func TestMarkdownFindingWithoutALocation(t *testing.T) {
+	rep, err := Build(loadFixture(t), fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep.Findings[0].Route = ""
+	rep.Findings[0].Locus = ""
+	rep.Findings[0].Evidence = "line one\nline `two`"
+	out := render(t, rep, "md")
+	if !strings.Contains(out, ".\n\n| | |\n|---|---|") && !strings.Contains(out, "\n\n\n| | |\n|---|---|") {
+		t.Error("a finding with no location should still start its table on its own line")
+	}
+	if strings.Contains(out, "evidence line one\nline") || strings.Contains(out, "`two`") {
+		t.Error("newlines and backticks in free text should be flattened in the technical details")
+	}
+}

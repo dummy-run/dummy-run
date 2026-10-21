@@ -134,6 +134,7 @@ func commonFuncs() map[string]any {
 		"pages":        pagesTested,
 		"upper":        upperFirst,
 		"cell":         mdCell,
+		"inline":       mdInline,
 		"inc":          func(i int) int { return i + 1 },
 		"symptomText":  symptomText,
 		"placeText":    placeText,
@@ -208,4 +209,11 @@ func mdCell(v any) string {
 	s := fmt.Sprint(v)
 	s = strings.NewReplacer("|", `\|`, "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
 	return s
+}
+
+// mdInline makes free text safe inside a Markdown code span or a paragraph: a backtick would end the
+// span and a newline would split the paragraph.
+func mdInline(v any) string {
+	s := fmt.Sprint(v)
+	return strings.NewReplacer("`", "'", "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
 }
