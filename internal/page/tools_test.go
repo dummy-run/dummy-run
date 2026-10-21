@@ -160,7 +160,7 @@ func TestTools(t *testing.T) {
 					labels = append(labels, c.Label)
 				}
 				joined := strings.Join(labels, "|")
-				for _, want := range []string{"About us", "Your name", "Colour", "Go now", "Subscribe", "(no label)"} {
+				for _, want := range []string{"About us", "Your name", "Colour", "Go now", "Subscribe", "(no name)"} {
 					if !strings.Contains(joined, want) {
 						t.Errorf("control %q not in %s", want, joined)
 					}
@@ -227,6 +227,11 @@ func TestTools(t *testing.T) {
 				}
 				if !strings.Contains(strings.Join(ids, ","), "label") {
 					t.Errorf("expected the unlabelled input to fail a label rule, got %v", ids)
+				}
+				for _, v := range o.A11y {
+					if v.ID == "label" && (len(v.Elements) == 0 || !strings.Contains(v.Elements[0].Selector, "unlabelled")) {
+						t.Errorf("the label failure does not name its element: %+v", v)
+					}
 				}
 			})
 			t.Run("screenshot", func(t *testing.T) {

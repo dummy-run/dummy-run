@@ -5,61 +5,52 @@
 // Called as a function expression with (maxControls, textLimit, logLimit, mark). mark is a random value
 // made by the engine for this look.
 (maxControls, textLimit, logLimit, mark) => {
-  // Off-canvas elements (a closed drawer parked beyond the left or right edge) count as hidden.
-  const visible = (el) => {
-    const r = el.getBoundingClientRect();
-    const s = getComputedStyle(el);
-    const onCanvas = r.right > 0 && r.left < innerWidth;
-    return r.width > 0 && r.height > 0 && onCanvas && s.visibility !== "hidden" && s.display !== "none";
-  };
-  const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
-  const byId = (id) => (id ? document.getElementById(id) : null);
-  const named = (el) =>
-    squash(
-      el.getAttribute("aria-label") ||
-        (el.getAttribute("aria-labelledby") && byId(el.getAttribute("aria-labelledby").split(" ")[0])?.innerText) ||
-        el.labels?.[0]?.innerText ||
-        el.placeholder ||
-        el.innerText ||
-        el.value ||
-        ""
-    );
-  const fallback = (el) =>
-    squash(
-      el.title ||
-        el.querySelector("img[alt]")?.alt ||
-        el.querySelector("svg title")?.textContent ||
-        (el.href ? new URL(el.href, location.href).pathname : "") ||
-        el.name ||
-        ""
-    );
-  const label = (el) => {
-    const n = named(el);
-    const text = n || (fallback(el) ? "(no label) " + fallback(el) : "(no label)");
-    return text.slice(0, 80);
+  const contentType = document.contentType || "";
+  // A feed, a PDF, JSON or an image is a file, not a web page. There are no controls to number and no
+  // page text to read, and its text is not sent to the model.
+  if (!/^(text\/html|application\/xhtml\+xml)/i.test(contentType)) {
+    return {
+      url: location.href, title: "", viewport: [innerWidth, innerHeight], device_pixel_ratio: devicePixelRatio,
+      scroll: [0, 0], headings: [], alerts: [], text: "", log_text: "", controls: [], hidden: [], scan_text: "",
+      content_type: contentType,
+    };
+  }
+/*NAMES*/
+  // On screen in the layout, for the page text: the same rule the control list uses.
+  const visible = drRendered;
+  const squash = drSquash;
+  // A hint that helps the persona tell nameless controls apart. It is not part of the name.
+  const hint = (el) => squash((el.href ? new URL(el.href, location.href).pathname : "") || el.getAttribute("name") || "");
+  const label = (el, role) => {
+    const name = drName(el, role);
+    if (name) return drClip(name, 80);
+    return hint(el) ? "(no name) " + drClip(hint(el), 60) : "(no name)";
   };
   document.querySelectorAll("[data-dummyrun-ref]").forEach((el) => el.removeAttribute("data-dummyrun-ref"));
-  const selector = [
-    "a[href]", "button", "input:not([type=hidden])", "select", "textarea", "summary",
-    "[role=button]", "[role=link]", "[role=tab]", "[role=option]", "[role=menuitem]",
-    "[role=checkbox]", "[role=switch]", "[role=radio]", "[contenteditable=true]", "[tabindex='0']",
-  ].join(",");
+  // Only controls a screen reader user can reach are numbered. The rest are not on the page for them.
   const controls = [];
-  for (const el of document.querySelectorAll(selector)) {
-    if (controls.length >= maxControls) break;
-    if (!visible(el)) continue;
-    const ref = String(controls.length + 1);
-    el.setAttribute("data-dummyrun-ref", ref);
-    const r = el.getBoundingClientRect();
-    controls.push({
-      ref,
-      tag: el.tagName.toLowerCase(),
-      type: el.type || el.getAttribute("role") || "",
-      label: label(el),
+  drAxeSetup();
+  try {
+    for (const el of document.querySelectorAll(drInteractive)) {
+      if (controls.length >= maxControls) break;
+      if (!drExposed(el)) continue;
+      const ref = String(controls.length + 1);
+      el.setAttribute("data-dummyrun-ref", ref);
+      const r = el.getBoundingClientRect();
+      const role = drRole(el);
+      controls.push({
+        ref,
+        tag: el.tagName.toLowerCase(),
+        type: el.type || el.getAttribute("role") || "",
+        role,
+        label: label(el, role),
       href: el.tagName === "A" ? el.getAttribute("href") || undefined : undefined,
       disabled: el.disabled || el.getAttribute("aria-disabled") === "true" || undefined,
-      offscreen: r.bottom < 0 || r.top > innerHeight || undefined,
-    });
+        offscreen: r.bottom < 0 || r.top > innerHeight || undefined,
+      });
+    }
+  } finally {
+    drAxeTeardown();
   }
   const texts = (sel) =>
     [...document.querySelectorAll(sel)].filter(visible).map((e) => squash(e.innerText)).filter(Boolean);
@@ -80,7 +71,7 @@
     return !visible(el) || r.width < 2 || r.height < 2 || s.opacity === "0" || parseFloat(s.fontSize) === 0 || el.getAttribute("aria-hidden") === "true";
   };
   let scanned = 0;
-  for (const el of document.body.querySelectorAll("*")) {
+  for (const el of (document.body || document.documentElement).querySelectorAll("*")) {
     if (++scanned > 5000) break;
     for (const attr of ["aria-label", "aria-description", "title", "alt", "placeholder"]) keepHidden(el.getAttribute(attr));
     if (/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(el.tagName)) continue;
@@ -115,7 +106,7 @@
   const shut = "\uE002" + mark + "\uE003";
   const added = [];
   let quotes = 0;
-  for (const el of document.body.querySelectorAll(quotedSel)) {
+  for (const el of (document.body || document.documentElement).querySelectorAll(quotedSel)) {
     if (quotes >= 500) break;
     if (el.parentElement && el.parentElement.closest(quotedSel)) continue;
     if (!inFlow(el) || !el.parentNode) continue;
@@ -165,5 +156,6 @@
     controls,
     hidden: [...hidden],
     scan_text: scanText,
+    content_type: contentType,
   };
 }

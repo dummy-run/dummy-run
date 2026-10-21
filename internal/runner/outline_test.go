@@ -18,12 +18,15 @@ func TestRenderShowsFocusTreeAndZoom(t *testing.T) {
 	out := Render(s)
 	for _, want := range []string{
 		`focus: link "Docs" @1`,
-		"accessibility tree (roles and names computed from the page; @n matches the controls):\n  banner\n    link \"Docs\" @1  <- focus\n  main",
+		"named as a screen reader names them; act on a control by its @n; what a screen reader cannot reach is left out):\n  banner\n    link \"Docs\" @1  <- focus\n  main",
 		"zoom: 200% (the page lays out in 1400 x 1000 CSS px, device pixel ratio 2)",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("render lacks %q:\n%s", want, out)
 		}
+	}
+	if strings.Contains(out, "controls:") {
+		t.Errorf("a step with an outline also has a second control list:\n%s", out)
 	}
 	s.Obs.Snapshot.Focus = nil
 	if !strings.Contains(Render(s), "focus: nothing") {

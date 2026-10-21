@@ -74,7 +74,10 @@ const (
 	EventSuspectedInjection = "suspected_injection"
 	EventOffOriginBlocked   = "off_origin_blocked"
 	EventUncitedFinding     = "uncited_finding"
-	EventProviderFiltered   = "provider_filtered"
+	// EventHarnessLimitFinding is a finding the engine dropped because every step it cites shows the test's own
+	// limits (a blocked request, a failed tool, a page it could not read), not the site.
+	EventHarnessLimitFinding = "harness_limit_finding"
+	EventProviderFiltered    = "provider_filtered"
 )
 
 // Event is one thing the engine noticed. For a suspected injection Detail is text from the page, so a

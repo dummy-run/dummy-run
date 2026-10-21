@@ -23,7 +23,8 @@ const badPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><tit
 <form method="post" action="/subscribe"><label for="e">Email</label><input id="e" name="e"><button type="submit">Subscribe</button></form>
 </main></body></html>`
 
-// scriptedModel clicks the form's button once and then finishes.
+// scriptedModel clicks the form's button once and then finishes with two findings. "Subscribe does nothing" cites
+// only the step where the read-only policy stopped the POST, so the engine drops it as the test's own limit.
 type scriptedModel struct{ n atomic.Int32 }
 
 func (*scriptedModel) Kind() string   { return "openai-compatible" }
@@ -36,7 +37,8 @@ func (m *scriptedModel) Chat(_ context.Context, req provider.Request) (provider.
 	if n > 1 || req.ForceTool == "finish" {
 		call.Name = "finish"
 		call.Args = json.RawMessage(`{"verdict":"friction","goal_met":"no","report":"The form did not submit.","findings":[` +
-			`{"kind":"bug","severity":"minor","symptom":"not-operable","title":"Subscribe does nothing","steps":[2],"evidence":"measured"}]}`)
+			`{"kind":"bug","severity":"minor","symptom":"not-operable","title":"Subscribe does nothing","steps":[2],"evidence":"measured"},` +
+			`{"kind":"accessibility","severity":"minor","symptom":"unclear-label","title":"The first button has no name","steps":[1],"evidence":"measured"}]}`)
 	}
 	resp.ToolCalls = []provider.ToolCall{call}
 	return resp, nil
@@ -98,7 +100,8 @@ func TestServerWithRealBrowsers(t *testing.T) {
 			if res.IsError {
 				t.Fatal(text(res))
 			}
-			if run.Outcome == "" || run.RecordPath == "" || len(run.Findings) != 1 || len(run.Findings[0].CitedSteps) != 1 {
+			if run.Outcome == "" || run.RecordPath == "" || len(run.Findings) != 1 || len(run.Findings[0].CitedSteps) != 1 ||
+				run.Findings[0].Title != "The first button has no name" {
 				t.Errorf("run = %+v", run)
 			}
 			mu.Lock()

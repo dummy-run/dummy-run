@@ -94,7 +94,7 @@ times and fails each time, it gives up and the run ends.
 | `select` | Choose an option in a select by its text |
 | `press` | Press a key such as Enter, Escape or ArrowDown |
 | `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, or wait up to 15 seconds |
-| `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. Only rule IDs and counts are recorded |
+| `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. The result names up to three failing elements of each rule. Only rule IDs and counts are recorded |
 | `finish` | End the run with a verdict, `goal_met`, a report, and findings and observations that cite step numbers |
 
 ### Findings and observations
@@ -249,14 +249,15 @@ checks.
 `persona.device` in the run record is the device the run actually used. If the scenario set one, that's the
 scenario's device, whatever `profile.md` says.
 
-## Focus and the accessibility outline
+## Focus and the page outline
 
-After each action the engine adds two things to what the model sees: the element with keyboard focus, and an
-outline of the page.
+After each action the engine adds two things to what the model sees: the element with keyboard focus, and one
+outline of the page. The outline is the only list of controls the persona reads. It holds the landmarks,
+the headings from H1 to H6 with their levels, and the controls with role, name, states and the `@number` to act on.
 
 ```
 focus: link "Pricing" @7
-accessibility tree (roles and names computed from the page; @n matches the controls):
+page outline (landmarks, headings and controls, named as a screen reader names them; act on a control by its @n; what a screen reader cannot reach is left out):
   banner
     link "Home" @1
   navigation "Main"
@@ -264,30 +265,60 @@ accessibility tree (roles and names computed from the page; @n matches the contr
   main
     heading 1 "Pricing"
     link "Pricing" @7  <- focus
+    heading 3 "Questions"
     textbox (no name) @8 [required]
 ```
 
-The focus line gives the role, accessible name and `@ref` of the focused element, or `focus: nothing`. The
-outline lists landmarks, headings and interactive elements in page order. Each line has a role, a name and
-sometimes a state:
+The focus line gives the role, accessible name and `@ref` of the focused element, or `focus: nothing`. Each
+outline line has a role, a name and sometimes a state:
 
 - `disabled`, `checked` or `required`, and `invalid` for a field
 - `current` for a link to the current page
 - `expanded` or `collapsed` for a disclosure control
+- `off screen` for a control above or below the window
 
-An element with no accessible name shows `(no name)`. Moving focus with Tab counts as a change on the page, so
-a persona tabbing through a page isn't told that nothing happened. Both parts are also saved in `steps.jsonl`
-under `page.focus` and `page.tree`.
+Names and visibility come from one script, `internal/page/names.js`, which the engine splices into the control
+numbering, the outline and the accessibility check, so an element is never named two ways. When axe-core is
+loaded in the page, the script uses axe's own functions: `axe.commons.text.accessibleText` for the name and
+`axe.commons.dom.isVisibleToScreenReaders` for whether a screen reader can reach it. The engine loads axe into
+each web page before it reads it. Without axe, or when axe gives an empty name, the script follows Accessible
+Name and Description Computation 1.2 and HTML-AAM for the common cases. That means `aria-labelledby`,
+`aria-label` and the element's `<label>` (buttons and comboboxes included), then `alt` on an image button and a
+button's value. Links and buttons are then named from their rendered content, with image `alt` and SVG
+`title`, and the last resorts are `title` and `placeholder`. A select takes its name from its label. WebDriver
+BiDi has no command that returns the browser's own accessibility tree, and the engine doesn't use the Chrome
+DevTools Protocol, so this is a close approximation of what each browser exposes, the same on Chrome and
+Firefox. Shadow DOM and cross-origin frames are only partly covered.
 
-The outline comes from a script the engine runs in the page, because WebDriver BiDi has no command that
-returns an accessibility tree. The script reads the DOM and ARIA attributes, and follows HTML-AAM for implicit
-roles and Accessible Name and Description Computation 1.2 for names in the common cases. So the roles and names
-are a close approximation of what each browser exposes, and they're the same on Chrome and Firefox. Shadow DOM
-and cross-origin frames are only partly covered.
+Only controls a screen reader user can reach are listed and numbered. Links in a closed `<details>` or a
+collapsed menu, controls with `aria-hidden`, `inert` or `hidden`, and anything not rendered are left out. A
+control the browser would give no name shows `(no name)`, sometimes with its link path as a hint. The
+persona is told to confirm one with the accessibility check before it reports it. Names are cut at 80
+characters, at a word boundary.
 
-The outline is capped at 600 tokens (`page.TreeTokens`). At 3 characters to a token that's 1,800 characters.
-On a bigger page the engine keeps the landmarks and the focused element first. Headings come next, then
-interactive elements in page order. A last line says how many entries were left out.
+The outline is capped at 1,500 tokens (`page.TreeTokens`). At 3 characters to a token that's 4,500 characters.
+On a bigger page the engine keeps the landmarks and the focused element first. H1 and H2 headings come next,
+then H3 headings and the controls in the main content, then deeper headings, and the controls in the header,
+menus, footer and sidebars come last. Page order is kept. A last line says how many entries were left out and
+how many of them were controls and headings. If the outline can't be built, the numbered controls are listed
+on their own. The page text that follows is cut at 4,000 characters.
+
+Moving focus with Tab counts as a change on the page, so a persona tabbing through a page isn't told that
+nothing happened. The focus line and the outline are also saved in `steps.jsonl` under `page.focus` and
+`page.tree`.
+
+A document that isn't a web page, such as an RSS feed, a PDF or JSON, is described as a file. The observation
+says, "This is not a web page," with its content type. It has no controls or text, and the accessibility check
+doesn't run on it. The type is saved as `page.content_type` in `steps.jsonl`.
+
+### Test notes in the observation
+
+Lines that come from the test are worded as the test's, never as page content. Requests the test stopped on the
+site's own hosts, such as a form's POST on a read-only target, are listed on the step, because they explain why
+something did nothing. Page loads and writes on other sites are counted once per run, on the first step where
+they happen, with a line saying they're the test's rule and not a fault of the site. The `a11y` result names up
+to three failing elements of each rule, by axe's selector and the element's accessible name, and says how many
+more there are. The geometry heuristics behind the `layout:` line are unchanged for now.
 
 ## The run record
 
@@ -443,8 +474,26 @@ lines. [TELEMETRY.md](TELEMETRY.md) explains what a repeat does.
 Set `"read_only": true` in the target file to stop a run sending anything but reads. The engine intercepts
 every request the browser makes. A request to an allowed host with any method other than GET, HEAD or OPTIONS
 fails as a network error before it leaves the browser. The step that caused it gets a note such as
-`blocked: POST https://example.test/subscribe (read-only target)`. A request to a host outside `allowed_hosts`
-fails the same way. The only exception is the sign-in request, described under [Sign in](#sign-in).
+`blocked: POST https://example.test/subscribe (read-only target)`. A write to a host outside `allowed_hosts`
+fails the same way, read-only or not. The only exception is the sign-in request, described under [Sign in](#sign-in).
+
+Documents load only from `allowed_hosts`: the page in the persona's tab, frames and pop-ups. What a page loads
+to show itself is different. These are its images, stylesheets, fonts, scripts, media and fetch calls. They may
+come from any public host by GET or HEAD. Sites keep them on CDNs, and a page without them isn't the page a
+visitor sees.
+
+The engine tells the two apart from what the browser reports for each request. A request with a navigation id,
+or whose destination is a document, frame, object or embed, is a document load. Everything else is a
+subresource. A subresource is still refused when its host is, or resolves to, an internal address. That covers
+loopback, private, link-local, carrier-grade NAT and other special-use ranges, including IPv6 forms that carry
+an IPv4 address. It holds even for a local target. If your app loads assets from a second local port, list it
+in `allowed_hosts`. The run's trace headers go only to the target's own origins. Allowed subresources aren't
+noted on the step.
+
+The address check runs once when the request starts, so it can't stop a name that later points somewhere else
+(DNS rebinding). Frames from other hosts are refused for that reason, since a frame runs with its own origin. A
+script on the page itself can't read a response from another host unless that host allows it. Run the engine on
+a network that blocks the browser from internal addresses if a page you test might try.
 
 The engine judges a request by its method, so a GET that changes state in your app still goes through. If
 signing out is a GET link, list its path in `signin.block_paths`.
@@ -456,8 +505,8 @@ An `allowed_hosts` entry is a host name or `host:port`. A bare host name matches
 request's scheme. It also matches the port of `base_url`, when it's the base URL's own host. Any other port
 needs its own `host:port` entry. For example, with a bare `127.0.0.1` entry and no `127.0.0.1:9000` entry, a
 page on `127.0.0.1:8080` can't reach a service on `127.0.0.1:9000`. Matching is exact, so each subdomain needs
-its own entry. A request or a `visit` to a host outside the list isn't followed. The step gets a `blocked:`
-note and the record gets an `off_origin_blocked` event.
+its own entry. A page load or a `visit` to a host outside the list isn't followed, and nor is a write. The step
+gets a `blocked:` note and the record gets an `off_origin_blocked` event.
 
 ## Untrusted page content
 
@@ -488,27 +537,39 @@ the threats. Here is what the engine does about prompt injection.
   inside `aria-hidden`. So are `aria-label`, `title`, `alt` and comments. The model still receives the skipped text, so a
   hostile page can hide an instruction in a visible code element without being flagged. Fencing still applies.
 - A lone "system prompt" or "call `finish`" in visible prose is a weak match. It becomes an event with
-  `low confidence:` in its detail, and it neither warns the persona nor files a finding.
-- A strong match adds a `HARNESS WARNING` line to that step's result and a `suspected_injection` event to the
-  run record. It also adds one finding of kind `security` that cites every step with a match. The engine files
-  this finding itself, so it's there even if the persona obeyed the page. Its symptom is `misleading-copy` and
-  its verdict is `pending`. Its severity is `major` when the text was hidden or held invisible characters, and
-  `minor` otherwise.
+  `low confidence:` in its detail, and it doesn't warn the persona.
+- A strong match adds a `HARNESS WARNING` line to that step's result, which tells the persona the text is data
+  from the website to ignore, and a `suspected_injection` event to the run record. Detector hits are recorded as events in the run record for the operator, never as findings. The
+  detector also fires on ordinary text, and a site owner can't act on a guess about what a page meant.
 - A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
+- A finding whose cited steps all show the test's own limits is dropped and recorded as a
+  `harness_limit_finding` event that says why. These are the steps that count as the test's limits:
+  - the browser couldn't read the page
+  - a tool was refused or failed, such as a lost connection, a timeout or an accessibility check that didn't finish
+  - the page was a feed or other file
+  - the persona's action sent a request the test blocked and the address stayed the same, when the finding
+    says something didn't work, was slow, showed an error or couldn't be reached
+  - the persona's action sent a request the test blocked and the browser showed its own error page instead
+
+  A request the page sent by itself, such as a beacon while the persona scrolled, doesn't count. A finding
+  with at least one cited step that shows the real page is kept. The persona is also told that these limits
+  aren't the site's faults.
 
 The record's `events` array is optional. Each event has a `kind` and a short `detail`, plus a `step` where one
 applies. A `suspected_injection` event also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
 Its `detail` is page text, so treat it as data. `dummyrun-otel` doesn't export events.
 
 A reader built from an older copy of `schema/run-record.schema.json` rejects a record that has `events`, the
-outcome `provider_filtered` or a finding of kind `security`. `dummyrun-otel` reads the outcome and the finding
+outcome `provider_filtered`, the event kind `harness_limit_finding` or a finding of kind `security`. Records
+written before these existed stay valid. The engine no longer files `security` findings itself, but the kind
+stays in the schema. `dummyrun-otel` reads the outcome and the finding
 kind and ignores `events`.
 
 ### When the provider refuses
 
 Sometimes a model provider refuses a call because its content filter objects to the page. The run stops, and
 the command exits with status 1. The record has the outcome `provider_filtered`, a `provider_filtered` event,
-the steps so far and any security finding. `report.md` and the command's message both say the provider
+the steps so far and the model's findings, if any. `report.md` and the command's message both say the provider
 refused.
 
 Each provider signals a refusal in its own way, and the engine maps all of them to this outcome:

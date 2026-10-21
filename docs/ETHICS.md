@@ -24,7 +24,7 @@ Some providers keep prompts and responses for a while to monitor abuse. Azure Op
 
 ## Read-only by policy
 
-A target with `"read_only": true` blocks every request to another host, and every request that could change data apart from the sign-in form's own request while the engine signs in. Use it for any site you don't own, and add `--identify` and `--respect-robots` so the site's owner can see who you are and keep you out if they want to. The [engine guide](ENGINE.md) describes the policy in full. Run the permission personas only on a test environment with test accounts.
+A target with `"read_only": true` blocks every request that could change data, on any host, apart from the sign-in form's own request while the engine signs in. The persona only opens pages on the site's own hosts, and frames from other hosts are refused. A page may still load images, styles, fonts and scripts from other public hosts by GET or HEAD. A CDN is a common example. This means the persona sees the page a visitor sees. Use it for any site you don't own, and add `--identify` and `--respect-robots` so the site's owner can see who you are and keep you out if they want to. The [engine guide](ENGINE.md) describes the policy in full. Run the permission personas only on a test environment with test accounts.
 
 ## Findings about apps you don't own
 

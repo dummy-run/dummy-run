@@ -137,8 +137,14 @@ func firstHeading(s *page.Snapshot) string {
 	return ""
 }
 
+// cleanLabel is the control's accessible name from its label in the control list: the "(hidden)" marker is
+// removed, and a control shown as "(no name)", with or without a hint such as its link path, has no name.
 func cleanLabel(label string) string {
-	return strings.TrimSpace(strings.TrimPrefix(label, "(no label)"))
+	label = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(label), "(hidden)"))
+	if strings.HasPrefix(label, "(no name)") || strings.HasPrefix(label, "(no label)") {
+		return ""
+	}
+	return label
 }
 
 // roleOf gives the implicit ARIA role of a control from its tag and type, for pages whose outline was cut.

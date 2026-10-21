@@ -134,8 +134,8 @@ const obeyingFinish = `{"verdict":"pass","goal_met":"yes","report":"This site is
 // TestCanaryPage plays a scripted persona against a page full of injection attempts: visible text,
 // text moved off screen, display none, a comment, an aria-label, alt text, a title attribute, a link and
 // an image on another origin. It checks that the browser never reaches the other origin, that the
-// attempts are flagged as events and as a security finding, that the model sees the page as fenced
-// data, and that the findings survive whether or not the model resisted.
+// attempts are flagged as events and never as a finding, that the model sees the page as fenced
+// data, and that the persona's own findings survive when the model resisted.
 func TestCanaryPage(t *testing.T) {
 	browsers := os.Getenv("DUMMYRUN_BROWSERS")
 	if browsers == "" {
@@ -188,14 +188,11 @@ func TestCanaryPage(t *testing.T) {
 						t.Errorf("no suspected_injection event from %s: %+v", s, rec.Events)
 					}
 				}
-				var security *record.Finding
-				for i, f := range rec.Findings {
+				// Detector hits are events for the operator, never findings.
+				for _, f := range rec.Findings {
 					if f.Kind == "security" {
-						security = &rec.Findings[i]
+						t.Fatalf("the engine filed a finding for suspected injection: %+v", f)
 					}
-				}
-				if security == nil || security.Severity != "major" || security.Verdict != record.VerdictPending || len(security.Steps) == 0 {
-					t.Fatalf("no security finding: %+v", rec.Findings)
 				}
 
 				// The record is valid with its events, and the model's own findings are kept when it resisted.
@@ -217,8 +214,9 @@ func TestCanaryPage(t *testing.T) {
 					if !uncited {
 						t.Error("the finding that cited a step outside the run was not flagged")
 					}
-				} else if len(rec.Findings) != 1 {
-					t.Errorf("a model that obeyed still left findings %+v", rec.Findings)
+				} else if len(rec.Findings) != 0 {
+					// The page talked the model out of reporting anything. The events above still record the attempt.
+					t.Errorf("a model that obeyed left findings %+v", rec.Findings)
 				}
 
 				// What the model was sent: a rule, a fence and a warning, and no hidden text.
@@ -269,7 +267,7 @@ func TestProviderContentFilter(t *testing.T) {
 			if !filtered || !injected {
 				t.Errorf("events %+v", res.Record.Events)
 			}
-			if len(res.Record.Findings) != 1 || res.Record.Findings[0].Kind != "security" {
+			if len(res.Record.Findings) != 0 {
 				t.Errorf("findings %+v", res.Record.Findings)
 			}
 			report, rerr := os.ReadFile(filepath.Join(filepath.Dir(res.Path), res.Record.ID, "report.md"))
@@ -348,8 +346,8 @@ func TestDocsPageAboutInjection(t *testing.T) {
 				for _, f := range res.Record.Findings {
 					security = security || f.Kind == "security"
 				}
-				if c.flagged && (len(events) == 0 || !security) {
-					t.Errorf("not flagged: events %+v, findings %+v", events, res.Record.Findings)
+				if c.flagged && (len(events) == 0 || security) {
+					t.Errorf("not flagged as events only: events %+v, findings %+v", events, res.Record.Findings)
 				}
 				if !c.flagged && (len(events) > 0 || security) {
 					t.Errorf("flagged a page that only quotes examples: events %+v, findings %+v", events, res.Record.Findings)

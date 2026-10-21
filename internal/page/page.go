@@ -22,23 +22,38 @@ import (
 )
 
 //go:embed look.js
-var lookJS string
+var lookSrc string
 
 //go:embed tree.js
-var treeJS string
+var treeSrc string
+
+// namesJS is the role, name and exposure code that look.js, tree.js and the a11y tool share. It is spliced into
+// each where it says NAMES, so they can never name an element two ways.
+//
+//go:embed names.js
+var namesJS string
+
+var (
+	lookJS   = withNames(lookSrc)
+	treeJS   = withNames(treeSrc)
+	axeRunJS = withNames(axeRunSrc)
+)
+
+func withNames(src string) string { return strings.Replace(src, "/*NAMES*/", namesJS, 1) }
 
 //go:embed axe/axe.min.js
 var axeJS string
 
 const (
 	maxControls = 120
-	textLimit   = 2500
+	textLimit   = 4000
 	logLimit    = 20000
 	settleWait  = 5 * time.Second
 	// MaxWait caps the wait tool.
 	MaxWait = 15
-	// TreeTokens is the budget for the accessibility outline in one observation.
-	TreeTokens = 600
+	// TreeTokens is the budget for the page outline in one observation: landmarks, headings and controls. It is the
+	// only list of controls the persona reads, so it has the room the second control list used to take.
+	TreeTokens = 1500
 	// CharsPerToken converts that budget to characters. Three is deliberately
 	// low: outline lines are short names and punctuation, which tokenise worse than prose.
 	CharsPerToken = 3
@@ -51,6 +66,31 @@ type Request struct {
 	Method  string
 	URL     string
 	Headers []bidi.Header
+	// Navigation is true for a document load, in the persona's tab, a frame or a pop-up: what policy.Navigation
+	// means. Everything else, images, styles, scripts, media and fetches, is a subresource.
+	Navigation bool
+}
+
+// isTopNavigation decides whether a request loads a document: into the persona's tab, a frame or a pop-up. It
+// errs towards navigation: a request with a navigation id, or whose destination is a document, frame, object or
+// embed, is one, and so is a request with no hints at all that asks for HTML first.
+func isTopNavigation(e bidi.BeforeRequestSent, _ string) bool {
+	switch e.Request.Destination {
+	case "document", "iframe", "frame", "object", "embed":
+		return true
+	case "":
+	default:
+		return false
+	}
+	if e.Navigation != "" {
+		return true
+	}
+	for _, h := range e.Request.Headers {
+		if strings.EqualFold(h.Name, "accept") {
+			return strings.HasPrefix(strings.TrimSpace(h.Value.Value), "text/html")
+		}
+	}
+	return false
 }
 
 // Decision is what the hook wants done with a request.
@@ -91,9 +131,13 @@ type Options struct {
 
 // Control is one numbered interactive element from the last look.
 type Control struct {
-	Ref       string `json:"ref"`
-	Tag       string `json:"tag"`
-	Type      string `json:"type"`
+	Ref  string `json:"ref"`
+	Tag  string `json:"tag"`
+	Type string `json:"type"`
+	// Role is the control's role, such as link, button or combobox.
+	Role string `json:"role,omitempty"`
+	// Label is the control's accessible name, the same one the outline gives it, cut at a word boundary. A control
+	// with no name is "(no name)", sometimes followed by its link path as a hint.
 	Label     string `json:"label"`
 	Href      string `json:"href,omitempty"`
 	Disabled  bool   `json:"disabled,omitempty"`
@@ -102,15 +146,19 @@ type Control struct {
 
 // Snapshot is the page as text.
 type Snapshot struct {
-	URL      string    `json:"url"`
-	Title    string    `json:"title"`
-	Viewport []int     `json:"viewport"`
-	Scroll   []int     `json:"scroll"`
-	Headings []string  `json:"headings"`
-	Alerts   []string  `json:"alerts"`
-	Text     string    `json:"text"`
-	LogText  string    `json:"log_text"`
-	Controls []Control `json:"controls"`
+	URL string `json:"url"`
+	// ContentType is the document's MIME type as the browser reports it (document.contentType). Empty means
+	// unknown, which is read as HTML. Anything else, such as an RSS feed, a PDF or JSON, is not a web page:
+	// the observation says so and has no controls, and the accessibility check does not run on it.
+	ContentType string    `json:"content_type,omitempty"`
+	Title       string    `json:"title"`
+	Viewport    []int     `json:"viewport"`
+	Scroll      []int     `json:"scroll"`
+	Headings    []string  `json:"headings"`
+	Alerts      []string  `json:"alerts"`
+	Text        string    `json:"text"`
+	LogText     string    `json:"log_text"`
+	Controls    []Control `json:"controls"`
 	// Hidden is text and attribute values a person does not see: hidden or off-screen text, comments,
 	// aria-label, title and alt values. The model is not sent it. The engine scans it for injection.
 	Hidden []string `json:"hidden,omitempty"`
@@ -153,7 +201,27 @@ type Violation struct {
 	Impact string `json:"impact"`
 	Help   string `json:"help"`
 	Nodes  int    `json:"nodes"`
+	// Elements names a few of the failing elements: axe's selector and the element's accessible name.
+	Elements []ViolationElement `json:"elements,omitempty"`
 }
+
+// ViolationElement is one element that failed an axe rule.
+type ViolationElement struct {
+	Selector string `json:"selector"`
+	Name     string `json:"name,omitempty"`
+}
+
+// ErrNotAWebPage is the error of a tool that needs an HTML document on a feed, a PDF or another file.
+var ErrNotAWebPage = errors.New("this is not a web page")
+
+// IsHTML reports whether a document content type is a web page. An empty type counts as one.
+func IsHTML(contentType string) bool {
+	t := strings.ToLower(strings.TrimSpace(contentType))
+	return t == "" || strings.HasPrefix(t, "text/html") || strings.HasPrefix(t, "application/xhtml+xml")
+}
+
+// NotAWebPage reports whether a snapshot is of a document that is not a web page.
+func (s *Snapshot) NotAWebPage() bool { return s != nil && !IsHTML(s.ContentType) }
 
 // Observation is what one action produced.
 type Observation struct {
@@ -324,7 +392,7 @@ func (p *Page) decide(e bidi.BeforeRequestSent) {
 	defer cancel()
 	var d Decision
 	if p.hook != nil {
-		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers})
+		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers, Navigation: isTopNavigation(e, p.cx)})
 	}
 	if d.Block {
 		p.mu.Lock()
@@ -537,6 +605,10 @@ func (p *Page) Wait(ctx context.Context, seconds int) Observation {
 func (p *Page) A11y(ctx context.Context) Observation {
 	var violations []Violation
 	obs := p.act(ctx, "a11y", "", func(ctx context.Context) error {
+		var ctype string
+		if err := p.conn.CallFunctionJSON(ctx, p.cx, "function(){ return document.contentType || ''; }", &ctype); err == nil && !IsHTML(ctype) {
+			return fmt.Errorf("%w, so the accessibility check did not run", ErrNotAWebPage)
+		}
 		var loaded bool
 		if err := p.conn.CallFunctionJSON(ctx, p.cx, "function(){ if (!window.axe) { "+axeJS+"\n } return !!window.axe; }", &loaded); err != nil {
 			return fmt.Errorf("inject axe-core: %w", err)
@@ -609,7 +681,7 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 	mark, merr := lookMark()
 	if merr != nil {
 		obs.Error = "could not read the page: " + merr.Error()
-	} else if err := p.conn.CallFunctionJSON(ctx, p.cx, lookJS, &snap, maxControls, textLimit, logLimit, mark); err == nil {
+	} else if err := p.lookWithAxe(ctx, &snap, mark); err == nil {
 		snap.Zoom = p.zoom
 		if p.textScale > 100 {
 			snap.TextScale = p.textScale
@@ -645,6 +717,15 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 		p.controls = obs.Snapshot.Controls
 	}
 	p.mu.Unlock()
+}
+
+// lookWithAxe loads axe-core into the page when it is a web page and axe is not there yet, so look.js and tree.js
+// can name controls with axe's own functions, then runs look.js. If axe cannot load, the spec computation names them.
+func (p *Page) lookWithAxe(ctx context.Context, snap *Snapshot, mark string) error {
+	var loaded bool
+	_ = p.conn.CallFunctionJSON(ctx, p.cx, "function(){ if (!/^(text\\/html|application\\/xhtml\\+xml)/i.test(document.contentType || '')) return false; "+
+		"if (!window.axe) { "+axeJS+"\n } return !!window.axe; }", &loaded)
+	return p.conn.CallFunctionJSON(ctx, p.cx, lookJS, snap, maxControls, textLimit, logLimit, mark)
 }
 
 // addOutline adds focus and the accessibility outline to a snapshot. A page
@@ -794,8 +875,24 @@ const scrollJS = `(by) => {
   return null;
 }`
 
-const axeRunJS = `() => window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })
-  .then((r) => r.violations.map((v) => ({ id: v.id, impact: v.impact || "", help: v.help, nodes: v.nodes.length })))`
+// axeRunSrc runs axe and names up to three failing elements of each rule by selector and accessible name.
+const axeRunSrc = `() => window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })
+  .then((r) => {
+/*NAMES*/
+    const named = (sel) => {
+      try {
+        const el = document.querySelector(sel);
+        return el ? drClip(drSpecName(el, drRole(el)), 60) : "";
+      } catch (e) {
+        return "";
+      }
+    };
+    return r.violations.map((v) => ({ id: v.id, impact: v.impact || "", help: v.help, nodes: v.nodes.length,
+      elements: v.nodes.slice(0, 3).map((n) => {
+        const sel = (n.target || []).map(String).join(" ");
+        return { selector: drClip(sel, 120), name: named(sel) };
+      }) }));
+  })`
 
 // SetUserAgent replaces navigator.userAgent for the run's tab.
 func (p *Page) SetUserAgent(ctx context.Context, ua string) error {

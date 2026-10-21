@@ -92,7 +92,9 @@ Root span attributes:
 | `dummyrun.steps.count` | The number of entries in `steps` |
 
 The root span's status is `ERROR` when the outcome is `errored`, `blocked` or `provider_filtered`, and
-`OK` otherwise. A record's `events` list isn't exported.
+`OK` otherwise. A record's `events` list isn't exported, including the `harness_limit_finding` events for
+findings the engine dropped because they showed only the test's own limits. Records written before that kind
+existed stay valid. A reader built from an earlier copy of the schema rejects a record that has one.
 
 Every step span has `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun.step.target`. When the step
 has them, it also gets `url.full` and `http.response.status_code`, plus
