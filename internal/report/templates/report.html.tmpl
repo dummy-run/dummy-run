@@ -443,7 +443,7 @@ footer p { margin: 0 0 0.4rem; }
 {{if .Axe}}
 <section id="axe-sweep" aria-labelledby="h-axe">
 <h2 id="h-axe">Axe sweep and layout checks</h2>
-<p>The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{range .Axe.Tags}}<code>{{.}}</code> {{end}}{{if .Axe.AdviceTags}}, and as advice {{range .Axe.AdviceTags}}<code>{{.}}</code> {{end}}{{end}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.</p>
+<p>The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} {{if eq .Axe.Pages 1}}page{{else}}pages{{end}} in {{.Axe.Runs}} {{if eq .Axe.Runs 1}}setting{{else}}settings{{end}} (browser, viewport and colour scheme), on {{join .Axe.Browsers}}. It checked the rules with these tags: {{range .Axe.Tags}}<code>{{.}}</code> {{end}}{{if .Axe.AdviceTags}}. It also checked {{range .Axe.AdviceTags}}<code>{{.}}</code> {{end}}, and lists the rules from those that are not WCAG A or AA rules as advice{{end}}. It found {{.Axe.FailingNodes}} failing {{if eq .Axe.FailingNodes 1}}element{{else}}elements{{end}}{{if .Axe.AllowedNodes}} and set aside {{.Axe.AllowedNodes}} on the allow-list{{end}}.</p>
 {{if .Axe.Rules}}
 <div class="table-wrap" role="region" tabindex="0" aria-label="Rules that failed">
 <table>
@@ -492,7 +492,7 @@ footer p { margin: 0 0 0.4rem; }
 {{end}}
 {{if .Axe.Advice}}
 <h3 class="sub">Advice beyond WCAG A and AA</h3>
-<p>These are axe's best-practice rules and any rule that is only WCAG AAA. They are not WCAG A or AA failures and are not counted above, but each one makes the site harder to use for someone.</p>
+<p>These are axe's best-practice rules that are not WCAG A or AA rules (a few are WCAG AAA). They are not WCAG A or AA failures and are not counted above, but each one makes the site harder to use for someone.</p>
 <div class="table-wrap" role="region" tabindex="0" aria-label="Best-practice advice">
 <table>
 <caption>Best-practice advice</caption>

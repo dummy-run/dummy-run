@@ -882,7 +882,7 @@ func TestAdviceIsShownApartFromFailures(t *testing.T) {
 	if len(rep.Axe.AdviceTags) != 1 || slices.Contains(rep.Axe.Tags, "best-practice") {
 		t.Errorf("advice tags should be listed apart from the WCAG tags: %v / %v", rep.Axe.Tags, rep.Axe.AdviceTags)
 	}
-	if out := render(t, rep, "md"); !strings.Contains(out, "and as advice `best-practice`") {
+	if out := render(t, rep, "md"); !strings.Contains(out, "It also checked `best-practice`") {
 		t.Error("the check scope does not name the advice tags")
 	}
 	if rep.Axe.FailingNodes != before.Axe.FailingNodes || len(rep.Axe.Rules) != len(before.Axe.Rules) {

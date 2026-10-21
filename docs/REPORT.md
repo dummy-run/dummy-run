@@ -128,7 +128,7 @@ counted and left out. Rules axe can't decide are listed separately under "needs 
 pages that couldn't be tested.
 
 Axe's best-practice rules, such as content outside any landmark or headings that skip a level, have their own
-table, "Advice beyond WCAG A and AA", with any rule that is only WCAG AAA. They aren't WCAG A or AA failures, so
+table, "Advice beyond WCAG A and AA". A few of them are WCAG AAA rules. They aren't WCAG A or AA failures, so
 they aren't counted as failing elements. The report's JSON keeps them in `axe.advice` and the tags checked in
 `axe.advice_tags`. A sweep made before advice existed has none.
 

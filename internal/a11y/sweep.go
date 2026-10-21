@@ -485,7 +485,8 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 }
 
 // adviceOnly is true for a rule that has none of the WCAG A and AA level tags the sweep tests: a best-practice
-// rule, or one that is only a WCAG AAA rule, which is advice and not a failure.
+// rule, which is advice and not a failure. The sweep runs no AAA tag, so an AAA rule is here only when it is also
+// a best-practice rule.
 func adviceOnly(tags []string) bool {
 	for _, t := range tags {
 		if slices.Contains(Tags, t) {
