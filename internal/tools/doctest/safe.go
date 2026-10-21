@@ -67,6 +67,8 @@ func checkSafe(line string) error {
 		return nil
 	case words[0] == "dummyrun-otel" && args[0] == "export" && contains(args, "--dry-run"):
 		return nil
+	case words[0] == "dummyrun" && args[0] == "browsers" && len(args) == 2 && args[1] == "list":
+		return nil
 	case words[0] == "dummyrun" && args[0] == "coverage":
 		// Coverage only reads run records. --out would write a file, so it is not allowed here.
 		for _, a := range args[1:] {

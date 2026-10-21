@@ -10,8 +10,12 @@ The list of commands and the model providers.
 
 ```text
 Usage:
+  dummyrun browsers install [chrome|firefox|all]
+  dummyrun browsers list
+  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
-      --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
+      --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
@@ -28,9 +32,12 @@ Usage:
   dummyrun mcp [--allow-origin ORIGIN]... [--provider PROVIDER --model MODEL] [--cast DIR]... [--out DIR]
   dummyrun version
 
-Run "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+First run: "dummyrun browsers install" once, set one model key, then "dummyrun try https://your-site".
+Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
-Providers:
+Providers (leave out --provider and --model to have them chosen from your environment, in this order:
+DUMMYRUN_AZURE_ENDPOINT, OPENAI_API_KEY, ANTHROPIC_API_KEY, then Ollama on OLLAMA_HOST or localhost:11434;
+the first line of the output says what was chosen, and docs/PROVIDERS.md lists the default models):
   azure              Azure OpenAI. --endpoint or DUMMYRUN_AZURE_ENDPOINT; sign in with "az login" or another
                      DefaultAzureCredential source. --region is required.
   openai-compatible  Any OpenAI-style service or local server. --endpoint is the base URL, such as
@@ -74,7 +81,7 @@ Usage of run:
   -identify
     	add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent (also set by "identify": true in the target file)
   -model string
-    	deployment or model name
+    	deployment or model name (optional where a default exists; see docs/PROVIDERS.md)
   -openai-api string
     	OpenAI-style API: chat (default) or responses, for models that need it to call tools
   -out string
@@ -84,7 +91,7 @@ Usage of run:
   -project string
     	Google Cloud project for the vertex provider
   -provider string
-    	model provider: azure, openai-compatible, anthropic, gemini, vertex, bedrock (default "azure")
+    	model provider: azure, openai-compatible, anthropic, gemini, vertex, bedrock. Left out, it is chosen from your environment: DUMMYRUN_AZURE_ENDPOINT, OPENAI_API_KEY, ANTHROPIC_API_KEY, then Ollama
   -reasoning-effort string
     	reasoning effort for OpenAI-style models: none, minimal, low, medium, high or xhigh
   -region string

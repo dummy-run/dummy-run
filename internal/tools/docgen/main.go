@@ -61,6 +61,10 @@ func run(check bool) error {
 	if err != nil {
 		return fmt.Errorf("docs/PROVIDERS.md: %w", err)
 	}
+	providersNew, err = replaceMarked(providersNew, defaultsBegin, defaultsEnd, renderDefaults())
+	if err != nil {
+		return fmt.Errorf("docs/PROVIDERS.md: %w", err)
+	}
 	files := map[string]string{
 		filepath.Join(root, "docs", "CLI.md"): cli,
 		providersPath:                         providersNew,

@@ -42,7 +42,7 @@ dummyrun a11y --viewport desktop --scheme light --allow site/a11y-allow.txt http
 `hugo server` serves a live preview on port 1313. The accessibility check is `dummyrun a11y`, the
 engine's own sweep (see `docs/ENGINE.md`). It runs every page in the sitemap, and the 404 page, at
 1280 and 375 pixels wide in the light and dark colour schemes. It needs Go, Chrome with chromedriver
-(`DUMMYRUN_CHROME`, `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
+(`dummyrun browsers install`, or `DUMMYRUN_CHROME` and `DUMMYRUN_CHROMEDRIVER`) and a built site served on port 1313. Add `--browser firefox`
 to run it on Firefox. Accepted violations go in `a11y-allow.txt`, each with a reason.
 
 ## Large text

@@ -60,4 +60,4 @@ See "Protected previews" in the [engine guide](docs/ENGINE.md).
 
 ## Supported versions
 
-Only `main`, until the first release.
+We fix security problems in the newest release. Fixes land on `main` first. [Releases](https://github.com/dummy-run/dummy-run/releases) lists the versions, so update to the latest one.

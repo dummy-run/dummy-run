@@ -77,6 +77,9 @@ func TestPreviewFlagsOnSessionSaveAndA11y(t *testing.T) {
 	if got := run([]string{"session", "save", "--target", signin, "--role", "viewer", "--out", t.TempDir() + "/s.json", "--basic-auth-env", "nocolon"}); got != 2 {
 		t.Errorf("session save with a bad --basic-auth-env exited %d, want 2", got)
 	}
+	if got := run([]string{"try", "https://example.test/", "--header-env", "nocolon"}); got != 2 {
+		t.Errorf("try with a bad --header-env exited %d, want 2", got)
+	}
 	if got := run([]string{"a11y", "https://example.test/", "--header-env", "nocolon"}); got != 2 {
 		t.Errorf("a11y with a bad --header-env exited %d, want 2", got)
 	}

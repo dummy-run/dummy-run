@@ -49,9 +49,8 @@ Homebrew token.
    an SBOM for each archive, `checksums.txt` and `checksums.txt.sigstore.json`.
 9. Announce it. Link the release page and the changelog section.
 
-After the first release, remove the "no tagged version" wording. It is in the README banner, in the
-Supported versions section of `SECURITY.md` and in the install note of `docs/ENGINE.md`. Add a Homebrew
-section to `docs/INSTALL.md` when the tap is on.
+The download steps in `docs/INSTALL.md` and `site/content/start.md` tell the reader to take the newest release, so
+they need no edit. Add a Homebrew section to `docs/INSTALL.md` when the tap is on.
 
 ## When a release fails
 

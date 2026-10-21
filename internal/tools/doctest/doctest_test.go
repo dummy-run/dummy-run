@@ -48,6 +48,8 @@ func TestCheckSafe(t *testing.T) {
 		"dummyrun version",
 		"dummyrun --help",
 		"dummyrun run -h",
+		"dummyrun browsers list",
+		"dummyrun try -h",
 		"dummyrun-otel export --dry-run examples/runs",
 		"dummyrun-otel export --dry-run examples/runs | head -n 5",
 		"dummyrun coverage --runs examples/runs --build a865ffd",
@@ -63,6 +65,9 @@ func TestCheckSafe(t *testing.T) {
 	}
 	bad := []string{
 		"dummyrun run --cast casts/library --persona x --scenario y --target t --out o --model m",
+		"dummyrun browsers install",
+		"dummyrun browsers install all",
+		"dummyrun try https://example.com",
 		"dummyrun-otel export examples/runs",
 		"dummyrun-otel watch examples/runs",
 		"dummyrun a11y https://example.com/",
