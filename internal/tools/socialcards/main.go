@@ -59,17 +59,17 @@ type card struct {
 
 var cards = []card{
 	{"home", "AI plays your users before your customers do", "Fictional users with real roles try your preview and report what broke."},
-	{"how-it-works", "How a run works", "A persona signs in, tries to do its job and reports back. A reviewer checks every claim."},
-	{"start", "Get started", "Install the command, run one persona in read-only mode and read the run in Grafana."},
+	{"how-it-works", "How a run works", "A persona signs in, tries to get a job done and tells you where it got stuck."},
+	{"start", "Get started", "Install the command, send one persona to a site in read-only mode and read what it found."},
 	{"personas", "The persona library", "Ready-made personas for the users every site has. Copy the command that runs each one."},
-	{"for", "Who it is for", "Six jobs use Dummy Run for different reasons. Pick yours."},
+	{"for", "Who it is for", "Pick the job closest to yours and see what Dummy Run gives you."},
 	{"for-qa-lead", "For QA leads", "Exploratory testing by role on every pull request, with evidence behind each finding."},
 	{"for-developer", "For developers", "Your product used the way a customer uses it, on your laptop or in CI."},
 	{"for-product-and-ux", "For product and UX", "Friction and confusion, each tied to the step and screenshot where it happened."},
 	{"for-compliance-and-security", "For compliance and security", "What each role can see or do beyond its rights, and what leaves your environment."},
-	{"for-executive", "For executives", "One board showing what is broken, who it affects and the evidence."},
-	{"for-agency", "For agencies", "One cast run against every client's preview, with each client's data kept in its market."},
-	{"docs", "Docs", "How a run is built, how to connect it to Grafana, and the documents that govern the project."},
+	{"for-executive", "For executives", "A clear report of what is broken, who it affects and the screenshot that shows it."},
+	{"for-agency", "For agencies", "The same personas for every client, with the model in the region each client needs."},
+	{"docs", "Docs", "Install the engine, run personas, read the report and connect the tools you already use."},
 }
 
 func main() {

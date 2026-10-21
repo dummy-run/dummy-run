@@ -50,7 +50,7 @@ Too few findings repeated to estimate how many problems are still unfound.
 - Browsers: chrome 148.0, firefox 146.0
 - Axe sweep: 2 pages in 3 settings
 
-> **Read this as a sample.** This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. See [What this report is not](#what-this-report-is-not).
+> Read this as a sample. This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. See [What this report is not](#what-this-report-is-not).
 
 ## Findings
 
@@ -60,7 +60,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 #### A contributor can open the rates table for all writers
 
-**Major**. Confirmed by a reviewer.
+Major. Confirmed by a reviewer.
 
 The Payments page, the Rates link (`/payments`)
 
@@ -84,7 +84,7 @@ Technical details: run `2026-10-17-lin-contributor-008`, step 7; persona `lin-co
 
 #### Scheduling an issue for a past date returns a server error
 
-**Major**. Confirmed by a reviewer.
+Major. Confirmed by a reviewer.
 
 The Issues page, the Schedule button (`/issues`)
 
@@ -108,7 +108,7 @@ Technical details: run `2026-10-16-ada-editor-003`, step 7; persona `ada-editor`
 
 #### The hint under the schedule field is too faint to read
 
-**Minor**. Not reviewed.
+Minor. Not reviewed.
 
 The Issues page, the Schedule form area (`/issues`)
 
@@ -136,7 +136,7 @@ Technical details: run `2026-10-16-ada-editor-003`, step 3; persona `ada-editor`
 
 #### The payment status 'settled' is unclear to a contributor
 
-**Info**. Confirmed by a reviewer.
+Info. Confirmed by a reviewer.
 
 The Payments page, the Payment status area (`/payments`)
 

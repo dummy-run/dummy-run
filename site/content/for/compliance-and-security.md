@@ -4,11 +4,11 @@ role: Compliance and security
 icon: shield
 lead_short: What each role can reach
 weight: 50
-lead: What each role can see or do beyond its rights, and exactly what leaves your environment.
-description: What you get from Dummy Run in compliance and security. Permission findings verified against the code, a plain list of what leaves your environment, whether screenshots reach the model provider and how data residency covers exported telemetry.
+lead: Find out what each role can see or do that it shouldn't, and know exactly what leaves your environment while you test.
+description: What you get from Dummy Run in compliance and security. Permission findings you can check against the code, a plain list of what leaves your environment, whether screenshots reach the model provider and where telemetry lives.
 next:
   title: Read the rules in full
-  text: The architecture page defines adapters, market profiles and the evidence rule.
+  text: The architecture page explains how runs, providers and storage fit together.
   label: Read the architecture
   href: /docs/architecture/
 ---
@@ -17,46 +17,34 @@ next:
 
 | Question | Answer |
 |---|---|
-| Where do run records and screenshots live? | In the results store you choose, such as a local directory or your own object storage. |
-| Do screenshots reach the model provider? | Yes. The persona is a model that reads what the browser shows, so the provider you choose receives page text and screenshots (inferred). |
-| Does exported telemetry carry screenshots or page text? | It carries no screenshots and no page snapshots. It carries IDs, outcomes and the target environment (code: `integrations/grafana/exporter/internal/telemetry/plan.go`). It adds page URLs, the model, its region and the cost. It adds each finding's title and verdict. A title is a sentence the persona wrote and can quote a few words of the page. |
-| Where does telemetry reside? | Wherever your own OpenTelemetry backend is. Dummy Run sends it nowhere else. |
-| Does a market profile cover exported telemetry? | No. The profile checks the adapters. Your OpenTelemetry backend is not one, so host it in the same market. |
+| Where do run records and screenshots live? | Wherever you keep your runs, such as a local folder or your own object storage. |
+| Do screenshots reach the model provider? | Yes, for every persona except the screen-reader one, which is never sent screenshots. The persona is a model reading what the browser shows, so the provider you choose receives the page text and those screenshots. |
+| Does exported telemetry carry screenshots or page text? | No screenshots and no page snapshots. It carries run IDs, outcomes and the target environment, plus page addresses, what each step acted on, the model, its region and the cost. It also carries each finding's title, evidence label and verdict. A step's target can be a button label and a title is a sentence the persona wrote, so either can quote a few words of the page. |
+| Where does telemetry live? | In your own OpenTelemetry backend. Dummy Run sends it nowhere else. |
+| Can I keep the model in one region? | Yes. You choose the provider and region for each run, and the run record notes the region the model used. Keep your OpenTelemetry backend in the same region too. |
 
-The provider receives what the persona sees. The backend receives the telemetry only. Run against previews that hold synthetic data. [Ethics and limits](../../../docs/ETHICS.md) covers provider retention.
+The provider sees what the persona sees, and your backend gets the telemetry. If you pass `--grafana-url`, Grafana also gets an annotation for each run. That's all that leaves. Run against previews that hold test data rather than real customers. [Ethics and limits](../../../docs/ETHICS.md) has more on how long providers keep prompts.
 
 ## Permission findings
 
 {{< graphic name="finding-card" kind="permission" >}}
 
-A persona signs in with one role and the reviewer checks what that role could reach. This example is tagged code because the reviewer confirmed it in the source. Every blocker or major finding waits for a person before it counts. The reviewer and the board are planned. The run record, the report and the screenshots work today.
+A persona signs in with one role and tries things that role shouldn't be able to do. In this example a contributor opened the rates table for every writer. The finding points at the exact step, and the person who reviewed it traced the route in the code before confirming it. Every finding waits for a person to confirm it before it counts in a report. The library's viewer, editor and admin personas are built for exactly this. Run all three through the same job and compare what each one could reach.
 
 ## The audit report
 
-`dummyrun report` writes the findings and the accessibility sweep as an audit report. Each finding carries its WCAG 2.2 criterion where one is known, and its review status. A finding that no person confirmed is marked not reviewed. The report states that it is a sample and not a conformance claim, a certificate or a statement about the law. The [report guide](../../../docs/REPORT.md) lists the limits.
+`dummyrun report` writes the persona findings and the accessibility sweep as one audit report. Each finding carries its WCAG 2.2 criterion where there is one, and shows whether a person has reviewed it. Anything nobody has confirmed is clearly marked as not reviewed. The report says up front that it's a sample, and that it isn't a conformance claim, a certificate or a legal opinion. The [report guide](../../../docs/REPORT.md) sets out its limits.
 
 ## What the exporter sends {#export}
 
 {{< graphic name="export" >}}
 
-The run record and its screenshots stay wherever you run Dummy Run. The exporter sends the subset on the left to the OpenTelemetry backend you choose. If a preview puts personal data in a URL, that URL reaches the backend.
+The run record and its screenshots stay wherever you run Dummy Run. The exporter sends only what's on the left to the OpenTelemetry backend you choose. One thing to watch for: if your preview puts personal data in a URL, that URL will reach the backend.
 
-## Residency by market {#residency}
+## Keeping the model in region {#residency}
 
 {{< graphic name="residency" >}}
 
-A market profile lists the regions that satisfy it. A run refuses to start if any adapter cannot satisfy it. The five kinds of adapter are:
+You choose the provider and the region for every run, so a UK team can keep the model on `uksouth` or `europe-west2`. Each run record stores the model's region as `provider.region`, and each exported trace carries it as `cloud.region`, so you can show where every run's model ran. Where the run record lives is up to you, and so is the telemetry backend. Market profiles that refuse to start a run outside the regions you allow are coming soon.
 
-- Target
-- Model provider
-- Runner host
-- Results store
-- Secrets
-
-Each trace carries the model's region as `cloud.region`, taken from `provider.region` in the run record.
-
-Personas are fictional, and the [contributing](../../../CONTRIBUTING.md) rules bar real names, contact details and data from a target environment. [Security](../../../SECURITY.md) explains coordinated disclosure for Dummy Run itself.
-
-## Sources
-
-The adapters, the market profile and the confirmation rule are in the [architecture](../../../docs/ARCHITECTURE.md), sourced. The exported attributes and `cloud.region` are in [Telemetry](../../../docs/TELEMETRY.md), sourced. That the persona's model receives screenshots follows from the architecture and is inferred. The example finding is synthetic, measured.
+The personas are fictional. The [contributing](../../../CONTRIBUTING.md) rules bar real names, contact details and data from a live environment. If you find a security problem in Dummy Run itself, [Security](../../../SECURITY.md) explains how to tell us privately.

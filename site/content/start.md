@@ -4,7 +4,7 @@ lead: Download Dummy Run, set one API key and point it at your site. A first-tim
 description: Get started with Dummy Run in a few minutes. Download the dummyrun command and fetch a browser. Then set one API key and run dummyrun try against your site in read-only mode.
 next:
   title: Pick personas to run
-  text: The persona library holds ready-made personas for the users every site has.
+  text: The library has ready-made personas for the people most sites have, from screen-reader users to someone on a phone.
   label: Browse the persona library
   href: /personas/
 ---
@@ -105,7 +105,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
   --target examples/targets/dummyrun-dev.json --out ~/.local/share/dummyrun/runs/dummyrun-dev
 ```
 
-The target file sets `"read_only": true`. To test your own site, copy `examples/targets/dummyrun-dev.json` and
+The target file sets `"read_only": true`, so the browser blocks anything that could change data and won't wander off to other sites. To try your own site, copy `examples/targets/dummyrun-dev.json` and
 change `base_url` and `allowed_hosts`. To practise on something you're free to break, run [Inkwell](../../docs/INKWELL.md). It is a small made-up app,
 and `go run ./examples/inkwell -test-login` starts it. The
 terminal at the top of this page is a real run like this one, on Azure OpenAI. The [command line
@@ -127,16 +127,13 @@ docker run --rm -p 127.0.0.1:4318:4318 -p 127.0.0.1:3000:3000 grafana/otel-lgtm:
 dummyrun-otel export ~/.local/share/dummyrun/runs/dummyrun-dev
 ```
 
-Open `http://localhost:3000` and sign in as `admin` with the password `admin`. Pick Explore, choose Loki and query `{service_name="dummyrun"}` over the last 7 days. Each line links to its trace. To see Grafana without a model deployment, export the example records with `dummyrun-otel export examples/runs`.
+Open `http://localhost:3000` and sign in as `admin` with the password `admin`. Pick Explore, choose Loki and query `{service_name="dummyrun"}` over the last 7 days. Each line links to the run's trace. No model set up yet? Export the example records with `dummyrun-otel export examples/runs` and you'll still have something to look at.
 
 ## 7. Read the record {#read}
 
-Every record follows [the run record schema](docs/run-record.md). The page lists each field and shows a full example. The [Grafana guide](../../docs/integrations/grafana.md) covers the dashboards and alerts.
+Every record follows [the run record schema](docs/run-record.md), which explains each field and shows a full example. The [Grafana guide](../../docs/integrations/grafana.md) covers the dashboards and alerts.
 
-To hand the runs to someone else, run `dummyrun report --runs examples/runs --build a865ffd --include pending --out report.html`. It writes one HTML file with the findings, the scope and what the report does not claim. The [report guide](../../docs/REPORT.md) explains each part.
+When you want to show someone else, run `dummyrun report --runs examples/runs --build a865ffd --include pending --out report.html`. You get one HTML file with the findings, what was tested and what the report doesn't claim, ready to send or print. The [report guide](../../docs/REPORT.md) walks through each part.
 
 {{< waitlist >}}
 
-## Sources
-
-The download steps are in `docs/INSTALL.md`. The browser and `try` commands are in `cmd/dummyrun/browsers.go` and `cmd/dummyrun/try.go`. The model defaults are in `internal/provider/detect.go`. All three are code. The run command is in `docs/ENGINE.md`, code. The export commands are in `integrations/grafana/exporter/README.md`, code. The read-only behaviour is the engine's request interception, code.
