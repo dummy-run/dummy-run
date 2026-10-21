@@ -5,6 +5,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-21
+
 ### Added
 - `dummyrun browsers install [chrome|firefox|all]` downloads the pinned Chrome for Testing and its matching chromedriver into your user cache (`os.UserCacheDir()/dummyrun/browsers/<version>`), checks each file against a hash (SHA-256) that ships with the program. The engine finds them there when `DUMMYRUN_CHROME` and `DUMMYRUN_CHROMEDRIVER` are unset. `dummyrun browsers list` shows what is installed. Firefox uses the copy on your machine, or the pinned release on Linux. The pins live in `internal/browsers/versions.json`, and a test checks them against `.github/workflows/engine.yml` and `docker/Dockerfile` (code: `internal/browsers`).
 - `dummyrun try URL` plays the first-time visitor from the persona library against one page for about 15 steps, read-only, and prints the findings and where the run is saved.
