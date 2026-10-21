@@ -12,17 +12,6 @@ import (
 	"strings"
 )
 
-// lookFor is what every persona notes on every page. It is general on purpose: the plan decides where the
-// persona goes, not what counts as a problem.
-var lookFor = []string{
-	"Links and buttons whose name does not say where they go or what they do, such as several links all called \"Read more\", or controls shown as \"(no label)\".",
-	"Form fields with no visible label, and groups of choices with no question above them.",
-	"Images that carry meaning but have no description, and pages with no headings or with headings in a strange order.",
-	"Text that is small, faint or cut off, and content that overlaps or runs off the screen.",
-	"Links that go somewhere you did not expect, pages that fail to load or answer with an error, and pages that are very slow.",
-	"Words or instructions you do not understand, and a next step you cannot find.",
-}
-
 // WriteCast writes the plan as a cast folder: for each chosen persona its profile.md and prompt.md from
 // lib, and one scenario at scenarios/01-<id>.md. It also writes plan.json at the top of dir. dir may exist;
 // files in it are replaced.
@@ -104,6 +93,9 @@ func ScenarioText(p *Plan, pick Pick, finds string) string {
 		b.WriteString("\n")
 	}
 	fmt.Fprintf(&b, "## Steps %s would take\n\n", name)
+	if sc.Budget != "" {
+		fmt.Fprintf(&b, "%s\n\n", oneLine(sc.Budget))
+	}
 	n := 0
 	for _, s := range sc.Steps {
 		n++
@@ -112,7 +104,11 @@ func ScenarioText(p *Plan, pick Pick, finds string) string {
 	fmt.Fprintf(&b, "%d. Run the accessibility check once, on the page that matters most.\n", n+1)
 	fmt.Fprintf(&b, "%d. Finish with what worked and what did not.\n\n", n+2)
 	b.WriteString("## Things to look for\n\nOn every page you read, note any of these. Report each one you saw as a finding, citing the step that shows it and naming the control or quoting the words on the page. Leave out anything you did not see.\n\n")
-	for _, l := range lookFor {
+	m := methodFor(pick.ID)
+	for _, l := range m.Watch {
+		if !p.Sells && mentionsPrice(l) {
+			continue
+		}
 		fmt.Fprintf(&b, "- %s\n", l)
 	}
 	if finds != "" {
@@ -136,7 +132,7 @@ func ScenarioText(p *Plan, pick Pick, finds string) string {
 		fmt.Fprintf(&b, "- %s did what they came to do.\n", name)
 	}
 	b.WriteString("\n## What to report\n\n")
-	fmt.Fprintf(&b, "%s's one-sentence guess at what the site is and whether the site proved it right. For each goal, whether it worked. Anything missing, broken or confusing, with step numbers and the control or the words on the page.\n", name)
+	fmt.Fprintf(&b, m.Report+" Name the control or quote the words on the page for every problem.\n", name)
 	return b.String()
 }
 

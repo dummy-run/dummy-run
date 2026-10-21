@@ -61,7 +61,7 @@ header secrets of a protected preview (the auth block, --basic-auth-env and --he
 Work out what a site is for and write a cast that fits it. See [ENGINE.md](ENGINE.md).
 
 ```text
-Usage: dummyrun plan URL --out DIR [--personas N] [--steps N] [--pages URL]... [--pages-file FILE]
+Usage: dummyrun plan URL --out DIR [--personas N | --persona ID...] [--steps N] [--min-steps N] [--pages URL]... [--pages-file FILE]
     [--library DIR] [--json FILE] [--no-model] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...]
 
 Works out what your site is for and writes a cast that fits it, ready for "dummyrun run".
@@ -69,8 +69,10 @@ Works out what your site is for and writes a cast that fits it, ready for "dummy
 First it reads up to 10 pages over plain HTTP, with no browser: titles, headings, menus, forms, and signs such
 as a basket, prices, a sign-in form or a contact link. It only sends GET requests, and only to the site's own
 host. Then one short model call names the kind of site, who it is for and its two to four key journeys, picks
-personas from the library that fit them and writes a scenario for each. It never asks about prices unless the
-site sells something.
+personas from the library that fit them and gives each its journeys, starting pages and what not to do. How
+each persona goes about a journey comes from the persona itself: the keyboard user counts Tab presses, the
+screen reader user moves by headings and landmarks, and each has its own minimum number of steps. It never
+asks about prices unless the site sells something.
 
 DIR gets one folder per persona (its profile and prompt, copied from the library, and scenarios/01-<id>.md)
 and plan.json. Play a persona with:
@@ -84,7 +86,9 @@ disallows the start page (with --respect-robots).
 Flags:
   --out DIR          where the cast goes (required)
   --personas N       how many personas to pick, 1 to 4 (default 1)
-  --steps N          each persona's step budget, which bounds the scenario's minimum steps (default 12)
+  --persona ID       use this library persona instead of letting the plan pick; repeat it for several, in order
+  --steps N          each persona's step budget (default 12)
+  --min-steps N      each persona's minimum steps (default the persona's own, always at least 3 below --steps)
   --pages URL        a page to read instead of the sitemap; repeat it, up to 10
   --pages-file FILE  a file of pages to read, one address per line
   --library DIR      the persona library to choose from (default the one built into the program)

@@ -214,8 +214,11 @@ func TestMakeKeepsWhatHoldsUp(t *testing.T) {
 		t.Fatalf("personas = %+v", p.Personas)
 	}
 	sc := p.Personas[0].Scenario
-	if sc.MinSteps != 6 || sc.Device != "phone" || len(sc.Steps) != 2 || len(sc.DoNot) != 1 {
-		t.Errorf("scenario = %+v (want min steps capped at half of 12 and the price step left out)", sc)
+	if sc.MinSteps != 6 || sc.Device != "phone" || len(sc.Steps) != 3 || len(sc.DoNot) != 1 {
+		t.Errorf("scenario = %+v (want the visitor's own minimum, its opening step plus one per journey)", sc)
+	}
+	if !strings.Contains(sc.Steps[1], "Find out who Sam is.") || !strings.Contains(sc.Steps[1], "Start from "+base+"/") {
+		t.Errorf("journey step = %q", sc.Steps[1])
 	}
 	if strings.Join(p.Personas[0].Journeys, ",") != "who,read" {
 		t.Errorf("journeys = %v", p.Personas[0].Journeys)
@@ -290,5 +293,53 @@ func TestWriteCastLoads(t *testing.T) {
 	ids, _ := cast.List(dir)
 	if len(ids) != 1 {
 		t.Errorf("cast has %v", ids)
+	}
+}
+
+func TestRequiredPersonasUseTheirOwnMethod(t *testing.T) {
+	rec, base := personalRecon(t)
+	lib, ps := library(t)
+	args := fmt.Sprintf(`{"site_type":"personal","audience":"readers","summary":"s",
+	 "journeys":[{"id":"who","name":"Find out who Sam is","why":"w","start_pages":["%[1]s/"],"success":[]},{"id":"read","name":"Read a post","why":"w","start_pages":["%[1]s/blog/"],"success":[]}],
+	 "personas":[{"id":"first-time-visitor","why":"not asked for","journeys":["who"],"scenario":{"title":"t","given":"g","goal":"x","start_pages":[],"success":[],"do_not":[],"device":""}},
+	   {"id":"keyboard-only-user","why":"Keyboard reach.","journeys":["who","read"],"scenario":{"title":"Reach Sam's posts by keyboard","given":"Kit uses a keyboard.","goal":"Reach a post with the keyboard.","start_pages":[],"success":[],"do_not":[],"device":""}}]}`, base)
+	for name, prov := range map[string]provider.Provider{"model": &fake{args: args}, "fallback": &fake{err: errors.New("down")}} {
+		p := Make(context.Background(), rec, Options{Provider: prov, Library: ps, Personas: []string{"keyboard-only-user", "screen-reader-user", "nobody"}, Steps: 40})
+		if len(p.Personas) != 2 || p.Personas[0].ID != "keyboard-only-user" || p.Personas[1].ID != "screen-reader-user" {
+			t.Fatalf("%s: personas = %+v", name, p.Personas)
+		}
+		kb, sr := p.Personas[0].Scenario, p.Personas[1].Scenario
+		if kb.MinSteps != 12 || sr.MinSteps != 10 {
+			t.Errorf("%s: min steps = %d and %d, want the personas' own 12 and 10", name, kb.MinSteps, sr.MinSteps)
+		}
+		if !strings.Contains(kb.Budget, "Each key press is one step") || !strings.Contains(kb.Budget, "give each journey about") {
+			t.Errorf("%s: keyboard budget = %q", name, kb.Budget)
+		}
+		if !strings.Contains(strings.Join(kb.Steps, " "), "count the Tab presses") || !strings.Contains(kb.Steps[0], "skip link") {
+			t.Errorf("%s: keyboard steps = %v", name, kb.Steps)
+		}
+		if !strings.Contains(strings.Join(sr.Steps, " "), "headings, landmarks and the names of links") {
+			t.Errorf("%s: screen reader steps = %v", name, sr.Steps)
+		}
+		dir := t.TempDir()
+		if err := WriteCast(dir, lib, p, ps); err != nil {
+			t.Fatal(err)
+		}
+		persona, err := cast.Load(dir, "keyboard-only-user")
+		if err != nil {
+			t.Fatal(err)
+		}
+		sc, err := persona.Scenario(kb.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sc.MinSteps != 12 || !strings.Contains(sc.Body, "Focus you cannot see") || !strings.Contains(sc.Body, "Tab counts") {
+			t.Errorf("%s: keyboard scenario file:\n%s", name, sc.Body)
+		}
+	}
+	// A short budget keeps three steps free.
+	p := Make(context.Background(), rec, Options{Library: ps, Personas: []string{"keyboard-only-user"}, Steps: 12})
+	if got := p.Personas[0].Scenario.MinSteps; got != 9 {
+		t.Errorf("min steps on a 12-step budget = %d, want 9", got)
 	}
 }

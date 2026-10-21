@@ -51,10 +51,14 @@ It does three things.
 2. **Plan.** One short model call reads a summary of that, under 4,000 tokens, with the page text fenced as
    untrusted data. It names the kind of site (personal, blog, shop, software product, docs, public service,
    organisation, charity, news, local business, education, open-source or other), who it is for and two to four
-   key journeys. It picks up to `--personas` personas from the library and writes a scenario for each: goals,
-   starting pages, how the persona knows it worked, what not to do and a minimum number of steps. The engine checks
-   the answer. It keeps only personas from the library and pages it read, takes out any question about prices when
-   the site sells nothing, and keeps the minimum steps between 6 and half the budget. If the call fails or the answer
+   key journeys. It picks up to `--personas` personas from the library, or uses the ones you name with `--persona`,
+   and gives each its journeys, starting pages, how it knows each worked and what not to do. Each persona brings
+   its own way of working. The keyboard user plans its Tab presses, notes the first
+   stops and the skip link, and counts Tab presses per journey. The screen reader user moves by headings, landmarks
+   and link names. Zoom and large-text users check each screenshot for clipped or overlapping content. Every
+   persona has its own minimum steps (12 for the keyboard user, 10 for the screen reader user, 6 for most), kept at
+   least three below the budget, and `--min-steps` overrides it. The engine checks the answer. It keeps only
+   personas from the library and pages it read, and takes out any question about prices when the site sells nothing. If the call fails or the answer
    does not hold up, the plan comes from the signs alone and `plan.json` says why. `--no-model` skips the call.
 3. **Write.** `DIR` gets one folder per persona, with its `profile.md` and `prompt.md` copied from the library and
    `scenarios/01-<id>.md`, and `plan.json`. Each scenario has a `Site:` line, says not to send forms, sign in or pay,

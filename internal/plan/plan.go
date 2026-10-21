@@ -89,10 +89,12 @@ type Scenario struct {
 	StartPages []string `json:"start_pages,omitempty"`
 	Success    []string `json:"success"`
 	DoNot      []string `json:"do_not"`
-	MinSteps   int      `json:"min_steps"`
-	Device     string   `json:"device,omitempty"`
-	Zoom       int      `json:"zoom,omitempty"`
-	TextScale  int      `json:"text_scale,omitempty"`
+	// Budget is the persona's advice on spending its steps across the journeys.
+	Budget    string `json:"budget,omitempty"`
+	MinSteps  int    `json:"min_steps"`
+	Device    string `json:"device,omitempty"`
+	Zoom      int    `json:"zoom,omitempty"`
+	TextScale int    `json:"text_scale,omitempty"`
 }
 
 // Usage is what planning cost.
@@ -154,8 +156,13 @@ type Options struct {
 	Library  []LibraryPersona
 	// MaxPersonas is how many personas the plan may pick: 1 for a free scan, up to 4 for a full one.
 	MaxPersonas int
-	// Steps is each persona's step budget. Min steps stay below it.
+	// Personas, when given, are the personas to use, in order, instead of letting the plan pick: a full
+	// report's list, or the persona a Watch scan rotates to this week. MaxPersonas is then their number.
+	Personas []string
+	// Steps is each persona's step budget. Min steps stay at least three below it.
 	Steps int
+	// MinSteps overrides each persona's own minimum when above 0.
+	MinSteps int
 	// SignIn is true when the target has test-user credentials, so a persona may sign in.
 	SignIn bool
 	Now    func() time.Time
@@ -169,10 +176,14 @@ const planTool = "plan"
 // Make plans the scan from the recon. It always returns a plan: when the model call fails or its answer
 // does not hold up, the plan comes from the recon signals and says why.
 func Make(ctx context.Context, rec *Recon, o Options) *Plan {
+	o.Personas = knownOnly(o.Personas, o.Library)
+	if len(o.Personas) > 0 {
+		o.MaxPersonas = len(o.Personas)
+	}
 	if o.MaxPersonas < 1 {
 		o.MaxPersonas = 1
 	}
-	if o.MaxPersonas > 4 {
+	if o.MaxPersonas > 4 && len(o.Personas) == 0 {
 		o.MaxPersonas = 4
 	}
 	if o.Steps <= 0 {
@@ -238,13 +249,11 @@ func toolSchema(lib []LibraryPersona, maxPersonas int) map[string]any {
 		"title":       strSchema("the scenario's title, a short sentence such as 'Find out who Joel is and read a post'"),
 		"given":       strSchema("one or two sentences: who the persona is on this visit and why they came"),
 		"goal":        strSchema("one sentence in the persona's own words: what they want to get done"),
-		"steps":       listSchema("three to six things the persona does, in order, each one sentence, that follow the journeys", 6),
 		"start_pages": listSchema("addresses from the pages read, where the persona can start", 5),
-		"success":     listSchema("how the persona knows each goal worked", 4),
+		"success":     listSchema("how the persona knows each journey worked", 4),
 		"do_not":      listSchema("what the persona must not do on this site, such as 'Do not send the contact form'", 4),
-		"min_steps":   map[string]any{"type": "integer", "minimum": 3, "maximum": 20},
-		"device":      map[string]any{"type": "string", "enum": []string{"", "desktop", "tablet", "phone"}},
-	}, "required": []string{"title", "given", "goal", "steps", "start_pages", "success", "do_not", "min_steps", "device"}}
+		"device":      map[string]any{"type": "string", "enum": []string{"", "desktop", "tablet", "phone"}, "description": "empty keeps the persona's own device"},
+	}, "required": []string{"title", "given", "goal", "start_pages", "success", "do_not", "device"}}
 	return map[string]any{"type": "object", "properties": map[string]any{
 		"site_type": map[string]any{"type": "string", "enum": SiteTypes},
 		"audience":  strSchema("who the site is for, in a short phrase, such as 'people who want to know who Joel is and read his posts'"),
@@ -274,7 +283,7 @@ const systemPrompt = `You plan a short exploratory test of a website. Real peopl
    - news: read the article, find related stories.
    - local business or restaurant: where and when it is open, what it offers, how to book or order.
 3. Pick personas from the library list only, at most the number allowed, that fit those journeys. With one persona, pick the first-time visitor unless another clearly fits the site better.
-4. Write each persona's scenario: steps that follow the journeys on this site, starting pages taken from the pages read, how they know it worked, and what not to do.
+4. For each persona, choose the journeys it tries, and write its scenario: a title, who it is on this visit, its goal, starting pages taken from the pages read, how it knows each journey worked, and what not to do. The persona's own way of working (its steps and how many) comes from the library, so do not write steps.
 
 Rules:
 - Never ask about prices, plans or costs unless the signals show something for sale (prices seen, a basket or a pricing page).
@@ -289,8 +298,12 @@ func ask(ctx context.Context, rec *Recon, o Options) (*answer, Usage, error) {
 		fmt.Fprintf(&lib, "- %s (%s, %s): %s Finds: %s\n", l.ID, l.Name, l.Label, l.Summary, l.Finds)
 	}
 	nonce := inject.NewNonce()
-	user := fmt.Sprintf("Personas allowed: at most %d. Each persona has %d actions.\nTest users to sign in with: %s.\n\nPersona library:\n%s\n%s",
-		o.MaxPersonas, o.Steps, yes(o.SignIn), lib.String(), rec.Summary(nonce))
+	who := fmt.Sprintf("Personas allowed: at most %d.", o.MaxPersonas)
+	if len(o.Personas) > 0 {
+		who = "Use exactly these personas, in this order: " + strings.Join(o.Personas, ", ") + "."
+	}
+	user := fmt.Sprintf("%s Each persona has %d actions.\nTest users to sign in with: %s.\n\nPersona library:\n%s\n%s",
+		who, o.Steps, yes(o.SignIn), lib.String(), rec.Summary(nonce))
 	tool := provider.Tool{Name: planTool, Description: "Give the plan for this site.", Parameters: toolSchema(o.Library, o.MaxPersonas)}
 	req := provider.Request{System: systemPrompt, Turns: []provider.Turn{{Role: provider.RoleUser, Text: user}},
 		Tools: []provider.Tool{tool}, ForceTool: planTool, MaxOutputTokens: 3000}
@@ -422,6 +435,9 @@ func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 		if !ok || len(p.Personas) >= o.MaxPersonas || slices.ContainsFunc(p.Personas, func(x Pick) bool { return x.ID == ap.ID }) {
 			continue
 		}
+		if len(o.Personas) > 0 && !slices.Contains(o.Personas, ap.ID) {
+			continue
+		}
 		if l.Signin != "" && l.Signin != "none" && !o.SignIn {
 			continue
 		}
@@ -439,14 +455,10 @@ func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 		sc := ap.Scenario
 		sc.Title = clean(sc.Title, 100)
 		sc.Given, sc.Goal = clean(sc.Given, 300), clean(strings.Trim(sc.Goal, `"“”`), 240)
-		sc.Steps = cleanList(sc.Steps, 6, 240)
-		if !p.Sells {
-			sc.Steps = slices.DeleteFunc(sc.Steps, mentionsPrice)
-			if mentionsPrice(sc.Goal) {
-				sc.Goal = ""
-			}
+		if !p.Sells && mentionsPrice(sc.Goal) {
+			sc.Goal = ""
 		}
-		if sc.Title == "" || sc.Goal == "" || len(sc.Steps) == 0 {
+		if sc.Title == "" || sc.Goal == "" {
 			continue
 		}
 		sc.StartPages = keepPages(sc.StartPages, known, 5)
@@ -456,7 +468,6 @@ func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 			sc.Success = slices.DeleteFunc(sc.Success, mentionsPrice)
 			sc.DoNot = slices.DeleteFunc(sc.DoNot, mentionsPrice)
 		}
-		sc.MinSteps = clampMin(sc.MinSteps, o.Steps)
 		if _, ok := cast.Devices[sc.Device]; !ok {
 			sc.Device = ""
 		}
@@ -467,18 +478,97 @@ func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 		}
 		p.Personas = append(p.Personas, Pick{ID: l.ID, Name: l.Name, Label: l.Label, Why: clean(ap.Why, 240), Journeys: js, Scenario: sc})
 	}
+	// A persona the caller asked for that the answer left out still goes, on every journey.
+	for _, id := range o.Personas {
+		if !slices.ContainsFunc(p.Personas, func(x Pick) bool { return x.ID == id }) {
+			p.Personas = append(p.Personas, defaultPick(p, lib[id], rec))
+		}
+	}
+	if len(o.Personas) > 0 {
+		order := map[string]int{}
+		for i, id := range o.Personas {
+			order[id] = i
+		}
+		slices.SortStableFunc(p.Personas, func(a, b Pick) int { return order[a.ID] - order[b.ID] })
+	}
 	if len(p.Personas) == 0 {
 		return errors.New("the plan picked no persona from the library")
 	}
+	finishPicks(p, o)
 	return nil
 }
 
-// clampMin keeps min steps between 6 (or half the budget, if that is less) and half the budget, so a persona
-// looks around enough to tell you something and always has room to finish.
+// finishPicks writes each persona's steps, minimum and budget advice from its own method.
+func finishPicks(p *Plan, o Options) {
+	for i := range p.Personas {
+		compose(p, &p.Personas[i], o.Steps, o.MinSteps)
+		p.Personas[i].Scenario.Budget = budgetText(p.Personas[i].ID, o.Steps, len(p.Personas[i].Journeys))
+	}
+}
+
+// knownOnly keeps the ids that are in the library, once each.
+func knownOnly(ids []string, lib []LibraryPersona) []string {
+	var out []string
+	for _, id := range ids {
+		if slices.ContainsFunc(lib, func(l LibraryPersona) bool { return l.ID == id }) && !slices.Contains(out, id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// defaultPick sends a persona on every journey of the plan, with a scenario built from the plan alone.
+func defaultPick(p *Plan, l LibraryPersona, rec *Recon) Pick {
+	var ids, names []string
+	var pages []string
+	for _, j := range p.Journeys {
+		ids = append(ids, j.ID)
+		names = append(names, lowerFirst(j.Name))
+		for _, u := range j.StartPages {
+			if !slices.Contains(pages, u) && len(pages) < 5 {
+				pages = append(pages, u)
+			}
+		}
+	}
+	if len(pages) == 0 {
+		pages = firstPages(rec, 5)
+	}
+	name := l.Name
+	if name == "" {
+		name = "The visitor"
+	}
+	why := "A first visit shows whether the site makes sense to someone new."
+	if l.Summary != "" {
+		why = l.Summary
+	}
+	return Pick{ID: l.ID, Name: l.Name, Label: l.Label, Why: why, Journeys: ids,
+		Scenario: Scenario{ID: "explore", Title: "Do the main things this site is for", Given: name + " has just arrived from a link and knows nothing about the site.",
+			Goal: "I want to " + strings.Join(names, ", then ") + ", without signing in or sending anything.", StartPages: pages,
+			Success: []string{"Did each of the journeys, or can say where it stopped"},
+			DoNot:   []string{"Do not send any form", "Do not sign in", "Do not pay for anything"}}}
+}
+
+func firstPages(rec *Recon, n int) []string {
+	var pages []string
+	for _, pg := range rec.Pages {
+		if pg.Error == "" && len(pages) < n {
+			pages = append(pages, pg.URL)
+		}
+	}
+	return pages
+}
+
+func lowerFirst(s string) string {
+	if len(s) < 2 || strings.ToUpper(s[:2]) == s[:2] {
+		return s
+	}
+	return strings.ToLower(s[:1]) + s[1:]
+}
+
+// clampMin keeps at least three of the step budget free after the minimum, as the hosted runner does, and
+// keeps the minimum at 1 or more.
 func clampMin(n, steps int) int {
-	hi := max(steps/2, 3)
-	lo := min(6, hi)
-	return min(max(n, lo), hi)
+	return max(min(n, steps-3), 1)
 }
 
 // fallback writes a plan from the recon signals alone.
@@ -504,15 +594,6 @@ func fallback(p *Plan, rec *Recon, o Options, reason string) {
 	}
 	p.Audience = "people visiting for the first time"
 	p.Summary = "A " + SiteWords(p.SiteType) + "."
-	known := pageSet(rec)
-	var pages []string
-	for _, u := range known {
-		pages = append(pages, u)
-	}
-	slices.Sort(pages)
-	if len(pages) > 5 {
-		pages = pages[:5]
-	}
 	add := func(id, name, why string) {
 		p.Journeys = append(p.Journeys, Journey{ID: id, Name: name, Why: why})
 	}
@@ -543,28 +624,23 @@ func fallback(p *Plan, rec *Recon, o Options, reason string) {
 	if len(p.Journeys) > MaxJourneys {
 		p.Journeys = p.Journeys[:MaxJourneys]
 	}
-	var lp *LibraryPersona
-	for i := range o.Library {
-		if o.Library[i].ID == "first-time-visitor" {
-			lp = &o.Library[i]
+	start := firstPages(rec, 5)
+	for k := range p.Journeys {
+		p.Journeys[k].StartPages = start[:min(len(start), 3)]
+	}
+	ids := o.Personas
+	if len(ids) == 0 {
+		ids = knownOnly([]string{"first-time-visitor"}, o.Library)
+	}
+	if len(ids) == 0 && len(o.Library) > 0 {
+		ids = []string{o.Library[0].ID}
+	}
+	for _, id := range ids {
+		for _, l := range o.Library {
+			if l.ID == id {
+				p.Personas = append(p.Personas, defaultPick(p, l, rec))
+			}
 		}
 	}
-	if lp == nil && len(o.Library) > 0 {
-		lp = &o.Library[0]
-	}
-	if lp == nil {
-		return
-	}
-	var steps, ids []string
-	steps = append(steps, "Read the first screen and say in one sentence what this site is and who it is for.")
-	for _, j := range p.Journeys[1:] {
-		steps = append(steps, j.Name+".")
-		ids = append(ids, j.ID)
-	}
-	ids = append([]string{"what-is-this"}, ids...)
-	p.Personas = []Pick{{ID: lp.ID, Name: lp.Name, Label: lp.Label, Why: "A first visit shows whether the site makes sense to someone new.", Journeys: ids,
-		Scenario: Scenario{ID: "explore", Title: "Find out what the site is and do what it is for", Given: lp.Name + " has just arrived from a link and knows nothing about the site.",
-			Goal: "Work out what this site is and do the main things it is for, without signing in or sending anything.", Steps: steps,
-			StartPages: pages, Success: []string{"Can say what the site is", "Did the main things it is for"},
-			DoNot: []string{"Do not send any form", "Do not sign in", "Do not pay for anything"}, MinSteps: clampMin(6, o.Steps)}}}
+	finishPicks(p, o)
 }
