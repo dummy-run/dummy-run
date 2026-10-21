@@ -413,3 +413,37 @@ func TestCountRepeats(t *testing.T) {
 		t.Errorf("repeats leaving out itself %d, want 1", got)
 	}
 }
+
+func TestMinStepsClampsToTheBudget(t *testing.T) {
+	for _, c := range []struct{ requested, budget, want int }{{0, 25, 0}, {8, 25, 8}, {30, 25, 22}, {5, 2, 0}} {
+		if got := MinSteps(c.requested, c.budget); got != c.want {
+			t.Errorf("MinSteps(%d, %d) = %d, want %d", c.requested, c.budget, got, c.want)
+		}
+	}
+}
+
+func TestEarlyFinishIsSentBackUntilTheMinimum(t *testing.T) {
+	pass := json.RawMessage(`{"verdict":"pass"}`)
+	blocked := json.RawMessage(`{"verdict":"blocked"}`)
+	if earlyFinish(0, 0, 0, false, pass) != "" {
+		t.Error("no minimum should accept finish")
+	}
+	if msg := earlyFinish(8, 2, 0, false, pass); !strings.Contains(msg, "2 of at least 8") {
+		t.Errorf("finish at step 2 of 8 was not sent back: %q", msg)
+	}
+	if earlyFinish(8, 8, 0, false, pass) != "" {
+		t.Error("finish at the minimum should be accepted")
+	}
+	if earlyFinish(8, 1, 0, false, blocked) != "" {
+		t.Error("a blocked verdict should be accepted")
+	}
+	if earlyFinish(8, 1, 0, true, pass) != "" {
+		t.Error("a finish the engine forced should be accepted")
+	}
+	if earlyFinish(8, 1, maxEarlyFinishes, false, pass) != "" {
+		t.Error("finish should be accepted after the allowed refusals")
+	}
+	if earlyFinish(8, 1, 0, false, json.RawMessage(`not json`)) == "" {
+		t.Error("unreadable arguments should still be sent back")
+	}
+}

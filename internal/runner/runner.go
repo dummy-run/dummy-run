@@ -117,6 +117,10 @@ type run struct {
 	log      io.Writer
 	// finishRetries counts how often finish was sent back for a symptom outside the closed list.
 	finishRetries int
+	// minSteps is how many steps the persona must take before finish is accepted. earlyFinishes counts
+	// the finish calls sent back for coming sooner.
+	minSteps      int
+	earlyFinishes int
 	seedSent      *int64
 	build         string
 	buildErr      error
@@ -179,13 +183,14 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 	if cfg.StepBudget > 0 {
 		budget = min(cfg.StepBudget, MaxStepBudget)
 	}
+	minSteps := MinSteps(cfg.Scenario.MinSteps, budget)
 	now := time.Now().UTC()
 	id := telemetry.NewRunID(now, cfg.Persona.ID, cfg.Scenario.ID)
 	if cfg.Batch == "" {
 		cfg.Batch = now.Format("2006-01-02") + "-" + cfg.Target.Environment
 	}
 	r := &run{cfg: cfg, id: id, trace: telemetry.NewTrace(id),
-		patience: NewPatience(), budget: budget, tokens: cfg.TokenBudget, started: now, log: cfg.Log,
+		patience: NewPatience(), budget: budget, minSteps: minSteps, tokens: cfg.TokenBudget, started: now, log: cfg.Log,
 		nonce: inject.NewNonce(), eventKeys: map[string]bool{},
 		scanner: inject.Scanner{HostAllowed: cfg.Target.HostAllowed}}
 	r.dir = filepath.Join(cfg.OutDir, r.id)
@@ -365,6 +370,14 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 				continue
 			}
 			if call.Name == "finish" {
+				if r.forced == "" && r.usage.InputTokens+r.usage.OutputTokens >= r.tokens {
+					r.forced = "the token budget"
+				}
+				if msg := earlyFinish(r.minSteps, len(r.steps)-1, r.earlyFinishes, force != "" || r.patience.GaveUp() != nil || r.usage.InputTokens+r.usage.OutputTokens >= r.tokens, call.Args); msg != "" {
+					r.earlyFinishes++
+					r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID, text: msg})
+					continue
+				}
 				f, perr := ParseFinish(call.Args, len(r.steps))
 				if perr != nil {
 					r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID,
@@ -757,6 +770,9 @@ func (r *run) systemPrompt() string {
 	}
 	if refused := r.cfg.Persona.Refused(toolNames()); len(refused) > 0 {
 		fmt.Fprintf(&b, "- You may not use these tools: %s. The harness refuses them, does nothing in the browser and records a blocked step that counts against your actions. If the job cannot be done without one, that is a finding: say so and finish.\n", strings.Join(refused, ", "))
+	}
+	if r.minSteps > 0 {
+		fmt.Fprintf(&b, "- Take at least %d actions of your own before you finish. A shorter visit does not tell the team enough. The one exception is a verdict of blocked when the site really stops you from going on.\n", r.minSteps)
 	}
 	fmt.Fprintf(&b, "- Patience: you have %d actions. After three failed tries at the same thing, give up and report where you got stuck, as a real user would.\n", r.budget)
 	b.WriteString("- Look, then act. Use the numbered controls (@12) from the latest result. Type an address only when the scenario says to.\n")

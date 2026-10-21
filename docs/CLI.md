@@ -10,7 +10,7 @@ The list of commands and the model providers.
 
 ```text
 Usage:
-  dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out DIR \
+  dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox --provider PROVIDER --model MODEL [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
       [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] \
@@ -95,6 +95,8 @@ Usage of run:
     	fetch robots.txt from the target origin and block what it disallows for DummyRun or * (also set by "respect_robots": true in the target file); a site-wide disallow stops the run before the browser starts
   -scenario string
     	scenario ID
+  -scenario-file string
+    	a scenario file to play instead of --scenario, named NN-<id>.md; it is not looked up in the cast
   -seed int
     	sampling seed (0 or more), sent to providers that take one; the record shows null where it was not sent (default -1)
   -session string

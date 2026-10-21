@@ -24,7 +24,8 @@ func TestHelpExitsZero(t *testing.T) {
 }
 
 func TestUsageErrorsExitTwo(t *testing.T) {
-	for _, args := range [][]string{{}, {"nonsense"}, {"run"}, {"run", "--no-such-flag"}} {
+	for _, args := range [][]string{{}, {"nonsense"}, {"run"}, {"run", "--no-such-flag"},
+		{"run", "--scenario", "id", "--scenario-file", "file"}} {
 		if got := run(args); got != 2 {
 			t.Errorf("dummyrun %v exited %d, want 2", args, got)
 		}
@@ -146,6 +147,31 @@ func TestRobotsDisallowExitsThree(t *testing.T) {
 		if strings.HasPrefix(line, "/page") || strings.HasPrefix(line, "/ ") {
 			t.Errorf("a disallowed page was requested: %s", line)
 		}
+	}
+}
+
+func TestRunPlaysAScenarioFileOutsideTheCast(t *testing.T) {
+	srv, _ := denyAllSite(t)
+	dir := t.TempDir()
+	file := filepath.Join(dir, "01-direct.md")
+	if err := os.WriteFile(file, []byte("# Direct\n\nDevice: desktop.\nMin steps: 4\n\nLook around.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(dir, "target.json")
+	cfg := fmt.Sprintf(`{"environment":"test","base_url":%q,"allowed_hosts":["127.0.0.1"],"read_only":true,"commit":"abcdef1"}`, srv.URL+"/")
+	if err := os.WriteFile(target, []byte(cfg), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	args := func(scenario ...string) []string {
+		return append([]string{"run", "--cast", "../../casts/dummyrun-dev", "--persona", "tom-developer", "--target", target, "--out", t.TempDir(),
+			"--provider", "openai-compatible", "--endpoint", "http://127.0.0.1:1/v1", "--region", "local", "--model", "none", "--respect-robots"}, scenario...)
+	}
+	// The file loads and the run reaches the robots check, which refuses the site (exit 3).
+	if got := run(args("--scenario-file", file)); got != 3 {
+		t.Errorf("a valid scenario file exited %d, want 3", got)
+	}
+	if got := run(args("--scenario-file", filepath.Join(dir, "missing.md"))); got == 3 || got == 0 {
+		t.Errorf("a missing scenario file exited %d, want an error", got)
 	}
 }
 
