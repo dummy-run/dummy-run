@@ -5,10 +5,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-20
+
+### Fixed
+- The release image can start `dummyrun` again. The binary lost its execute permission on the way into the image, and the image build now sets it.
+
 ### Changed
 - The user docs and the README are rewritten to read more plainly and to describe only what the product does today. Design reasoning and plans moved to `docs/DECISIONS.md` and `docs/PLAN.md`, and test-suite notes moved to `CONTRIBUTING.md`. The site no longer renders the plan or the naming notes. The style guide, type scale, brand and contributing pages sit under a Contributing group.
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-10-20
 
 ### Changed
 - `dummyrun report` has a designed HTML report. It has a cover with the logo and the client. The cover also has the target, the dates, a plain summary and a bar of problems by severity. The summary page has key-number cards and a plain statement of how many problems are still unfound. Findings are cards with a severity band and badge, grouped by severity under a contents list. The axe sweep is a table, and baseline status has clear labels. The brand typefaces are embedded, with a light theme and a dark one on screen only. Print has page breaks, a running title and page numbers. The Markdown format has the same structure in headings and tables. The example report and its pictures are rebuilt, and `docs/REPORT.md` has a tour (code: `internal/report/templates/` and `internal/report/assets/`).
@@ -17,12 +22,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - The website speaks to the reader as "you" on pages written for them. The style guide has the rule. `bin/check-prose` warns about "their" after "a QA lead", "teams" and the other listed audience phrases (code: `bin/check-prose` and `docs/STYLE.md`).
 
 ### Fixed
+- The layout checks no longer report the content of a closed `<details>` as on the page, and no longer report two links that wrap in the same paragraph as overlapping when their lines do not meet (code: `internal/page/layout.js`).
+- The website holds up with a larger text size. At 320 pixels wide with a 32 pixel default font, twice the normal size, parts of the site broke. The header and home page buttons overlapped. The sign-up and scan forms, the persona library and the footer ran off the edge or scrolled the page sideways. The header links now fold behind a Menu button that says whether it is open, or show as a wrapped list without JavaScript. Grids let text shrink. Buttons and chips wrap their own text, and so do long words and addresses. The human check and code blocks stay inside their box (code: `site/assets/css/site.css`, `site/assets/js/site.js` and `site/layouts/_partials/header.html`). The site workflow runs `dummyrun a11y --text-scale 100,200 --layout` on every page at 320 pixels wide, so the faults cannot return (code: `.github/workflows/site.yml`).
 - The injection scan skips eligible visible code and quoted text on pages that explain prompt injection. The Model providers page on dummyrun.dev mentions `finish` in code, and the scan does not file a security finding for it. It still scans concealed text and stronger visible matches. A lone visible "system prompt" or "call `finish`" becomes a `low confidence` event and does not create a finding.
 - The OpenAI-compatible provider now sends an empty string as the text of a turn that only calls tools. Before, it left the field out, and a local Ollama server answered "invalid message content type" (code: `internal/provider/openai_compat.go`).
 - The Grafana exporter retries annotations on HTTP 429 (#34). Annotation lookup also retries on 5xx. Annotation creation does not retry on 5xx. Grafana may have stored the annotation. The exporter waits for `Retry-After`, spaces its calls and spends at most ten minutes on annotations in one export. If an annotation still fails, the exporter still sends and flushes all the telemetry. It then lists the failed annotations and exits with code 3. Code 3 means some annotations failed after any selected telemetry arrived. `--signals traces,metrics,logs,annotations` chooses what to send, so a re-export can send only what is missing. The dogfood workflow treats code 3 as a warning.
 - Browsers are no longer left running after runs and tests (#49). The engine starts the driver and the browser in their own process group. It closes the session and stops the group. It then waits for the exit and removes the temporary profile. This holds after an error or a panic. It also holds after a timeout, Ctrl-C and SIGTERM. A watchdog stops the browser if the engine is killed. Every test closes its browser, and CI fails when one is left behind. `docs/ENGINE.md` covers cleanup and troubleshooting.
 
 ### Added
+- `dummyrun a11y --viewport small` tests at 320 CSS px wide, the width that WCAG 1.4.10 sets for reflow (code: `internal/a11y/sweep.go`).
 - The project has a release pipeline (code: `.goreleaser.yaml` and `.github/workflows/release.yml`). A version tag such as `v0.1.0` builds `dummyrun` and `dummyrun-otel` for Linux, macOS and Windows on amd64 and arm64. Each release has checksums, SBOMs, keyless cosign signatures and SLSA build provenance. It also publishes a multi-arch image at `ghcr.io/dummy-run/dummyrun` with Chrome for Testing, chromedriver and Firefox. `docs/INSTALL.md` covers installing and verifying, and `docs/RELEASING.md` is the checklist.
 - `dummyrun version` and `dummyrun-otel version` print the commit as well as the version (code: `cmd/dummyrun/main.go` and `integrations/grafana/exporter/internal/cli/cli.go`).
 - `DUMMYRUN_NO_SANDBOX` switches off the browsers' own sandboxes. The container image sets it (code: `internal/bidi/launch.go` and `docker/Dockerfile`).

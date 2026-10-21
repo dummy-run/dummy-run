@@ -40,6 +40,8 @@
   const box = (r) => ({ x: round(r.left + scrollX), y: round(r.top + scrollY), width: round(r.width), height: round(r.height) });
 
   const visible = (el) => {
+    // Content of a closed <details> keeps a box in some browsers but is not shown.
+    if (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true, contentVisibilityAuto: true })) return false;
     const r = el.getBoundingClientRect();
     // 1 px or less is how a page hides text from the eye and keeps it for a screen reader.
     if (r.width <= 1 || r.height <= 1) return false;
@@ -145,16 +147,25 @@
   // neither holds the other.
   const overlaps = [];
   const rects = controls.map((el) => el.getBoundingClientRect());
+  const lines = controls.map((el, i) => { const l = [...el.getClientRects()].filter((r) => r.width > 0 && r.height > 0); return l.length ? l : [rects[i]]; });
   const fixedLike = controls.map((el) => { const p = getComputedStyle(el).position; return p === "fixed" || p === "sticky"; });
   let overlapTotal = 0;
   for (let i = 0; i < controls.length; i++) {
     for (let j = i + 1; j < controls.length; j++) {
       const a = rects[i], b = rects[j];
-      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
-      const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      // A link that wraps has one box for each line. Compare line by line, so the empty corner of the
+      // bounding box is not counted as covered, and report the first pair that meets.
+      let w = 0, h = 0, ra = a, rb = b;
+      for (const la of lines[i]) {
+        for (const lb of lines[j]) {
+          const lw = Math.min(la.right, lb.right) - Math.max(la.left, lb.left);
+          const lh = Math.min(la.bottom, lb.bottom) - Math.max(la.top, lb.top);
+          if (lw > tol && lh > tol && lw * lh > w * h) { w = lw; h = lh; ra = la; rb = lb; }
+        }
+      }
       if (w <= tol || h <= tol) continue;
       if (controls[i].contains(controls[j]) || controls[j].contains(controls[i])) continue;
-      const cx = Math.max(a.left, b.left) + w / 2, cy = Math.max(a.top, b.top) + h / 2;
+      const cx = Math.max(ra.left, rb.left) + w / 2, cy = Math.max(ra.top, rb.top) + h / 2;
       // A bar fixed to the window only covers what is in the window.
       if ((fixedLike[i] || fixedLike[j]) && (cy > innerHeight || cx > innerWidth)) continue;
       // If something else is on top where they meet, neither is seen there.

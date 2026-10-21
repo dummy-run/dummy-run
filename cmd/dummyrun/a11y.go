@@ -25,7 +25,7 @@ Flags:
   --sitemap URL     a sitemap (or sitemap index) listing the pages to test
   --rebase URL      move every sitemap URL onto this origin, to test a local copy of a site
   --browser NAME    chrome or firefox (default chrome)
-  --viewport NAME   desktop (1280 wide), phone (375 wide) or both (default both)
+  --viewport NAME   desktop (1280), phone (375), small (320) or both (desktop and phone, the default)
   --scheme NAME     light, dark or both (default both)
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
@@ -53,7 +53,7 @@ func a11yCmd(args []string) int {
 	sitemap := fs.String("sitemap", "", "sitemap URL")
 	rebase := fs.String("rebase", "", "origin to move sitemap URLs onto")
 	browser := fs.String("browser", "chrome", "chrome or firefox")
-	viewport := fs.String("viewport", "both", "desktop, phone or both")
+	viewport := fs.String("viewport", "both", "desktop, phone, small or both")
 	scheme := fs.String("scheme", "both", "light, dark or both")
 	textScale := fs.String("text-scale", "", "system text size in percent, or a comma-separated list")
 	layout := fs.Bool("layout", false, "run the layout checks")
@@ -85,9 +85,9 @@ func a11yCmd(args []string) int {
 		return 2
 	}
 	viewports, ok := pick(*viewport, map[string][]a11y.Viewport{
-		"desktop": {a11y.Desktop}, "phone": {a11y.Phone}, "both": {a11y.Desktop, a11y.Phone}})
+		"desktop": {a11y.Desktop}, "phone": {a11y.Phone}, "small": {a11y.Small}, "both": {a11y.Desktop, a11y.Phone}})
 	if !ok {
-		fmt.Fprintf(os.Stderr, "dummyrun a11y: --viewport %q: want desktop, phone or both\n", *viewport)
+		fmt.Fprintf(os.Stderr, "dummyrun a11y: --viewport %q: want desktop, phone, small or both\n", *viewport)
 		return 2
 	}
 	schemes, ok := pick(*scheme, map[string][]string{
