@@ -87,6 +87,8 @@ Usage of run:
     	fetch robots.txt from the target origin and block what it disallows for DummyRun or * (also set by "respect_robots": true in the target file); a site-wide disallow stops the run before the browser starts
   -scenario string
     	scenario ID
+  -scenario-file string
+    	a scenario file to play instead of --scenario, named NN-<id>.md; it is not looked up in the cast
   -seed int
     	sampling seed (0 or more), sent to providers that take one; the record shows null where it was not sent (default -1)
   -session string
