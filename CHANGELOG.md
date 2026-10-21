@@ -6,7 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- A "Docs move with the code" check on every pull request. A change to `cmd/`, `internal/`, `casts/library/`, `schema/`, `integrations/`, `docker/` or `.goreleaser.yaml` fails unless the same pull request changes the docs and adds a line under Unreleased here. The message names the pages that path usually affects. The `no-docs-needed` label with a `Docs: not needed because ...` line in the description is the way out. `CONTRIBUTING.md` and the pull request template describe it (code: `.github/workflows/docs-guard.yml` and `.github/scripts/docs-guard.sh`).
+- A "Docs move with the code" check on every pull request. A behaviour change in `cmd/`, `internal/`, `casts/library/`, `schema/`, `integrations/`, `docker/`, `.goreleaser.yaml` or `site/layouts/` fails unless the same pull request changes the docs and adds a line under Unreleased here. Tests, `testdata/` and `internal/tools/` are ignored. The message names the pages that path usually affects. The `no-docs-needed` label with a `Docs: not needed because ...` line in the description is the way out. `CONTRIBUTING.md` and the pull request template describe it (code: `.github/workflows/docs-guard.yml` and `.github/scripts/docs-guard.sh`).
 
 ### Changed
 - The website reads like a person wrote it. Every page a visitor reads is rewritten in a warmer voice with varied sentences, and none of them carries Sources sections, evidence tags or lists of what is planned. The style guide describes the new voice. `bin/check-prose` now only warns about long or comma-heavy sentences, fails on machine-copy words and em dashes, and has its own tests in `bin/check-prose-test`.

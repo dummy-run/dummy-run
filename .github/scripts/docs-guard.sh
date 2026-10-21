@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# Docs move with the code. Reads the changed file paths on standard input and decides whether the pull
+# Docs move with the code. Reads the changed file paths on standard input, separated by NUL (git diff -z), and decides whether the pull
 # request touches user-facing behaviour without touching the docs.
 #
 # Environment:
 #   DOCS_GUARD_LABELS     Labels on the pull request: one per line, or a JSON array.
 #   DOCS_GUARD_BODY       The pull request description.
 #   DOCS_GUARD_AUTHOR     Login of the pull request author. dependabot[bot] is exempt.
-#   DOCS_GUARD_BASE/HEAD  Commits to compare CHANGELOG.md between. Needs a checkout with history.
+#   DOCS_GUARD_BASE/HEAD  Commits to compare CHANGELOG.md between (merge base to head). Needs a checkout with history.
 #   DOCS_GUARD_CHANGELOG  yes or no, when BASE and HEAD are not set (used by the tests).
 #
 # Exit status: 0 when the pull request passes, 1 when it needs docs.
 set -euo pipefail
 
-files=$(cat)
 labels="${DOCS_GUARD_LABELS:-}"
 body="${DOCS_GUARD_BODY:-}"
 author="${DOCS_GUARD_AUTHOR:-}"
@@ -67,7 +66,7 @@ hint() {
 
 behaviour=""
 doc_changed=no
-while IFS= read -r f; do
+while IFS= read -r -d '' f; do
   [ -z "$f" ] && continue
   if is_behaviour "$f"; then behaviour="$behaviour$f"$'\n'; fi
   if is_doc "$f"; then
@@ -77,7 +76,7 @@ while IFS= read -r f; do
       *) doc_changed=yes ;;
     esac
   fi
-done <<< "$files"
+done
 
 # Nothing user-facing changed, so there is nothing to check.
 if [ -z "$behaviour" ]; then
@@ -89,7 +88,11 @@ fi
 changelog=no
 if [ -n "${DOCS_GUARD_BASE:-}" ] && [ -n "${DOCS_GUARD_HEAD:-}" ]; then
   unreleased() { git show "$1:CHANGELOG.md" 2>/dev/null | awk '/^## \[Unreleased\]/{on=1;next} /^## \[/{on=0} on'; }
-  if [ "$(unreleased "$DOCS_GUARD_BASE")" != "$(unreleased "$DOCS_GUARD_HEAD")" ]; then changelog=yes; fi
+  # Compare with the merge base, as the file list does, so changes that landed on the base branch later do not count.
+  mb=$(git merge-base "$DOCS_GUARD_BASE" "$DOCS_GUARD_HEAD")
+  # Only lines the pull request added count. Removing or editing nothing new does not.
+  added=$(unreleased "$DOCS_GUARD_HEAD" | grep -vxFf <(unreleased "$mb") | grep -Ev '^(#|[[:space:]]*$)' || true)
+  if [ -n "$added" ]; then changelog=yes; fi
 else
   changelog="${DOCS_GUARD_CHANGELOG:-no}"
 fi
@@ -97,7 +100,7 @@ fi
 has_label=no
 if printf '%s\n' "$labels" | grep -Eq '(^|")no-docs-needed("|$)'; then has_label=yes; fi
 has_reason=no
-if printf '%s\n' "$body" | tr -d '\r' | grep -Eq '^Docs: not needed because .{3,}'; then has_reason=yes; fi
+if printf '%s\n' "$body" | tr -d '\r' | grep -Eq '^Docs: not needed because [[:alnum:]]'; then has_reason=yes; fi
 
 if [ "$has_label" = yes ] && [ "$has_reason" = yes ]; then
   echo "The no-docs-needed label and a reason are present. Passing."

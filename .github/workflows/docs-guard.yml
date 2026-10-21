@@ -33,4 +33,4 @@ jobs:
         run: |
           set -euo pipefail
           export DOCS_GUARD_BASE="$BASE" DOCS_GUARD_HEAD="$HEAD"
-          git diff --name-only "$BASE...$HEAD" | .github/scripts/docs-guard.sh
+          git diff --no-renames --name-only -z "$BASE...$HEAD" | .github/scripts/docs-guard.sh
