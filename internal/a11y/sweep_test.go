@@ -2,12 +2,14 @@ package a11y
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -258,5 +260,30 @@ func TestIdentifyAndRobotsInBrowser(t *testing.T) {
 				t.Error("the disallowed page was requested")
 			}
 		})
+	}
+}
+
+func TestBestPracticeRulesAreAdviceNotFailures(t *testing.T) {
+	for _, c := range []struct {
+		tags []string
+		want bool
+	}{
+		{[]string{"cat.keyboard", "best-practice"}, true},                         // region: advice
+		{[]string{"cat.semantics", "wcag2aaa", "wcag249", "best-practice"}, true}, // AAA only: advice
+		{[]string{"cat.text-alternatives", "wcag2a", "wcag111"}, false},           // image-alt: a failure
+		{[]string{"cat.color", "wcag2aa", "wcag143", "best-practice"}, false},
+	} {
+		if got := adviceOnly(c.tags); got != c.want {
+			t.Errorf("adviceOnly(%v) = %v, want %v", c.tags, got, c.want)
+		}
+	}
+	var args []string
+	if err := json.Unmarshal([]byte(tagsArg()), &args); err != nil || !slices.Contains(args, "best-practice") || !slices.Contains(args, "wcag22aa") {
+		t.Errorf("the sweep should run the WCAG and best-practice tags: %v (%v)", args, err)
+	}
+	r := &Report{Results: []PageResult{{URL: "https://x.test/", Advice: []Finding{{Rule: "region", Nodes: []Node{{Target: "p"}, {Target: "div"}}}}}}}
+	r.summarise(Config{})
+	if r.Summary.Advice != 2 || r.Summary.Failing != 0 || r.Failed() {
+		t.Errorf("advice must not fail the sweep: %+v", r.Summary)
 	}
 }

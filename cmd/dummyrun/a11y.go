@@ -20,7 +20,8 @@ import (
 const a11yUsage = `Usage:
   dummyrun a11y [--sitemap URL] [--rebase URL] [URL...] [flags]
 
-Runs the axe-core WCAG 2.2 A and AA rules on each page in a real browser. No model is called.
+Runs the axe-core WCAG 2.2 A and AA rules on each page in a real browser, plus axe's best-practice rules, which
+are reported apart as advice and never fail the sweep. No model is called.
 
 Flags:
   --sitemap URL     a sitemap (or sitemap index) listing the pages to test

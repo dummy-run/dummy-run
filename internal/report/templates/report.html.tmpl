@@ -490,6 +490,21 @@ footer p { margin: 0 0 0.4rem; }
 </table>
 </div>
 {{end}}
+{{if .Axe.Advice}}
+<h3 class="sub">Advice beyond WCAG</h3>
+<p>These are axe's best-practice rules. They are not WCAG failures, and they are not counted above, but each one makes the site harder to use for someone.</p>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Best-practice advice">
+<table>
+<caption>Best-practice advice</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col" class="num">Elements</th><th scope="col">Pages</th></tr></thead>
+<tbody>
+{{- range .Axe.Advice}}
+<tr><th scope="row"><code>{{.Rule}}</code></th><td>{{.Help}}{{if .HelpURL}} (<a href="{{.HelpURL}}">how to fix</a>){{end}}</td><td class="num">{{.Elements}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
+{{- end}}
+</tbody>
+</table>
+</div>
+{{end}}
 {{if .Axe.Errors}}
 <h3 class="sub">Pages that could not be tested</h3>
 <div class="table-wrap" role="region" tabindex="0" aria-label="Page errors">

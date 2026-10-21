@@ -600,6 +600,7 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 	}
 	fail := map[string]*acc{}
 	review := map[string]*acc{}
+	advice := map[string]*acc{}
 	for _, rep := range reps {
 		if rep.Browser != "" {
 			b := rep.Browser
@@ -627,6 +628,9 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 			}
 			for _, f := range p.NeedsReview {
 				collect(review, f, p, false)
+			}
+			for _, f := range p.Advice {
+				collect(advice, f, p, false)
 			}
 		}
 	}
@@ -661,6 +665,9 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 	}
 	sec.Rules = flatten(fail, true)
 	sec.NeedsReview = flatten(review, false)
+	if a := flatten(advice, false); len(a) > 0 {
+		sec.Advice = a
+	}
 	return sec
 }
 

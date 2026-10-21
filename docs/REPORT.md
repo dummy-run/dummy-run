@@ -127,6 +127,10 @@ WCAG criteria, plus the pages, elements and settings where the rule failed. Elem
 counted and left out. Rules axe can't decide are listed separately under "needs a person to check", and so are
 pages that couldn't be tested.
 
+Axe's best-practice rules, such as content outside any landmark or headings that skip a level, have their own
+table, "Advice beyond WCAG". They aren't WCAG failures, so they aren't counted as failing elements, and the
+report's JSON keeps them in `axe.advice`. A sweep made before advice existed has none.
+
 When the sweep ran with `--layout` or `--text-scale`, its layout rules appear in the same section, because they are in the sweep file as violations. The rule IDs all begin `dummyrun-`. They map to WCAG 1.4.10, 1.4.4 and 2.5.8. Each is a measurement made in the browser, and the help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
 
 ## Compare with an earlier report

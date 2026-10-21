@@ -334,6 +334,7 @@
         "page_errors": { "type": "integer" },
         "rules": { "type": "array", "items": { "$ref": "#/$defs/axeRule" } },
         "needs_review": { "type": "array", "items": { "$ref": "#/$defs/axeRule" } },
+        "advice": { "type": "array", "items": { "$ref": "#/$defs/axeRule" }, "description": "Axe best-practice rules that failed. Not WCAG failures and not counted in failing_elements" },
         "errors": {
           "type": "array",
           "items": {

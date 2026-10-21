@@ -83,6 +83,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
 		r.Browser, r.BrowserVersion, r.AxeVersion, s.Pages, s.Runs, s.Failing, s.Allowed, s.NeedsReview, s.PageErrors)
+	if s.Advice > 0 {
+		_, _ = fmt.Fprintf(w, ", %d elements with best-practice advice (not failures)", s.Advice)
+	}
 	if s.Skipped > 0 {
 		_, _ = fmt.Fprintf(w, ", %d pages skipped for robots.txt", s.Skipped)
 	}

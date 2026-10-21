@@ -258,18 +258,21 @@ type BaselineInfo struct {
 
 // AxeSection is the accessibility sweep. Impact follows axe: critical, serious, moderate and minor.
 type AxeSection struct {
-	Tool         string     `json:"tool"`
-	Browsers     []string   `json:"browsers"`
-	AxeVersion   string     `json:"axe_version,omitempty"`
-	Tags         []string   `json:"tags"`
-	Pages        int        `json:"pages"`
-	Runs         int        `json:"runs"`
-	FailingNodes int        `json:"failing_elements"`
-	AllowedNodes int        `json:"allowed_elements"`
-	PageErrors   int        `json:"page_errors"`
-	Rules        []AxeRule  `json:"rules"`
-	NeedsReview  []AxeRule  `json:"needs_review"`
-	Errors       []AxeError `json:"errors,omitempty"`
+	Tool         string    `json:"tool"`
+	Browsers     []string  `json:"browsers"`
+	AxeVersion   string    `json:"axe_version,omitempty"`
+	Tags         []string  `json:"tags"`
+	Pages        int       `json:"pages"`
+	Runs         int       `json:"runs"`
+	FailingNodes int       `json:"failing_elements"`
+	AllowedNodes int       `json:"allowed_elements"`
+	PageErrors   int       `json:"page_errors"`
+	Rules        []AxeRule `json:"rules"`
+	NeedsReview  []AxeRule `json:"needs_review"`
+	// Advice holds the axe best-practice rules that failed. They are not WCAG failures, never count as failing
+	// elements and are shown apart from them.
+	Advice []AxeRule  `json:"advice,omitempty"`
+	Errors []AxeError `json:"errors,omitempty"`
 }
 
 // AxeRule is one rule that failed (or needs a person to look), folded across pages.

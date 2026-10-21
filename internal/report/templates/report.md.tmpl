@@ -153,6 +153,17 @@ Axe cannot decide these rules alone. A person has to look.
 {{- end}}
 
 {{end -}}
+{{- if .Axe.Advice}}### Advice beyond WCAG
+
+These are axe's best-practice rules. They are not WCAG failures, and they are not counted above, but each one makes the site harder to use for someone.
+
+| Rule | What it checks | Elements | Pages |
+|---|---|---|---|
+{{- range .Axe.Advice}}
+| `{{cell .Rule}}` | {{cell .Help}}{{if .HelpURL}} ({{cell .HelpURL}}){{end}} | {{cell .Elements}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{cell $p.URL}}{{end}} |
+{{- end}}
+
+{{end -}}
 {{- if .Axe.Errors}}### Pages that could not be tested
 
 | Page | Setting | Error |
