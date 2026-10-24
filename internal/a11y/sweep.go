@@ -65,6 +65,12 @@ type Config struct {
 	// Layout adds the layout checks to each run: sideways overflow, clipped text, overlapping controls
 	// and small targets. A non-100 text scale turns it on.
 	Layout bool
+	// Keyboard adds the Tab walk to each run: it presses Tab through the page and reports focus that cannot be seen,
+	// focus that cannot leave, and a skip link that goes nowhere.
+	Keyboard bool
+	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
+	// name, and a field for the person's own details with no autocomplete value.
+	Markup bool
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
@@ -129,8 +135,14 @@ type PageResult struct {
 	Scheme   string `json:"scheme"`
 	// TextScale is the system text size in percent the run used. Zero means 100 and is left out.
 	TextScale int `json:"text_scale,omitempty"`
+	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
+	MarkupChecked bool `json:"markup_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
+	// KeyboardChecked says the Tab walk ran, so a result with none of its rules means it found nothing.
+	KeyboardChecked bool `json:"keyboard_checked,omitempty"`
+	// KeyboardPartial says the Tab walk stopped before it had been through every stop, so later stops went unchecked.
+	KeyboardPartial bool `json:"keyboard_partial,omitempty"`
 	// PlainLanguageChecked says Vale read the page's main content. PlainLanguageError says why it could not.
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
@@ -545,6 +557,25 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		found, boxes := layoutFindings(l, path, cfg.Allow)
 		res.Violations = append(res.Violations, found...)
 		shoot(pctx, conn, cx, cfg.ScreenshotDir, &res, boxes)
+	}
+	if cfg.Keyboard {
+		w, err := page.WalkTabs(pctx, conn, cx, page.MaxTabStops)
+		if err != nil {
+			res.Error = "keyboard checks: " + firstLine(err.Error())
+			return res
+		}
+		res.KeyboardChecked = true
+		res.KeyboardPartial = !w.Completed
+		res.Violations = append(res.Violations, keyboardFindings(w, path, cfg.Allow)...)
+	}
+	if cfg.Markup {
+		m, err := page.RunMarkupChecks(pctx, conn, cx)
+		if err != nil {
+			res.Error = "markup checks: " + firstLine(err.Error())
+			return res
+		}
+		res.MarkupChecked = true
+		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
 	}
 	return res
 }
