@@ -79,6 +79,10 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, limit int) (*TabW
 		return nil, fmt.Errorf("tab walk: %w", err)
 	}
 	w.Focusables = init.Focusables
+	if w.Focusables == 0 {
+		w.Completed = true // nothing on the page takes focus, so there is nothing to walk
+		return w, nil
+	}
 	tab, _ := bidi.Key("Tab")
 	esc, _ := bidi.Key("Escape")
 	seen := map[int]int{} // element id -> index in Stops
@@ -110,8 +114,14 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, limit int) (*TabW
 			}
 			stuck++
 			if stuck >= 2 {
-				if !st.Modal && trapped(ctx, conn, cx, w, []TabStop{st}, tab, esc) {
-					w.Trap = []TabStop{st}
+				if !st.Modal {
+					t, err := trapped(ctx, conn, cx, w, []TabStop{st}, tab, esc)
+					if err != nil {
+						return nil, err
+					}
+					if t {
+						w.Trap = []TabStop{st}
+					}
 				}
 				return w.finish(ctx, conn, cx)
 			}
@@ -125,8 +135,14 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, limit int) (*TabW
 			}
 			loop := slices.Clone(w.Stops[j:])
 			modal := slices.ContainsFunc(loop, func(s TabStop) bool { return s.Modal })
-			if !modal && trapped(ctx, conn, cx, w, loop, tab, esc) {
-				w.Trap = loop
+			if !modal {
+				t, err := trapped(ctx, conn, cx, w, loop, tab, esc)
+				if err != nil {
+					return nil, err
+				}
+				if t {
+					w.Trap = loop
+				}
 			}
 			if !modal || w.Trap != nil {
 				return w.finish(ctx, conn, cx)
@@ -140,25 +156,28 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, limit int) (*TabW
 }
 
 // trapped presses Escape and then Tab a few more times. Focus that never reaches an element outside the loop is a trap.
-func trapped(ctx context.Context, conn *bidi.Conn, cx string, w *TabWalk, loop []TabStop, tab, esc string) bool {
-	_ = conn.PressKey(ctx, cx, esc)
+// A key press or state read that fails is an error, so a probe that could not finish never reads as "no trap".
+func trapped(ctx context.Context, conn *bidi.Conn, cx string, w *TabWalk, loop []TabStop, tab, esc string) (bool, error) {
+	if err := conn.PressKey(ctx, cx, esc); err != nil {
+		return false, fmt.Errorf("tab walk: trap probe: %w", err)
+	}
 	in := map[int]bool{}
 	for _, s := range loop {
 		in[s.ID] = true
 	}
 	for range len(loop) + 3 {
-		if conn.PressKey(ctx, cx, tab) != nil {
-			return false
+		if err := conn.PressKey(ctx, cx, tab); err != nil {
+			return false, fmt.Errorf("tab walk: trap probe: %w", err)
 		}
 		var st TabStop
-		if w.call(ctx, conn, cx, "state", nil, &st) != nil {
-			return false
+		if err := w.call(ctx, conn, cx, "state", nil, &st); err != nil {
+			return false, fmt.Errorf("tab walk: trap probe: %w", err)
 		}
 		if st.Body || !in[st.ID] {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 // finish checks the focus indicator of the stops that show none in their style, by comparing pictures.

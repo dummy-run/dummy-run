@@ -43,10 +43,13 @@ document.getElementById("box").addEventListener("keydown", function (e) {
 var kbLong = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Long</title><style>a{outline:2px solid #005fcc}</style></head><body><main><h1>Long</h1>" +
 	strings.Repeat("<a href=\"/x\">Link</a> ", 100) + "</main></body></html>"
 
+// kbEmpty has nothing that takes focus, so its walk is complete with no stops.
+const kbEmpty = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Empty</title></head><body><main><h1>Empty</h1><p>Only text.</p></main></body></html>`
+
 func keyboardServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	for path, body := range map[string]string{"/good": kbGood, "/bad": kbBad, "/trap": kbTrap, "/long": kbLong} {
+	for path, body := range map[string]string{"/good": kbGood, "/bad": kbBad, "/trap": kbTrap, "/long": kbLong, "/empty": kbEmpty} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, body)
@@ -67,7 +70,7 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/good", srv.URL + "/bad", srv.URL + "/bad#plain", srv.URL + "/trap", srv.URL + "/long"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/good", srv.URL + "/bad", srv.URL + "/bad#plain", srv.URL + "/trap", srv.URL + "/long", srv.URL + "/empty"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
@@ -91,8 +94,8 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 				}
 				got[strings.TrimPrefix(r.URL, srv.URL)] = m
 			}
-			if len(got["/good"]) != 0 {
-				t.Errorf("the good page has keyboard findings: %v", got["/good"])
+			if len(got["/good"]) != 0 || len(got["/empty"]) != 0 {
+				t.Errorf("the good or empty page has keyboard findings: %v %v", got["/good"], got["/empty"])
 			}
 			// A page opened at a #fragment starts Tab from the top, so the skip link is still the first stop.
 			if got["/bad#plain"][RuleSkipLinkBroken] == "" {
