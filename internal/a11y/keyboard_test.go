@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -46,10 +47,29 @@ var kbLong = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><ti
 // kbEmpty has nothing that takes focus, so its walk is complete with no stops.
 const kbEmpty = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Empty</title></head><body><main><h1>Empty</h1><p>Only text.</p></main></body></html>`
 
+// kbFrame has nothing to Tab to but a frame, which the selector count leaves out.
+const kbFrame = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Frame</title></head><body><main><h1>Frame</h1>
+<iframe title="Inner" srcdoc="<a href='/x'>Inside</a>"></iframe></main></body></html>`
+
+// kbEscape cycles Tab between two fields, as a trap does, but Escape moves focus out to a button.
+const kbEscape = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Escape</title>
+<style>a,button,input{outline:2px solid #005fcc}</style></head><body>
+<main><h1>Escape</h1><button id="out">Outside</button>
+<div id="box"><input id="one" aria-label="one"><input id="two" aria-label="two"></div></main>
+<script>
+document.getElementById("box").addEventListener("keydown", function (e) {
+  if (e.key === "Escape") { document.getElementById("out").focus(); return; }
+  if (e.key !== "Tab") return;
+  e.preventDefault();
+  var a = document.getElementById("one"), b = document.getElementById("two");
+  (document.activeElement === a ? b : a).focus();
+});
+</script></body></html>`
+
 func keyboardServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	for path, body := range map[string]string{"/good": kbGood, "/bad": kbBad, "/trap": kbTrap, "/long": kbLong, "/empty": kbEmpty} {
+	for path, body := range map[string]string{"/good": kbGood, "/bad": kbBad, "/trap": kbTrap, "/long": kbLong, "/empty": kbEmpty, "/frame": kbFrame, "/escape": kbEscape} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, body)
@@ -70,7 +90,7 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/good", srv.URL + "/bad", srv.URL + "/bad#plain", srv.URL + "/trap", srv.URL + "/long", srv.URL + "/empty"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/good", srv.URL + "/bad", srv.URL + "/bad#plain", srv.URL + "/trap", srv.URL + "/long", srv.URL + "/empty", srv.URL + "/frame", srv.URL + "/escape"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
@@ -83,7 +103,9 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 				if !r.KeyboardChecked {
 					t.Fatalf("%s: the Tab walk did not run", r.URL)
 				}
-				if partial := strings.HasSuffix(r.URL, "/long") || strings.HasSuffix(r.URL, "/trap"); r.KeyboardPartial != partial {
+				// A walk that stops at a loop, at the Tab limit or inside a frame it cannot follow is partial.
+				name := strings.TrimPrefix(r.URL, srv.URL)
+				if partial := slices.Contains([]string{"/long", "/trap", "/frame", "/escape"}, name); r.KeyboardPartial != partial {
 					t.Errorf("%s: keyboard_partial is %v, want %v", r.URL, r.KeyboardPartial, partial)
 				}
 				m := map[string]string{}
@@ -94,10 +116,16 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 				}
 				got[strings.TrimPrefix(r.URL, srv.URL)] = m
 			}
-			for _, p := range []string{"/good", "/bad", "/bad#plain", "/trap", "/long", "/empty"} {
+			for _, p := range []string{"/good", "/bad", "/bad#plain", "/trap", "/long", "/empty", "/frame", "/escape"} {
 				if _, ok := got[p]; !ok {
 					t.Fatalf("no result for %s", p)
 				}
+			}
+			if len(got["/frame"]) != 0 {
+				t.Errorf("the frame page has keyboard findings: %v", got["/frame"])
+			}
+			if got["/escape"][RuleKeyboardTrap] != "" {
+				t.Errorf("a loop Escape leaves is reported as a trap")
 			}
 			if len(got["/good"]) != 0 || len(got["/empty"]) != 0 {
 				t.Errorf("the good or empty page has keyboard findings: %v %v", got["/good"], got["/empty"])

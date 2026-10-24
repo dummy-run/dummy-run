@@ -45,7 +45,7 @@
     return props.map((p) => cs[p]).join("|");
   };
   const focusables = () =>
-    [...document.querySelectorAll('a[href], button, input:not([type=hidden]), select, textarea, summary, [tabindex], [contenteditable=""], [contenteditable="true"]')];
+    [...document.querySelectorAll('a[href], button, input:not([type=hidden]), select, textarea, summary, [tabindex], [contenteditable=""], [contenteditable="true"], iframe, object, embed, audio[controls], video[controls]')];
 
   if (op === "init") {
     const list = focusables();

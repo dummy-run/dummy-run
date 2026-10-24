@@ -189,10 +189,14 @@ func trapped(ctx context.Context, conn *bidi.Conn, cx string, w *TabWalk, loop [
 	return true, nil
 }
 
-// finish checks the focus indicator of the stops that show none in their style, by comparing pictures.
-// A focus or screenshot failure is not fatal and leaves the stop unchecked. A cancelled or expired context is, so a
+// finish marks a walk that met a frame as partial, then checks the focus indicator of the stops that show none in
+// their style, by comparing pictures. A focus or screenshot failure is not fatal and leaves the stop unchecked. A cancelled or expired context is, so a
 // walk that ran out of time never reads as a clean result.
 func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) (*TabWalk, error) {
+	// The walk does not follow focus into a frame, so a walk that met one has not seen everything.
+	if slices.ContainsFunc(w.Stops, func(s TabStop) bool { return s.Frame }) {
+		w.Completed = false
+	}
 	checks := 0
 	for i := range w.Stops {
 		if err := ctx.Err(); err != nil {
