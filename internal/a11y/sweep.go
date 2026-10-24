@@ -119,9 +119,9 @@ type PageResult struct {
 	Scheme   string `json:"scheme"`
 	// TextScale is the system text size in percent the run used. Zero means 100 and is left out.
 	TextScale int `json:"text_scale,omitempty"`
+	// ChecksRan says the markup checks ran, so a result with none of their rules means they found nothing.
+	ChecksRan bool `json:"checks_ran,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
-	// ChecksRan says the markup checks ran.
-	ChecksRan     bool   `json:"checks_ran,omitempty"`
 	LayoutChecked bool   `json:"layout_checked,omitempty"`
 	Error         string `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.

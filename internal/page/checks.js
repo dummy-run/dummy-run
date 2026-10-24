@@ -57,7 +57,7 @@
     }
   }
 
-  const others = /\b(friend|colleague|recipient|their|someone|invite|referr|share with|gift|teammate|member|admin)\b/i;
+  const others = /\b(friends?|colleagues?|recipients?|their|someone|invit\w*|referral|referrer|share with|gift|teammates?|members?|admin\w*)\b/i;
   const labelText = (el) => {
     const bits = [el.getAttribute("aria-label")];
     if (el.id) for (const l of document.querySelectorAll("label[for=\"" + CSS.escape(el.id) + "\"]")) bits.push(l.textContent);
@@ -72,9 +72,10 @@
     if (t === "email") return "email";
     if (t === "tel") return "tel";
     if (t !== "text" && t !== "") return null;
-    if (/(^|[^a-z])(given|first)[-_ ]?name([^a-z]|$)/.test(id) || /^first name$/i.test(text)) return "given-name";
-    if (/(^|[^a-z])(family|last|sur)[-_ ]?name([^a-z]|$)/.test(id) || /^(last|family) name$/i.test(text)) return "family-name";
-    if (/(^|[^a-z])(post|zip)[-_ ]?code([^a-z]|$)/.test(id) || /^(post ?code|zip code)$/i.test(text)) return "postal-code";
+    // The label text can hold a placeholder and a trailing "*" too, so it is matched on word boundaries.
+    if (/(^|[^a-z])(given|first)[-_ ]?name([^a-z]|$)/.test(id) || /\b(given|first) name\b/i.test(text)) return "given-name";
+    if (/(^|[^a-z])(family[-_ ]?name|last[-_ ]?name|surname)([^a-z]|$)/.test(id) || /\b(last|family) name\b|\bsurname\b/i.test(text)) return "family-name";
+    if (/(^|[^a-z])(post(al)?|zip)[-_ ]?code([^a-z]|$)/.test(id) || /\b(post(al)? ?code|zip code)\b/i.test(text)) return "postal-code";
     return null;
   };
   for (const el of document.querySelectorAll("input")) {

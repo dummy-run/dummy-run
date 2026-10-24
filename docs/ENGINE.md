@@ -937,7 +937,6 @@ report end in `/text-200` when a text scale was used.
 dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://example.com/
 ```
 
-
 ### Markup checks
 
 Add `--checks` for two checks on the page's markup that axe leaves out by default. They run in the browser with no model call.
@@ -945,7 +944,9 @@ Add `--checks` for two checks on the page's markup that axe leaves out by defaul
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
 | `dummyrun-label-in-name` | A link or button has an `aria-label` or `aria-labelledby` name, and the words it shows are not part of that name. Punctuation and case are ignored, and a control that shows only a symbol is skipped | 2.5.3 | serious |
-| `dummyrun-autocomplete-missing` | A visible email, telephone, first name, last name or postcode field has no `autocomplete` value, or has `off`. Search forms are skipped, and so are fields that ask for another person's details, such as a friend's email | 1.3.5 | serious |
+| `dummyrun-autocomplete-missing` | A visible email, telephone, first name, last name or postcode field has no `autocomplete` value, or has `off` or `on`, which name no purpose. Search forms are skipped, and so are fields that ask for another person's details, such as a friend's email | 1.3.5 | serious |
+
+These findings fail the sweep like axe rules, and you can accept one with the allow-list. Each page's JSON result has `checks_ran`, so a page with no markup findings is known to have been checked.
 
 ## Troubleshooting
 
