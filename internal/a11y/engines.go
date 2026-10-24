@@ -44,16 +44,17 @@ func axeNodes(violations []Finding) []page.AxeNode {
 // a candidate: it is kept for review and never fails the sweep.
 func engineFindings(r *page.EngineResults, violations []Finding, path string, allow *AllowList) (agreed, candidates []Finding) {
 	i := 0
-	for fi := range violations {
-		for ni := range violations[fi].Nodes {
+	for _, f := range violations {
+		// f is a copy, but its Nodes share the backing array, so the marks land in violations.
+		for ni, n := range f.Nodes {
 			engines := []string{"axe"}
 			if i < len(r.Axe) {
 				engines = append(engines, r.Axe[i]...)
 			}
 			slices.Sort(engines)
-			n := &violations[fi].Nodes[ni]
 			n.Engines = engines
 			n.Confidence = confidence(engines)
+			f.Nodes[ni] = n
 			i++
 		}
 	}
