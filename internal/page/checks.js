@@ -39,6 +39,20 @@
     "cc-given-name cc-additional-name cc-family-name cc-number cc-exp cc-exp-month cc-exp-year cc-csc cc-type " +
     "transaction-currency transaction-amount language bday bday-day bday-month bday-year sex url photo tel tel-country-code " +
     "tel-national tel-area-code tel-local tel-local-prefix tel-local-suffix tel-extension email impp").split(" "));
+  // Whether an autocomplete value names a purpose, by the HTML standard's grammar: an optional "section-*", an optional
+  // "shipping" or "billing", an optional contact kind before a phone, email or IMPP field, the field name, then an
+  // optional "webauthn".
+  const names = (value) => {
+    const t = value.split(/\s+/).filter(Boolean);
+    if (t[t.length - 1] === "webauthn") t.pop();
+    const field = t.pop();
+    if (!fields.has(field)) return false;
+    let i = 0;
+    if (t[i] && t[i].startsWith("section-")) i++;
+    if (t[i] === "shipping" || t[i] === "billing") i++;
+    if (["home", "work", "mobile", "fax", "pager"].includes(t[i]) && /^(tel|email|impp)/.test(field)) i++;
+    return i === t.length;
+  };
   const out = { labelInName: [], autocomplete: [] };
   const push = (list, node) => { if (list.length < max) list.push(node); };
 
@@ -93,9 +107,7 @@
     const want = expected(el, text);
     if (!want) continue;
     const have = (el.getAttribute("autocomplete") || "").trim().toLowerCase();
-    // A purpose counts only when the value ends in a field name the HTML standard defines, as in "shipping email".
-    const tokens = have.split(/\s+/).filter((t) => t && t !== "webauthn");
-    if (fields.has(tokens[tokens.length - 1])) continue;
+    if (names(have)) continue;
     push(out.autocomplete, { selector: selector(el), detail: "it asks for " + want.replace("-", " ") + (have ? " and autocomplete is \"" + have + "\"" : " with no autocomplete value"), want });
   }
   return out;
