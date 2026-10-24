@@ -1042,17 +1042,22 @@ accept, settings, acknowledge and other. A banner with an accept button and no r
 reading and more precise clicks. That weighs most on people who tire easily, use a switch or read slowly. The finding
 goes to `advice` because it isn't a WCAG failure, so it never fails the sweep.
 
-A banner that turns up a few seconds after the page loads is read and answered too. The sweep waits until
-autoconsent has finished looking before it moves on, so nothing is clicked during the checks that follow.
+A banner that turns up while autoconsent is still looking, in about the first three seconds, is read and answered
+too. When autoconsent reports it found nothing, the sweep moves on at once, so a banner that appears after that isn't
+answered. Otherwise the sweep waits up to 10 seconds for autoconsent to finish before it moves on. If autoconsent is still working when that time is up,
+`settled` is false and it could still click something during the checks that follow. If autoconsent can't start
+on the page at all, `failed` is true and the page has an `error`, so the sweep fails.
 
 Each result has `consent`, which records:
 
 - `popups`, the banners found, with each button's text and kind;
 - `cmp`, the consent platform recognised;
 - `opted_out`, true when autoconsent reports that it rejected;
-- `cleared`, true when every banner it found is gone or out of the window afterwards, measured in the page;
+- `cleared`, true when every banner it found is gone or out of the window afterwards, measured in the page, and
+  false otherwise;
 - `settled`, true when autoconsent had finished when the sweep moved on. When it's false, autoconsent could still
   act on the page later;
+- `failed`, true when autoconsent couldn't start or read the page, with the reason in `error`;
 - `steps`, autoconsent's own messages in order.
 
 A banner inside a frame is answered but not read, so it has no buttons in `popups`. Rejecting sets cookies in the

@@ -4,7 +4,7 @@
 //   rulesJSON  autoconsent's compact rule set as JSON
 //   waitMs     how long to wait for autoconsent to finish once it finds a banner
 // Before autoconsent clicks anything, its own heuristics read the banners on the page and sort each button into
-// reject, accept, settings, acknowledge or other. Returns {popups, cmp, found, opted_out, done, settled, cleared, error, steps}.
+// reject, accept, settings, acknowledge or other. Returns {popups, cmp, found, opted_out, done, settled, failed, cleared, error, steps}.
 async (rulesJSON, waitMs) => {
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
   const part = (el) => {
@@ -28,7 +28,7 @@ async (rulesJSON, waitMs) => {
     }
     return parts.join(" > ") || el.tagName.toLowerCase();
   };
-  const st = { popups: [], cmp: "", found: false, opted_out: false, done: false, settled: false, cleared: false, error: "", steps: [] };
+  const st = { popups: [], cmp: "", found: false, opted_out: false, done: false, settled: false, failed: false, cleared: false, error: "", steps: [] };
   let answered = false;
   // autoconsent's own progress: "nothingDetected" means it has finished looking and found no banner.
   let lifecycle = "";
@@ -104,6 +104,7 @@ async (rulesJSON, waitMs) => {
     look();
   } catch (e) {
     st.error = String(e && e.message || e).slice(0, 200);
+    st.failed = true;
     return st;
   }
   const started = Date.now();

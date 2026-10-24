@@ -551,6 +551,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			return res
 		}
 		res.Consent = c
+		if msg := consentFailed(c); msg != "" {
+			res.Error = msg
+			return res
+		}
 		res.Advice = append(res.Advice, consentFindings(c, path, cfg.Allow)...)
 	}
 	if cfg.Layout {
