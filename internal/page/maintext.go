@@ -20,10 +20,14 @@ const mainHTMLJS = `(max) => {
   // The copy has no styles, so what CSS hides is found on the page and removed from the copy, which has the same
   // elements in the same order.
   const live = root.querySelectorAll("*"), copied = copy.querySelectorAll("*");
-  const gone = [];
+  // display: none and opacity: 0 hide everything inside, so the whole copy goes. visibility: hidden can be undone
+  // by a child with visibility: visible, so only the hidden element's own text goes.
+  const gone = [], silent = [];
   live.forEach((el, i) => {
-    if (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true, opacityProperty: true })) gone.push(copied[i]);
+    if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true })) gone.push(copied[i]);
+    else if (getComputedStyle(el).visibility !== "visible") silent.push(copied[i]);
   });
+  for (const el of silent) for (const n of [...el.childNodes]) if (n.nodeType === Node.TEXT_NODE) n.remove();
   for (const el of gone) el.remove();
   const drop = "script, style, noscript, template, svg, canvas, iframe, [hidden], [aria-hidden=true]" +
     (root === document.body ? ", header, nav, footer, aside, [role=banner], [role=navigation], [role=contentinfo], [role=complementary]" : "");

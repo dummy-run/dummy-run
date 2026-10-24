@@ -1000,9 +1000,10 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 Long sentences and vague words make a page harder for everyone, and hardest for people who read slowly, read in a
 second language or listen to a screen reader. Add `--plain-language` and the sweep reads each page's main content
-with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark. On a
-page without one, it's the body. The sweep then leaves out the body's header, navigation, footer and asides. Code,
-scripts and hidden text are left out, including text the page's CSS hides with `display`, `visibility` or `opacity`.
+with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark,
+the region a page marks as its main content. On a page without one, it's the body. The sweep then leaves out the
+body's header, navigation, footer and asides. Code, scripts and hidden text are left out, including text the
+page's CSS hides with `display`, `visibility` or `opacity`.
 
 | Rule ID | Reports | Based on |
 |---|---|---|

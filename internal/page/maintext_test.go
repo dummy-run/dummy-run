@@ -14,7 +14,7 @@ import (
 // and that content longer than MainHTMLMax is marked as cut.
 func TestMainHTMLDropsHiddenTextAndSaysWhenItIsCut(t *testing.T) {
 	short := `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>T</title><style>.gone { display: none }</style></head>
-<body><main><p>Shown words.</p><p style="display:none">Leverage synergies.</p><div class="gone"><p>Utilise this.</p></div><p style="visibility:hidden">Facilitate outcomes.</p><div style="opacity:0"><p>Going forward.</p></div></main></body></html>`
+<body><main><p>Shown words.</p><p style="display:none">Leverage synergies.</p><div class="gone"><p>Utilise this.</p></div><p style="visibility:hidden">Facilitate outcomes.</p><div style="visibility:hidden">Ideate now.<p style="visibility:visible">Still seen.</p></div><div style="opacity:0"><p>Going forward.</p></div></main></body></html>`
 	long := `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>T</title></head><body><main>` +
 		strings.Repeat("<p>A plain sentence about opening hours.</p>", page.MainHTMLMax/40+100) + `</main></body></html>`
 	for _, browser := range browsers(t) {
@@ -37,7 +37,7 @@ func TestMainHTMLDropsHiddenTextAndSaysWhenItIsCut(t *testing.T) {
 				if m.Truncated != c.truncated || m.Selector != "main" {
 					t.Errorf("truncated %v selector %q, want %v main", m.Truncated, m.Selector, c.truncated)
 				}
-				if !c.truncated && (!strings.Contains(m.HTML, "Shown words.") || strings.Contains(m.HTML, "Leverage") || strings.Contains(m.HTML, "Utilise") ||
+				if !c.truncated && (!strings.Contains(m.HTML, "Shown words.") || !strings.Contains(m.HTML, "Still seen.") || strings.Contains(m.HTML, "Ideate") || strings.Contains(m.HTML, "Leverage") || strings.Contains(m.HTML, "Utilise") ||
 					strings.Contains(m.HTML, "Facilitate") || strings.Contains(m.HTML, "Going forward")) {
 					t.Errorf("hidden text kept or shown text lost: %s", m.HTML)
 				}
