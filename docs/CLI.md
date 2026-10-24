@@ -222,6 +222,10 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
+  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
+                    skip link that goes nowhere
+  --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
+                    your own details with no purpose-specific autocomplete value
   --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
                     A banner with an accept button and no reject button is reported as advice
                     (dummyrun-consent-no-reject), which never fails the sweep
