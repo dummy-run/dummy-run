@@ -106,7 +106,6 @@ async (axeJSON, criteriaJSON, max) => {
     errors.alfa = squash(String(e && e.message || e)).slice(0, 200);
   }
 
-  const overlaps = (a, b) => a.some((c) => b.includes(c));
   const used = new Set();
   const axe = axeNodes.map((n) => {
     let el = null;
@@ -117,17 +116,22 @@ async (axeJSON, criteriaJSON, max) => {
         el = null;
       }
     }
-    const agree = new Set();
+    // Engines are counted per criterion, so IBM on 1.1.1 and Alfa on 1.3.1 never add up to agreement.
+    const agree = new Map(n.sc.map((c) => [c, new Set()]));
     if (el) {
       items.forEach((it, i) => {
-        if (it.el === el && overlaps(it.sc, n.sc)) {
-          agree.add(it.engine);
-          // Only the criteria axe shares are accounted for; the item's other criteria still group below.
-          for (const c of it.sc) if (n.sc.includes(c)) used.add(i + ":" + c);
+        if (it.el !== el) return;
+        // Only the criteria axe shares are accounted for; the item's other criteria still group below.
+        for (const c of it.sc) {
+          if (!agree.has(c)) continue;
+          agree.get(c).add(it.engine);
+          used.add(i + ":" + c);
         }
       });
     }
-    return [...agree].sort();
+    let best = new Set();
+    for (const s of agree.values()) if (s.size > best.size) best = s;
+    return [...best].sort();
   });
 
   // Group what is left by element and exact criterion, so agreement means two engines report the same criterion.

@@ -23,8 +23,12 @@ func TestSpokenLines(t *testing.T) {
 	for i := range long {
 		long[i] = fmt.Sprint("p", i)
 	}
-	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{Phrases: long}}); !strings.HasSuffix(got, "... 5 more phrases\n") {
+	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{Phrases: long, Complete: true}}); !strings.HasSuffix(got, "... 5 more phrases\n") {
 		t.Errorf("a long reading is not cut: %q", got[len(got)-40:])
+	}
+	// A long reading that also stopped early says both.
+	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{Phrases: long}}); !strings.HasSuffix(got, "... 5 more phrases\n  ... the reading stopped before the end of the page\n") {
+		t.Errorf("a long unfinished reading: %q", got[len(got)-80:])
 	}
 	if got := spokenLines(&page.Snapshot{SpokenError: "boom"}); !strings.Contains(got, "could not read the page aloud (boom)") {
 		t.Errorf("error: %q", got)

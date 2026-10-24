@@ -32,8 +32,8 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --all             run every check below in the same sweep, so one command gives the whole picture. Add
-                    --text-scale 100,200 to test large text as well
+  --all             run every check listed below in the same sweep. Add --text-scale 100,200 to test large text
+                    as well
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
   --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
@@ -73,6 +73,9 @@ Flags:
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
 tested, 2 for a usage error, 3 when robots.txt disallows every page. Pages skipped for robots.txt do not fail the sweep.`
+
+// a11yRun runs the sweep. Tests replace it to see the configuration the flags make.
+var a11yRun = a11y.Run
 
 func a11yCmd(args []string) int {
 	fs := flag.NewFlagSet("a11y", flag.ContinueOnError)
@@ -133,7 +136,7 @@ func a11yCmd(args []string) int {
 		return 2
 	}
 	if *all {
-		// One switch for the whole picture. A check added later joins this list.
+		// One switch for every check. A check added later joins this list.
 		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, imageContrast} {
 			*on = true
 		}
@@ -196,7 +199,7 @@ func a11yCmd(args []string) int {
 		urls = append(pages, urls...)
 	}
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
-	rep, err := a11y.Run(ctx, a11y.Config{
+	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
 		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,

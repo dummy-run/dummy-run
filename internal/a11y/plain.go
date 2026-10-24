@@ -78,6 +78,6 @@ func plainCheck(ctx context.Context, conn *bidi.Conn, cx string, res *PageResult
 		res.PlainLanguageError = firstLine(err.Error())
 		return
 	}
-	res.PlainLanguageChecked = true
+	res.PlainLanguageChecked, res.PlainLanguagePartial = true, m.Truncated
 	res.Advice = append(res.Advice, plainFindings(alerts, m.Selector, path, allow)...)
 }
