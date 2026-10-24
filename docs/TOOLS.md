@@ -61,6 +61,12 @@ copyright lines:
 |---|---|---|---|
 | [Lighthouse](https://github.com/GoogleChrome/lighthouse) by Google | 13.5.0, which you install | Its accessibility and best-practice audits, with `--lighthouse`. It runs as its own program and isn't bundled | Apache-2.0 |
 
+## Link checking
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [lychee](https://github.com/lycheeverse/lychee) by Matthias Endler and the lychee contributors | 0.24.2 in the container image | Checks the links on each page with `--links`. It runs as its own program | MIT or Apache-2.0 |
+
 ## Plain language
 
 | Tool | Version | What it does in Dummy Run | Licence |
