@@ -525,6 +525,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		if len(r.Errors) > 0 {
 			res.EngineErrors = r.Errors
 		}
+		if msg := enginesFailed(r); msg != "" {
+			res.Error = firstLine(msg)
+			return res
+		}
 		agreed, cands := engineFindings(r, res.Violations, path, cfg.Allow)
 		res.Violations = append(res.Violations, agreed...)
 		res.Candidates = cands
