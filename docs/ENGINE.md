@@ -998,14 +998,16 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 axe-core can't judge the contrast of text that sits on a photo or a gradient, so it lists that text under
 `needs_review`. Add `--image-contrast` and the sweep measures it instead. For each element axe left for review, up to
-20 on a page, it hides the text, takes a picture of the element's box and compares the text colour with every pixel
+20 tries on a page, it hides the text, takes a picture of the element's box and compares the text colour with every pixel
 behind it. It runs after any cookie banner has been answered, so the banner isn't in the picture.
 
 A finding, `dummyrun-contrast-over-image` (WCAG 1.4.3, serious), means most of the text sits on too little contrast.
 The middle pixel behind the text gives less than 4.5:1, or 3:1 for large text. The `detail` gives that figure and the
 contrast against the worst tenth of the pixels, so you can see how much of the text is affected. Text that passes
 at the middle pixel and fails only in its worst tenth isn't reported. Each result has `image_contrast`, with every
-measurement, and `image_contrast_checked`.
+measurement, and `image_contrast_checked`. `image_contrast_unmeasured` counts the elements it couldn't measure.
+These are ones inside a shadow root or frame, ones it couldn't find or picture, and any past the limit. Check those
+by eye.
 
 The picture is taken as the page draws it, so a slideshow that moves on or a video behind the text can give a
 different answer next time. Check a finding by eye before you change the design.

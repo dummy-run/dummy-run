@@ -39,3 +39,11 @@ func TestContrastBehind(t *testing.T) {
 		t.Errorf("#767676 on white is about 4.54:1, got %v", r)
 	}
 }
+
+func TestMeasureImageContrastSkipsNestedTargets(t *testing.T) {
+	// A nested target never reaches the browser, so a nil connection is never used.
+	ms, err := MeasureImageContrast(t.Context(), nil, "", []string{"#host >> button"})
+	if err != nil || len(ms) != 0 {
+		t.Fatalf("got %v, %v", ms, err)
+	}
+}

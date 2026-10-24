@@ -47,6 +47,9 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			if !measured["#faint"] || !measured["#strong"] {
 				t.Fatalf("both gradients should be measured: %+v (needs review %+v)", r.ImageContrast, r.NeedsReview)
 			}
+			if want := len(imageContrastTargets(r.NeedsReview)) - len(r.ImageContrast); r.ImageContrastUnmeasured != want {
+				t.Errorf("unmeasured %d, want %d", r.ImageContrastUnmeasured, want)
+			}
 			var flagged []string
 			for _, f := range r.Violations {
 				if f.Rule == RuleImageContrast {

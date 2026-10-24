@@ -148,8 +148,11 @@ type PageResult struct {
 	KeyboardPartial bool `json:"keyboard_partial,omitempty"`
 	// ImageContrast holds each measurement of text against the pixels behind it, when the sweep ran
 	// --image-contrast. ImageContrastChecked says the check ran, even when there was nothing to measure.
-	ImageContrast        []page.ImageContrast `json:"image_contrast,omitempty"`
-	ImageContrastChecked bool                 `json:"image_contrast_checked,omitempty"`
+	// ImageContrastUnmeasured counts the elements it was asked about and could not measure: ones inside a shadow
+	// root or frame, ones it couldn't find or picture, and any past the limit for one page.
+	ImageContrast           []page.ImageContrast `json:"image_contrast,omitempty"`
+	ImageContrastChecked    bool                 `json:"image_contrast_checked,omitempty"`
+	ImageContrastUnmeasured int                  `json:"image_contrast_unmeasured,omitempty"`
 	// PlainLanguageChecked says Vale read the page's main content. PlainLanguageError says why it could not.
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
@@ -555,12 +558,14 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Advice = append(res.Advice, consentFindings(c, path, cfg.Allow)...)
 	}
 	if cfg.ImageContrast {
-		ms, err := page.MeasureImageContrast(pctx, conn, cx, imageContrastTargets(res.NeedsReview))
+		targets := imageContrastTargets(res.NeedsReview)
+		ms, err := page.MeasureImageContrast(pctx, conn, cx, targets)
 		if err != nil {
 			res.Error = firstLine(err.Error())
 			return res
 		}
 		res.ImageContrastChecked, res.ImageContrast = true, ms
+		res.ImageContrastUnmeasured = len(targets) - len(ms)
 		res.Violations = append(res.Violations, imageContrastFindings(ms, path, cfg.Allow)...)
 	}
 	if cfg.Layout {
