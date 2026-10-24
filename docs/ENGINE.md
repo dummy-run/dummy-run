@@ -952,6 +952,17 @@ The pixel comparison covers no more than the first 30 stops that need it. The wa
 
 Focus that moves into a frame or a media player is followed no further, so the walk counts as partial. A dialog that keeps focus inside itself is not a trap, even when it has only one control. A page with nothing that takes focus counts as fully walked. If the trap test cannot finish, the page shows an error instead of a clean result.
 
+### Markup checks
+
+Add `--markup` for two checks on the page's markup that axe leaves out by default. They run in the browser with no model call.
+
+| Rule ID | Fails when | WCAG | Impact |
+|---|---|---|---|
+| `dummyrun-label-in-name` | A link or button has an `aria-label` or `aria-labelledby` name, and the words it shows are not part of that name. Punctuation and case are ignored, and a control that shows only a symbol is skipped | 2.5.3 | serious |
+| `dummyrun-autocomplete-missing` | A field asks for the visitor's own email, phone number, first name, last name or postcode. It is visible, enabled and editable. It has no `autocomplete` value that names a purpose. A value names a purpose when it follows the HTML standard's autofill grammar, such as `email` or `shipping postal-code`. `off`, `on` and made-up values do not. Read-only fields and search forms are skipped, and so are fields that ask for another person's details, such as a friend's email | 1.3.5 | serious |
+
+These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
+
 ## Troubleshooting
 
 Leftover browsers fill the disk and the process table. To list the browsers and profile directories that

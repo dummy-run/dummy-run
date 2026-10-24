@@ -68,6 +68,9 @@ type Config struct {
 	// Keyboard adds the Tab walk to each run: it presses Tab through the page and reports focus that cannot be seen,
 	// focus that cannot leave, and a skip link that goes nowhere.
 	Keyboard bool
+	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
+	// name, and a field for the person's own details with no autocomplete value.
+	Markup bool
 	// ScreenshotDir, when set, receives a PNG crop of each element the layout checks flag.
 	ScreenshotDir string
 	Headless      bool
@@ -119,6 +122,8 @@ type PageResult struct {
 	Scheme   string `json:"scheme"`
 	// TextScale is the system text size in percent the run used. Zero means 100 and is left out.
 	TextScale int `json:"text_scale,omitempty"`
+	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
+	MarkupChecked bool `json:"markup_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
 	// KeyboardChecked says the Tab walk ran, so a result with none of its rules means it found nothing.
@@ -497,6 +502,15 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.KeyboardChecked = true
 		res.KeyboardPartial = !w.Completed
 		res.Violations = append(res.Violations, keyboardFindings(w, path, cfg.Allow)...)
+	}
+	if cfg.Markup {
+		m, err := page.RunMarkupChecks(pctx, conn, cx)
+		if err != nil {
+			res.Error = "markup checks: " + firstLine(err.Error())
+			return res
+		}
+		res.MarkupChecked = true
+		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
 	}
 	return res
 }
