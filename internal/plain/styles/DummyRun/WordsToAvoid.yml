@@ -1,0 +1,22 @@
+# Words the GOV.UK A to Z style guide asks writers to avoid, because they are vague or say little to a reader in a
+# hurry. The list is our own selection and wording of that public advice. Words the guide allows in some senses, such
+# as "deliver" for post or "deploy" for software, are left out, so a finding is rarely a false alarm.
+extends: substitution
+message: "Try '%s' instead of '%s'."
+link: https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#words-to-avoid
+level: suggestion
+ignorecase: true
+swap:
+  collaborate: work with
+  dialogue: discussion
+  disincentivise: discourage
+  empower: allow
+  facilitate: help|run
+  incentivise: encourage
+  initiate: start
+  leverage: use
+  liaise: work with
+  overarching: encompassing
+  streamline: simplify
+  utilise: use
+  utilize: use

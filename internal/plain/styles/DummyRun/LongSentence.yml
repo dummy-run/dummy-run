@@ -1,0 +1,9 @@
+# The GOV.UK A to Z style guide asks writers to check sentences of more than 25 words. Longer ones are harder to hold in mind,
+# which weighs most on people who read slowly, use a screen reader or read in a second language.
+extends: occurrence
+message: "This sentence has more than 25 words."
+link: https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#sentence-length
+level: suggestion
+scope: sentence
+max: 25
+token: \b(\w+)\b

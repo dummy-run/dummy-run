@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test a Dummy Run image: it runs as a non-root user, prints its version, and the accessibility
+# Smoke test a Dummy Run image: it runs as a non-root user, prints its version and Vale's, and the accessibility
 # sweep passes on a local page in Chrome and in Firefox.
 # Usage: scripts/smoke-image.sh IMAGE
 # The page is served from docker/smoke on the host and the container shares the host network.
@@ -42,6 +42,7 @@ fi
 echo "smoke: user id $uid"
 
 docker run --rm "$image" version
+docker run --rm --entrypoint /opt/vale/vale "$image" --version
 
 for browser in chrome firefox; do
   echo "smoke: a11y on $browser"

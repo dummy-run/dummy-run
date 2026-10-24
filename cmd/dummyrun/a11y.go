@@ -36,6 +36,9 @@ Flags:
                     skip link that goes nowhere
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
+  --plain-language  check the main content of each page with Vale: Flesch reading ease and grade, sentences over 25
+                    words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The results are
+                    advice and never fail the sweep. Needs vale on the PATH or DUMMYRUN_VALE
   --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
                     A banner with an accept button and no reject button is reported as advice
                     (dummyrun-consent-no-reject), which never fails the sweep
@@ -81,6 +84,7 @@ func a11yCmd(args []string) int {
 	markup := fs.Bool("markup", false, "run the markup checks")
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
+	plainLang := fs.Bool("plain-language", false, "check the main content with Vale")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
@@ -182,7 +186,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11y.Run(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
