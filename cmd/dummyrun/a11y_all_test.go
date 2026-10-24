@@ -52,3 +52,30 @@ func TestAllTurnsOnEveryCheck(t *testing.T) {
 		}
 	}
 }
+
+// TestLayoutAddsTheReflowSettings checks the layout checks bring in the 320 px window and 200 percent text unless
+// you chose your own.
+func TestLayoutAddsTheReflowSettings(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	names := func(c a11y.Config) string {
+		var n []string
+		for _, v := range c.Viewports {
+			n = append(n, v.Name)
+		}
+		return strings.Join(n, ",")
+	}
+	if a11yCmd([]string{"--layout", "https://example.com/"}); names(got) != "desktop,phone,small" || len(got.TextScales) != 2 || got.TextScales[1] != 200 {
+		t.Errorf("--layout: viewports %s, scales %v", names(got), got.TextScales)
+	}
+	if a11yCmd([]string{"--layout", "--viewport", "phone", "--text-scale", "150", "https://example.com/"}); names(got) != "phone" || len(got.TextScales) != 1 || got.TextScales[0] != 150 {
+		t.Errorf("chosen settings were changed: viewports %s, scales %v", names(got), got.TextScales)
+	}
+	if a11yCmd([]string{"https://example.com/"}); names(got) != "desktop,phone" || len(got.TextScales) != 0 {
+		t.Errorf("without --layout: viewports %s, scales %v", names(got), got.TextScales)
+	}
+}

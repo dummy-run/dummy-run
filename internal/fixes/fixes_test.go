@@ -8,7 +8,7 @@ import (
 
 // The rules Dummy Run's own checks report. Each needs an entry.
 var ownRules = []string{
-	"dummyrun-reflow", "dummyrun-overlap", "dummyrun-clipped-text", "dummyrun-target-size",
+	"dummyrun-reflow", "dummyrun-overlap", "dummyrun-clipped-text", "dummyrun-target-size", "dummyrun-focus-obscured",
 	"dummyrun-focus-not-visible", "dummyrun-focus-hidden", "dummyrun-keyboard-trap", "dummyrun-skip-link-broken",
 	"dummyrun-label-in-name", "dummyrun-autocomplete-missing", "dummyrun-contrast-over-image", "dummyrun-consent-no-reject",
 	"dummyrun-plain-reading-ease", "dummyrun-plain-reading-grade", "dummyrun-plain-long-sentence",
