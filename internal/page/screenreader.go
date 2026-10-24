@@ -40,8 +40,9 @@ const readAloudBody = `
     const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(late), Math.max(left, 0)); });
     return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
   };
-  await v.start({ container: document.body, displayCursor: false });
   try {
+    // Inside the try, so a start that fails part-way still reaches stop.
+    await v.start({ container: document.body, displayCursor: false });
     for (let i = 0; i < max && Date.now() - started < budgetMs; i++) {
       if ((await step(v.next())) === late) break;
       // After the last item the reader says "end of document", then wraps round to the top.

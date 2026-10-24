@@ -342,7 +342,13 @@ func spokenLines(p *page.Snapshot) string {
 	if p.SpokenError != "" {
 		return "screen reader: could not read the page aloud (" + p.SpokenError + ")\n"
 	}
-	if p.Spoken == nil || len(p.Spoken.Phrases) == 0 {
+	if p.Spoken == nil {
+		return ""
+	}
+	if len(p.Spoken.Phrases) == 0 {
+		if !p.Spoken.Complete {
+			return "screen reader: the reading stopped before it said anything\n"
+		}
 		return ""
 	}
 	var b strings.Builder

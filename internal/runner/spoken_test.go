@@ -30,6 +30,13 @@ func TestSpokenLines(t *testing.T) {
 	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{Phrases: long}}); !strings.HasSuffix(got, "... 5 more phrases\n  ... the reading stopped before the end of the page\n") {
 		t.Errorf("a long unfinished reading: %q", got[len(got)-80:])
 	}
+	// A reading that ran out of time before the first phrase says so; an empty page that was read says nothing.
+	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{}}); got != "screen reader: the reading stopped before it said anything\n" {
+		t.Errorf("an empty unfinished reading: %q", got)
+	}
+	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{Complete: true}}); got != "" {
+		t.Errorf("an empty finished reading: %q", got)
+	}
 	if got := spokenLines(&page.Snapshot{SpokenError: "boom"}); !strings.Contains(got, "could not read the page aloud (boom)") {
 		t.Errorf("error: %q", got)
 	}
