@@ -44,13 +44,23 @@
     const cs = getComputedStyle(el);
     return props.map((p) => cs[p]).join("|");
   };
+  // Focus inside an open shadow root shows on the document as its host, so look through to the element itself.
+  const activeElement = () => {
+    let el = document.activeElement;
+    while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
+    return el;
+  };
+  const blurActive = () => {
+    const el = activeElement();
+    if (el && el !== document.body) el.blur();
+  };
   const focusables = () =>
     [...document.querySelectorAll('a[href], button, input:not([type=hidden]), select, textarea, summary, [tabindex], [contenteditable=""], [contenteditable="true"], iframe, object, embed, audio[controls], video[controls]')];
 
   if (op === "init") {
     const list = focusables();
     for (const el of list) S.look.set(el, look(el));
-    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    blurActive();
     // A page opened at a #fragment, or clicked in, leaves the browser's starting point for Tab somewhere down the
     // page. Focusing a throwaway element at the top and removing it, then putting the selection there, moves it back.
     const root = document.body || document.documentElement;
@@ -59,14 +69,14 @@
     root.insertBefore(mark, root.firstChild);
     mark.focus({ preventScroll: true });
     mark.remove();
-    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    blurActive();
     const sel = getSelection();
     if (sel && document.body) sel.collapse(document.body, 0);
     window.scrollTo(0, 0);
     return { focusables: list.length };
   }
   if (op === "blur") {
-    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    blurActive();
     return true;
   }
   if (op === "focus") {
@@ -75,7 +85,7 @@
     return !!el;
   }
   if (op === "skip") {
-    const el = document.activeElement;
+    const el = activeElement();
     if (!el || el.tagName !== "A") return null;
     const href = el.getAttribute("href") || "";
     const text = squash(el.innerText || el.getAttribute("aria-label"));
@@ -86,7 +96,7 @@
     return { selector: selector(el), text, href, found: !!target, rendered: !!target && target.getClientRects().length > 0 };
   }
   // "state"
-  const el = document.activeElement;
+  const el = activeElement();
   if (!el || el === document.body || el === document.documentElement) return { body: true };
   const r = el.getBoundingClientRect();
   const cs = getComputedStyle(el);
@@ -97,7 +107,7 @@
   const known = S.look.has(el);
   const outline = cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0 && !/rgba\(\d+, \d+, \d+, 0\)/.test(cs.outlineColor);
   let modal = false;
-  for (let a = el; a && a.nodeType === 1; a = a.parentElement) {
+  for (let a = el; a && a.nodeType === 1; a = a.parentElement || a.getRootNode().host) {
     if ((a.tagName === "DIALOG" && a.open) || a.getAttribute("aria-modal") === "true" || a.getAttribute("role") === "dialog" || a.getAttribute("role") === "alertdialog") modal = true;
   }
   return {

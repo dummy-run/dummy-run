@@ -66,10 +66,43 @@ document.getElementById("box").addEventListener("keydown", function (e) {
 });
 </script></body></html>`
 
+// kbAlert is an alert dialog with one button that keeps focus, so Tab repeats one stop. A modal may hold focus.
+const kbAlert = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Alert</title>
+<style>button{outline:2px solid #005fcc}</style></head><body><main><h1>Alert</h1>
+<div role="alertdialog" aria-modal="true" aria-labelledby="t"><p id="t">Saved</p><button id="ok">OK</button></div></main>
+<script>
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "Tab") return;
+  e.preventDefault();
+  document.getElementById("ok").focus();
+});
+</script></body></html>`
+
+// kbDialog is an open dialog whose two controls Tab cycles between, as a modal should.
+const kbDialog = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Dialog</title>
+<style>button,input{outline:2px solid #005fcc}</style></head><body><main><h1>Dialog</h1>
+<dialog id="d" open aria-label="Rename"><input id="one" aria-label="Name"><button id="two">Save</button></dialog></main>
+<script>
+document.getElementById("d").addEventListener("keydown", function (e) {
+  if (e.key !== "Tab") return;
+  e.preventDefault();
+  var a = document.getElementById("one"), b = document.getElementById("two");
+  (document.activeElement === a ? b : a).focus();
+});
+</script></body></html>`
+
+// kbShadow puts three buttons in an open shadow root, where the document only sees the host as focused.
+const kbShadow = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shadow</title></head><body><main><h1>Shadow</h1>
+<div id="host"></div><a href="/x" style="outline:2px solid #005fcc">After</a></main>
+<script>
+var root = document.getElementById("host").attachShadow({ mode: "open" });
+root.innerHTML = "<style>button{outline:2px solid #005fcc}</style><button>One</button><button>Two</button><button>Three</button>";
+</script></body></html>`
+
 func keyboardServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	for path, body := range map[string]string{"/good": kbGood, "/bad": kbBad, "/trap": kbTrap, "/long": kbLong, "/empty": kbEmpty, "/frame": kbFrame, "/escape": kbEscape} {
+	for path, body := range map[string]string{"/good": kbGood, "/bad": kbBad, "/trap": kbTrap, "/long": kbLong, "/empty": kbEmpty, "/frame": kbFrame, "/escape": kbEscape, "/alert": kbAlert, "/dialog": kbDialog, "/shadow": kbShadow} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, body)
@@ -90,7 +123,7 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/good", srv.URL + "/bad", srv.URL + "/bad#plain", srv.URL + "/trap", srv.URL + "/long", srv.URL + "/empty", srv.URL + "/frame", srv.URL + "/escape"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/good", srv.URL + "/bad", srv.URL + "/bad#plain", srv.URL + "/trap", srv.URL + "/long", srv.URL + "/empty", srv.URL + "/frame", srv.URL + "/escape", srv.URL + "/alert", srv.URL + "/dialog", srv.URL + "/shadow"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
@@ -104,8 +137,9 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 					t.Fatalf("%s: the Tab walk did not run", r.URL)
 				}
 				// A walk that stops at a loop, at the Tab limit or inside a frame it cannot follow is partial.
+				// How far a walk gets round a modal differs between browsers, so the modal pages are left out here.
 				name := strings.TrimPrefix(r.URL, srv.URL)
-				if partial := slices.Contains([]string{"/long", "/trap", "/frame", "/escape"}, name); r.KeyboardPartial != partial {
+				if partial := slices.Contains([]string{"/long", "/trap", "/frame", "/escape"}, name); !slices.Contains([]string{"/alert", "/dialog"}, name) && r.KeyboardPartial != partial {
 					t.Errorf("%s: keyboard_partial is %v, want %v", r.URL, r.KeyboardPartial, partial)
 				}
 				m := map[string]string{}
@@ -116,13 +150,19 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 				}
 				got[strings.TrimPrefix(r.URL, srv.URL)] = m
 			}
-			for _, p := range []string{"/good", "/bad", "/bad#plain", "/trap", "/long", "/empty", "/frame", "/escape"} {
+			for _, p := range []string{"/good", "/bad", "/bad#plain", "/trap", "/long", "/empty", "/frame", "/escape", "/alert", "/dialog", "/shadow"} {
 				if _, ok := got[p]; !ok {
 					t.Fatalf("no result for %s", p)
 				}
 			}
 			if len(got["/frame"]) != 0 {
 				t.Errorf("the frame page has keyboard findings: %v", got["/frame"])
+			}
+			// A modal may keep focus to itself, and focus inside a shadow root is followed to the element that has it.
+			for _, p := range []string{"/alert", "/dialog", "/shadow"} {
+				if got[p][RuleKeyboardTrap] != "" {
+					t.Errorf("%s is reported as a keyboard trap", p)
+				}
 			}
 			if got["/escape"][RuleKeyboardTrap] != "" {
 				t.Errorf("a loop Escape leaves is reported as a trap")

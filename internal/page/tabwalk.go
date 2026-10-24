@@ -28,7 +28,7 @@ type TabStop struct {
 	Hidden       bool      `json:"hidden"`
 	Offscreen    bool      `json:"offscreen"`
 	Outline      bool      `json:"outline"`
-	StyleChanged bool      `json:"style_changed"`
+	StyleChanged bool      `json:"styleChanged"`
 	Frame        bool      `json:"frame"`
 	Modal        bool      `json:"modal"`
 	Body         bool      `json:"body"`
