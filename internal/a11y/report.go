@@ -86,6 +86,15 @@ func (r *Report) WriteSummary(w io.Writer) {
 	if s.Advice > 0 {
 		_, _ = fmt.Fprintf(w, ", %d elements with best-practice advice (not failures)", s.Advice)
 	}
+	if s.Candidates > 0 {
+		_, _ = fmt.Fprintf(w, ", %d candidates only one engine reports (not failures)", s.Candidates)
+	}
+	for _, p := range r.Results {
+		if len(p.EngineErrors) > 0 {
+			_, _ = fmt.Fprintf(w, ", some engines failed on %s (see engine_errors)", p.URL)
+			break
+		}
+	}
 	if s.Skipped > 0 {
 		_, _ = fmt.Fprintf(w, ", %d pages skipped for robots.txt", s.Skipped)
 	}

@@ -65,6 +65,9 @@ type Config struct {
 	// Layout adds the layout checks to each run: sideways overflow, clipped text, overlapping controls
 	// and small targets. A non-100 text scale turns it on.
 	Layout bool
+	// Engines runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core, and counts how many
+	// engines agree on each failing element.
+	Engines bool
 	// ScreenshotDir, when set, receives a PNG crop of each element the layout checks flag.
 	ScreenshotDir string
 	Headless      bool
@@ -93,6 +96,10 @@ type Node struct {
 	Reason  string `json:"allowed_reason,omitempty"`
 	// Detail is a measurement in words, such as the size of a small target. Layout checks fill it.
 	Detail string `json:"detail,omitempty"`
+	// Engines are the rule engines that report this element for the same criterion, when the sweep ran --engines.
+	Engines []string `json:"engines,omitempty"`
+	// Confidence is high when two or more engines agree, and single when one engine reports the element alone.
+	Confidence string `json:"confidence,omitempty"`
 	// Screenshot is the path of a PNG crop of the element. Layout checks fill it when screenshots are on.
 	Screenshot string `json:"screenshot,omitempty"`
 }
@@ -117,14 +124,20 @@ type PageResult struct {
 	// TextScale is the system text size in percent the run used. Zero means 100 and is left out.
 	TextScale int `json:"text_scale,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
-	LayoutChecked bool   `json:"layout_checked,omitempty"`
-	Error         string `json:"error,omitempty"`
+	LayoutChecked bool `json:"layout_checked,omitempty"`
+	// EnginesRan names the other rule engines that finished on the page. EngineErrors says why any others did not.
+	EnginesRan   []string          `json:"engines_ran,omitempty"`
+	EngineErrors map[string]string `json:"engine_errors,omitempty"`
+	Error        string            `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
 	Skipped     string    `json:"skipped,omitempty"`
 	Violations  []Finding `json:"violations"`
 	NeedsReview []Finding `json:"needs_review"`
 	// Advice holds the best-practice rules that failed and have no WCAG criterion. They never fail the sweep.
-	Advice       []Finding `json:"advice,omitempty"`
+	Advice []Finding `json:"advice,omitempty"`
+	// Candidates are failures one other engine reports and axe does not. They are kept for review and never fail
+	// the sweep.
+	Candidates   []Finding `json:"candidates,omitempty"`
 	DurationMS   int64     `json:"duration_ms"`
 	SchemeActual string    `json:"scheme_applied,omitempty"`
 }
@@ -153,11 +166,13 @@ func (p PageResult) Failing() int {
 
 // Report is the result of a sweep.
 type Report struct {
-	Tool           string   `json:"tool"`
-	Browser        string   `json:"browser"`
-	BrowserVersion string   `json:"browser_version,omitempty"`
-	AxeVersion     string   `json:"axe_version,omitempty"`
-	Tags           []string `json:"tags"`
+	Tool           string `json:"tool"`
+	Browser        string `json:"browser"`
+	BrowserVersion string `json:"browser_version,omitempty"`
+	AxeVersion     string `json:"axe_version,omitempty"`
+	// Engines are the versions of the other rule engines, when the sweep ran them.
+	Engines map[string]string `json:"engines,omitempty"`
+	Tags    []string          `json:"tags"`
 	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
 	AdviceTags    []string `json:"advice_tags,omitempty"`
 	Identify      bool     `json:"identify,omitempty"`
@@ -180,6 +195,8 @@ type Summary struct {
 	UnusedAllowed int `json:"unused_allow_entries"`
 	// Advice counts the elements that failed a best-practice rule. They never fail the sweep.
 	Advice int `json:"advice_nodes,omitempty"`
+	// Candidates counts the elements one other engine reports alone. They never fail the sweep.
+	Candidates int `json:"candidate_nodes,omitempty"`
 }
 
 // Failed reports whether the sweep should exit non-zero: any violation not on the allow-list, or
@@ -252,6 +269,9 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 		cfg.Settle = 300 * time.Millisecond
 	}
 	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, AdviceTags: AdviceTags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
+	if cfg.Engines {
+		rep.Engines = page.EngineVersions
+	}
 	if cfg.Access.Active() {
 		sum := cfg.Access.Summary()
 		rep.PreviewAccess = &sum
@@ -470,6 +490,20 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.NeedsReview = append(res.NeedsReview, finding(r, path, nil))
 	}
+	if cfg.Engines {
+		r, err := page.RunEngines(pctx, conn, cx, axeNodes(res.Violations), CriteriaAA())
+		if err != nil {
+			res.Error = firstLine(err.Error())
+			return res
+		}
+		res.EnginesRan = r.Ran
+		if len(r.Errors) > 0 {
+			res.EngineErrors = r.Errors
+		}
+		agreed, cands := engineFindings(r, res.Violations, path, cfg.Allow)
+		res.Violations = append(res.Violations, agreed...)
+		res.Candidates = cands
+	}
 	if cfg.Layout {
 		l, err := page.MeasureLayout(pctx, conn, cx)
 		if err != nil {
@@ -564,6 +598,13 @@ func (r *Report) summarise(cfg Config) {
 			for _, n := range f.Nodes {
 				if !n.Allowed {
 					r.Summary.Advice++
+				}
+			}
+		}
+		for _, f := range p.Candidates {
+			for _, n := range f.Nodes {
+				if !n.Allowed {
+					r.Summary.Candidates++
 				}
 			}
 		}

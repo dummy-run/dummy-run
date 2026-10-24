@@ -7,3 +7,14 @@ This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 This product bundles axe-core 4.13.0 (internal/page/axe/axe.min.js), Copyright (c) 2015 - 2026 Deque Systems, Inc.,
 licensed under the Mozilla Public License 2.0 (see internal/page/axe/LICENSE and LICENSES/MPL-2.0.txt). Its own
 third-party notices are in internal/page/axe/LICENSE-3RD-PARTY.txt.
+
+This product bundles accessibility-checker-engine 4.0.34 (internal/page/engines/ace.js), Copyright 2016- IBM, Inc.,
+licensed under the Apache License 2.0 (see LICENSES/Apache-2.0.txt).
+
+This product bundles HTML_CodeSniffer 2.5.1 (internal/page/engines/HTMLCS.js), Copyright (c) 2012, Squiz Pty Ltd
+(ABN 77 084 670 600), licensed under the BSD 3-Clause licence (see internal/page/engines/HTMLCS.licence.txt and
+LICENSES/BSD-3-Clause.txt).
+
+This product bundles Siteimprove Alfa 0.120.0 (internal/page/engines/alfa.min.js), Copyright (c) Siteimprove A/S,
+licensed under the MIT licence (see LICENSES/MIT.txt). The bundle includes Color.js, Copyright (c) 2021 Lea Verou and
+Chris Lilley, licensed under the MIT licence. The bundle is built from internal/page/engines/alfa.

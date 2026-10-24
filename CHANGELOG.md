@@ -5,6 +5,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `dummyrun a11y --engines` runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core, inside the page, and matches their results by element and WCAG criterion. Each axe violation node says which engines agree and how confident the result is. A failure two other engines agree on is a violation (`dummyrun-engines-<criterion>`), and one that only one engine reports goes to `candidates`, which never fail the sweep. A new [Tools we build on](docs/TOOLS.md) page credits each engine with its licence.
+
 ### Security
 - Built with Go 1.27.3 and golang.org/x/net 0.60.0. Go 1.27.3 distrusts the compromised eMudhra intermediate certificates in crypto/x509 (GO-2026-6809). Go 1.27.2 fixes HTTP/1 and HTTP/2 flaws in net/http (GO-2026-6610, GO-2026-6611, GO-2026-6612, GO-2026-6613, GO-2026-6617) and a MIME header limit bypass in net/textproto and mime/multipart (GO-2026-6608). golang.org/x/net 0.60.0 fixes the same HTTP/2 flaws in golang.org/x/net/http2. `dummyrun-otel` gets the same update.
 

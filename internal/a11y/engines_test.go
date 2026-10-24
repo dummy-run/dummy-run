@@ -1,0 +1,127 @@
+package a11y
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"slices"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/dummy-run/dummy-run/internal/page"
+)
+
+const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Bad</title></head><body><main><h1>Bad</h1>
+<img id="pic" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+<a id="empty" href="/a"></a>
+<input id="field" type="text">
+</main></body></html>`
+
+const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Good</title></head><body><main><h1>Good</h1>
+<img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="A red dot">
+<a href="/a">Read the guide</a>
+<label for="f">Name</label><input id="f" type="text">
+</main></body></html>`
+
+func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	mux := http.NewServeMux()
+	for path, body := range map[string]string{"/bad": enginesBad, "/good": enginesGood} {
+		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, body)
+		})
+	}
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/bad", srv.URL + "/good"}, Browser: browser,
+				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Engines: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(rep.Engines) != 3 {
+				t.Errorf("report engines: %v", rep.Engines)
+			}
+			for _, r := range rep.Results {
+				if r.Error != "" || len(r.EngineErrors) > 0 {
+					t.Fatalf("%s: error %q engine errors %v", r.URL, r.Error, r.EngineErrors)
+				}
+				if !slices.Equal(r.EnginesRan, []string{"ibm", "htmlcs", "alfa"}) {
+					t.Errorf("%s: engines ran %v", r.URL, r.EnginesRan)
+				}
+				high := map[string][]string{}
+				for _, f := range r.Violations {
+					for _, n := range f.Nodes {
+						if n.Confidence == "" {
+							t.Errorf("%s: %s %s has no confidence", r.URL, f.Rule, n.Target)
+						}
+						if n.Confidence == ConfidenceHigh {
+							high[n.Target] = n.Engines
+						}
+					}
+				}
+				if strings.HasSuffix(r.URL, "/good") {
+					if len(r.Violations) != 0 {
+						t.Errorf("the good page has violations: %+v", r.Violations)
+					}
+					continue
+				}
+				for _, sel := range []string{"#pic", "#empty", "#field"} {
+					if e := high[sel]; len(e) < 3 || !slices.Contains(e, "axe") {
+						t.Errorf("%s: want axe and at least two others to agree, got %v", sel, e)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestEngineFindingsSplitAgreementFromCandidates(t *testing.T) {
+	allow, err := ParseAllowList(strings.NewReader("dummyrun-engines-1.3.1 | / | #b | a known layout table\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	violations := []Finding{{Rule: "image-alt", WCAG: []string{"1.1.1"}, Nodes: []Node{{Target: "#img"}, {Target: "#img2"}}}}
+	r := &page.EngineResults{
+		Axe: [][]string{{"ibm", "alfa"}, {}},
+		Groups: []page.EngineGroup{
+			{Selector: "#a", SC: []string{"4.1.2", "2.4.4"}, Engines: []string{"htmlcs", "ibm"},
+				Hits: []page.EngineHit{{Engine: "ibm", Rule: "a_text_purpose", Message: "no text"}, {Engine: "htmlcs", Rule: "H91"}}},
+			{Selector: "#b", SC: []string{"1.3.1"}, Engines: []string{"alfa"}, Hits: []page.EngineHit{{Engine: "alfa", Rule: "sia-r2"}}},
+			{Selector: "#c", SC: []string{"1.3.1"}, Engines: []string{"ibm"}, Hits: []page.EngineHit{{Engine: "ibm", Rule: "x"}}},
+		},
+	}
+	agreed, cands := engineFindings(r, violations, "/", allow)
+	if n := violations[0].Nodes; n[0].Confidence != ConfidenceHigh || !slices.Equal(n[0].Engines, []string{"alfa", "axe", "ibm"}) || n[1].Confidence != ConfidenceSingle {
+		t.Errorf("axe nodes: %+v", n)
+	}
+	if len(agreed) != 1 || agreed[0].Rule != "dummyrun-engines-2.4.4" || agreed[0].Nodes[0].Detail != "IBM Equal Access (a_text_purpose): no text; HTML_CodeSniffer (H91)" {
+		t.Errorf("agreed: %+v", agreed)
+	}
+	if len(cands) != 1 || len(cands[0].Nodes) != 2 || !cands[0].Nodes[0].Allowed || cands[0].Nodes[1].Allowed {
+		t.Errorf("candidates: %+v", cands)
+	}
+	if !strings.Contains(cands[0].Help, "Info and Relationships") || !strings.HasSuffix(cands[0].HelpURL, "/info-and-relationships.html") {
+		t.Errorf("candidate help: %q %q", cands[0].Help, cands[0].HelpURL)
+	}
+}
+
+func TestCriteriaAAIsSortedAndComplete(t *testing.T) {
+	c := CriteriaAA()
+	if len(c) != 55 || c[0] != "1.1.1" || !slices.Contains(c, "2.5.8") || slices.Contains(c, "1.4.6") || slices.Contains(c, "4.1.1") {
+		t.Errorf("criteria: %d %v", len(c), c)
+	}
+	if i, j := slices.Index(c, "1.4.4"), slices.Index(c, "1.4.10"); i > j {
+		t.Error("1.4.10 sorts before 1.4.4")
+	}
+}
