@@ -94,6 +94,11 @@ func TestKeyboardFindingsFromAWalk(t *testing.T) {
 				}
 				got[strings.TrimPrefix(r.URL, srv.URL)] = m
 			}
+			for _, p := range []string{"/good", "/bad", "/bad#plain", "/trap", "/long", "/empty"} {
+				if _, ok := got[p]; !ok {
+					t.Fatalf("no result for %s", p)
+				}
+			}
 			if len(got["/good"]) != 0 || len(got["/empty"]) != 0 {
 				t.Errorf("the good or empty page has keyboard findings: %v %v", got["/good"], got["/empty"])
 			}

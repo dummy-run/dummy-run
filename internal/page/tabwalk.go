@@ -79,10 +79,6 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, limit int) (*TabW
 		return nil, fmt.Errorf("tab walk: %w", err)
 	}
 	w.Focusables = init.Focusables
-	if w.Focusables == 0 {
-		w.Completed = true // nothing on the page takes focus, so there is nothing to walk
-		return w, nil
-	}
 	tab, _ := bidi.Key("Tab")
 	esc, _ := bidi.Key("Escape")
 	seen := map[int]int{} // element id -> index in Stops
@@ -96,6 +92,11 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, limit int) (*TabW
 			return nil, fmt.Errorf("tab walk: %w", err)
 		}
 		if st.Body {
+			// Nothing on the page takes focus and a real Tab press found nothing either, such as a frame.
+			if len(w.Stops) == 0 && w.Focusables == 0 {
+				w.Completed = true
+				break
+			}
 			if len(w.Stops) > 0 {
 				w.Completed = true // focus left the page's elements, as it does after the last one
 				break
@@ -164,6 +165,14 @@ func trapped(ctx context.Context, conn *bidi.Conn, cx string, w *TabWalk, loop [
 	in := map[int]bool{}
 	for _, s := range loop {
 		in[s.ID] = true
+	}
+	// Escape alone may move focus out, as a menu that closes on Escape does.
+	var after TabStop
+	if err := w.call(ctx, conn, cx, "state", nil, &after); err != nil {
+		return false, fmt.Errorf("tab walk: trap probe: %w", err)
+	}
+	if after.Body || !in[after.ID] {
+		return false, nil
 	}
 	for range len(loop) + 3 {
 		if err := conn.PressKey(ctx, cx, tab); err != nil {
