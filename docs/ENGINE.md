@@ -973,8 +973,8 @@ failures are kept. Their warnings, AAA rules and "check this by hand" results ar
 The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
 for the same criterion.
 
-- Each axe violation node gets `engines`, the engines that fail the same element for a criterion axe's rule maps
-  to, and `confidence`. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
+- Each axe violation node gets `engines`, the engines that fail the same element for one criterion axe's rule maps
+  to, and `confidence`. When the rule maps to more than one criterion, the criterion with the most engines counts. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
   axe violation still fails the sweep either way.
 - A failure axe doesn't report, but two of the other engines agree on, is a violation with the rule ID
   `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. Its impact is serious. It fails the
