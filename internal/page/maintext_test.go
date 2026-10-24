@@ -54,6 +54,7 @@ func TestMainHTMLFindsTheMainContent(t *testing.T) {
 	cases := []struct{ body, selector, kept string }{
 		{head + `<main style="visibility:hidden">Hidden root words.<p style="visibility:visible">Root child words.</p></main></body></html>`, "main", "Root child words."},
 		{head + `<main style="opacity:0"><p>Faded root words.</p></main></body></html>`, "main", ""},
+		{head + `<main style="display:contents"><div style="display:contents"><p>Boxless words.</p></div></main></body></html>`, "main", "Boxless words."},
 		{head + `<nav>Menu words.</nav><div role="main"><p>Role words.</p></div></body></html>`, "[role=main]", "Role words."},
 		{head + `<header>Top words.</header><nav>Menu words.</nav><p>Body words.</p><aside>Side words.</aside><footer>Foot words.</footer></body></html>`,
 			"body", "Body words."},

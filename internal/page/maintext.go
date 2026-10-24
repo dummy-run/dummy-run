@@ -24,7 +24,9 @@ const mainHTMLJS = `(max) => {
   // by a child with visibility: visible, so only the hidden element's own text goes.
   const gone = [], silent = [];
   live.forEach((el, i) => {
-    if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true })) gone.push(copied[i]);
+    // An element with display: contents has no box of its own, so checkVisibility says no, but its children show.
+    const boxless = getComputedStyle(el).display === "contents";
+    if (el.checkVisibility && !boxless && !el.checkVisibility({ opacityProperty: true })) gone.push(copied[i]);
     else if (getComputedStyle(el).visibility !== "visible") silent.push(copied[i]);
   });
   for (const el of silent) for (const n of [...el.childNodes]) if (n.nodeType === Node.TEXT_NODE) n.remove();
