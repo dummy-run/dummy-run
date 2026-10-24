@@ -16,6 +16,7 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
+	"github.com/dummy-run/dummy-run/internal/journey"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
@@ -80,6 +81,9 @@ type Config struct {
 	// PlainLanguage checks the main content of each page with Vale: readability scores, long sentences, words the
 	// GOV.UK style guide asks you to avoid and Latin abbreviations. The results are advice.
 	PlainLanguage bool
+	// Journeys finds the journeys each page offers, such as search, a menu or a contact form, and tries each by
+	// mouse and by keyboard, once for each URL. One that works by mouse but not by keyboard is a violation.
+	Journeys bool
 	// Engines runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
@@ -158,6 +162,10 @@ type PageResult struct {
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
 	PlainLanguagePartial bool   `json:"plain_language_partial,omitempty"`
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
+	// Journeys are the journeys the page offers and how each went by mouse and by keyboard. JourneysError says why
+	// they could not be tried. Only the first result for each URL has these.
+	Journeys      []journey.Journey `json:"journeys,omitempty"`
+	JourneysError string            `json:"journeys_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// EnginesRan names the other rule engines that finished on the page. EngineErrors says why any others did not.
@@ -221,6 +229,8 @@ type Report struct {
 	PreviewAccess *access.Summary `json:"preview_access,omitempty"`
 	Results       []PageResult    `json:"results"`
 	Summary       Summary         `json:"summary"`
+	// journeysDone holds the URLs whose journeys were tried, so each is tried once.
+	journeysDone map[string]bool
 }
 
 // Summary totals a report.
@@ -553,6 +563,14 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	}
 	if cfg.PlainLanguage {
 		plainCheck(pctx, conn, cx, &res, path, cfg.Allow)
+	}
+	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size.
+	if cfg.Journeys && !rep.journeysDone[u] {
+		if rep.journeysDone == nil {
+			rep.journeysDone = map[string]bool{}
+		}
+		rep.journeysDone[u] = true
+		journeyCheck(ctx, conn, cfg, u, vp, &res)
 	}
 	if cfg.Consent {
 		c, err := page.AnswerConsent(pctx, conn, cx, page.ConsentWait)

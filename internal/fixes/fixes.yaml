@@ -201,6 +201,20 @@
   sources:
     - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#eg-etc-and-ie
 
+- rule: dummyrun-journey-keyboard
+  owner: development
+  summary: Make the journey work from the keyboard as well as the mouse.
+  steps:
+    - Start from the top of the page and press Tab until you reach the control the finding names.
+    - If Tab never reaches it, use a real link or button, or give a custom control tabindex 0.
+    - If it gets focus but Enter does nothing, use a button, or handle the keydown for Enter and Space as well as the click.
+    - Run the sweep again with --journeys to check the keyboard verdict is now pass.
+  example:
+    before: '<button onmousedown="openMenu()">Menu</button>'
+    after: '<button onclick="openMenu()">Menu</button>'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
+
 - rule: dummyrun-engines-
   owner: development
   summary: Fix the problem two or more rule engines agree on.

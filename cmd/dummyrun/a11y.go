@@ -43,6 +43,9 @@ Flags:
   --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
                     hide the text, take a picture of what is behind it and compare the text colour with every pixel.
                     Text that fails at the middle pixel is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
+  --journeys        also find the journeys each page offers (search, menu, sign-up, basket, booking, contact form)
+                    and try each by mouse and by keyboard, never submitting anything. One that works by mouse but
+                    not by keyboard is a violation (dummyrun-journey-keyboard, WCAG 2.1.1)
   --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
                     skip link that goes nowhere
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
@@ -93,6 +96,7 @@ func a11yCmd(args []string) int {
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
 	plainLang := fs.Bool("plain-language", false, "check the main content with Vale")
+	journeysOn := fs.Bool("journeys", false, "try each page's journeys by mouse and by keyboard")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
@@ -137,7 +141,7 @@ func a11yCmd(args []string) int {
 	}
 	if *all {
 		// One switch for every check. A check added later joins this list.
-		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, imageContrast} {
+		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, journeysOn, imageContrast} {
 			*on = true
 		}
 	}
@@ -201,7 +205,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, Journeys: *journeysOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

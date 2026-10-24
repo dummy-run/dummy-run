@@ -12,7 +12,7 @@ var ownRules = []string{
 	"dummyrun-focus-not-visible", "dummyrun-focus-hidden", "dummyrun-keyboard-trap", "dummyrun-skip-link-broken",
 	"dummyrun-label-in-name", "dummyrun-autocomplete-missing", "dummyrun-contrast-over-image", "dummyrun-consent-no-reject",
 	"dummyrun-plain-reading-ease", "dummyrun-plain-reading-grade", "dummyrun-plain-long-sentence",
-	"dummyrun-plain-words-to-avoid", "dummyrun-plain-latin", "dummyrun-engines-1.1.1",
+	"dummyrun-plain-words-to-avoid", "dummyrun-plain-latin", "dummyrun-engines-1.1.1", "dummyrun-journey-keyboard",
 }
 
 func TestEveryOwnRuleHasAFix(t *testing.T) {

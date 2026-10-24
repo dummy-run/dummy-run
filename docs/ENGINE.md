@@ -1086,6 +1086,45 @@ The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names.
 dummyrun a11y --plain-language https://example.com/
 ```
 
+### Journeys
+
+Add `--journeys` and the sweep finds the journeys each page offers and tries each one by mouse and by keyboard. It
+finds them in the page itself, with no model:
+
+| Journey | How it's found | It worked when |
+|---|---|---|
+| `search` | A search field: `type=search`, a field in a search form or landmark, or one named `q`, `s`, `query` or `search` | The words typed appear in the field. Enter is never pressed |
+| `menu` | A menu or navigation button in the header or `nav` with `aria-expanded="false"` | It reports expanded, or the menu it controls shows its links |
+| `signup` | A link or button labelled sign up, register, create an account or join | The page it leads to has an email or password field |
+| `basket` | A link labelled basket, cart, bag or trolley, or to `/cart`, `/basket` or `/bag` | The page it leads to has basket, cart, bag or trolley in its title or main heading |
+| `booking` | A link or button labelled book, reserve, reservation or appointment | The page it leads to, or a dialog it opens, has a date or time field, a calendar or a booking widget |
+| `contact` | A link labelled contact or get in touch, or to `/contact` | The page it leads to has a form with an email field or a message box, and each of its fields takes text |
+
+Every journey has a success test that must be false when the page loads and true after the action. A journey whose
+test is already true is `already` and proves nothing. Each way of trying starts from a fresh load. The mouse clicks
+the journey's start, after checking nothing covers it. The keyboard presses Tab from the top of the page until the
+start has focus, up to 250 times, then presses Enter or types. The contact journey then fills each field the same
+way, Tab and type or click and type.
+
+Nothing is ever sent. Before each try the sweep stops every form on the page from submitting, Enter is never
+pressed in a form, and a journey never starts from a submit button. The journeys run in a tab of their own, once
+for each URL, at the first window size.
+
+Schema.org data the page publishes can find a journey too: a `SearchAction` marks the search, and a
+`ReserveAction` marks the booking. So can what the page is built with (see [What the site is built
+with](#what-the-site-is-built-with)): Shopify suggests a basket, Calendly a booking. A journey a technology suggests
+that the page shows no way into is listed as `not found`, which says where to look.
+
+Each result lists its `journeys`. A journey names its `kind`, its `selector`, `label` and `href`, and its `source`.
+It has a `mouse` and a `keyboard` verdict, each one of `pass`, `fail`, `unreachable`, `already` or `not found`, with a
+`detail`. A journey that passes by
+mouse and doesn't by keyboard is a violation, `dummyrun-journey-keyboard` (WCAG 2.1.1, serious). One that fails both
+ways is recorded and isn't reported: the page may simply not work the way the journey expects.
+
+```sh
+dummyrun a11y --journeys https://example.com/
+```
+
 ### Cookie banners
 
 A cookie banner covers part of the page, so it can turn up in the layout checks as overlap and cut-off text that
