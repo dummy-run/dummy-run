@@ -156,7 +156,7 @@ Before: `{{inline .Before}}`
 
 After: `{{inline .After}}`
 {{end}}{{if .Fix.Sources}}
-Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}<{{$u}}>{{end}}
+Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}[{{$u}}]({{$u}}){{end}}
 {{end}}{{end}}
 {{- end}}
 
