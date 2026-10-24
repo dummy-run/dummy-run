@@ -43,3 +43,39 @@ func TestOwnRuleCarriesItsFix(t *testing.T) {
 		t.Errorf("json: no fix on dummyrun-reflow")
 	}
 }
+
+// A persona finding on one of Dummy Run's own rules gets its fix, and no Deque link, which only covers axe rules.
+func TestOwnRuleFindingCarriesItsFix(t *testing.T) {
+	runs := loadFixture(t)
+	moved := false
+	for _, r := range runs {
+		for i := range r.Rec.Findings {
+			if r.Rec.Findings[i].Symptom == "a11y:color-contrast" { //nolint:misspell // an axe rule ID
+				r.Rec.Findings[i].Symptom = "a11y:dummyrun-reflow"
+				moved = true
+			}
+		}
+	}
+	if !moved {
+		t.Fatal("the fixture has no contrast finding to move")
+	}
+	rep, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var f *Finding
+	for i := range rep.Findings {
+		if rep.Findings[i].Symptom == "a11y:dummyrun-reflow" {
+			f = &rep.Findings[i]
+		}
+	}
+	if f == nil {
+		t.Fatal("no dummyrun-reflow finding")
+	}
+	if f.HelpURL != "" || f.Fix == nil || f.Fix.Owner != "development" {
+		t.Fatalf("help %q fix %+v", f.HelpURL, f.Fix)
+	}
+	if got := render(t, rep, "md"); !strings.Contains(got, "How to fix:\n\n1. "+f.Fix.Steps[0]) {
+		t.Errorf("md: the finding's steps are missing")
+	}
+}

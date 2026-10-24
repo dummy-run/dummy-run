@@ -106,6 +106,13 @@ The findings are sorted by severity, then by the number of runs that found them.
 {{- with $f.Fix}}
 | How to fix | {{cell .Summary}} Usually done by {{.Owner}}. |
 {{- end}}
+{{- with $f.Fix}}
+
+How to fix:
+
+{{range $n, $s := .Steps}}{{$n | inc}}. {{$s}}
+{{end}}
+{{- end}}
 
 How to reproduce:
 
