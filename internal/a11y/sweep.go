@@ -68,6 +68,9 @@ type Config struct {
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
+	// ImageContrast measures the text axe could not judge for contrast against the pixels behind it, after any
+	// cookie banner has been answered.
+	ImageContrast bool
 	// PlainLanguage checks the main content of each page with Vale: readability scores, long sentences, words the
 	// GOV.UK style guide asks you to avoid and Latin abbreviations. The results are advice.
 	PlainLanguage bool
@@ -131,6 +134,10 @@ type PageResult struct {
 	TextScale int `json:"text_scale,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
+	// ImageContrast holds each measurement of text against the pixels behind it, when the sweep ran
+	// --image-contrast. ImageContrastChecked says the check ran, even when there was nothing to measure.
+	ImageContrast        []page.ImageContrast `json:"image_contrast,omitempty"`
+	ImageContrastChecked bool                 `json:"image_contrast_checked,omitempty"`
 	// PlainLanguageChecked says Vale read the page's main content. PlainLanguageError says why it could not.
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
@@ -531,6 +538,15 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.Consent = c
 		res.Advice = append(res.Advice, consentFindings(c, path, cfg.Allow)...)
+	}
+	if cfg.ImageContrast {
+		ms, err := page.MeasureImageContrast(pctx, conn, cx, imageContrastTargets(res.NeedsReview))
+		if err != nil {
+			res.Error = firstLine(err.Error())
+			return res
+		}
+		res.ImageContrastChecked, res.ImageContrast = true, ms
+		res.Violations = append(res.Violations, imageContrastFindings(ms, path, cfg.Allow)...)
 	}
 	if cfg.Layout {
 		l, err := page.MeasureLayout(pctx, conn, cx)

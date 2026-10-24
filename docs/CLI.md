@@ -222,6 +222,9 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
+  --image-contrast  measure the text axe could not judge for contrast, usually text on an image or gradient: hide
+                    the text, take a picture of what is behind it and compare the text colour with every pixel.
+                    Text that fails at the middle pixel is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
   --plain-language  check the main content of each page with Vale: Flesch reading ease and grade, sentences over 25
                     words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The results are
                     advice and never fail the sweep. Needs vale on the PATH or DUMMYRUN_VALE

@@ -52,6 +52,14 @@ copyright lines:
 The long sentence, words to avoid and Latin abbreviation rules are our own, written from the public
 [GOV.UK A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/).
 
+## Methods we learned from
+
+Some checks follow a method another project worked out, written again in our own code.
+
+| Project | What we took | Licence of the project |
+|---|---|---|
+| [contrastcap](https://github.com/ICJIA/contrastcap-mcp) by ICJIA | Measuring text contrast over an image by hiding the text, taking a picture of what is behind it and comparing every pixel, for `--image-contrast` | MIT |
+
 ## Data
 
 The list of WCAG 2.2 success criteria at levels A and AA, with their titles and links, was generated from the
