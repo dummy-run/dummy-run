@@ -26,7 +26,7 @@
     return parts.join(" > ") || el.tagName.toLowerCase();
   };
   const shown = (el) => {
-    if (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true })) return false;
+    if (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true, opacityProperty: true })) return false;
     const r = el.getBoundingClientRect();
     return r.width > 1 && r.height > 1;
   };

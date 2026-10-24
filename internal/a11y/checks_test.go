@@ -36,6 +36,7 @@ const markupPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <label for="e6">Invitee email</label><input id="e6" type="email">
 <label for="e7">Email</label><input id="e7" type="email" disabled>
 <label for="e8">Email</label><input id="e8" type="email" autocomplete="on">
+<label for="e9">Email</label><input id="e9" type="email" style="opacity:0">
 <label for="e3">Friend's email</label><input id="e3" type="email" name="friend">
 <label for="s1">Search</label><input id="s1" type="text" name="q">
 </form>
