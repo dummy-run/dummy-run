@@ -132,7 +132,9 @@
   if (scrollW > cw + tol) {
     const culprits = [];
     let exempt = 0, scanned = 0;
-    const out = (r) => r.right > cw + tol || r.left < -tol;
+    // Only the end the text runs towards can be scrolled to. A skip link parked past the start edge can't widen the page.
+    const rtl = getComputedStyle(root).direction === "rtl";
+    const out = (r) => (rtl ? r.left < -tol : r.right > cw + tol);
     for (const el of document.body ? document.body.querySelectorAll("*") : []) {
       if (++scanned > 8000) break;
       const r = el.getBoundingClientRect();

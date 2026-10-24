@@ -933,7 +933,7 @@ phone and the 320 px window, each at 100 and 200 percent text. Set `--viewport` 
 
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
-| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window | 1.4.10 | serious |
+| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window on the side the text runs towards. Content past the other edge, such as a skip link waiting off screen, can't be scrolled to | 1.4.10 | serious |
 | `dummyrun-clipped-text` | A line of text reaches past the edge of a box that hides its overflow, while part of the text is still inside that box | 1.4.4 | serious |
 | `dummyrun-overlap` | Where two controls meet, the browser has one of them on top of the other's text, at two or more points. A control with no text counts when most of its box is covered | 1.4.4, 1.4.10 | serious |
 | `dummyrun-target-size` | A visible, enabled control is under 24 by 24 CSS px, and none of the measurable exceptions apply | 2.5.8 | moderate |

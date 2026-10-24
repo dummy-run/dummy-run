@@ -31,7 +31,7 @@ var layoutPages = map[string]string{
 	"/wrapped": layoutHead + `<h1>Wrapped</h1><p style="width:120px;font-size:20px;line-height:1.6">See <a href="/a">the first long link text</a> and <a href="/b">the second long link text</a> here.</p>
 <details><summary class="btn">More</summary><pre style="height:400px">hidden</pre><button id="hiddentiny" style="width:8px;height:8px;padding:0"></button><button id="hiddentiny2" style="width:8px;height:8px;padding:0"></button></details>
 <button class="btn" id="after">After</button>` + layoutTail,
-	"/overflow": layoutHead + `<h1>Overflow</h1><div id="wide" style="width:640px;height:40px;background:#cde">A fixed-width block</div>
+	"/overflow": layoutHead + `<a href="#a" id="skip" style="position:absolute;left:-999px">Skip</a><h1>Overflow</h1><div id="wide" style="width:640px;height:40px;background:#cde">A fixed-width block</div>
 <button class="btn" id="a">Ok</button>` + layoutTail,
 	"/clipped": layoutHead + `<h1>Clipped</h1>
 <button id="clip" class="btn" style="width:110px;overflow:hidden;white-space:nowrap;padding:8px 0">Subscribe today for updates</button>
@@ -142,6 +142,7 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 		path, rule, target string
 		wcag               string
 	}{
+		// The skip link waits past the left edge, where it can't widen a page that reads left to right.
 		{"/overflow", RuleReflow, "wide", "1.4.10"},
 		{"/clipped", RuleClippedText, "clip", "1.4.4"},
 		{"/clipped", RuleClippedText, "ell", "1.4.4"},
@@ -165,6 +166,9 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 				}
 				if !strings.Contains(targets(f), c.target) {
 					t.Errorf("%s: %s targets %q, want one that names %q", c.path, c.rule, targets(f), c.target)
+				}
+				if c.rule == RuleReflow && strings.Contains(targets(f), "skip") {
+					t.Errorf("%s: the skip link off the left edge was named: %q", c.path, targets(f))
 				}
 				if got := strings.Join(f.WCAG, " "); got != c.wcag {
 					t.Errorf("%s: %s WCAG %q, want %q", c.path, c.rule, got, c.wcag)
