@@ -354,6 +354,36 @@ persona's own report. Its cost comes from the price table in
 `commit`, the engine makes one from a hash of the home page, fetched with a single GET request outside the
 browser. Findings start with the verdict `pending` until a person reviews them (see [Review](#review)).
 
+### What the site is built with
+
+After the first page loads, the engine reads what the site is built with and keeps it in `target.tech`. It looks
+only at what the page shows: its scripts, its globals, its meta tags, its markup and the cookies it can read. It
+doesn't fetch anything more. Each entry has a `name`, a `category`, the `source` of its fingerprint and the
+`evidence` that matched, such as `window.Shopify.shop`. A page can hide or fake a marker, so treat this as a hint.
+
+The categories suggest journeys worth a persona's time, in `target.journeys`:
+
+| Category | Journeys |
+|---|---|
+| `shop`, such as Shopify, WooCommerce or Magento | `basket`, `checkout` |
+| `payments`, such as Stripe or PayPal | `checkout` |
+| `search`, a search form or Algolia | `search` |
+| `booking`, such as Calendly or OpenTable | `booking` |
+| `forms`, such as HubSpot Forms or Typeform | `contact form` |
+
+The engine's own fingerprints cover about 40 platforms that change what's worth testing. They're written from the
+markers each platform serves, in `internal/tech/tech.go`. For a fuller list, point `DUMMYRUN_WEBAPPANALYZER` at
+your copy of [webappanalyzer](https://github.com/enthec/webappanalyzer), which knows more than 6,000. The engine
+reads its `technologies` files when the run starts and uses the markers a page shows. It leaves out HTTP headers,
+URLs and request patterns, and a global counts when it exists, whatever its value. webappanalyzer is GPL-3.0, so
+Dummy Run doesn't ship it. Its fingerprints come only from your copy. When detection fails, `target.tech_error`
+says why, and the run goes on.
+
+```sh
+git clone https://github.com/enthec/webappanalyzer
+DUMMYRUN_WEBAPPANALYZER="$PWD/webappanalyzer" dummyrun run ...
+```
+
 Next to the record, `report.md` holds the persona's own report. `steps.jsonl` holds the full observation for
 each step, including the page text, so a reviewer can check the persona's quotes.
 
