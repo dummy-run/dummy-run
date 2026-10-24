@@ -66,13 +66,15 @@ func engineFindings(r *page.EngineResults, violations []Finding, path string, al
 		sc := slices.Clone(g.SC)
 		slices.SortFunc(sc, compareCriteria)
 		id := RuleEnginesPrefix + sc[0]
-		at, list, help := candAt, &candidates, "One engine reports a possible failure of "
+		// Agreed failures are serious, as the sweep's own measured rules are. Candidates never fail the sweep, so they
+		// carry no impact.
+		at, list, help, impact := candAt, &candidates, "One engine reports a possible failure of ", ""
 		if len(g.Engines) >= 2 {
-			at, list, help = agreedAt, &agreed, "Two or more engines agree this fails "
+			at, list, help, impact = agreedAt, &agreed, "Two or more engines agree this fails ", "serious"
 		}
 		k, ok := at[id]
 		if !ok {
-			*list = append(*list, Finding{Rule: id, WCAG: []string{sc[0]}, Help: help + "WCAG " + sc[0] + " " + wcag22[sc[0]].title,
+			*list = append(*list, Finding{Rule: id, Impact: impact, WCAG: []string{sc[0]}, Help: help + "WCAG " + sc[0] + " " + wcag22[sc[0]].title,
 				HelpURL: understandingURL(sc[0]), Nodes: []Node{}})
 			k = len(*list) - 1
 			at[id] = k
