@@ -1016,7 +1016,7 @@ The scores count syllables by rule, so treat them as a guide rather than a verdi
 style guide are our own wording of its public advice. They leave out words the guide allows in some senses, such
 as "deliver" for post. Every result goes to `advice`, because plain language at this level isn't a WCAG A or AA
 requirement, so it never fails the sweep. Each result has `plain_language_checked`, or `plain_language_error` when
-Vale couldn't run. Vale reads the first 200,000 characters of a page's main content. When there's more,
+Vale couldn't run. Vale reads the first 200,000 characters of the main content's HTML. When there's more,
 `plain_language_partial` is true.
 
 The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names. The container image includes Vale
