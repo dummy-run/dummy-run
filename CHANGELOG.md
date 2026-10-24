@@ -5,6 +5,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+- Built with Go 1.27.3 and golang.org/x/net 0.60.0. Go 1.27.3 distrusts the compromised eMudhra intermediate certificates (GO-2026-6809), and the update also fixes HTTP/1 and HTTP/2 flaws in net/http (GO-2026-6608 to GO-2026-6617). `dummyrun-otel` gets the same update.
+
 ## [0.1.3] - 2026-10-21
 
 ### Changed
