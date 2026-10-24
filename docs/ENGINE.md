@@ -944,22 +944,23 @@ more beside axe-core on every page: IBM Equal Access, HTML_CodeSniffer and Sitei
 page, in a sandbox of their own, so the page's scripts can't see them or change them. Only their WCAG 2.2 A and AA
 failures are kept. Their warnings, AAA rules and "check this by hand" results are left out.
 
-The sweep then matches results by element and WCAG criterion. A failure is counted only once, however many engines
-report it.
+The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
+for the same criterion.
 
 - Each axe violation node gets `engines`, the engines that fail the same element for a criterion axe's rule maps
   to, and `confidence`. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
   axe violation still fails the sweep either way.
 - A failure axe doesn't report, but two of the other engines agree on, is a violation with the rule ID
-  `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. It fails the sweep and the allow-list
-  can accept it. Its `detail` names each engine's rule and message.
+  `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. Its impact is serious. It fails the
+  sweep and the allow-list can accept it. Its `detail` names each engine's rule, with the engine's message where it
+  gives one. Alfa gives none, so its rule ID stands alone.
 - A failure only one engine reports goes to the page's `candidates` list and the summary's `candidate_nodes`. It
-  never fails the sweep, because one engine on its own is wrong too often to act on unchecked. Look at the
-  element before you change anything.
+  never fails the sweep. Look at the element before you change anything.
 
-Each result has `engines_ran`. If an engine throws on a page, its message goes to `engine_errors`, the other
-engines still run and the summary says so. The report's `engines` field gives the version of each one. The
-engines add a few seconds to each page.
+Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
+the other engines still run and the summary lists it. A page keeps up to 200 groups of the other engines'
+failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
+`engines` field gives the version of each engine.
 
 ```sh
 dummyrun a11y --engines --json report.json https://example.com/

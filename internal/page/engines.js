@@ -4,15 +4,17 @@
 //   axeJSON       [{sc: ["1.1.1"], selector: "img"}] as JSON: axe's failing nodes, so agreement can be counted
 //   criteriaJSON  the WCAG criteria to keep as JSON, such as ["1.1.1", ...]; anything else, such as AAA, is dropped
 //   max       the most groups to return
-// Returns {ran, errors, axe, groups}:
+// Returns {ran, errors, axe, groups, omitted}:
 //   ran     the engines that finished
 //   errors  {engine: message} for an engine that threw
 //   axe     for each of axeNodes, the other engines that flagged the same element for a shared criterion
-//   groups  the other failures axe did not report, one per element and set of overlapping criteria
+//   groups  the other failures axe did not report, one per element and criterion, the groups more engines agree on first
+//   omitted how many groups were left out to keep within max
 async (axeJSON, criteriaJSON, max) => {
   const axeNodes = JSON.parse(axeJSON);
   const keep = new Set(JSON.parse(criteriaJSON));
-  const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
+  // Control characters from page text could rewrite a terminal line when the summary prints a message.
+  const squash = (s) => (s || "").replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").replace(/\s+/g, " ").trim();
   const part = (el) => {
     if (el.id && document.querySelectorAll("#" + CSS.escape(el.id)).length === 1) return "#" + CSS.escape(el.id);
     let s = el.tagName.toLowerCase();
@@ -77,7 +79,7 @@ async (axeJSON, criteriaJSON, max) => {
     }
     ran.push("ibm");
   } catch (e) {
-    errors.ibm = String(e && e.message || e).slice(0, 200);
+    errors.ibm = squash(String(e && e.message || e)).slice(0, 200);
   }
 
   try {
@@ -92,7 +94,7 @@ async (axeJSON, criteriaJSON, max) => {
     }
     ran.push("htmlcs");
   } catch (e) {
-    errors.htmlcs = String(e && e.message || e).slice(0, 200);
+    errors.htmlcs = squash(String(e && e.message || e)).slice(0, 200);
   }
 
   try {
@@ -101,7 +103,7 @@ async (axeJSON, criteriaJSON, max) => {
     }
     ran.push("alfa");
   } catch (e) {
-    errors.alfa = String(e && e.message || e).slice(0, 200);
+    errors.alfa = squash(String(e && e.message || e)).slice(0, 200);
   }
 
   const overlaps = (a, b) => a.some((c) => b.includes(c));
@@ -127,23 +129,27 @@ async (axeJSON, criteriaJSON, max) => {
     return [...agree].sort();
   });
 
-  // Group what is left: failures on one element whose criteria overlap, from any engine.
+  // Group what is left by element and exact criterion, so agreement means two engines report the same criterion.
   const groups = [];
   items.forEach((it, i) => {
     if (used.has(i)) return;
-    let g = groups.find((x) => x.el === it.el && overlaps(x.sc, it.sc));
-    if (!g) {
-      g = { el: it.el, sc: [], hits: [] };
-      groups.push(g);
+    for (const c of it.sc) {
+      let g = groups.find((x) => x.el === it.el && x.sc === c);
+      if (!g) {
+        g = { el: it.el, sc: c, hits: [] };
+        groups.push(g);
+      }
+      g.hits.push({ engine: it.engine, rule: it.rule, message: it.message, help: it.help });
     }
-    for (const c of it.sc) if (!g.sc.includes(c)) g.sc.push(c);
-    g.hits.push({ engine: it.engine, rule: it.rule, message: it.message, help: it.help });
   });
-  const out = groups.slice(0, max).map((g) => ({
+  const engines = (g) => new Set(g.hits.map((h) => h.engine)).size;
+  // A stable sort keeps discovery order among groups with the same number of engines.
+  const ranked = groups.map((g, i) => ({ g, i, n: engines(g) })).sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.g);
+  const out = ranked.slice(0, max).map((g) => ({
     selector: g.el === PAGE ? "html" : selector(g.el),
-    sc: g.sc.sort(),
+    sc: [g.sc],
     engines: [...new Set(g.hits.map((h) => h.engine))].sort(),
     hits: g.hits,
   }));
-  return { ran, errors, axe, groups: out };
+  return { ran, errors, axe, groups: out, omitted: Math.max(ranked.length - max, 0) };
 }

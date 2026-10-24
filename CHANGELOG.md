@@ -6,7 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- `dummyrun a11y --engines` runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core, inside the page, and matches their results by element and WCAG criterion. Each axe violation node says which engines agree and how confident the result is. A failure two other engines agree on is a violation (`dummyrun-engines-<criterion>`), and one that only one engine reports goes to `candidates`, which never fail the sweep. A new [Tools we build on](docs/TOOLS.md) page credits each engine with its licence.
+- `dummyrun a11y --engines` runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa inside the page beside axe-core. It matches their results by element and WCAG criterion. Each axe violation node says which engines agree and how confident the result is. A failure two other engines agree on is a violation (`dummyrun-engines-<criterion>`). One that only one engine reports goes to `candidates`, which never fail the sweep. A new [Tools we build on](docs/TOOLS.md) page credits each engine with its licence.
 
 ## [0.1.4] - 2026-10-24
 

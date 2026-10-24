@@ -1,7 +1,7 @@
 # Tools we build on
 
-Dummy Run stands on other people's open-source work. This page names each tool the engine ships or runs, what it
-does for you and its licence. The full licence texts are in [LICENSES](../LICENSES) and next to each bundled copy,
+Dummy Run stands on other people's open-source work. This page names the tools the accessibility checks bundle or
+run, and the data taken from them, with what each does for you and its licence. The full licence texts are in [LICENSES](../LICENSES) and next to each bundled copy,
 and [NOTICE](../NOTICE) has the copyright lines.
 
 ## Rule engines

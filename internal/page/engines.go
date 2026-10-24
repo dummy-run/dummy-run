@@ -48,7 +48,7 @@ type EngineHit struct {
 	Help    string `json:"help,omitempty"`
 }
 
-// EngineGroup is the failures on one element whose WCAG criteria overlap, from one or more engines.
+// EngineGroup is the failures on one element for one WCAG criterion, from one or more engines.
 type EngineGroup struct {
 	Selector string      `json:"selector"`
 	SC       []string    `json:"sc"`
@@ -63,20 +63,26 @@ type EngineResults struct {
 	// Axe holds, for each AxeNode passed in, the other engines that flagged the same element.
 	Axe    [][]string    `json:"axe"`
 	Groups []EngineGroup `json:"groups"`
+	// Omitted counts the groups left out to keep within EnginesMaxGroups. The groups more engines agree on are kept.
+	Omitted int `json:"omitted"`
 }
 
 // RunEngines injects IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa into a sandbox on the loaded page and
-// runs them. An engine that throws is named in Errors and the others still run. Only the criteria in keep are kept.
+// runs them. An engine that fails to load or throws is named in Errors and the others still run. Only the criteria in
+// keep are kept.
 func RunEngines(ctx context.Context, conn *bidi.Conn, cx string, axe []AxeNode, keep []string) (*EngineResults, error) {
-	// Indirect eval runs each bundle at the sandbox's global scope, where HTML_CodeSniffer looks up its standards.
-	const load = "(name, src) => { if (!globalThis[name]) (0, eval)(src); return !!globalThis[name]; }"
-	for _, b := range []struct{ name, src string }{{"ace", aceJS}, {"HTMLCS", htmlcsJS}, {"dummyrunAlfa", alfaJS}} {
-		var loaded bool
-		if err := conn.CallFunctionJSONIn(ctx, cx, enginesSandbox, load, &loaded, b.name, b.src); err != nil {
-			return nil, fmt.Errorf("engines: load %s: %w", b.name, err)
+	// Indirect eval runs each bundle at the sandbox's global scope, where HTML_CodeSniffer looks up its standards. A
+	// bundle that throws or defines nothing is that engine's error, and the others still run. A failed call is fatal,
+	// because it means the connection or the page has gone.
+	const load = "(name, src) => { try { if (!globalThis[name]) (0, eval)(src); } catch (e) { return String(e && e.message || e).slice(0, 200); } return globalThis[name] ? '' : 'did not load'; }"
+	loadErrs := map[string]string{}
+	for _, b := range []struct{ global, engine, src string }{{"ace", "ibm", aceJS}, {"HTMLCS", "htmlcs", htmlcsJS}, {"dummyrunAlfa", "alfa", alfaJS}} {
+		var msg string
+		if err := conn.CallFunctionJSONIn(ctx, cx, enginesSandbox, load, &msg, b.global, b.src); err != nil {
+			return nil, fmt.Errorf("engines: load %s: %w", b.engine, err)
 		}
-		if !loaded {
-			return nil, fmt.Errorf("engines: %s did not load", b.name)
+		if msg != "" {
+			loadErrs[b.engine] = "load: " + msg
 		}
 	}
 	if axe == nil {
@@ -88,6 +94,12 @@ func RunEngines(ctx context.Context, conn *bidi.Conn, cx string, axe []AxeNode, 
 	var out EngineResults
 	if err := conn.CallFunctionJSONIn(ctx, cx, enginesSandbox, enginesJS, &out, string(axeArg), string(keepArg), EnginesMaxGroups); err != nil {
 		return nil, fmt.Errorf("engines: %w", err)
+	}
+	for k, v := range loadErrs {
+		if out.Errors == nil {
+			out.Errors = map[string]string{}
+		}
+		out.Errors[k] = v
 	}
 	return &out, nil
 }
