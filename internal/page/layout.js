@@ -191,6 +191,21 @@
     clipCache.set(el, list);
     return list;
   };
+  // An element is moving when it, or a box around it, has a CSS animation or transition running.
+  const movingCache = new Map();
+  const moving = (el) => {
+    if (!el || el === root || el === document.body) return false;
+    if (movingCache.has(el)) return movingCache.get(el);
+    let m = false;
+    try {
+      m = el.getAnimations().some((a) => a.playState === "running");
+    } catch (e) {
+      m = false;
+    }
+    m = m || moving(el.parentElement);
+    movingCache.set(el, m);
+    return m;
+  };
   const textOwners = new Set();
   const walker = document.body ? document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT) : null;
   let texts = 0;
@@ -201,9 +216,20 @@
     if (textOwners.has(el) || !visible(el)) continue;
     const list = clippers(el);
     if (!list.length) continue;
-    const range = document.createRange();
-    range.selectNodeContents(t);
-    const rects = [...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0);
+    // The words, not the whole node: with white-space pre-wrap, spaces at the end of a line hang past the box
+    // without drawing anything, and the node's own rects take them in.
+    const rects = [];
+    const words = /\S+/g;
+    let w, n = 0;
+    while ((w = words.exec(t.nodeValue)) && n++ < 300) {
+      const range = document.createRange();
+      range.setStart(t, w.index);
+      range.setEnd(t, w.index + w[0].length);
+      for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) rects.push(r);
+    }
+    // Text that is moving, such as a chip that pops in, is measured mid-flight. Its box says nothing about where it
+    // comes to rest, so it is left out.
+    if (moving(el)) continue;
     let why = "";
     for (const { a, s, x, y } of list) {
       const ar = a.getBoundingClientRect();

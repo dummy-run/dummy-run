@@ -947,7 +947,10 @@ What doesn't count, because WCAG allows it or a person wouldn't see a problem:
 - For clipped text, the other slides of a carousel don't count: text with no line inside the box is hidden by
   it. A box of 1 px or less, or one with `clip` or `clip-path`, hides text from the eye on purpose. A box
   that scrolls lets the reader reach the rest, and so does a box that hides overflow around one that scrolls on the
-  same axis, such as a terminal window with a scrolling line inside a rounded frame. Text shortened with an ellipsis or a line clamp counts only inside a
+  same axis, such as a terminal window with a scrolling line inside a rounded frame. Only words are measured, so the
+  spaces that hang past the edge of a `pre-wrap` line don't count. Text that's moving, because it or a box
+  around it has a CSS animation or transition running, is left out, since its box shows where it is mid-flight
+  rather than where it comes to rest. Text shortened with an ellipsis or a line clamp counts only inside a
   control, where the missing words are the control's name.
 - For overlap, a control inside another control doesn't count. Nor do boxes that meet without covering any text,
   such as transparent padding.
