@@ -132,7 +132,7 @@ table, "Advice beyond WCAG A and AA". A few of them are WCAG AAA rules. They are
 they aren't counted as failing elements. The report's JSON keeps them in `axe.advice` and the tags checked in
 `axe.advice_tags`. A sweep made before advice existed has none.
 
-When the sweep ran with `--layout`, `--keyboard` or `--text-scale`, its layout and keyboard rules appear in the same section, because they are in the sweep file as violations. The rule IDs all begin `dummyrun-`. They map to WCAG 1.4.10, 1.4.4 and 2.5.8. Each is a measurement made in the browser, and the help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
+When the sweep ran with `--layout`, `--keyboard` or `--text-scale`, its layout and keyboard rules appear in the same section, because they are in the sweep file as violations. The rule IDs all begin `dummyrun-`. The layout rules map to WCAG 1.4.10, 1.4.4 and 2.5.8. The keyboard rules map to WCAG 2.1.2, 2.4.7 and 2.4.1. Each is a measurement made in the browser, and the help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
 
 ## Compare with an earlier report
 

@@ -51,6 +51,17 @@
     const list = focusables();
     for (const el of list) S.look.set(el, look(el));
     if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    // A page opened at a #fragment, or clicked in, leaves the browser's starting point for Tab somewhere down the
+    // page. Focusing a throwaway element at the top and removing it, then putting the selection there, moves it back.
+    const root = document.body || document.documentElement;
+    const mark = document.createElement("span");
+    mark.tabIndex = -1;
+    root.insertBefore(mark, root.firstChild);
+    mark.focus({ preventScroll: true });
+    mark.remove();
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    const sel = getSelection();
+    if (sel && document.body) sel.collapse(document.body, 0);
     window.scrollTo(0, 0);
     return { focusables: list.length };
   }

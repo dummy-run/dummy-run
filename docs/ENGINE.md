@@ -941,7 +941,8 @@ dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://
 ### Keyboard checks
 
 To check the page by keyboard, add `--keyboard`. The sweep clicks nothing. It presses Tab from the top of the page, up to 80
-times, and records where focus goes, then reports what it measured. There is no model call. The checks are off by default.
+times and records where focus goes. It then reports what it measured. There is no model call. The checks are off by default.
+The pixel comparison covers no more than the first 30 stops that need it. The walk ends at the first loop or repeated stop, so later stops go unchecked. When that happens the page's result says `keyboard_partial`, so a page with no keyboard findings is not read as one that was checked all the way through.
 
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
@@ -950,7 +951,7 @@ times, and records where focus goes, then reports what it measured. There is no 
 | `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
 | `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
 
-Focus that moves into a frame or a media player is followed no further. A dialog that keeps focus inside itself is not a trap.
+Focus that moves into a frame or a media player is followed no further. A dialog that keeps focus inside itself is not a trap, even when it has only one control.
 
 ## Troubleshooting
 

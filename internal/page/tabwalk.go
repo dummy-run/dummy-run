@@ -70,7 +70,7 @@ func (w *TabWalk) call(ctx context.Context, conn *bidi.Conn, cx, op string, arg 
 }
 
 // WalkTabs presses Tab from the top of the page and records where focus goes. It needs a loaded page.
-func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, max int) (*TabWalk, error) {
+func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, limit int) (*TabWalk, error) {
 	w := &TabWalk{}
 	var init struct {
 		Focusables int `json:"focusables"`
@@ -83,7 +83,7 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, max int) (*TabWal
 	esc, _ := bidi.Key("Escape")
 	seen := map[int]int{} // element id -> index in Stops
 	stuck := 0
-	for i := 0; i < max; i++ {
+	for i := 0; i < limit; i++ {
 		if err := conn.PressKey(ctx, cx, tab); err != nil {
 			return nil, fmt.Errorf("tab walk: %w", err)
 		}
@@ -110,10 +110,10 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, max int) (*TabWal
 			}
 			stuck++
 			if stuck >= 2 {
-				if trapped(ctx, conn, cx, w, []TabStop{st}, tab, esc) {
+				if !st.Modal && trapped(ctx, conn, cx, w, []TabStop{st}, tab, esc) {
 					w.Trap = []TabStop{st}
 				}
-				return w.finish(ctx, conn, cx), nil
+				return w.finish(ctx, conn, cx)
 			}
 			continue
 		}
@@ -129,14 +129,14 @@ func WalkTabs(ctx context.Context, conn *bidi.Conn, cx string, max int) (*TabWal
 				w.Trap = loop
 			}
 			if !modal || w.Trap != nil {
-				return w.finish(ctx, conn, cx), nil
+				return w.finish(ctx, conn, cx)
 			}
 			break
 		}
 		seen[st.ID] = len(w.Stops)
 		w.Stops = append(w.Stops, st)
 	}
-	return w.finish(ctx, conn, cx), nil
+	return w.finish(ctx, conn, cx)
 }
 
 // trapped presses Escape and then Tab a few more times. Focus that never reaches an element outside the loop is a trap.
@@ -162,9 +162,14 @@ func trapped(ctx context.Context, conn *bidi.Conn, cx string, w *TabWalk, loop [
 }
 
 // finish checks the focus indicator of the stops that show none in their style, by comparing pictures.
-func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) *TabWalk {
+// A focus or screenshot failure is not fatal and leaves the stop unchecked. A cancelled or expired context is, so a
+// walk that ran out of time never reads as a clean result.
+func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) (*TabWalk, error) {
 	checks := 0
 	for i := range w.Stops {
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("tab walk: %w", err)
+		}
 		s := &w.Stops[i]
 		if s.Outline || s.StyleChanged || s.Hidden || s.Offscreen || s.Frame || checks >= maxIndicatorChecks {
 			continue
@@ -172,7 +177,10 @@ func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) *TabWa
 		checks++
 		clip := bidi.Clip{X: max(s.Box.X-6, 0), Y: max(s.Box.Y-6, 0), Width: min(s.Box.Width+12, 600), Height: min(s.Box.Height+12, 300)}
 		var ok bool
-		if w.call(ctx, conn, cx, "focus", s.ID, &ok) != nil || !ok {
+		if err := w.call(ctx, conn, cx, "focus", s.ID, &ok); err != nil || !ok {
+			if ctx.Err() != nil {
+				return nil, fmt.Errorf("tab walk: %w", ctx.Err())
+			}
 			continue
 		}
 		with, err1 := shot(ctx, conn, cx, clip)
@@ -180,12 +188,18 @@ func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) *TabWa
 		_ = w.call(ctx, conn, cx, "blur", nil, &b)
 		without, err2 := shot(ctx, conn, cx, clip)
 		if err1 != nil || err2 != nil {
+			if ctx.Err() != nil {
+				return nil, fmt.Errorf("tab walk: %w", ctx.Err())
+			}
 			continue
 		}
 		s.Checked = true
 		s.NoIndicator = changedPixels(with, without) < minChangedPixels
 	}
-	return w
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("tab walk: %w", err)
+	}
+	return w, nil
 }
 
 func shot(ctx context.Context, conn *bidi.Conn, cx string, clip bidi.Clip) (image.Image, error) {

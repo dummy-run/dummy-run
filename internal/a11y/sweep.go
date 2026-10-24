@@ -122,7 +122,9 @@ type PageResult struct {
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
 	// KeyboardChecked says the Tab walk ran, so a result with none of its rules means it found nothing.
-	KeyboardChecked bool   `json:"keyboard_checked,omitempty"`
+	KeyboardChecked bool `json:"keyboard_checked,omitempty"`
+	// KeyboardPartial says the Tab walk stopped before it had been through every stop, so later stops went unchecked.
+	KeyboardPartial bool   `json:"keyboard_partial,omitempty"`
 	Error           string `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
 	Skipped     string    `json:"skipped,omitempty"`
@@ -493,6 +495,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			return res
 		}
 		res.KeyboardChecked = true
+		res.KeyboardPartial = !w.Completed
 		res.Violations = append(res.Violations, keyboardFindings(w, path, cfg.Allow)...)
 	}
 	return res
