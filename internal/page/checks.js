@@ -1,7 +1,7 @@
 // Checks on the page's markup that axe's default rules leave out, measured in the browser with no model.
 // Called as a function expression with (max): the most nodes to return for each rule.
 //   labelInName   a control whose visible words are not part of its accessible name (WCAG 2.5.3)
-//   autocomplete  a field that asks for the person's own details with no autocomplete value (WCAG 1.3.5)
+//   autocomplete  a field that asks for the person's own details with no autocomplete value that names a purpose (WCAG 1.3.5)
 (max) => {
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
   const part = (el) => {
@@ -32,6 +32,13 @@
   };
   // Letters and digits only, lower case, so punctuation and spacing do not count.
   const words = (s) => squash(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  // The autofill field names from the HTML standard.
+  const fields = new Set(("name honorific-prefix given-name additional-name family-name honorific-suffix nickname username " +
+    "new-password current-password one-time-code organization-title organization street-address address-line1 address-line2 " +
+    "address-line3 address-level4 address-level3 address-level2 address-level1 country country-name postal-code cc-name " +
+    "cc-given-name cc-additional-name cc-family-name cc-number cc-exp cc-exp-month cc-exp-year cc-csc cc-type " +
+    "transaction-currency transaction-amount language bday bday-day bday-month bday-year sex url photo tel tel-country-code " +
+    "tel-national tel-area-code tel-local tel-local-prefix tel-local-suffix tel-extension email impp").split(" "));
   const out = { labelInName: [], autocomplete: [] };
   const push = (list, node) => { if (list.length < max) list.push(node); };
 
@@ -86,7 +93,9 @@
     const want = expected(el, text);
     if (!want) continue;
     const have = (el.getAttribute("autocomplete") || "").trim().toLowerCase();
-    if (have && have !== "off" && have !== "on") continue; // some purpose is given
+    // A purpose counts only when the value ends in a field name the HTML standard defines, as in "shipping email".
+    const tokens = have.split(/\s+/).filter((t) => t && t !== "webauthn");
+    if (fields.has(tokens[tokens.length - 1])) continue;
     push(out.autocomplete, { selector: selector(el), detail: "it asks for " + want.replace("-", " ") + (have ? " and autocomplete is \"" + have + "\"" : " with no autocomplete value"), want });
   }
   return out;

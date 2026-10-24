@@ -944,7 +944,7 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
 | `dummyrun-label-in-name` | A link or button has an `aria-label` or `aria-labelledby` name, and the words it shows are not part of that name. Punctuation and case are ignored, and a control that shows only a symbol is skipped | 2.5.3 | serious |
-| `dummyrun-autocomplete-missing` | A visible, enabled, editable email, telephone, first name, last name or postcode field has no `autocomplete` value, or has `off` or `on`, which do not name a purpose. Read-only fields and search forms are skipped, and so are fields that ask for another person's details, such as a friend's email | 1.3.5 | serious |
+| `dummyrun-autocomplete-missing` | A visible, enabled, editable email, telephone, first name, last name or postcode field has no `autocomplete` value that names a purpose. A value names a purpose when it ends in one of the HTML standard's autofill field names, such as `email` or `shipping postal-code`. `off`, `on` and made-up values do not. Read-only fields and search forms are skipped, and so are fields that ask for another person's details, such as a friend's email | 1.3.5 | serious |
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 

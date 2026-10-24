@@ -37,6 +37,8 @@ const markupPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <label for="e7">Email</label><input id="e7" type="email" disabled>
 <label for="e8">Email</label><input id="e8" type="email" autocomplete="on">
 <label for="e9">Email</label><input id="e9" type="email" style="opacity:0">
+<label for="e10">Email</label><input id="e10" type="email" autocomplete="banana">
+<label for="e11">Email</label><input id="e11" type="email" autocomplete="section-a shipping email">
 <label for="e3">Friend's email</label><input id="e3" type="email" name="friend">
 <label for="s1">Search</label><input id="s1" type="text" name="q">
 </form>
@@ -76,7 +78,7 @@ func TestMarkupChecksFindOnlyPlantedProblems(t *testing.T) {
 			}
 			want := map[string]string{
 				RuleLabelInName:     "#bad1,#bad2,#bad3,#bad4,#bad5",
-				RuleAutocompleteOff: "#e1,#t1,#f1,#f2,#p1,#e8",
+				RuleAutocompleteOff: "#e1,#t1,#f1,#f2,#p1,#e8,#e10",
 			}
 			for rule, w := range want {
 				if g := strings.Join(got[rule], ","); g != w {
