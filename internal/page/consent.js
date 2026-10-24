@@ -1,11 +1,11 @@
 // Finds a cookie banner and answers it with DuckDuckGo autoconsent, choosing to opt out. No model is involved.
-// Called as a function expression with (src, rulesJSON, waitMs):
-//   src        the autoconsent.playwright.js bundle
+// Called as a function expression with (rulesJSON, waitMs). The engine puts the autoconsent.playwright.js bundle in
+// place of the AUTOCONSENT marker below, so it is part of the call and a content security policy cannot block it.
 //   rulesJSON  autoconsent's compact rule set as JSON
 //   waitMs     how long to wait for autoconsent to finish once it finds a banner
 // Before autoconsent clicks anything, its own heuristics read the banners on the page and sort each button into
 // reject, accept, settings, acknowledge or other. Returns {popups, cmp, found, opted_out, done, cleared, error, steps}.
-async (src, rulesJSON, waitMs) => {
+async (rulesJSON, waitMs) => {
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
   const part = (el) => {
     if (el.id && document.querySelectorAll("#" + CSS.escape(el.id)).length === 1) return "#" + CSS.escape(el.id);
@@ -78,7 +78,7 @@ async (src, rulesJSON, waitMs) => {
   };
   const els = [];
   try {
-    (0, eval)(src);
+    /*AUTOCONSENT*/
     // The bundle starts on load and waits for its rules, which arrive on the next tick, so nothing is clicked yet.
     for (const p of window.autoconsentHeuristics.getPotentialPopups(1500)) {
       const buttons = p.buttons.slice(0, 12).map((b) => ({ text: squash(b.text).slice(0, 60), kind: b.regexClassification || "other" }));

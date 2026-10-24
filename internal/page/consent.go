@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -68,7 +69,8 @@ func (p ConsentPopup) HasKind(kind string) bool {
 // to finish. It runs in the page's own world, because a consent platform's API lives there.
 func AnswerConsent(ctx context.Context, conn *bidi.Conn, cx string, wait time.Duration) (*Consent, error) {
 	var out Consent
-	if err := conn.CallFunctionJSON(ctx, cx, consentJS, &out, autoconsentJS, autoconsentRules, int(wait.Milliseconds())); err != nil {
+	script := strings.Replace(consentJS, "/*AUTOCONSENT*/", "\n"+autoconsentJS+"\n", 1)
+	if err := conn.CallFunctionJSON(ctx, cx, script, &out, autoconsentRules, int(wait.Milliseconds())); err != nil {
 		return nil, fmt.Errorf("cookie banner: %w", err)
 	}
 	return &out, nil
