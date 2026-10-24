@@ -143,8 +143,10 @@ type PageResult struct {
 	KeyboardChecked bool `json:"keyboard_checked,omitempty"`
 	// KeyboardPartial says the Tab walk stopped before it had been through every stop, so later stops went unchecked.
 	KeyboardPartial bool `json:"keyboard_partial,omitempty"`
-	// PlainLanguageChecked says Vale read the page's main content. PlainLanguageError says why it could not.
+	// PlainLanguageChecked says Vale read the page's main content. PlainLanguagePartial says the content was too
+	// long, so Vale read only its start. PlainLanguageError says why it could not read it.
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
+	PlainLanguagePartial bool   `json:"plain_language_partial,omitempty"`
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
