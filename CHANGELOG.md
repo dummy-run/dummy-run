@@ -8,6 +8,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ### Added
 - `dummyrun a11y --keyboard` presses Tab through each page. It reports focus you cannot see, which it checks by comparing pictures with and without focus. It also reports focus that lands on a hidden or off-screen element, focus that gets stuck and a skip link that goes nowhere. A walk that stops early says so with `keyboard_partial`. A dialog with one control is never called a trap. The walk starts from the top of the page, even when it opened at a `#fragment`. A page with nothing to Tab to counts as fully walked, and a trap test that cannot finish shows as an error. Rules `dummyrun-focus-not-visible`, `dummyrun-focus-hidden`, `dummyrun-keyboard-trap` and `dummyrun-skip-link-broken`.
 
+## [0.1.4] - 2026-10-24
+
 ### Security
 - Built with Go 1.27.3 and golang.org/x/net 0.60.0. Go 1.27.3 distrusts the compromised eMudhra intermediate certificates in crypto/x509 (GO-2026-6809). Go 1.27.2 fixes HTTP/1 and HTTP/2 flaws in net/http (GO-2026-6610, GO-2026-6611, GO-2026-6612, GO-2026-6613, GO-2026-6617) and a MIME header limit bypass in net/textproto and mime/multipart (GO-2026-6608). golang.org/x/net 0.60.0 fixes the same HTTP/2 flaws in golang.org/x/net/http2. `dummyrun-otel` gets the same update.
 
