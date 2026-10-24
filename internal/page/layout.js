@@ -172,14 +172,21 @@
   let clippedTotal = 0;
   const clipCache = new Map();
   // The boxes above a node that cut off what reaches past them, nearest first. A box that can be scrolled lets
-  // the reader reach the rest, so it does not cut anything off.
+  // the reader reach the rest, so it does not cut anything off, and on that axis nothing further out does either:
+  // the text sits in the scrolling box, not in the boxes around it.
   const clippers = (el) => {
     if (clipCache.has(el)) return clipCache.get(el);
     const list = [];
+    const scrolls = (v) => v === "auto" || v === "scroll";
+    let scrollX = false, scrollY = false;
     for (let a = el; a && a !== root; a = a.parentElement) {
       const s = getComputedStyle(a);
-      const x = s.overflowX === "hidden" || s.overflowX === "clip", y = s.overflowY === "hidden" || s.overflowY === "clip";
+      const x = !scrollX && (s.overflowX === "hidden" || s.overflowX === "clip");
+      const y = !scrollY && (s.overflowY === "hidden" || s.overflowY === "clip");
       if (x || y) list.push({ a, s, x, y });
+      scrollX = scrollX || scrolls(s.overflowX);
+      scrollY = scrollY || scrolls(s.overflowY);
+      if (scrollX && scrollY) break;
     }
     clipCache.set(el, list);
     return list;

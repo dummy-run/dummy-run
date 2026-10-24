@@ -58,7 +58,8 @@ var layoutPages = map[string]string{
 <p id="ell" style="width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">A teaser that runs on far past its box</p>
 <p id="clamp" style="width:150px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2">A longer teaser that runs on over many lines until the clamp stops it after two of them</p>
 <table id="data"><tr><td style="min-width:300px">Wide column one</td><td style="min-width:300px">Wide column two</td></tr></table>
-<p><input type="radio" name="r" id="r1"><input type="radio" name="r" id="r2"></p>` + layoutTail,
+<p><input type="radio" name="r" id="r1"><input type="radio" name="r" id="r2"></p>
+<figure id="term" style="width:300px;overflow:hidden;margin:0"><div tabindex="0" style="overflow-x:auto"><pre style="white-space:pre;margin:0">$ a command whose output line is far wider than the terminal box around it, so it scrolls</pre></div></figure>` + layoutTail,
 	// Text in a box of fixed height that hides overflow: part of the paragraph is cut off.
 	"/cut": layoutHead + `<h1>Cut</h1><div id="note" style="height:44px;overflow:hidden;width:200px"><p style="margin:0">This notice runs on for several lines, so the box of fixed height cuts off its last lines.</p></div>` + layoutTail,
 	// A fixed header 100 px tall, opaque, over a link at the top of the page: with focus the link is entirely

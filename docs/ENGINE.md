@@ -946,7 +946,8 @@ What doesn't count, because WCAG allows it or a person wouldn't see a problem:
   finding, and `reflow_exempt` in the layout result counts them.
 - For clipped text, the other slides of a carousel don't count: text with no line inside the box is hidden by
   it. A box of 1 px or less, or one with `clip` or `clip-path`, hides text from the eye on purpose. A box
-  that scrolls lets the reader reach the rest. Text shortened with an ellipsis or a line clamp counts only inside a
+  that scrolls lets the reader reach the rest, and so does a box that hides overflow around one that scrolls on the
+  same axis, such as a terminal window with a scrolling line inside a rounded frame. Text shortened with an ellipsis or a line clamp counts only inside a
   control, where the missing words are the control's name.
 - For overlap, a control inside another control doesn't count. Nor do boxes that meet without covering any text,
   such as transparent padding.
