@@ -1,6 +1,7 @@
 package a11y
 
 import (
+	"maps"
 	"slices"
 	"strings"
 
@@ -88,6 +89,23 @@ func engineFindings(r *page.EngineResults, violations []Finding, path string, al
 	sortFindings(agreed)
 	sortFindings(candidates)
 	return agreed, candidates
+}
+
+// enginesFailed says why the page fails when none of the other engines ran, so a sweep asked for them never passes
+// on axe alone. It is empty when at least one ran.
+func enginesFailed(r *page.EngineResults) string {
+	if len(r.Ran) > 0 {
+		return ""
+	}
+	names := slices.Sorted(maps.Keys(r.Errors))
+	parts := make([]string, 0, len(names))
+	for _, n := range names {
+		parts = append(parts, engineNames[n]+": "+r.Errors[n])
+	}
+	if len(parts) == 0 {
+		return "none of the other accessibility engines ran"
+	}
+	return "none of the other accessibility engines ran (" + strings.Join(parts, "; ") + ")"
 }
 
 func confidence(engines []string) string {

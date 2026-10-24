@@ -162,3 +162,18 @@ func TestSummaryCountsCandidatesAndEngineErrors(t *testing.T) {
 		t.Error("engine errors are not in name order")
 	}
 }
+
+func TestNoEngineRanFailsThePage(t *testing.T) {
+	if msg := enginesFailed(&page.EngineResults{Ran: []string{"ibm"}, Errors: map[string]string{"alfa": "boom"}}); msg != "" {
+		t.Errorf("one engine ran, got %q", msg)
+	}
+	msg := enginesFailed(&page.EngineResults{Errors: map[string]string{"ibm": "x", "alfa": "y"}})
+	if msg != "none of the other accessibility engines ran (Siteimprove Alfa: y; IBM Equal Access: x)" {
+		t.Errorf("got %q", msg)
+	}
+	rep := &Report{Results: []PageResult{{URL: "https://example.com/", Error: msg}}}
+	rep.summarise(Config{Allow: &AllowList{}})
+	if !rep.Failed() {
+		t.Error("a sweep where no engine ran passed")
+	}
+}

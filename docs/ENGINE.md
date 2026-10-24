@@ -984,7 +984,8 @@ for the same criterion.
   never fails the sweep. Look at the element before you change anything.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. A page keeps up to 200 groups of the other engines'
+the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
+fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
 `engines` field gives the version of each engine.
 
