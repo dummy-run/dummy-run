@@ -898,8 +898,9 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
-To run every check in one go, add `--all`. It turns on the cookie banner, the other rule engines, contrast over
-images, the layout checks and plain language, each described below, so one command gives you the whole picture.
+To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
+rule engines, contrast over images, the layout checks and plain language. Each is described below, so one command
+gives you the whole picture.
 Add `--text-scale 100,200` to test large text in the same run.
 
 ```sh
@@ -944,6 +945,32 @@ report end in `/text-200` when a text scale was used.
 ```sh
 dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://example.com/
 ```
+
+### Keyboard checks
+
+To check the page by keyboard, add `--keyboard`. The sweep clicks nothing. It presses Tab from the top of the page, up to 80
+times and records where focus goes. It then reports what it measured. There is no model call. The checks are off by default.
+The pixel comparison covers no more than the first 30 stops that need it. The walk ends at the first loop or repeated stop, so later stops go unchecked. When that happens the page's result says `keyboard_partial`, so a page with no keyboard findings is not read as one that was checked all the way through.
+
+| Rule ID | Fails when | WCAG | Impact |
+|---|---|---|---|
+| `dummyrun-focus-not-visible` | An element that takes focus looks the same, in the pixels around it, with and without focus. An element whose outline or style changes is never checked, so a focus ring drawn another way passes only if it changes the picture | 2.4.7 | serious |
+| `dummyrun-focus-hidden` | Focus lands on an element with no size, hidden, or outside the window | 2.4.7 | serious |
+| `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
+| `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
+
+Focus that moves into a frame or a media player is followed no further, so the walk counts as partial. A dialog that keeps focus inside itself is not a trap, even when it has only one control. A page with nothing that takes focus counts as fully walked. If the trap test cannot finish, the page shows an error instead of a clean result.
+
+### Markup checks
+
+Add `--markup` for two checks on the page's markup that axe leaves out by default. They run in the browser with no model call.
+
+| Rule ID | Fails when | WCAG | Impact |
+|---|---|---|---|
+| `dummyrun-label-in-name` | A link or button has an `aria-label` or `aria-labelledby` name, and the words it shows are not part of that name. Punctuation and case are ignored, and a control that shows only a symbol is skipped | 2.5.3 | serious |
+| `dummyrun-autocomplete-missing` | A field asks for the visitor's own email, phone number, first name, last name or postcode. It is visible, enabled and editable. It has no `autocomplete` value that names a purpose. A value names a purpose when it follows the HTML standard's autofill grammar, such as `email` or `shipping postal-code`. `off`, `on` and made-up values do not. Read-only fields and search forms are skipped, and so are fields that ask for another person's details, such as a friend's email | 1.3.5 | serious |
+
+These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
 ### Other rule engines
 
