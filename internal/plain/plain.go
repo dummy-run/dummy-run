@@ -111,7 +111,7 @@ func Check(ctx context.Context, vale, html string) ([]Alert, error) {
 		return nil, fmt.Errorf("plain language: %w", err)
 	}
 	var out, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, vale, "--config", cfg, "--output", "JSON", "--no-exit", f.Name()) //nolint:gosec // vale is the program the user chose
+	cmd := exec.CommandContext(ctx, vale, "--config", cfg, "--output", "JSON", "--no-exit", f.Name()) //nolint:gosec // vale is the program the user chose // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- the path comes from DUMMYRUN_VALE or PATH, never from a page
 	cmd.Stdout, cmd.Stderr = &out, &stderr
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("plain language: vale: %w: %s", err, firstLine(stderr.String()))
