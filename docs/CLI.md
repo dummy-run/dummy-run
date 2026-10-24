@@ -226,6 +226,10 @@ Flags:
                     skip link that goes nowhere
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
+  --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
+                    or more engines fail for the same WCAG criterion has high confidence. A failure axe misses and
+                    two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
+                    reports is a candidate, kept in the JSON and never failing the sweep
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the

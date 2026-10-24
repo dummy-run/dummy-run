@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -79,12 +80,21 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if p.Error != "" {
 			_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
 		}
+		for _, e := range sortedKeys(p.EngineErrors) {
+			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", engineNames[e], p.URL, p.Setting(), p.EngineErrors[e])
+		}
 	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
 		r.Browser, r.BrowserVersion, r.AxeVersion, s.Pages, s.Runs, s.Failing, s.Allowed, s.NeedsReview, s.PageErrors)
 	if s.Advice > 0 {
 		_, _ = fmt.Fprintf(w, ", %d elements with best-practice advice (not failures)", s.Advice)
+	}
+	if s.Candidates > 0 {
+		_, _ = fmt.Fprintf(w, ", %d candidates only one engine reports (not failures)", s.Candidates)
+	}
+	if n := engineErrorRuns(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", rule engines failed on %d runs (listed above)", n)
 	}
 	if s.Skipped > 0 {
 		_, _ = fmt.Fprintf(w, ", %d pages skipped for robots.txt", s.Skipped)
@@ -100,4 +110,24 @@ func orUnknown(s string) string {
 		return "no impact"
 	}
 	return s
+}
+
+// engineErrorRuns counts the runs on which at least one of the other rule engines failed.
+func engineErrorRuns(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if len(p.EngineErrors) > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+func sortedKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
 }

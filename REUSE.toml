@@ -41,3 +41,21 @@ path = "site/static/social/*.png"
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Joel Merrick"
 SPDX-License-Identifier = "LicenseRef-DummyRun-Brand"
+
+[[annotations]]
+path = "internal/page/engines/ace.js"
+precedence = "override"
+SPDX-FileCopyrightText = "2016- IBM, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["internal/page/engines/HTMLCS.js", "internal/page/engines/HTMLCS.licence.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "2012 Squiz Pty Ltd (ABN 77 084 670 600)"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "internal/page/engines/alfa.min.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["Siteimprove A/S", "2021 Lea Verou and Chris Lilley"]
+SPDX-License-Identifier = "MIT"
