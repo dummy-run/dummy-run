@@ -995,6 +995,47 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 [Tools we build on](TOOLS.md) lists each engine with its licence.
 
+### Cookie banners
+
+A cookie banner covers part of the page, so it can turn up in the layout checks as overlap and cut-off text that
+your visitors only see until they choose. Add `--consent` and the sweep answers the banner the way a careful
+visitor would, by rejecting. It uses DuckDuckGo autoconsent, which knows over a thousand consent platforms and
+falls back on reading the banner's own words.
+
+The rule engines see the banner first, because its own accessibility matters: it's the first thing a visitor has
+to get past. Then autoconsent answers it, and the layout checks measure the page underneath.
+
+Before anything is clicked, autoconsent sorts each button on the banner into one of five kinds. These are reject,
+accept, settings, acknowledge and other. A banner with an accept button and no reject button is reported as
+`dummyrun-consent-no-reject`. Rejecting through a settings page takes more steps than accepting. It also takes more
+reading and more precise clicks. That weighs most on people who tire easily, use a switch or read slowly. The finding
+goes to `advice` because it isn't a WCAG failure, so it never fails the sweep.
+
+A banner that turns up while autoconsent is still looking, in about the first three seconds, is read and answered
+too. When autoconsent reports it found nothing, the sweep moves on at once, so a banner that appears after that isn't
+answered. Otherwise the sweep waits up to 10 seconds for autoconsent to finish before it moves on. If autoconsent is still working when that time is up,
+`settled` is false and it could still click something during the checks that follow. If autoconsent can't start
+on the page at all, `failed` is true and the page has an `error`, so the sweep fails.
+
+Each result has `consent`, which records:
+
+- `popups`, the banners found, with each button's text and kind;
+- `cmp`, the consent platform recognised;
+- `opted_out`, true when autoconsent reports that it rejected;
+- `cleared`, true when every banner it found is gone or out of the window afterwards, measured in the page, and
+  false otherwise;
+- `settled`, true when autoconsent had finished when the sweep moved on. When it's false, autoconsent could still
+  act on the page later;
+- `failed`, true when autoconsent couldn't start or read the page, with the reason in `error`;
+- `steps`, autoconsent's own messages in order.
+
+A banner inside a frame is answered but not read, so it has no buttons in `popups`. Rejecting sets cookies in the
+sweep's browser, so later settings for the same site may show no banner.
+
+```sh
+dummyrun a11y --consent --layout https://example.com/
+```
+
 ## Troubleshooting
 
 Leftover browsers fill the disk and the process table. To list the browsers and profile directories that

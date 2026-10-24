@@ -71,6 +71,9 @@ type Config struct {
 	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
 	Markup bool
+	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
+	// seen it and before the layout checks, so the banner does not cover the page they measure.
+	Consent bool
 	// Engines runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
@@ -137,6 +140,8 @@ type PageResult struct {
 	KeyboardChecked bool `json:"keyboard_checked,omitempty"`
 	// KeyboardPartial says the Tab walk stopped before it had been through every stop, so later stops went unchecked.
 	KeyboardPartial bool `json:"keyboard_partial,omitempty"`
+	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
+	Consent *page.Consent `json:"consent,omitempty"`
 	// EnginesRan names the other rule engines that finished on the page. EngineErrors says why any others did not.
 	EnginesRan   []string          `json:"engines_ran,omitempty"`
 	EngineErrors map[string]string `json:"engine_errors,omitempty"`
@@ -187,7 +192,9 @@ type Report struct {
 	AxeVersion     string `json:"axe_version,omitempty"`
 	// Engines are the versions of the other rule engines, when the sweep ran them.
 	Engines map[string]string `json:"engines,omitempty"`
-	Tags    []string          `json:"tags"`
+	// Autoconsent is the version of DuckDuckGo autoconsent, when the sweep answered cookie banners.
+	Autoconsent string   `json:"autoconsent,omitempty"`
+	Tags        []string `json:"tags"`
 	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
 	AdviceTags    []string `json:"advice_tags,omitempty"`
 	Identify      bool     `json:"identify,omitempty"`
@@ -286,6 +293,9 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, AdviceTags: AdviceTags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
 	if cfg.Engines {
 		rep.Engines = page.EngineVersions
+	}
+	if cfg.Consent {
+		rep.Autoconsent = page.AutoconsentVersion
 	}
 	if cfg.Access.Active() {
 		sum := cfg.Access.Summary()
@@ -522,6 +532,19 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		agreed, cands := engineFindings(r, res.Violations, path, cfg.Allow)
 		res.Violations = append(res.Violations, agreed...)
 		res.Candidates = cands
+	}
+	if cfg.Consent {
+		c, err := page.AnswerConsent(pctx, conn, cx, page.ConsentWait)
+		if err != nil {
+			res.Error = firstLine(err.Error())
+			return res
+		}
+		res.Consent = c
+		if msg := consentFailed(c); msg != "" {
+			res.Error = msg
+			return res
+		}
+		res.Advice = append(res.Advice, consentFindings(c, path, cfg.Allow)...)
 	}
 	if cfg.Layout {
 		l, err := page.MeasureLayout(pctx, conn, cx)

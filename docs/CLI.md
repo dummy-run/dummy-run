@@ -226,6 +226,9 @@ Flags:
                     skip link that goes nowhere
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
+  --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
+                    A banner with an accept button and no reject button is reported as advice
+                    (dummyrun-consent-no-reject), which never fails the sweep
   --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
                     or more engines fail for the same WCAG criterion has high confidence. A failure axe misses and
                     two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
