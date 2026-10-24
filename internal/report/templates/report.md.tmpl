@@ -103,6 +103,16 @@ The findings are sorted by severity, then by the number of runs that found them.
 {{- if $f.HelpURL}}
 | Fix guidance | {{cell $f.HelpURL}} |
 {{- end}}
+{{- with $f.Fix}}
+| How to fix | {{cell .Summary}} Usually done by {{.Owner}}. |
+{{- end}}
+{{- with $f.Fix}}
+
+How to fix:
+
+{{range $n, $s := .Steps}}{{$n | inc}}. {{$s}}
+{{end}}
+{{- end}}
 
 How to reproduce:
 
@@ -137,6 +147,25 @@ The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} 
 {{- range $r := .Axe.Rules}}{{range $r.Pages}}
 | `{{cell $r.Rule}}` | {{cell .URL}} | {{range $k, $t := .Targets}}{{if $k}}, {{end}}`{{cell $t}}`{{end}} | {{cell (join .Settings)}} |
 {{- end}}{{end}}
+{{- if fixRules .Axe.Rules}}
+
+### How to fix what failed
+
+Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the elements listed above.
+{{range fixRules .Axe.Rules}}
+#### `{{inline .Rule}}`
+
+{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.
+
+{{range $n, $s := .Fix.Steps}}{{$n | inc}}. {{$s}}
+{{end}}{{with .Fix.Example}}
+Before: `{{inline .Before}}`
+
+After: `{{inline .After}}`
+{{end}}{{if .Fix.Sources}}
+Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}[{{$u}}]({{$u}}){{end}}
+{{end}}{{end}}
+{{- end}}
 
 {{else -}}
 No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.

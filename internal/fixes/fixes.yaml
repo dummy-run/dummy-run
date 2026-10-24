@@ -1,0 +1,210 @@
+# How to fix each rule that Dummy Run's own checks report. The report joins an entry to every finding with the same
+# rule ID. Keep each step to one action a person can take, and say who usually takes it: content, design or
+# development. Sources are the W3C or GOV.UK pages the advice follows.
+
+- rule: dummyrun-reflow
+  owner: development
+  summary: Let the page fit a narrow window without scrolling sideways.
+  steps:
+    - Find the element named in the finding and give it a flexible width, such as max-width 100%, in place of a fixed one.
+    - Let long words, links and code wrap, for example with overflow-wrap anywhere.
+    - Let wide tables and diagrams scroll inside their own box, so the rest of the page still fits.
+  example:
+    before: ".panel { width: 960px; }"
+    after: ".panel { max-width: 100%; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/reflow.html
+
+- rule: dummyrun-overlap
+  owner: development
+  summary: Stop text and controls drawing on top of each other when the text gets bigger.
+  steps:
+    - Remove fixed heights from the boxes named in the finding, so they grow with their text.
+    - Swap absolute positioning for normal flow, flexbox or grid where the content can grow.
+    - Check again with text at 200 percent.
+  example:
+    before: ".card { height: 120px; overflow: visible; }"
+    after: ".card { min-height: 120px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html
+
+- rule: dummyrun-clipped-text
+  owner: development
+  summary: Stop text being cut off when it gets bigger.
+  steps:
+    - Remove fixed heights and overflow hidden from the box named in the finding.
+    - Use min-height in place of height, so the box can grow.
+    - Check again with text at 200 percent.
+  example:
+    before: ".label { height: 1.2em; overflow: hidden; }"
+    after: ".label { min-height: 1.2em; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html
+
+- rule: dummyrun-target-size
+  owner: design
+  summary: Make each control at least 24 by 24 CSS pixels, or leave room round a smaller one.
+  steps:
+    - Give the control named in the finding a width and height of at least 24 CSS pixels, with padding if the icon must stay small.
+    - If it has to stay small, leave enough space round it that a 24 pixel circle centred on it overlaps no other control and no other small control's circle.
+    - Inline links in a sentence, and controls whose size the browser sets, are exceptions and need no change.
+  example:
+    before: ".close { width: 16px; height: 16px; }"
+    after: ".close { width: 16px; height: 16px; padding: 4px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
+
+- rule: dummyrun-focus-not-visible
+  owner: design
+  summary: Show clearly which control has keyboard focus.
+  steps:
+    - Remove outline none from the control named in the finding, or replace it with a focus style of your own.
+    - Use the focus-visible selector, so the style shows for keyboard users without changing how a mouse click looks.
+    - Make the indicator contrast with the colours on both sides of it.
+  example:
+    before: "button:focus { outline: none; }"
+    after: "button:focus-visible { outline: 3px solid #0b0c0c; outline-offset: 2px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+    - https://design-system.service.gov.uk/get-started/focus-states/
+
+- rule: dummyrun-focus-hidden
+  owner: development
+  summary: Do not let keyboard focus land on something that cannot be seen.
+  steps:
+    - If the element named in the finding should be hidden, hide it from everyone, for example with the hidden attribute or display none, so Tab skips it.
+    - If it is off screen on purpose, such as a skip link, move it into view when it gets focus.
+    - For a closed menu or drawer, set inert on it until it opens.
+  example:
+    before: "<nav class=\"drawer closed\" style=\"left:-300px\">"
+    after: "<nav class=\"drawer closed\" inert>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+
+- rule: dummyrun-keyboard-trap
+  owner: development
+  summary: Let keyboard users leave every part of the page.
+  steps:
+    - Find the script that moves focus between the elements named in the finding.
+    - Make Tab and Shift Tab leave the group at its ends, or make Escape close it and return focus to the control that opened it.
+    - A modal dialog may keep focus inside while it is open, but it must have a way to close from the keyboard.
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html
+
+- rule: dummyrun-skip-link-broken
+  owner: development
+  summary: Make the skip link go to the main content.
+  steps:
+    - Give the main content an id that matches the skip link's href, for example main-content.
+    - Make sure the target is shown on the page, so focus has somewhere to land.
+    - If the target is not a link or control, add tabindex -1 so it can take focus.
+  example:
+    before: "<a href=\"#main\">Skip to content</a> ... <main>"
+    after: "<a href=\"#main\">Skip to content</a> ... <main id=\"main\" tabindex=\"-1\">"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Techniques/general/G1
+    - https://design-system.service.gov.uk/components/skip-link/
+
+- rule: dummyrun-label-in-name
+  owner: development
+  summary: Start a control's accessible name with the words it shows.
+  steps:
+    - Compare the visible words of the control named in the finding with its aria-label or aria-labelledby.
+    - Change the name so it contains the visible words, best of all at the start, so a person using voice control can say what they see.
+    - If the visible words are enough on their own, remove the aria-label.
+  example:
+    before: "<button aria-label=\"Submit form\">Send</button>"
+    after: "<button>Send</button>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html
+
+- rule: dummyrun-autocomplete-missing
+  owner: development
+  summary: Tell the browser what each personal-details field is for, so it can fill it in.
+  steps:
+    - Add an autocomplete attribute with the matching field name, such as email, tel, given-name, family-name or postal-code.
+    - Replace off or on with a field name. Browsers and assistive technology cannot use either to fill in or explain the field.
+    - Leave fields that ask for someone else's details without one.
+  example:
+    before: "<input type=\"email\" name=\"email\">"
+    after: "<input type=\"email\" name=\"email\" autocomplete=\"email\">"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html
+    - https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill
+
+- rule: dummyrun-contrast-over-image
+  owner: design
+  summary: Make text over a picture readable against the whole picture behind it.
+  steps:
+    - Put a solid or semi-transparent panel behind the text named in the finding.
+    - Or darken or lighten the picture behind the text with an overlay until the text passes 4.5 to 1, or 3 to 1 for large text.
+    - Or move the text off the picture.
+  example:
+    before: ".hero h1 { color: #fff; }"
+    after: ".hero h1 { color: #fff; background: rgba(0, 0, 0, 0.7); }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+
+- rule: dummyrun-consent-no-reject
+  owner: content
+  summary: Give the cookie banner a reject option that is as easy to use as accept.
+  steps:
+    - Add a button that rejects non-essential cookies on the banner's first layer, next to the accept button.
+    - Give both buttons the same size and the same prominence.
+    - Check the banner can be used with a keyboard and a screen reader.
+  sources:
+    - https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/cookies-and-similar-technologies/
+
+- rule: dummyrun-plain-reading-ease
+  owner: content
+  summary: Make the main text easier to read.
+  steps:
+    - Use shorter sentences and everyday words.
+    - Put the most important point first.
+    - Break long passages up with headings and lists.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/
+
+- rule: dummyrun-plain-reading-grade
+  owner: content
+  summary: Bring the reading age of the main text down.
+  steps:
+    - Replace long words with short ones where they mean the same.
+    - Split sentences that carry more than one idea.
+    - Explain any term your readers might not know the first time you use it.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/
+
+- rule: dummyrun-plain-long-sentence
+  owner: content
+  summary: Split long sentences.
+  steps:
+    - Find the sentence named in the finding and split it where it changes subject.
+    - Aim for most sentences to be 25 words or fewer.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#sentence-length
+
+- rule: dummyrun-plain-words-to-avoid
+  owner: content
+  summary: Swap the flagged word for a plainer one.
+  steps:
+    - Replace the word named in the finding with the everyday word the finding suggests.
+    - Say what you are doing in place of abstract words such as facilitate or empower.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#words-to-avoid
+
+- rule: dummyrun-plain-latin
+  owner: content
+  summary: Replace Latin phrases with plain English.
+  steps:
+    - Write for example in place of e.g., that is in place of i.e., and and so on in place of etc.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#eg-etc-and-ie
+
+- rule: dummyrun-engines-
+  owner: development
+  summary: Fix the problem two or more rule engines agree on.
+  steps:
+    - Read each engine's message in the finding. They describe the same element against the same WCAG criterion.
+    - Follow the guidance for that criterion, linked from the finding.
+    - Run the sweep again to check the engines no longer agree.
