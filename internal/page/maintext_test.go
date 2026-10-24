@@ -46,11 +46,14 @@ func TestMainHTMLDropsHiddenTextAndSaysWhenItIsCut(t *testing.T) {
 	}
 }
 
-// TestMainHTMLFindsTheMainContent checks the three places main content can come from: a role=main element, and
-// the body without its header, navigation, footer and asides when there is no main landmark.
+// TestMainHTMLFindsTheMainContent checks where main content comes from: a role=main element, or the body without
+// its header, navigation, footer and asides when there is no main landmark. A hidden main landmark's own text is
+// left out, and one with opacity 0 gives no content.
 func TestMainHTMLFindsTheMainContent(t *testing.T) {
 	head := `<!doctype html><html lang="cy"><head><meta charset="utf-8"><title>T</title></head><body>`
 	cases := []struct{ body, selector, kept string }{
+		{head + `<main style="visibility:hidden">Hidden root words.<p style="visibility:visible">Root child words.</p></main></body></html>`, "main", "Root child words."},
+		{head + `<main style="opacity:0"><p>Faded root words.</p></main></body></html>`, "main", ""},
 		{head + `<nav>Menu words.</nav><div role="main"><p>Role words.</p></div></body></html>`, "[role=main]", "Role words."},
 		{head + `<header>Top words.</header><nav>Menu words.</nav><p>Body words.</p><aside>Side words.</aside><footer>Foot words.</footer></body></html>`,
 			"body", "Body words."},
@@ -69,10 +72,16 @@ func TestMainHTMLFindsTheMainContent(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+				if c.kept == "" {
+					if m.Selector != c.selector || m.HTML != "" {
+						t.Errorf("a main landmark with opacity 0: selector %q, want %q, and no HTML: %s", m.Selector, c.selector, m.HTML)
+					}
+					continue
+				}
 				if m.Selector != c.selector || !strings.Contains(m.HTML, c.kept) || !strings.Contains(m.HTML, `lang="cy"`) {
 					t.Errorf("selector %q, want %q, with %q and the page's language: %s", m.Selector, c.selector, c.kept, m.HTML)
 				}
-				for _, gone := range []string{"Menu words.", "Top words.", "Side words.", "Foot words."} {
+				for _, gone := range []string{"Menu words.", "Top words.", "Side words.", "Foot words.", "Hidden root words."} {
 					if strings.Contains(m.HTML, gone) {
 						t.Errorf("%s: %q kept: %s", c.selector, gone, m.HTML)
 					}

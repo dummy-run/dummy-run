@@ -73,6 +73,11 @@ func plainCheck(ctx context.Context, conn *bidi.Conn, cx string, res *PageResult
 		res.PlainLanguageError = firstLine(err.Error())
 		return
 	}
+	// A main landmark the page hides has no words a visitor reads, so there is nothing to check.
+	if m.HTML == "" {
+		res.PlainLanguageChecked = true
+		return
+	}
 	alerts, err := plain.Check(ctx, vale, m.HTML)
 	if err != nil {
 		res.PlainLanguageError = firstLine(err.Error())

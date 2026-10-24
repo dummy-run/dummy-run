@@ -18,8 +18,8 @@ const mainHTMLJS = `(max) => {
   if (!root) return { html: "", selector: "", truncated: false };
   const copy = root.cloneNode(true);
   // The copy has no styles, so what CSS hides is found on the page and removed from the copy, which has the same
-  // elements in the same order.
-  const live = root.querySelectorAll("*"), copied = copy.querySelectorAll("*");
+  // elements in the same order. The root is checked too, since querySelectorAll finds only what is inside it.
+  const live = [root, ...root.querySelectorAll("*")], copied = [copy, ...copy.querySelectorAll("*")];
   // display: none and opacity: 0 hide everything inside, so the whole copy goes. visibility: hidden can be undone
   // by a child with visibility: visible, so only the hidden element's own text goes.
   const gone = [], silent = [];
@@ -29,12 +29,13 @@ const mainHTMLJS = `(max) => {
   });
   for (const el of silent) for (const n of [...el.childNodes]) if (n.nodeType === Node.TEXT_NODE) n.remove();
   for (const el of gone) el.remove();
+  const selector = root === document.body ? "body" : (root.tagName === "MAIN" ? "main" : "[role=main]");
+  if (gone.includes(copy)) return { html: "", selector, truncated: false };
   const drop = "script, style, noscript, template, svg, canvas, iframe, [hidden], [aria-hidden=true]" +
     (root === document.body ? ", header, nav, footer, aside, [role=banner], [role=navigation], [role=contentinfo], [role=complementary]" : "");
   for (const el of copy.querySelectorAll(drop)) el.remove();
   const html = "<!doctype html><html lang=\"" + (document.documentElement.lang || "en") + "\"><body>" + copy.innerHTML + "</body></html>";
-  return { html: html.slice(0, max), truncated: html.length > max,
-    selector: root === document.body ? "body" : (root.tagName === "MAIN" ? "main" : "[role=main]") };
+  return { html: html.slice(0, max), truncated: html.length > max, selector };
 }`
 
 // MainContent is the page's main content, ready for a prose checker.
