@@ -133,7 +133,10 @@ type PageResult struct {
 	// EnginesRan names the other rule engines that finished on the page. EngineErrors says why any others did not.
 	EnginesRan   []string          `json:"engines_ran,omitempty"`
 	EngineErrors map[string]string `json:"engine_errors,omitempty"`
-	Error        string            `json:"error,omitempty"`
+	// EngineGroupsOmitted counts the other engines' failures left out to keep the result small. The ones more
+	// engines agree on are kept first.
+	EngineGroupsOmitted int    `json:"engine_groups_omitted,omitempty"`
+	Error               string `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
 	Skipped     string    `json:"skipped,omitempty"`
 	Violations  []Finding `json:"violations"`
@@ -506,7 +509,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			res.Error = firstLine(err.Error())
 			return res
 		}
-		res.EnginesRan = r.Ran
+		res.EnginesRan, res.EngineGroupsOmitted = r.Ran, r.Omitted
 		if len(r.Errors) > 0 {
 			res.EngineErrors = r.Errors
 		}
