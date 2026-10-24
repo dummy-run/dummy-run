@@ -973,8 +973,8 @@ failures are kept. Their warnings, AAA rules and "check this by hand" results ar
 The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
 for the same criterion.
 
-- Each axe violation node gets `engines`, the engines that fail the same element for a criterion axe's rule maps
-  to, and `confidence`. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
+- Each axe violation node gets `engines`, the engines that fail the same element for one criterion axe's rule maps
+  to, and `confidence`. When the rule maps to more than one criterion, the criterion with the most engines counts. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
   axe violation still fails the sweep either way.
 - A failure axe doesn't report, but two of the other engines agree on, is a violation with the rule ID
   `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. Its impact is serious. It fails the
@@ -984,7 +984,8 @@ for the same criterion.
   never fails the sweep. Look at the element before you change anything.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. A page keeps up to 200 groups of the other engines'
+the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
+fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
 `engines` field gives the version of each engine.
 
