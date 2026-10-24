@@ -233,10 +233,14 @@ Flags:
   --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
                     hide the text, take a picture of what is behind it and compare the text colour with every pixel.
                     Text that fails at the middle pixel is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
+  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
+                    skip link that goes nowhere
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
                     allow-list can accept them
+  --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
+                    your own details with no purpose-specific autocomplete value
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
