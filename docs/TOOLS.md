@@ -42,6 +42,16 @@ copyright lines:
 
 `internal/page/screenreader/build/build.sh` rebuilds it from the pinned versions.
 
+## Plain language
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [Vale](https://github.com/vale-cli/vale) by Joseph Kato | 3.24.0 in the container image | Checks the main content of each page with `--plain-language`. It runs as its own program | MIT |
+| [Vale Readability style](https://github.com/vale-cli/Readability) | as published | The Flesch reading ease and Flesch-Kincaid grade rules, used unchanged | MIT |
+
+The long sentence, words to avoid and Latin abbreviation rules are our own, written from the public
+[GOV.UK A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/).
+
 ## Data
 
 The list of WCAG 2.2 success criteria at levels A and AA, with their titles and links, was generated from the

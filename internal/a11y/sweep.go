@@ -68,6 +68,9 @@ type Config struct {
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
+	// PlainLanguage checks the main content of each page with Vale: readability scores, long sentences, words the
+	// GOV.UK style guide asks you to avoid and Latin abbreviations. The results are advice.
+	PlainLanguage bool
 	// Engines runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
@@ -128,6 +131,9 @@ type PageResult struct {
 	TextScale int `json:"text_scale,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
+	// PlainLanguageChecked says Vale read the page's main content. PlainLanguageError says why it could not.
+	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
+	PlainLanguageError   string `json:"plain_language_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// EnginesRan names the other rule engines that finished on the page. EngineErrors says why any others did not.
@@ -513,6 +519,9 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		agreed, cands := engineFindings(r, res.Violations, path, cfg.Allow)
 		res.Violations = append(res.Violations, agreed...)
 		res.Candidates = cands
+	}
+	if cfg.PlainLanguage {
+		plainCheck(pctx, conn, cx, &res, path, cfg.Allow)
 	}
 	if cfg.Consent {
 		c, err := page.AnswerConsent(pctx, conn, cx, page.ConsentWait)

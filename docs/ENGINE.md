@@ -967,6 +967,34 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 [Tools we build on](TOOLS.md) lists each engine with its licence.
 
+### Plain language
+
+Long sentences and vague words make a page harder for everyone, and hardest for people who read slowly, read in a
+second language or listen to a screen reader. Add `--plain-language` and the sweep reads each page's main content
+with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark, or
+the body without its header, navigation, footer and asides. Code, scripts and hidden text are left out.
+
+| Rule ID | Reports | Based on |
+|---|---|---|
+| `dummyrun-plain-reading-ease` | A Flesch reading ease score below 70 for the page, with the score | Vale's Readability style |
+| `dummyrun-plain-reading-grade` | A Flesch-Kincaid grade above 8 for the page, with the grade | Vale's Readability style |
+| `dummyrun-plain-long-sentence` | Each sentence of more than 25 words, by its first word | The GOV.UK style guide |
+| `dummyrun-plain-words-to-avoid` | Words such as "leverage", "facilitate" and "utilise", with a plainer word | The GOV.UK style guide |
+| `dummyrun-plain-latin` | "e.g.", "i.e." and "etc.", with the English to use instead | The GOV.UK style guide |
+
+The scores count syllables by rule, so treat them as a guide rather than a verdict. The rules from the GOV.UK
+style guide are our own wording of its public advice. They leave out words the guide allows in some senses, such
+as "deliver" for post. Every result goes to `advice`, because plain language at this level isn't a WCAG A or AA
+requirement, so it never fails the sweep. Each result has `plain_language_checked`, or `plain_language_error` when
+Vale couldn't run.
+
+The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names. The container image includes Vale
+3.24.0. Without Vale, the rest of the sweep still runs and each page says why it wasn't checked.
+
+```sh
+dummyrun a11y --plain-language https://example.com/
+```
+
 ### Cookie banners
 
 A cookie banner covers part of the page, so it can turn up in the layout checks as overlap and cut-off text that
