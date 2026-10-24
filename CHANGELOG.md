@@ -5,6 +5,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+- Built with Go 1.27.3 and golang.org/x/net 0.60.0. Go 1.27.3 distrusts the compromised eMudhra intermediate certificates in crypto/x509 (GO-2026-6809). Go 1.27.2 fixes HTTP/1 and HTTP/2 flaws in net/http (GO-2026-6610, GO-2026-6611, GO-2026-6612, GO-2026-6613, GO-2026-6617) and a MIME header limit bypass in net/textproto and mime/multipart (GO-2026-6608). golang.org/x/net 0.60.0 fixes the same HTTP/2 flaws in golang.org/x/net/http2. `dummyrun-otel` gets the same update.
+
 ## [0.1.3] - 2026-10-21
 
 ### Changed

@@ -713,9 +713,10 @@
               "suspected_injection",
               "off_origin_blocked",
               "uncited_finding",
+              "harness_limit_finding",
               "provider_filtered"
             ],
-            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. provider_filtered: the model provider's content filter refused a call"
+            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. harness_limit_finding: a finding was dropped because every step it cited shows the test's own limits, such as a blocked request, a failed tool or a page the browser could not read, not the site. provider_filtered: the model provider's content filter refused a call"
           },
           "step": {
             "type": "integer",
