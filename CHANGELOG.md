@@ -6,7 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- `dummyrun a11y --markup` adds two markup checks: `dummyrun-label-in-name` (a control whose visible words are missing from its accessible name) and `dummyrun-autocomplete-missing` (a field for your own email, phone, name or postcode with no autocomplete value).
+- `dummyrun a11y --markup` adds two markup checks: `dummyrun-label-in-name` (a control whose visible words are missing from its accessible name) and `dummyrun-autocomplete-missing` (a field for your own email, phone, name or postcode with no purpose-specific autocomplete value).
 
 ## [0.1.4] - 2026-10-24
 
