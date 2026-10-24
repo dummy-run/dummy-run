@@ -122,7 +122,8 @@ async (axeJSON, criteriaJSON, max) => {
       items.forEach((it, i) => {
         if (it.el === el && overlaps(it.sc, n.sc)) {
           agree.add(it.engine);
-          used.add(i);
+          // Only the criteria axe shares are accounted for; the item's other criteria still group below.
+          for (const c of it.sc) if (n.sc.includes(c)) used.add(i + ":" + c);
         }
       });
     }
@@ -131,13 +132,17 @@ async (axeJSON, criteriaJSON, max) => {
 
   // Group what is left by element and exact criterion, so agreement means two engines report the same criterion.
   const groups = [];
+  const index = new Map();
   items.forEach((it, i) => {
-    if (used.has(i)) return;
     for (const c of it.sc) {
-      let g = groups.find((x) => x.el === it.el && x.sc === c);
+      if (used.has(i + ":" + c)) continue;
+      let byCriterion = index.get(it.el);
+      if (!byCriterion) index.set(it.el, (byCriterion = new Map()));
+      let g = byCriterion.get(c);
       if (!g) {
         g = { el: it.el, sc: c, hits: [] };
         groups.push(g);
+        byCriterion.set(c, g);
       }
       g.hits.push({ engine: it.engine, rule: it.rule, message: it.message, help: it.help });
     }
