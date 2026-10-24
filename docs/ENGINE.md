@@ -1004,18 +1004,23 @@ falls back on reading the banner's own words.
 The rule engines see the banner first, because its own accessibility matters: it's the first thing a visitor has
 to get past. Then autoconsent answers it, and the layout checks measure the page underneath.
 
-Before anything is clicked, autoconsent sorts each button on the banner as reject, accept, settings, acknowledge or
-other. A banner with an accept button and no reject button is reported as `dummyrun-consent-no-reject`. Rejecting
-through a settings page takes more steps, more reading and more precise clicks than accepting, and that weighs
-most on people who tire easily, use a switch or read slowly. The finding goes to `advice`, because it isn't a WCAG
-failure, so it never fails the sweep.
+Before anything is clicked, autoconsent sorts each button on the banner into one of five kinds. These are reject,
+accept, settings, acknowledge and other. A banner with an accept button and no reject button is reported as
+`dummyrun-consent-no-reject`. Rejecting through a settings page takes more steps than accepting. It also takes more
+reading and more precise clicks. That weighs most on people who tire easily, use a switch or read slowly. The finding
+goes to `advice` because it isn't a WCAG failure, so it never fails the sweep.
+
+A banner that turns up a few seconds after the page loads is read and answered too. The sweep waits until
+autoconsent has finished looking before it moves on, so nothing is clicked during the checks that follow.
 
 Each result has `consent`, which records:
 
 - `popups`, the banners found, with each button's text and kind;
 - `cmp`, the consent platform recognised;
 - `opted_out`, true when autoconsent reports that it rejected;
-- `cleared`, true when every banner found at the start is gone or out of the window afterwards, measured in the page;
+- `cleared`, true when every banner it found is gone or out of the window afterwards, measured in the page;
+- `settled`, true when autoconsent had finished when the sweep moved on. When it's false, autoconsent could still
+  act on the page later;
 - `steps`, autoconsent's own messages in order.
 
 A banner inside a frame is answered but not read, so it has no buttons in `popups`. Rejecting sets cookies in the
