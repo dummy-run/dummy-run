@@ -45,3 +45,39 @@ func TestMainHTMLDropsHiddenTextAndSaysWhenItIsCut(t *testing.T) {
 		})
 	}
 }
+
+// TestMainHTMLFindsTheMainContent checks the three places main content can come from: a role=main element, and
+// the body without its header, navigation, footer and asides when there is no main landmark.
+func TestMainHTMLFindsTheMainContent(t *testing.T) {
+	head := `<!doctype html><html lang="cy"><head><meta charset="utf-8"><title>T</title></head><body>`
+	cases := []struct{ body, selector, kept string }{
+		{head + `<nav>Menu words.</nav><div role="main"><p>Role words.</p></div></body></html>`, "[role=main]", "Role words."},
+		{head + `<header>Top words.</header><nav>Menu words.</nav><p>Body words.</p><aside>Side words.</aside><footer>Foot words.</footer></body></html>`,
+			"body", "Body words."},
+	}
+	for _, browser := range browsers(t) {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			p := openPage(t, browser, 1200, 800, 0)
+			for _, c := range cases {
+				srv := outlineServer(t, c.body)
+				if o := p.Visit(ctx, srv.URL+"/"); o.Error != "" {
+					t.Fatal(o.Error)
+				}
+				m, err := page.MainHTML(ctx, p.Conn(), p.Context())
+				if err != nil {
+					t.Fatal(err)
+				}
+				if m.Selector != c.selector || !strings.Contains(m.HTML, c.kept) || !strings.Contains(m.HTML, `lang="cy"`) {
+					t.Errorf("selector %q, want %q, with %q and the page's language: %s", m.Selector, c.selector, c.kept, m.HTML)
+				}
+				for _, gone := range []string{"Menu words.", "Top words.", "Side words.", "Foot words."} {
+					if strings.Contains(m.HTML, gone) {
+						t.Errorf("%s: %q kept: %s", c.selector, gone, m.HTML)
+					}
+				}
+			}
+		})
+	}
+}
