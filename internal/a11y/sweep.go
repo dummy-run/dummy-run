@@ -74,6 +74,9 @@ type Config struct {
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
+	// ImageContrast measures the text axe could not judge for contrast against the pixels behind it, after any
+	// cookie banner has been answered.
+	ImageContrast bool
 	// PlainLanguage checks the main content of each page with Vale: readability scores, long sentences, words the
 	// GOV.UK style guide asks you to avoid and Latin abbreviations. The results are advice.
 	PlainLanguage bool
@@ -143,6 +146,13 @@ type PageResult struct {
 	KeyboardChecked bool `json:"keyboard_checked,omitempty"`
 	// KeyboardPartial says the Tab walk stopped before it had been through every stop, so later stops went unchecked.
 	KeyboardPartial bool `json:"keyboard_partial,omitempty"`
+	// ImageContrast holds each measurement of text against the pixels behind it, when the sweep ran
+	// --image-contrast. ImageContrastChecked says the check ran, even when there was nothing to measure.
+	// ImageContrastUnmeasured counts the elements it was asked about and could not measure: ones inside a shadow
+	// root or frame, ones it couldn't find or picture, and any past the limit for one page.
+	ImageContrast           []page.ImageContrast `json:"image_contrast,omitempty"`
+	ImageContrastChecked    bool                 `json:"image_contrast_checked,omitempty"`
+	ImageContrastUnmeasured int                  `json:"image_contrast_unmeasured,omitempty"`
 	// PlainLanguageChecked says Vale read the page's main content. PlainLanguagePartial says the content was too
 	// long, so Vale read only its start. PlainLanguageError says why it could not read it.
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
@@ -552,6 +562,17 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.Consent = c
 		res.Advice = append(res.Advice, consentFindings(c, path, cfg.Allow)...)
+	}
+	if cfg.ImageContrast {
+		targets := imageContrastTargets(res.NeedsReview)
+		ms, err := page.MeasureImageContrast(pctx, conn, cx, targets)
+		if err != nil {
+			res.Error = firstLine(err.Error())
+			return res
+		}
+		res.ImageContrastChecked, res.ImageContrast = true, ms
+		res.ImageContrastUnmeasured = len(targets) - len(ms)
+		res.Violations = append(res.Violations, imageContrastFindings(ms, path, cfg.Allow)...)
 	}
 	if cfg.Layout {
 		l, err := page.MeasureLayout(pctx, conn, cx)
