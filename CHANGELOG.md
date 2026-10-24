@@ -7,7 +7,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 - `dummyrun a11y --keyboard` presses Tab through each page. It reports focus you cannot see, which it checks by comparing pictures with and without focus. It also reports focus that lands on a hidden or off-screen element, focus that gets stuck and a skip link that goes nowhere. A walk that stops early says so with `keyboard_partial`. A dialog with one control is never called a trap. The walk starts from the top of the page, even when it opened at a `#fragment`. A page with nothing to Tab to counts as fully walked, and a trap test that cannot finish shows as an error. Rules `dummyrun-focus-not-visible`, `dummyrun-focus-hidden`, `dummyrun-keyboard-trap` and `dummyrun-skip-link-broken`.
-- `dummyrun a11y --markup` adds two markup checks: `dummyrun-label-in-name` (a control whose visible words are missing from its accessible name) and `dummyrun-autocomplete-missing` (a field for your own email, phone, name or postcode with no purpose-specific autocomplete value).
+- `dummyrun a11y --markup` adds two markup checks: `dummyrun-label-in-name` (a control whose visible words are missing from its accessible name) and `dummyrun-autocomplete-missing` (a field for your own email, phone, first name, last name or postcode with no purpose-specific autocomplete value).
 
 ## [0.1.4] - 2026-10-24
 
