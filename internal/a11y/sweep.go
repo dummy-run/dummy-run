@@ -153,8 +153,10 @@ type PageResult struct {
 	ImageContrast           []page.ImageContrast `json:"image_contrast,omitempty"`
 	ImageContrastChecked    bool                 `json:"image_contrast_checked,omitempty"`
 	ImageContrastUnmeasured int                  `json:"image_contrast_unmeasured,omitempty"`
-	// PlainLanguageChecked says Vale read the page's main content. PlainLanguageError says why it could not.
+	// PlainLanguageChecked says Vale read the page's main content. PlainLanguagePartial says the content was too
+	// long, so Vale read only its start. PlainLanguageError says why it could not read it.
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
+	PlainLanguagePartial bool   `json:"plain_language_partial,omitempty"`
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
@@ -540,6 +542,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.EnginesRan, res.EngineGroupsOmitted = r.Ran, r.Omitted
 		if len(r.Errors) > 0 {
 			res.EngineErrors = r.Errors
+		}
+		if msg := enginesFailed(r); msg != "" {
+			res.Error = firstLine(msg)
+			return res
 		}
 		agreed, cands := engineFindings(r, res.Violations, path, cfg.Allow)
 		res.Violations = append(res.Violations, agreed...)
