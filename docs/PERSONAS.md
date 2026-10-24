@@ -65,7 +65,7 @@ scenario. [ENGINE.md](ENGINE.md) has the full rules.
 | `signin: editor` | The credentials role the engine signs in as before the run. `none` turns sign-in off. Without the key, the persona's `role` is used when the target has credentials under that name |
 | `tools-denied: click` | `keyboard-only-user` can't click. The engine refuses the call and records a `blocked:` note |
 | Tool limits as a modality | The run record's `persona.dimensions.at` is `keyboard-only`. A persona that can't use `screenshot` records `screen-reader-view`. Other personas record `none` |
-| `tools-denied: screenshot` | `screen-reader-user` gets no screenshots. They're still saved for the reviewer |
+| `tools-denied: screenshot` | `screen-reader-user` gets no screenshots. They're still saved for the reviewer. Instead, each look carries what a screen reader says reading the page from the top, one phrase per line, such as `heading, Opening hours, level 2` and `button, Menu, not expanded`. guidepup's virtual screen reader produces it from the page's accessibility semantics, so it's the same every time. It isn't NVDA, JAWS or VoiceOver, which each have their own habits |
 | `Text scale:` in a scenario | Replaces the persona's text size for that scenario. `Text scale: 100` sets it back to normal |
 | `Device:` in a scenario | Runs a persona on another device without a second copy of it |
 | `Sign in as:` in a scenario | Runs a persona as another role, or signed out with `Sign in as: none` |

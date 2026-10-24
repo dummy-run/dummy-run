@@ -23,3 +23,12 @@ This product bundles DuckDuckGo autoconsent 16.61.0 (internal/page/consent/autoc
 internal/page/consent/compact-rules.json), Copyright (c) DuckDuckGo, Inc. and the autoconsent contributors, licensed under the Mozilla Public License 2.0
 (see internal/page/consent/LICENSE and LICENSES/MPL-2.0.txt). The files are unmodified. Their source is at
 https://github.com/duckduckgo/autoconsent.
+
+This product bundles guidepup virtual-screen-reader 0.33.0 (internal/page/screenreader/vsr.min.js), Copyright (c) 2023
+Craig Morten, licensed under the MIT licence (see LICENSES/MIT.txt). Its browser build includes, under the MIT licence:
+@testing-library/dom (Copyright (c) 2017 Kent C. Dodds), @testing-library/user-event (Copyright (c) 2020 Giorgio
+Polvara), dom-accessibility-api (Copyright (c) 2020 Sebastian Silbermann), html-aria (Copyright (c) 2024 Drew Powers),
+lz-string (Copyright (c) 2013 pieroxy), pretty-format and react-is (Copyright (c) Facebook, Inc. and its affiliates),
+ansi-regex and ansi-styles (Copyright (c) Sindre Sorhus) and dequal (Copyright (c) Luke Edwards). It also includes
+aria-query (Copyright (c) Jesse Beach and the A11yance contributors), licensed under the Apache License 2.0 (see
+LICENSES/Apache-2.0.txt). The bundle is built from internal/page/screenreader/build.

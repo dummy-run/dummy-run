@@ -1,0 +1,13 @@
+{
+  "name": "dummyrun-screen-reader-bundle",
+  "private": true,
+  "description": "Builds vsr.min.js, guidepup's virtual screen reader as one script the engine injects into the page",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "esbuild entry.mjs --bundle --minify --format=iife --platform=browser --legal-comments=eof --outfile=../vsr.min.js"
+  },
+  "devDependencies": {
+    "@guidepup/virtual-screen-reader": "0.33.0",
+    "esbuild": "0.25.11"
+  }
+}
