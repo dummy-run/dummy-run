@@ -65,6 +65,9 @@ type Config struct {
 	// Layout adds the layout checks to each run: sideways overflow, clipped text, overlapping controls
 	// and small targets. A non-100 text scale turns it on.
 	Layout bool
+	// Keyboard adds the Tab walk to each run: it presses Tab through the page and reports focus that cannot be seen,
+	// focus that cannot leave, and a skip link that goes nowhere.
+	Keyboard bool
 	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
 	Markup bool
@@ -122,8 +125,12 @@ type PageResult struct {
 	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
 	MarkupChecked bool `json:"markup_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
-	LayoutChecked bool   `json:"layout_checked,omitempty"`
-	Error         string `json:"error,omitempty"`
+	LayoutChecked bool `json:"layout_checked,omitempty"`
+	// KeyboardChecked says the Tab walk ran, so a result with none of its rules means it found nothing.
+	KeyboardChecked bool `json:"keyboard_checked,omitempty"`
+	// KeyboardPartial says the Tab walk stopped before it had been through every stop, so later stops went unchecked.
+	KeyboardPartial bool   `json:"keyboard_partial,omitempty"`
+	Error           string `json:"error,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
 	Skipped     string    `json:"skipped,omitempty"`
 	Violations  []Finding `json:"violations"`
@@ -485,6 +492,16 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		found, boxes := layoutFindings(l, path, cfg.Allow)
 		res.Violations = append(res.Violations, found...)
 		shoot(pctx, conn, cx, cfg.ScreenshotDir, &res, boxes)
+	}
+	if cfg.Keyboard {
+		w, err := page.WalkTabs(pctx, conn, cx, page.MaxTabStops)
+		if err != nil {
+			res.Error = "keyboard checks: " + firstLine(err.Error())
+			return res
+		}
+		res.KeyboardChecked = true
+		res.KeyboardPartial = !w.Completed
+		res.Violations = append(res.Violations, keyboardFindings(w, path, cfg.Allow)...)
 	}
 	if cfg.Markup {
 		m, err := page.RunMarkupChecks(pctx, conn, cx)

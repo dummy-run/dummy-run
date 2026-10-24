@@ -222,6 +222,8 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
+  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
+                    skip link that goes nowhere
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
