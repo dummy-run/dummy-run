@@ -967,6 +967,37 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 [Tools we build on](TOOLS.md) lists each engine with its licence.
 
+### Cookie banners
+
+A cookie banner covers part of the page, so it can turn up in the layout checks as overlap and cut-off text that
+your visitors only see until they choose. Add `--consent` and the sweep answers the banner the way a careful
+visitor would, by rejecting. It uses DuckDuckGo autoconsent, which knows over a thousand consent platforms and
+falls back on reading the banner's own words.
+
+The rule engines see the banner first, because its own accessibility matters: it's the first thing a visitor has
+to get past. Then autoconsent answers it, and the layout checks measure the page underneath.
+
+Before anything is clicked, autoconsent sorts each button on the banner as reject, accept, settings, acknowledge or
+other. A banner with an accept button and no reject button is reported as `dummyrun-consent-no-reject`. Rejecting
+through a settings page takes more steps, more reading and more precise clicks than accepting, and that weighs
+most on people who tire easily, use a switch or read slowly. The finding goes to `advice`, because it isn't a WCAG
+failure, so it never fails the sweep.
+
+Each result has `consent`, which records:
+
+- `popups`, the banners found, with each button's text and kind;
+- `cmp`, the consent platform recognised;
+- `opted_out`, true when autoconsent reports that it rejected;
+- `cleared`, true when every banner found at the start is gone or out of the window afterwards, measured in the page;
+- `steps`, autoconsent's own messages in order.
+
+A banner inside a frame is answered but not read, so it has no buttons in `popups`. Rejecting sets cookies in the
+sweep's browser, so later settings for the same site may show no banner.
+
+```sh
+dummyrun a11y --consent --layout https://example.com/
+```
+
 ## Troubleshooting
 
 Leftover browsers fill the disk and the process table. To list the browsers and profile directories that

@@ -19,6 +19,14 @@ Alfa is bundled into one script with [esbuild](https://github.com/evanw/esbuild)
 build it. The bundle includes [Color.js](https://github.com/color-js/color.js) (MIT), which Alfa uses for its colour
 calculations. `internal/page/engines/alfa/build.sh` rebuilds it from the pinned versions.
 
+## Cookie banners
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [DuckDuckGo autoconsent](https://github.com/duckduckgo/autoconsent) | 16.61.0 | Answers cookie banners by rejecting, with `--consent`, and sorts their buttons so a banner with no reject button can be reported | MPL-2.0 |
+
+The bundle and its compact rule set are used as published, unchanged.
+
 ## Data
 
 The list of WCAG 2.2 success criteria at levels A and AA, with their titles and links, was generated from the

@@ -59,3 +59,9 @@ path = "internal/page/engines/alfa.min.js"
 precedence = "override"
 SPDX-FileCopyrightText = ["Siteimprove A/S", "2021 Lea Verou and Chris Lilley"]
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["internal/page/consent/autoconsent.playwright.js", "internal/page/consent/compact-rules.json", "internal/page/consent/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "DuckDuckGo, Inc. and the autoconsent contributors"
+SPDX-License-Identifier = "MPL-2.0"
