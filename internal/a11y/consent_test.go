@@ -100,3 +100,18 @@ func TestConsentFindingsNeedAcceptWithoutReject(t *testing.T) {
 		t.Error("no banner should give no finding")
 	}
 }
+
+func TestConsentThatCouldNotRunFailsThePage(t *testing.T) {
+	if msg := consentFailed(&page.Consent{Error: "a step didn't match"}); msg != "" {
+		t.Errorf("an error autoconsent reported while it worked failed the page: %q", msg)
+	}
+	msg := consentFailed(&page.Consent{Failed: true, Error: "boom"})
+	if msg != "cookie banner: autoconsent couldn't run: boom" {
+		t.Errorf("got %q", msg)
+	}
+	rep := &Report{Results: []PageResult{{URL: "https://example.com/", Error: msg}}}
+	rep.summarise(Config{Allow: &AllowList{}})
+	if !rep.Failed() {
+		t.Error("a sweep where autoconsent couldn't run passed")
+	}
+}

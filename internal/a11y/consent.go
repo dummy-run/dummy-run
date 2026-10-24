@@ -36,3 +36,12 @@ func consentFindings(c *page.Consent, path string, allow *AllowList) []Finding {
 	}
 	return []Finding{f}
 }
+
+// consentFailed says why the page fails when autoconsent couldn't run at all, so a sweep asked to answer cookie
+// banners never passes without having tried. It is empty otherwise.
+func consentFailed(c *page.Consent) string {
+	if c == nil || !c.Failed {
+		return ""
+	}
+	return firstLine("cookie banner: autoconsent couldn't run: " + c.Error)
+}
