@@ -25,3 +25,12 @@ internal/page/consent/compact-rules.json), Copyright (c) DuckDuckGo, Inc. and th
 expression in ACKNOWLEDGE_PATTERNS is modified, as a comment there marks: two redundant alternatives are removed to
 stop exponential backtracking. The modified file is distributed in source form in this repository under the same
 licence. The original source is at https://github.com/duckduckgo/autoconsent.
+
+This product bundles guidepup virtual-screen-reader 0.33.0 (internal/page/screenreader/vsr.min.js), Copyright (c) 2023
+Craig Morten, licensed under the MIT licence (see LICENSES/MIT.txt). Its browser build includes, under the MIT licence:
+@testing-library/dom (Copyright (c) 2017 Kent C. Dodds), @testing-library/user-event (Copyright (c) 2020 Giorgio
+Polvara), dom-accessibility-api (Copyright (c) 2020 Sebastian Silbermann), html-aria (Copyright (c) 2024 Drew Powers),
+lz-string (Copyright (c) 2013 pieroxy), pretty-format and react-is (Copyright (c) Facebook, Inc. and its affiliates),
+ansi-regex and ansi-styles (Copyright (c) Sindre Sorhus) and dequal (Copyright (c) Luke Edwards). It also includes
+aria-query (Copyright (c) Jesse Beach and the A11yance contributors), licensed under the Apache License 2.0 (see
+LICENSES/Apache-2.0.txt). The bundle is built from internal/page/screenreader/build.

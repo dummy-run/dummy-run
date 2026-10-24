@@ -127,6 +127,9 @@ type Options struct {
 	// Basic auth challenges from them. Nil does neither.
 	Access *access.Resolved
 	Launch bidi.LaunchOptions
+	// ScreenReader adds what guidepup's virtual screen reader says to each look, for a persona that works
+	// without seeing the screen.
+	ScreenReader bool
 }
 
 // Control is one numbered interactive element from the last look.
@@ -176,6 +179,10 @@ type Snapshot struct {
 	Layout *LayoutNote `json:"layout,omitempty"`
 	// Focus is the element that has keyboard focus, nil when nothing does.
 	Focus *Focus `json:"focus"`
+	// Spoken is what a screen reader says reading the page from the top, when the page was opened with ScreenReader.
+	Spoken *Spoken `json:"spoken,omitempty"`
+	// SpokenError says why the page could not be read aloud.
+	SpokenError string `json:"spoken_error,omitempty"`
 	// Tree is the outline of landmarks, headings and interactive elements,
 	// one line each, within TreeTokens.
 	Tree string `json:"tree,omitempty"`
@@ -260,6 +267,7 @@ type Page struct {
 	controls      []Control
 	zoom          int
 	textScale     int
+	screenReader  bool
 }
 
 // Browser returns the launched browser.
@@ -305,7 +313,7 @@ func Open(ctx context.Context, opts Options) (*Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, access: opts.Access, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100)}
+	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, access: opts.Access, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100), screenReader: opts.ScreenReader}
 	if mark, err := lookMark(); err == nil {
 		p.axeName = "__dr_axe_" + mark
 	} else {
@@ -698,6 +706,13 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 		obs.URL = snap.URL
 		p.addOutline(ctx, &snap)
 		p.addLayout(ctx, &snap)
+		if p.screenReader {
+			if sp, err := ReadAloud(ctx, p.conn, p.cx); err != nil {
+				snap.SpokenError = firstLine(err.Error())
+			} else {
+				snap.Spoken = sp
+			}
+		}
 	} else if obs.Error == "" {
 		obs.Error = "could not read the page: " + firstLine(err.Error())
 	}
