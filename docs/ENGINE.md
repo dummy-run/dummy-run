@@ -1000,9 +1000,9 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 Long sentences and vague words make a page harder for everyone, and hardest for people who read slowly, read in a
 second language or listen to a screen reader. Add `--plain-language` and the sweep reads each page's main content
-with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark, or
-the body without its header, navigation, footer and asides. Code, scripts and hidden text are left out, including
-text the page's CSS hides.
+with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark. On a
+page without one, it's the body without its header, navigation, footer and asides. Code, scripts and hidden text
+are left out, including text the page's CSS hides with `display`, `visibility` or `opacity`.
 
 | Rule ID | Reports | Based on |
 |---|---|---|
@@ -1015,8 +1015,8 @@ text the page's CSS hides.
 The scores count syllables by rule, so treat them as a guide rather than a verdict. The rules from the GOV.UK
 style guide are our own wording of its public advice. They leave out words the guide allows in some senses, such
 as "deliver" for post. Every result goes to `advice`, because plain language at this level isn't a WCAG A or AA
-requirement, so it never fails the sweep. Each result has `plain_language_checked`, or `plain_language_error` when
-Vale couldn't run. Vale reads the first 200,000 characters of the main content's HTML. When there's more,
+requirement, so it never fails the sweep. A page that reaches the check has `plain_language_checked`, or
+`plain_language_error` when Vale couldn't run. A page that fails earlier, such as when it won't load, has neither. Vale reads the first 200,000 characters of the main content's HTML. When there's more,
 `plain_language_partial` is true.
 
 The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names. The container image includes Vale

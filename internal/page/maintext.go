@@ -12,7 +12,7 @@ const MainHTMLMax = 200_000
 
 // mainHTMLJS returns the page's main content as HTML: the main landmark, or the body without its header, navigation,
 // footer and asides. Scripts, styles, hidden elements and inline images are dropped, so only words a visitor reads
-// are left. An element the page's CSS hides, such as one with display: none, is dropped too. Called with (max).
+// are left. An element the page's CSS hides with display, visibility or opacity is dropped too. Called with (max).
 const mainHTMLJS = `(max) => {
   const root = document.querySelector("main, [role=main]") || document.body;
   if (!root) return { html: "", selector: "", truncated: false };
@@ -22,7 +22,7 @@ const mainHTMLJS = `(max) => {
   const live = root.querySelectorAll("*"), copied = copy.querySelectorAll("*");
   const gone = [];
   live.forEach((el, i) => {
-    if (el.checkVisibility && !el.checkVisibility()) gone.push(copied[i]);
+    if (el.checkVisibility && !el.checkVisibility({ visibilityProperty: true, opacityProperty: true })) gone.push(copied[i]);
   });
   for (const el of gone) el.remove();
   const drop = "script, style, noscript, template, svg, canvas, iframe, [hidden], [aria-hidden=true]" +
