@@ -532,7 +532,8 @@ the threats. Here is what the engine does about prompt injection.
   fading them out. The scan does not look at CSS masks, so it reads those lines as quoted output.
 - The engine collects that hidden text along with the `aria-label`, `title`, `alt` and `placeholder` values.
   They're saved in `page.hidden` in `steps.jsonl`, for the scan and for the reviewer.
-- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such
+- A scan runs over the page text, the control names, the outline and the hidden text. For a persona with no
+  screenshots it also covers what the screen reader says. It looks for phrases such
   as "ignore previous instructions", "system prompt" and "you are now", and for chat template tokens. It also
   looks for orders to report nothing or to call `finish`, and for claims that the site is fully accessible.
   Instructions to go to a host outside the allow list are flagged, and so are invisible Unicode characters. Hidden text that
@@ -981,8 +982,8 @@ failures are kept. Their warnings, AAA rules and "check this by hand" results ar
 The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
 for the same criterion.
 
-- Each axe violation node gets `engines`, the engines that fail the same element for a criterion axe's rule maps
-  to, and `confidence`. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
+- Each axe violation node gets `engines`, the engines that fail the same element for one criterion axe's rule maps
+  to, and `confidence`. When the rule maps to more than one criterion, the criterion with the most engines counts. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
   axe violation still fails the sweep either way.
 - A failure axe doesn't report, but two of the other engines agree on, is a violation with the rule ID
   `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. Its impact is serious. It fails the
@@ -992,7 +993,8 @@ for the same criterion.
   never fails the sweep. Look at the element before you change anything.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. A page keeps up to 200 groups of the other engines'
+the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
+fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
 `engines` field gives the version of each engine.
 
@@ -1006,14 +1008,16 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 axe-core can't judge the contrast of text that sits on a photo or a gradient, so it lists that text under
 `needs_review`. Add `--image-contrast` and the sweep measures it instead. For each element axe left for review, up to
-20 on a page, it hides the text, takes a picture of the element's box and compares the text colour with every pixel
+20 tries on a page, it hides the text, takes a picture of the element's box and compares the text colour with every pixel
 behind it. It runs after any cookie banner has been answered, so the banner isn't in the picture.
 
 A finding, `dummyrun-contrast-over-image` (WCAG 1.4.3, serious), means most of the text sits on too little contrast.
 The middle pixel behind the text gives less than 4.5:1, or 3:1 for large text. The `detail` gives that figure and the
 contrast against the worst tenth of the pixels, so you can see how much of the text is affected. Text that passes
 at the middle pixel and fails only in its worst tenth isn't reported. Each result has `image_contrast`, with every
-measurement, and `image_contrast_checked`.
+measurement, and `image_contrast_checked`. `image_contrast_unmeasured` counts the elements it couldn't measure.
+These are ones inside a shadow root or frame, ones it couldn't find or picture, and any past the limit. Check those
+by eye.
 
 The picture is taken as the page draws it, so a slideshow that moves on or a video behind the text can give a
 different answer next time. Check a finding by eye before you change the design.
@@ -1027,7 +1031,8 @@ dummyrun a11y --consent --image-contrast https://example.com/
 Long sentences and vague words make a page harder for everyone, and hardest for people who read slowly, read in a
 second language or listen to a screen reader. Add `--plain-language` and the sweep reads each page's main content
 with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark, or
-the body without its header, navigation, footer and asides. Code, scripts and hidden text are left out.
+the body without its header, navigation, footer and asides. Code, scripts and hidden text are left out, including
+text the page's CSS hides.
 
 | Rule ID | Reports | Based on |
 |---|---|---|
@@ -1041,7 +1046,8 @@ The scores count syllables by rule, so treat them as a guide rather than a verdi
 style guide are our own wording of its public advice. They leave out words the guide allows in some senses, such
 as "deliver" for post. Every result goes to `advice`, because plain language at this level isn't a WCAG A or AA
 requirement, so it never fails the sweep. Each result has `plain_language_checked`, or `plain_language_error` when
-Vale couldn't run.
+Vale couldn't run. Vale reads the first 200,000 characters of the main content's HTML. When there's more,
+`plain_language_partial` is true.
 
 The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names. The container image includes Vale
 3.24.0. Without Vale, the rest of the sweep still runs and each page says why it wasn't checked.
@@ -1060,18 +1066,23 @@ falls back on reading the banner's own words.
 The rule engines see the banner first, because its own accessibility matters: it's the first thing a visitor has
 to get past. Then autoconsent answers it, and the layout checks measure the page underneath.
 
-Before anything is clicked, autoconsent sorts each button on the banner as reject, accept, settings, acknowledge or
-other. A banner with an accept button and no reject button is reported as `dummyrun-consent-no-reject`. Rejecting
-through a settings page takes more steps, more reading and more precise clicks than accepting, and that weighs
-most on people who tire easily, use a switch or read slowly. The finding goes to `advice`, because it isn't a WCAG
-failure, so it never fails the sweep.
+Before anything is clicked, autoconsent sorts each button on the banner into one of five kinds. These are reject,
+accept, settings, acknowledge and other. A banner with an accept button and no reject button is reported as
+`dummyrun-consent-no-reject`. Rejecting through a settings page takes more steps than accepting. It also takes more
+reading and more precise clicks. That weighs most on people who tire easily, use a switch or read slowly. The finding
+goes to `advice` because it isn't a WCAG failure, so it never fails the sweep.
+
+A banner that turns up a few seconds after the page loads is read and answered too. The sweep waits until
+autoconsent has finished looking before it moves on, so nothing is clicked during the checks that follow.
 
 Each result has `consent`, which records:
 
 - `popups`, the banners found, with each button's text and kind;
 - `cmp`, the consent platform recognised;
 - `opted_out`, true when autoconsent reports that it rejected;
-- `cleared`, true when every banner found at the start is gone or out of the window afterwards, measured in the page;
+- `cleared`, true when every banner it found is gone or out of the window afterwards, measured in the page;
+- `settled`, true when autoconsent had finished when the sweep moved on. When it's false, autoconsent could still
+  act on the page later;
 - `steps`, autoconsent's own messages in order.
 
 A banner inside a frame is answered but not read, so it has no buttons in `popups`. Rejecting sets cookies in the

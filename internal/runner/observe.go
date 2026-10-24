@@ -352,9 +352,9 @@ func spokenLines(p *page.Snapshot) string {
 			fmt.Fprintf(&b, "  ... %d more phrases\n", len(p.Spoken.Phrases)-spokenMax)
 			break
 		}
-		b.WriteString("  " + ph + "\n")
+		b.WriteString("  " + inject.Strip(ph) + "\n")
 	}
-	if !p.Spoken.Complete && len(p.Spoken.Phrases) <= spokenMax {
+	if !p.Spoken.Complete {
 		b.WriteString("  ... the reading stopped before the end of the page\n")
 	}
 	return b.String()

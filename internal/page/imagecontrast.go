@@ -9,11 +9,12 @@ import (
 	"image/png"
 	"math"
 	"slices"
+	"strings"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
 
-// ImageContrastMax is the most elements one page measures.
+// ImageContrastMax is the most elements one page tries to measure.
 const ImageContrastMax = 20
 
 // imageContrastJS prepares one element for a picture of what is behind its text. Called with (op, selector):
@@ -68,13 +69,21 @@ type ImageContrast struct {
 func (c ImageContrast) Fails() bool { return c.Median < c.Need }
 
 // MeasureImageContrast measures each element's text against what is behind it: it hides the text, takes a picture of
-// the element's box and compares the text colour with every pixel. Elements it cannot measure are left out.
+// the element's box and compares the text colour with every pixel. Elements it cannot measure are left out, and
+// the caller counts them.
 func MeasureImageContrast(ctx context.Context, conn *bidi.Conn, cx string, selectors []string) ([]ImageContrast, error) {
 	var out []ImageContrast
+	tried := 0
 	for _, sel := range selectors {
-		if len(out) >= ImageContrastMax {
+		// A target inside a shadow root or frame joins its parts with " >> ", which querySelector can't resolve.
+		if strings.Contains(sel, " >> ") {
+			continue
+		}
+		// Failed attempts count too, so a page full of elements that can't be measured still finishes in time.
+		if tried >= ImageContrastMax {
 			break
 		}
+		tried++
 		var prep *struct {
 			RGB  [3]float64 `json:"rgb"`
 			Need float64    `json:"need"`

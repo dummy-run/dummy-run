@@ -48,7 +48,10 @@ type Consent struct {
 	Found    bool   `json:"found,omitempty"`
 	OptedOut bool   `json:"opted_out,omitempty"`
 	Done     bool   `json:"done,omitempty"`
-	// Cleared says every banner found at the start is gone or hidden afterwards, as measured in the page.
+	// Settled says autoconsent had finished, or had finished looking and found nothing, when the sweep moved on.
+	// When it is false, autoconsent was still waiting for the page to change and could act later.
+	Settled bool `json:"settled,omitempty"`
+	// Cleared says every banner it found is gone or hidden afterwards, as measured in the page.
 	Cleared bool   `json:"cleared,omitempty"`
 	Error   string `json:"error,omitempty"`
 	// Steps are autoconsent's messages in order, such as "popupFound Onetrust" and "optOutResult Onetrust true".

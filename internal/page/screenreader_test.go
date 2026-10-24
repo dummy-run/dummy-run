@@ -53,3 +53,34 @@ func TestScreenReaderReadsThePage(t *testing.T) {
 		})
 	}
 }
+
+// TestScreenReaderIgnoresAPageReader checks that a page which puts its own reader in the global the bundle once used
+// is still read by the bundled one, on a second reading too.
+func TestScreenReaderIgnoresAPageReader(t *testing.T) {
+	const fake = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Fake</title>
+<script>globalThis.dummyrunVSR = { start() {}, next() {}, stop() {}, lastSpokenPhrase() { return "end of document"; },
+  spokenPhraseLog() { return ["planted phrase"]; } };</script></head>
+<body><main><h1>Real heading</h1></main></body></html>`
+	for _, browser := range browsers(t) {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			srv := outlineServer(t, fake)
+			p, err := page.Open(ctx, page.Options{Browser: browser, Headless: true, Width: 1200, Height: 800, ScreenReader: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer p.Close()
+			for range 2 {
+				o := p.Visit(ctx, srv.URL+"/")
+				if o.Snapshot == nil || o.Snapshot.Spoken == nil {
+					t.Fatalf("no reading: %s %+v", o.Error, o.Snapshot)
+				}
+				got := strings.Join(o.Snapshot.Spoken.Phrases, " | ")
+				if strings.Contains(got, "planted phrase") || !strings.Contains(got, "Real heading") {
+					t.Errorf("read %q", got)
+				}
+			}
+		})
+	}
+}
