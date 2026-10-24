@@ -27,6 +27,21 @@ calculations. `internal/page/engines/alfa/build.sh` rebuilds it from the pinned 
 
 The bundle and its compact rule set are used as published, unchanged.
 
+## Screen reader view
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [guidepup virtual screen reader](https://github.com/guidepup/virtual-screen-reader) by Craig Morten | 0.33.0 | Reads the page aloud as text for a persona that gets no screenshots | MIT |
+
+It's bundled into one script with esbuild. Its browser build already includes these packages, and NOTICE has their
+copyright lines:
+
+- under MIT: @testing-library/dom, @testing-library/user-event, dom-accessibility-api, html-aria, lz-string,
+  pretty-format, react-is, ansi-regex, ansi-styles and dequal;
+- under Apache-2.0: aria-query.
+
+`internal/page/screenreader/build/build.sh` rebuilds it from the pinned versions.
+
 ## Data
 
 The list of WCAG 2.2 success criteria at levels A and AA, with their titles and links, was generated from the

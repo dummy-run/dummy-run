@@ -532,7 +532,8 @@ the threats. Here is what the engine does about prompt injection.
   fading them out. The scan does not look at CSS masks, so it reads those lines as quoted output.
 - The engine collects that hidden text along with the `aria-label`, `title`, `alt` and `placeholder` values.
   They're saved in `page.hidden` in `steps.jsonl`, for the scan and for the reviewer.
-- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such
+- A scan runs over the page text, the control names, the outline and the hidden text. For a persona with no
+  screenshots it also covers what the screen reader says. It looks for phrases such
   as "ignore previous instructions", "system prompt" and "you are now", and for chat template tokens. It also
   looks for orders to report nothing or to call `finish`, and for claims that the site is fully accessible.
   Instructions to go to a host outside the allow list are flagged, and so are invisible Unicode characters. Hidden text that
