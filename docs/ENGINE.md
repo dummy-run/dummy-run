@@ -532,7 +532,8 @@ the threats. Here is what the engine does about prompt injection.
   fading them out. The scan does not look at CSS masks, so it reads those lines as quoted output.
 - The engine collects that hidden text along with the `aria-label`, `title`, `alt` and `placeholder` values.
   They're saved in `page.hidden` in `steps.jsonl`, for the scan and for the reviewer.
-- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such
+- A scan runs over the page text, the control names, the outline and the hidden text. For a persona with no
+  screenshots it also covers what the screen reader says. It looks for phrases such
   as "ignore previous instructions", "system prompt" and "you are now", and for chat template tokens. It also
   looks for orders to report nothing or to call `finish`, and for claims that the site is fully accessible.
   Instructions to go to a host outside the allow list are flagged, and so are invisible Unicode characters. Hidden text that
@@ -973,8 +974,8 @@ failures are kept. Their warnings, AAA rules and "check this by hand" results ar
 The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
 for the same criterion.
 
-- Each axe violation node gets `engines`, the engines that fail the same element for a criterion axe's rule maps
-  to, and `confidence`. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
+- Each axe violation node gets `engines`, the engines that fail the same element for one criterion axe's rule maps
+  to, and `confidence`. When the rule maps to more than one criterion, the criterion with the most engines counts. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
   axe violation still fails the sweep either way.
 - A failure axe doesn't report, but two of the other engines agree on, is a violation with the rule ID
   `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. Its impact is serious. It fails the
@@ -984,7 +985,8 @@ for the same criterion.
   never fails the sweep. Look at the element before you change anything.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. A page keeps up to 200 groups of the other engines'
+the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
+fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
 `engines` field gives the version of each engine.
 
@@ -1034,18 +1036,23 @@ falls back on reading the banner's own words.
 The rule engines see the banner first, because its own accessibility matters: it's the first thing a visitor has
 to get past. Then autoconsent answers it, and the layout checks measure the page underneath.
 
-Before anything is clicked, autoconsent sorts each button on the banner as reject, accept, settings, acknowledge or
-other. A banner with an accept button and no reject button is reported as `dummyrun-consent-no-reject`. Rejecting
-through a settings page takes more steps, more reading and more precise clicks than accepting, and that weighs
-most on people who tire easily, use a switch or read slowly. The finding goes to `advice`, because it isn't a WCAG
-failure, so it never fails the sweep.
+Before anything is clicked, autoconsent sorts each button on the banner into one of five kinds. These are reject,
+accept, settings, acknowledge and other. A banner with an accept button and no reject button is reported as
+`dummyrun-consent-no-reject`. Rejecting through a settings page takes more steps than accepting. It also takes more
+reading and more precise clicks. That weighs most on people who tire easily, use a switch or read slowly. The finding
+goes to `advice` because it isn't a WCAG failure, so it never fails the sweep.
+
+A banner that turns up a few seconds after the page loads is read and answered too. The sweep waits until
+autoconsent has finished looking before it moves on, so nothing is clicked during the checks that follow.
 
 Each result has `consent`, which records:
 
 - `popups`, the banners found, with each button's text and kind;
 - `cmp`, the consent platform recognised;
 - `opted_out`, true when autoconsent reports that it rejected;
-- `cleared`, true when every banner found at the start is gone or out of the window afterwards, measured in the page;
+- `cleared`, true when every banner it found is gone or out of the window afterwards, measured in the page;
+- `settled`, true when autoconsent had finished when the sweep moved on. When it's false, autoconsent could still
+  act on the page later;
 - `steps`, autoconsent's own messages in order.
 
 A banner inside a frame is answered but not read, so it has no buttons in `popups`. Rejecting sets cookies in the

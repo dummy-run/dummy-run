@@ -52,6 +52,10 @@ func (r *run) inspect(s *Step) []inject.Hit {
 	}
 	scan(inject.SourceVisible, strings.Join(append(visible, o.ConsoleErrors...), "\n"))
 	scan(inject.SourceLabel, strings.Join(append(controlLabels(p.Controls), focusName(p), p.Tree), "\n"))
+	if p.Spoken != nil {
+		// What the screen reader says is mostly names and labels, read out in the page's order.
+		scan(inject.SourceLabel, strings.Join(p.Spoken.Phrases, "\n"))
+	}
 	for _, h := range p.Hidden {
 		scan(inject.SourceHidden, h)
 	}
