@@ -36,6 +36,9 @@ Flags:
                     skip link that goes nowhere
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
+  --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
+                    A banner with an accept button and no reject button is reported as advice
+                    (dummyrun-consent-no-reject), which never fails the sweep
   --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
                     or more engines fail for the same WCAG criterion has high confidence. A failure axe misses and
                     two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
@@ -77,6 +80,7 @@ func a11yCmd(args []string) int {
 	keyboard := fs.Bool("keyboard", false, "run the keyboard checks")
 	markup := fs.Bool("markup", false, "run the markup checks")
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
+	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
@@ -178,7 +182,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11y.Run(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
