@@ -899,8 +899,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
-rule engines, contrast over images, the layout checks and plain language. Each is described below, so one command
-gives you the whole picture.
+rule engines, contrast over images, the layout checks and plain language. This guide describes each check below.
 Add `--text-scale 100,200` to test large text in the same run.
 
 ```sh
