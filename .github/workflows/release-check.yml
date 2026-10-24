@@ -76,10 +76,12 @@ jobs:
       - name: The archives hold the licence files and the binaries report their version
         run: |
           set -euo pipefail
-          tar -tzf dist/dummyrun_*_linux_amd64.tar.gz | sort
-          tar -tzf dist/dummyrun_*_linux_amd64.tar.gz | grep -qx LICENSE
-          tar -tzf dist/dummyrun_*_linux_amd64.tar.gz | grep -qx NOTICE
-          tar -tzf dist/dummyrun_*_linux_amd64.tar.gz | grep -qx README.md
+          # List once: grep -q exits early, and tar would fail on the closed pipe.
+          files="$(tar -tzf dist/dummyrun_*_linux_amd64.tar.gz | sort)"
+          printf '%s\n' "$files"
+          grep -qx LICENSE <<<"$files"
+          grep -qx NOTICE <<<"$files"
+          grep -qx README.md <<<"$files"
           dist/dummyrun_linux_amd64_v1/dummyrun version
           test -x dist/dummyrun_linux_arm64_v8.0/dummyrun
           dist/dummyrun-otel_linux_amd64_v1/dummyrun-otel version
