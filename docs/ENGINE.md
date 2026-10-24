@@ -899,6 +899,14 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
+To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
+rule engines, contrast over images, the layout checks and plain language. This guide describes each check below.
+Add `--text-scale 100,200` to test large text in the same run.
+
+```sh
+dummyrun a11y --all --text-scale 100,200 --json report.json https://example.com/
+```
+
 The allow-list holds violations you've accepted, one per line as `rule | page | selector | reason`. The page
 is a URL path, and the selector is matched against the element's selector. A `*` matches anything. The reason
 is required, so every exception is explained. If a line matches nothing in a sweep, the sweep reports it, so
