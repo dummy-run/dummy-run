@@ -65,9 +65,9 @@ type Config struct {
 	// Layout adds the layout checks to each run: sideways overflow, clipped text, overlapping controls
 	// and small targets. A non-100 text scale turns it on.
 	Layout bool
-	// Checks adds the markup checks to each run: a control whose visible words are missing from its accessible
+	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
-	Checks bool
+	Markup bool
 	// ScreenshotDir, when set, receives a PNG crop of each element the layout checks flag.
 	ScreenshotDir string
 	Headless      bool
@@ -119,8 +119,8 @@ type PageResult struct {
 	Scheme   string `json:"scheme"`
 	// TextScale is the system text size in percent the run used. Zero means 100 and is left out.
 	TextScale int `json:"text_scale,omitempty"`
-	// ChecksRan says the markup checks ran, so a result with none of their rules means they found nothing.
-	ChecksRan bool `json:"checks_ran,omitempty"`
+	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
+	MarkupChecked bool `json:"markup_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool   `json:"layout_checked,omitempty"`
 	Error         string `json:"error,omitempty"`
@@ -486,13 +486,13 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Violations = append(res.Violations, found...)
 		shoot(pctx, conn, cx, cfg.ScreenshotDir, &res, boxes)
 	}
-	if cfg.Checks {
+	if cfg.Markup {
 		m, err := page.RunMarkupChecks(pctx, conn, cx)
 		if err != nil {
 			res.Error = "markup checks: " + firstLine(err.Error())
 			return res
 		}
-		res.ChecksRan = true
+		res.MarkupChecked = true
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
 	}
 	return res

@@ -57,13 +57,13 @@ func TestMarkupChecksFindOnlyPlantedProblems(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 			rep, err := Run(ctx, Config{URLs: []string{srv.URL}, Browser: browser, Viewports: []Viewport{Desktop},
-				Schemes: []string{Light}, Headless: true, Checks: true})
+				Schemes: []string{Light}, Headless: true, Markup: true})
 			if err != nil {
 				t.Fatal(err)
 			}
 			r := rep.Results[0]
-			if r.Error != "" || !r.ChecksRan {
-				t.Fatalf("error %q ran %v", r.Error, r.ChecksRan)
+			if r.Error != "" || !r.MarkupChecked {
+				t.Fatalf("error %q ran %v", r.Error, r.MarkupChecked)
 			}
 			got := map[string][]string{}
 			for _, f := range r.Violations {

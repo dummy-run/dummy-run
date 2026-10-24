@@ -132,7 +132,7 @@ table, "Advice beyond WCAG A and AA". A few of them are WCAG AAA rules. They are
 they aren't counted as failing elements. The report's JSON keeps them in `axe.advice` and the tags checked in
 `axe.advice_tags`. A sweep made before advice existed has none.
 
-Layout rules appear in the same section when the sweep ran with `--layout` or `--text-scale`, which turns `--layout` on. Markup rules appear there when it ran with `--checks`. Both are in the sweep file as violations. The rule IDs all begin `dummyrun-`. The layout rules map to WCAG 1.4.10, 1.4.4 and 2.5.8. The markup rules map to WCAG 1.3.5 and 2.5.3. Each is a measurement made in the browser, and the help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
+Layout rules appear in the same section when the sweep ran with `--layout` or `--text-scale`, which turns `--layout` on. Markup rules appear there when it ran with `--markup`. Both are in the sweep file as violations. The rule IDs all begin `dummyrun-`. The layout rules map to WCAG 1.4.10, 1.4.4 and 2.5.8. The markup rules map to WCAG 1.3.5 and 2.5.3. Each is a measurement made in the browser, and the help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
 
 ## Compare with an earlier report
 
