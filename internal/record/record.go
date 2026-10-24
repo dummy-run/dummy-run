@@ -156,6 +156,19 @@ type Target struct {
 	Identify bool `json:"identify,omitempty"`
 	// RespectRobots is true when the run honoured the target's robots.txt.
 	RespectRobots bool `json:"respect_robots,omitempty"`
+	// Tech is what the site is built with, read from the first page, and Journeys the journeys that suggests.
+	// TechError says why it could not be read.
+	Tech      []Tech   `json:"tech,omitempty"`
+	Journeys  []string `json:"journeys,omitempty"`
+	TechError string   `json:"tech_error,omitempty"`
+}
+
+// Tech is one technology the first page showed, with the marker that showed it.
+type Tech struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+	Source   string `json:"source"`
+	Evidence string `json:"evidence"`
 }
 
 // Provider describes the model that played the persona.

@@ -144,6 +144,9 @@ func TestRunEndToEnd(t *testing.T) {
 					t.Errorf("step %d has no route: %+v", st.N, st)
 				}
 			}
+			if rec.Target.TechError != "" {
+				t.Errorf("tech detection failed: %s", rec.Target.TechError)
+			}
 			if len(rec.Target.Commit) != 12 || rec.Target.Commit != rec.Target.BuildHash {
 				t.Errorf("target %+v", rec.Target)
 			}

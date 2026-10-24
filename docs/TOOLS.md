@@ -52,6 +52,12 @@ copyright lines:
 The long sentence, words to avoid and Latin abbreviation rules are our own, written from the public
 [GOV.UK A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/).
 
+## Technology detection
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [webappanalyzer](https://github.com/enthec/webappanalyzer) by Enthec | your copy, with `DUMMYRUN_WEBAPPANALYZER` | Its technology fingerprints, read from your copy at run time to fill `target.tech`. Dummy Run doesn't bundle or copy them, and its own fingerprints are written separately | GPL-3.0 |
+
 ## Methods we learned from
 
 Some checks follow a method another project worked out, written again in our own code.

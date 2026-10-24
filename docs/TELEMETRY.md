@@ -43,7 +43,8 @@ to stay in one market, host the backend there.
 | `service.version` | The Dummy Run version |
 | `service.namespace` | Optional. Set it to the target app's name to group runs by app |
 
-The optional record fields `target.identify`, `target.respect_robots` and `outcome_reason` aren't exported.
+The optional record fields `target.identify`, `target.respect_robots`, `target.tech`, `target.journeys`,
+`target.tech_error` and `outcome_reason` aren't exported.
 
 ## Traces
 

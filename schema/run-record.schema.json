@@ -273,6 +273,67 @@
         "respect_robots": {
           "type": "boolean",
           "description": "True when the run fetched the target's robots.txt and blocked the paths it disallows for DummyRun. Left out when false"
+        },
+        "tech": {
+          "type": "array",
+          "description": "What the site is built with, read from the first page: its scripts, globals, meta tags, markup and cookies. A page can hide or fake a marker, so treat it as a hint",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "category",
+              "source",
+              "evidence"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "enum": [
+                  "shop",
+                  "cms",
+                  "site-builder",
+                  "framework",
+                  "search",
+                  "booking",
+                  "forms",
+                  "payments",
+                  "consent",
+                  "other"
+                ]
+              },
+              "source": {
+                "enum": [
+                  "dummyrun",
+                  "webappanalyzer"
+                ],
+                "description": "dummyrun for Dummy Run's own fingerprints, webappanalyzer for ones read from the user's copy of webappanalyzer"
+              },
+              "evidence": {
+                "type": "string",
+                "description": "The first marker that matched, such as window.Shopify.shop"
+              }
+            }
+          }
+        },
+        "journeys": {
+          "type": "array",
+          "description": "Journeys the technologies suggest, such as basket and checkout for a shop",
+          "items": {
+            "enum": [
+              "search",
+              "basket",
+              "checkout",
+              "booking",
+              "contact form"
+            ]
+          }
+        },
+        "tech_error": {
+          "type": "string",
+          "description": "Why the technologies could not be read. Left out when they were"
         }
       }
     },
