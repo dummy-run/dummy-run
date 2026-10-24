@@ -32,23 +32,24 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --image-contrast  measure the text axe could not judge for contrast, usually text on an image or gradient: hide
-                    the text, take a picture of what is behind it and compare the text colour with every pixel.
-                    Text that fails at the middle pixel is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
-  --plain-language  check the main content of each page with Vale: Flesch reading ease and grade, sentences over 25
-                    words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The results are
-                    advice and never fail the sweep. Needs vale on the PATH or DUMMYRUN_VALE
-  --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
-                    A banner with an accept button and no reject button is reported as advice
-                    (dummyrun-consent-no-reject), which never fails the sweep
+  --all             run every check below in the same sweep, so one command gives the whole picture. Add
+                    --text-scale 100,200 to test large text as well
+  --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
+                    A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
   --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
                     or more engines fail for the same WCAG criterion has high confidence. A failure axe misses and
                     two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
                     reports is a candidate, kept in the JSON and never failing the sweep
+  --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
+                    hide the text, take a picture of what is behind it and compare the text colour with every pixel.
+                    Text that fails at the middle pixel is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
                     allow-list can accept them
+  --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
+                    over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
+                    results are advice. Needs vale on the PATH or DUMMYRUN_VALE
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
@@ -78,6 +79,7 @@ func a11yCmd(args []string) int {
 	viewport := fs.String("viewport", "both", "desktop, phone, small or both")
 	scheme := fs.String("scheme", "both", "light, dark or both")
 	textScale := fs.String("text-scale", "", "system text size in percent, or a comma-separated list")
+	all := fs.Bool("all", false, "run every check")
 	layout := fs.Bool("layout", false, "run the layout checks")
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
@@ -123,6 +125,12 @@ func a11yCmd(args []string) int {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "dummyrun a11y: --scheme %q: want light, dark or both\n", *scheme)
 		return 2
+	}
+	if *all {
+		// One switch for the whole picture. A check added later joins this list.
+		for _, on := range []*bool{layout, engines, consent, plainLang, imageContrast} {
+			*on = true
+		}
 	}
 	scales, err := parseTextScales(*textScale)
 	if err != nil {

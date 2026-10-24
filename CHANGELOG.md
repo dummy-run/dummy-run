@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `dummyrun a11y --all` runs every check in one sweep: the cookie banner, the other rule engines, contrast over images, layout and plain language. Each check flag's help now starts "also", so the flags read the same way.
 - `dummyrun a11y --image-contrast` measures the text axe-core leaves for review, usually text on a photo or gradient. It hides the text, takes a picture of what is behind it and compares the text colour with every pixel. Text that fails at the middle pixel is reported as `dummyrun-contrast-over-image` (WCAG 1.4.3).
 - `dummyrun a11y --plain-language` reads each page's main content with Vale. It reports Flesch reading ease and grade, sentences over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations, as advice that never fails the sweep. The container image now includes Vale 3.24.0.
 - A persona that gets no screenshots, such as `screen-reader-user`, now gets what a screen reader says on each look: the page read from the top, one phrase per line, from guidepup's virtual screen reader. It's computed from the page's accessibility semantics, so the same page reads the same way every time.
