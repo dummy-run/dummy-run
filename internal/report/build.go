@@ -14,6 +14,7 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
 	"github.com/dummy-run/dummy-run/internal/coverage"
+	"github.com/dummy-run/dummy-run/internal/fixes"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
 
@@ -500,9 +501,11 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 			f.WCAG = ax.WCAG
 			f.HelpURL = ax.HelpURL
 		}
-		if f.HelpURL == "" {
+		// Deque has a page for each axe rule, but none for Dummy Run's own rules.
+		if f.HelpURL == "" && !strings.HasPrefix(rule, "dummyrun-") {
 			f.HelpURL = "https://dequeuniversity.com/rules/axe/" + axeVersion + "/" + rule
 		}
+		f.Fix = fixes.For(rule)
 	}
 	return f
 }
@@ -574,7 +577,7 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 	collect := func(into map[string]*acc, f a11y.Finding, p a11y.PageResult, countAllowed bool) {
 		a := into[f.Rule]
 		if a == nil {
-			a = &acc{rule: AxeRule{Fingerprint: axeFingerprint(f.Rule), Rule: f.Rule, Impact: f.Impact, WCAG: f.WCAG, Help: f.Help, HelpURL: f.HelpURL}, pages: map[string]*AxePage{}, nodes: map[string]bool{}}
+			a = &acc{rule: AxeRule{Fingerprint: axeFingerprint(f.Rule), Rule: f.Rule, Impact: f.Impact, WCAG: f.WCAG, Help: f.Help, HelpURL: f.HelpURL, Fix: fixes.For(f.Rule)}, pages: map[string]*AxePage{}, nodes: map[string]bool{}}
 			into[f.Rule] = a
 		}
 		setting := p.Setting()

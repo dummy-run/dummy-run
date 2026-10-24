@@ -55,7 +55,7 @@ A contents list links to every finding, grouped by severity. Each finding is a c
 
 ### The axe sweep and layout checks
 
-One table lists each rule with its impact, WCAG criterion, the number of elements and a link to the fix guidance. A second shows where each rule failed. With `--baseline`, each finding and rule is labelled new or still present, and a section lists what was not seen again.
+One table lists each rule with its impact, WCAG criterion, the number of elements and a link to the fix guidance. A second shows where each rule failed. When a failed rule is one of Dummy Run's own checks, a section after them says how to fix it. Each entry has a one-line summary and the steps to take. It says who usually makes the change: content, design or development. Most entries also show an example and link the guidance the advice follows. The steps are general, so check them against the elements the report lists. With `--baseline`, each finding and rule is labelled new or still present, and a section lists what was not seen again.
 
 ### On paper
 
@@ -106,6 +106,7 @@ Each finding shows:
 - the review status, with the reviewer, date and reason when the record has them
 - the WCAG 2.2 success criterion, when it's known
 - fix guidance, when there is some (for an axe rule, a link to the rule's help page)
+- how to fix it, when the rule is one of Dummy Run's own: the same summary, owner and steps, also in the JSON as `fix`
 - steps to reproduce, taken from the steps the finding cites
 - the run and persona that found it, with the role, device and browser
 - screenshots of the cited steps
