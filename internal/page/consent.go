@@ -52,7 +52,7 @@ type Consent struct {
 	// When it is false, autoconsent was still waiting for the page to change and could act later.
 	Settled bool `json:"settled,omitempty"`
 	// Cleared says every banner it found is gone or hidden afterwards, as measured in the page.
-	Cleared bool `json:"cleared,omitempty"`
+	Cleared bool `json:"cleared"`
 	// Failed says autoconsent couldn't start or read the page, so the banner went unanswered. Error says why. An
 	// Error without Failed is a problem autoconsent reported while it worked, such as a step that didn't match.
 	Failed bool   `json:"failed,omitempty"`

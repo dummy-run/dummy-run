@@ -25,7 +25,11 @@ calculations. `internal/page/engines/alfa/build.sh` rebuilds it from the pinned 
 |---|---|---|---|
 | [DuckDuckGo autoconsent](https://github.com/duckduckgo/autoconsent) | 16.61.0 | Answers cookie banners by rejecting, with `--consent`, and sorts their buttons so a banner with no reject button can be reported | MPL-2.0 |
 
-The bundle and its compact rule set are used as published, unchanged.
+The compact rule set is used as published. The bundle has one change. A pattern that spots "close" buttons listed
+"des cookies" and "de cookies" twice: once on their own and once as an article followed by "cookie". The overlap
+let a page make the browser backtrack for a very long time on a crafted button label, so the two extra entries are
+removed. Every real phrase still matches. The only strings it no longer accepts are ones like "des de cookies", an
+article followed by "de cookies". The change is marked in the file.
 
 ## Data
 
