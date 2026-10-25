@@ -222,8 +222,8 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --all             run every check listed below in the same sweep. Add --text-scale 100,200 to test large text
-                    as well
+  --all             run every check listed below in the same sweep, including the layout checks at 320 px and at
+                    200 percent text
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
   --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
@@ -235,10 +235,13 @@ Flags:
                     Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
   --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
                     skip link that goes nowhere
-  --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
-                    and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
-                    dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
-                    allow-list can accept them
+  --layout          also run the layout checks, measured from what the browser lays out and paints: sideways
+                    scrolling, text cut off by its box, a control covered by another, targets under 24 by 24 CSS
+                    px and a control hidden behind other content when it has focus. Rules dummyrun-reflow,
+                    dummyrun-clipped-text, dummyrun-overlap, dummyrun-target-size and dummyrun-focus-obscured.
+                    They fail the sweep like axe rules and the allow-list can accept them. Unless you set
+                    --viewport or --text-scale, it adds the 320 px window and a run at 200 percent text, the
+                    two settings WCAG 1.4.10 and 1.4.4 name
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences

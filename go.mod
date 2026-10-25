@@ -13,6 +13,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/openai/openai-go/v3 v3.71.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
+	go.yaml.in/yaml/v4 v4.0.0-rc.2
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.60.0
 	google.golang.org/genai v1.72.0
@@ -68,7 +69,6 @@ require (
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect

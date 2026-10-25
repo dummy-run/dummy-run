@@ -1,10 +1,20 @@
-// Layout facts about the page as it is now, measured the way a person would see them: sideways
-// overflow, interactive elements whose text is cut off, interactive elements that overlap, and
-// interactive elements that are too small to hit. No model is involved.
+// Layout facts about the page as it is now, measured from the rectangles the browser lays out and from what is
+// painted on top at a point, the way a person would see them. No model is involved. The approach follows the
+// geometry scorers of LayoutLens (MIT), written afresh for this engine.
 //
-// Called as a function expression with (max, minTarget, tolerance): the most items of each kind to
-// return, the smallest target side in CSS px, and the px of overlap or clipping to ignore.
-(max, minTarget, tol) => {
+//   reflow    the page scrolls sideways, named by the outermost elements that reach past the window. Content
+//             WCAG 1.4.10 lets keep a two-dimensional layout (data tables, images, maps, video) does not count.
+//   clipped   text that is partly cut off by a box that hides its overflow. Text wholly outside the box, such as
+//             the other slides of a carousel, is hidden rather than cut off and is not counted.
+//   overlaps  a control whose text, or whole box when it has none, is under another control where they meet,
+//             found by asking the browser what is on top at points in the shared area
+//   small     targets under minTarget CSS px, with the WCAG 2.5.8 exceptions that can be measured
+//   obscured  with focus on, a control that gets focus but is entirely hidden by something opaque (WCAG 2.4.11)
+//
+// Called as a function expression with (max, minTarget, tolerance, focus): the most items of each kind to return,
+// the smallest target side in CSS px, the px of overlap or clipping to ignore, and whether to move focus to each
+// control. Focus is moved only when asked, because a page can react to it.
+(max, minTarget, tol, focus) => {
   const root = document.documentElement;
   const cw = root.clientWidth;
   const round = (n) => Math.round(n * 10) / 10;
@@ -30,14 +40,18 @@
       parts.unshift(p);
       if (p[0] === "#") break;
     }
-    return parts.join(" > ");
+    return parts.join(" > ") || el.tagName.toLowerCase();
   };
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
   const label = (el) =>
     squash(el.getAttribute("aria-label") || el.innerText || el.value || el.title || el.getAttribute("alt") || "").slice(0, 60);
   // Only the number the engine wrote counts. A page could change the attribute afterwards.
   const refOf = (el) => (/^[0-9]{1,4}$/.test(el.getAttribute("data-dummyrun-ref") || "") ? el.getAttribute("data-dummyrun-ref") : undefined);
-  const box = (r) => ({ x: round(r.left + scrollX), y: round(r.top + scrollY), width: round(r.width), height: round(r.height) });
+  const named = (el) => ({ selector: selector(el), ref: refOf(el), label: label(el) });
+  // Rectangles are measured before anything scrolls, so the page offset at the start places them in the page.
+  const sx = scrollX, sy = scrollY;
+  const box = (r) => ({ x: round(r.left + sx), y: round(r.top + sy), width: round(r.width), height: round(r.height) });
+  const boxNow = (r) => ({ x: round(r.left + scrollX), y: round(r.top + scrollY), width: round(r.width), height: round(r.height) });
 
   const visible = (el) => {
     // Content of a closed <details> keeps a box in some browsers but is not shown.
@@ -56,6 +70,22 @@
     return true;
   };
 
+  // What is painted on top at a point, looking inside open shadow roots.
+  const hit = (x, y) => {
+    let h = document.elementFromPoint(x, y);
+    while (h && h.shadowRoot) {
+      const d = h.shadowRoot.elementFromPoint(x, y);
+      if (!d || d === h) break;
+      h = d;
+    }
+    return h;
+  };
+  const up = (n) => n.parentElement || (n.getRootNode && n.getRootNode().host) || null;
+  const within = (outer, n) => {
+    for (let e = n; e; e = up(e)) if (e === outer) return true;
+    return false;
+  };
+
   const interactive = [
     "a[href]", "button", "input:not([type=hidden])", "select", "textarea", "summary",
     "[role=button]", "[role=link]", "[role=tab]", "[role=menuitem]", "[role=checkbox]", "[role=switch]",
@@ -68,132 +98,269 @@
     if (!visible(el)) continue;
     controls.push(el);
   }
+  const isControl = new Set(controls);
+  const controlOf = (n) => {
+    for (let e = n; e; e = up(e)) if (isControl.has(e)) return e;
+    return null;
+  };
 
-  // Sideways overflow: the page is wider than the window, so it scrolls sideways.
-  let overflow = null;
+  // Points in a rectangle, an n by n grid, kept inside the window.
+  const grid = (r, n) => {
+    const pts = [];
+    for (let yi = 0; yi < n; yi++) {
+      for (let xi = 0; xi < n; xi++) {
+        const x = r.left + r.width * (xi + 0.5) / n, y = r.top + r.height * (yi + 0.5) / n;
+        if (x >= 0 && y >= 0 && x < innerWidth && y < innerHeight) pts.push([x, y]);
+      }
+    }
+    return pts;
+  };
+  // A page with scroll-behavior: smooth would animate a plain scrollTo, and the measuring would start mid-scroll.
+  const jump = (x, y) => scrollTo({ left: x, top: y, behavior: "instant" });
+  // Brings a rectangle into the window, so the browser can say what is on top there, and returns it moved.
+  const reveal = (r) => {
+    if (r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth) return r;
+    const dy = r.top + r.height / 2 - innerHeight / 2, dx = r.left + r.width / 2 - innerWidth / 2;
+    const bx = scrollX, by = scrollY;
+    jump(bx + (r.left < 0 || r.right > innerWidth ? dx : 0), by + dy);
+    const mx = scrollX - bx, my = scrollY - by;
+    return { left: r.left - mx, right: r.right - mx, top: r.top - my, bottom: r.bottom - my, width: r.width, height: r.height };
+  };
+
+  // Reflow, WCAG 1.4.10: the page is wider than the window, so it scrolls sideways.
+  const twoD = "table, img, picture, video, canvas, svg, iframe, object, embed, map, math, [role=img], [role=grid], [role=application], [role=toolbar]";
+  let overflow = null, reflowExempt = 0;
   const scrollW = Math.max(root.scrollWidth, document.body ? document.body.scrollWidth : 0);
   if (scrollW > cw + tol) {
     const culprits = [];
-    const wide = new Set();
-    let scanned = 0;
+    let exempt = 0, scanned = 0;
+    // Only the end the text runs towards can be scrolled to. A skip link parked past the start edge can't widen the page.
+    const rtl = getComputedStyle(root).direction === "rtl";
+    const out = (r) => (rtl ? r.left < -tol : r.right > cw + tol);
     for (const el of document.body ? document.body.querySelectorAll("*") : []) {
       if (++scanned > 8000) break;
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.right <= cw + tol) continue;
+      if (r.width === 0 || !out(r)) continue;
       const s = getComputedStyle(el);
       if (s.position === "fixed" || s.display === "none" || s.visibility === "hidden") continue;
-      // Something that scrolls or clips inside its own box does not widen the page.
+      // Only the outermost element that reaches past the window, so a wide block is named once and not with
+      // every child. body and html stretch to fit, so they never count as that outer element.
+      const p = el.parentElement;
+      if (p && p !== document.body && p !== root && out(p.getBoundingClientRect())) continue;
+      // Something that scrolls or clips inside its own box, or sits in a fixed bar, does not widen the page.
       let held = false;
       for (let a = el.parentElement; a && a !== document.body && a !== root; a = a.parentElement) {
         const as = getComputedStyle(a);
-        if (as.overflowX !== "visible" && a.getBoundingClientRect().right <= cw + tol) { held = true; break; }
+        if (as.overflowX !== "visible" && !out(a.getBoundingClientRect())) { held = true; break; }
         if (as.position === "fixed") { held = true; break; }
       }
       if (held) continue;
-      wide.add(el);
-      if (!el.parentElement || !wide.has(el.parentElement)) culprits.push({ el, right: r.right });
+      if (el.closest(twoD)) { exempt++; continue; }
+      culprits.push({ el, right: r.right });
     }
-    culprits.sort((a, b) => b.right - a.right);
-    overflow = {
-      scroll_width: scrollW,
-      client_width: cw,
-      excess: round(scrollW - cw),
-      culprits: culprits.slice(0, 5).map((c) => ({ selector: selector(c.el), ref: refOf(c.el), right: round(c.right), label: label(c.el) })),
-    };
+    reflowExempt = exempt;
+    if (culprits.length || !exempt) {
+      culprits.sort((a, b) => b.right - a.right);
+      overflow = {
+        scroll_width: scrollW,
+        client_width: cw,
+        excess: round(scrollW - cw),
+        culprits: culprits.slice(0, 5).map((c) => ({ ...named(c.el), right: round(c.right) })),
+      };
+    }
   }
 
-  // Text cut off inside an interactive element: its own box clips its text, or a parent that clips
-  // hides part of the element.
+  // Clipped text, WCAG 1.4.4 and 1.4.10: a line of text reaches past the edge of a box that hides its overflow,
+  // while part of it is still inside, so the reader sees only part of it.
   const clipped = [];
-  const clips = (s) => s.overflowX === "hidden" || s.overflowX === "clip" || s.overflowY === "hidden" || s.overflowY === "clip";
-  for (const el of controls) {
-    if (clipped.length >= max) break;
-    if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) continue;
+  let clippedTotal = 0;
+  const clipCache = new Map();
+  // The boxes above a node that cut off what reaches past them, nearest first. A box that can be scrolled lets
+  // the reader reach the rest, so it does not cut anything off, and on that axis nothing further out does either:
+  // the text sits in the scrolling box, not in the boxes around it.
+  const clippers = (el) => {
+    if (clipCache.has(el)) return clipCache.get(el);
+    const list = [];
+    // A box set to scroll that has nothing to scroll to does not keep the text from the boxes around it.
+    const scrolls = (v, range) => (v === "auto" || v === "scroll") && range > 1;
+    let scrollX = false, scrollY = false;
+    for (let a = el; a && a !== root; a = a.parentElement) {
+      const s = getComputedStyle(a);
+      const x = !scrollX && (s.overflowX === "hidden" || s.overflowX === "clip");
+      const y = !scrollY && (s.overflowY === "hidden" || s.overflowY === "clip");
+      if (x || y) list.push({ a, s, x, y });
+      scrollX = scrollX || scrolls(s.overflowX, a.scrollWidth - a.clientWidth);
+      scrollY = scrollY || scrolls(s.overflowY, a.scrollHeight - a.clientHeight);
+      if (scrollX && scrollY) break;
+    }
+    clipCache.set(el, list);
+    return list;
+  };
+  // An element is moving when it, or a box around it, has a CSS animation or transition running.
+  const movingCache = new Map();
+  const moving = (el) => {
+    if (!el || el === root || el === document.body) return false;
+    if (movingCache.has(el)) return movingCache.get(el);
+    let m = false;
+    try {
+      m = el.getAnimations().some((a) => a.playState === "running");
+    } catch (e) {
+      m = false;
+    }
+    m = m || moving(el.parentElement);
+    movingCache.set(el, m);
+    return m;
+  };
+  const textOwners = new Set();
+  const walker = document.body ? document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT) : null;
+  let texts = 0;
+  for (let t = walker && walker.nextNode(); t && texts < 4000; t = walker.nextNode()) {
+    const el = t.parentElement;
+    if (!el || !squash(t.nodeValue) || /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|OPTION)$/.test(el.tagName)) continue;
+    texts++;
+    if (textOwners.has(el) || !visible(el)) continue;
+    const list = clippers(el);
+    if (!list.length) continue;
+    // The words, not the whole node: with white-space pre-wrap, spaces at the end of a line hang past the box
+    // without drawing anything, and the node's own rects take them in.
+    const rects = [];
+    const words = /\S+/g;
+    let w, n = 0;
+    while ((w = words.exec(t.nodeValue)) && n++ < 300) {
+      const range = document.createRange();
+      range.setStart(t, w.index);
+      range.setEnd(t, w.index + w[0].length);
+      for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) rects.push(r);
+    }
+    // Text that is moving, such as a chip that pops in, is measured mid-flight. Its box says nothing about where it
+    // comes to rest, so it is left out.
+    if (moving(el)) continue;
     let why = "";
-    const parts = [el, ...el.querySelectorAll("*")].slice(0, 25);
-    for (const e of parts) {
-      const s = getComputedStyle(e);
-      if (!clips(s) || e.clientWidth === 0 || !squash(e.textContent)) continue;
-      // Text kept for a screen reader, in a 1 px box, is clipped on purpose.
-      const er = e.getBoundingClientRect();
-      if (er.width <= 1 || er.height <= 1) continue;
-      const sideways = e.scrollWidth > e.clientWidth + tol;
-      const down = e.scrollHeight > e.clientHeight + tol;
-      if ((sideways && (s.overflowX === "hidden" || s.overflowX === "clip")) || (down && (s.overflowY === "hidden" || s.overflowY === "clip"))) {
-        why = s.textOverflow === "ellipsis" && sideways
-          ? "text is shortened with an ellipsis (" + e.clientWidth + " px wide, text needs " + e.scrollWidth + " px)"
-          : "text is cut off inside the element (" + e.clientWidth + " x " + e.clientHeight + " px visible, text needs " + e.scrollWidth + " x " + e.scrollHeight + " px)";
-        break;
+    for (const { a, s, x, y } of list) {
+      const ar = a.getBoundingClientRect();
+      // A 1 px box, or one clipped to nothing, hides text from the eye on purpose.
+      if (ar.width <= 1 || ar.height <= 1 || (s.clip && s.clip !== "auto") || (s.clipPath && s.clipPath !== "none")) { why = "skip"; break; }
+      // Text with no line inside this box is hidden by it, not cut off: the other slides of a carousel, say.
+      // Once a line is inside, every line that reaches past a clipped edge is text the reader loses.
+      const inside = rects.some((r) => r.right > ar.left + tol && r.left < ar.right - tol && r.bottom > ar.top + tol && r.top < ar.bottom - tol);
+      if (!inside) continue;
+      let past = 0;
+      for (const r of rects) {
+        if (x) past = Math.max(past, r.right - ar.right, ar.left - r.left);
+        if (y) past = Math.max(past, r.bottom - ar.bottom, ar.top - r.top);
       }
+      if (past <= tol) continue;
+      // A line shortened with an ellipsis, or a teaser clamped to some lines, is cut on purpose. It counts only
+      // in a control, where the cut-off words are the control's name.
+      const shortened = s.textOverflow === "ellipsis" || (s.webkitLineClamp && s.webkitLineClamp !== "none");
+      if (shortened && !controlOf(el)) { why = "skip"; break; }
+      why = (shortened ? "text is shortened" : "text is cut off") + " by " + (a === el ? "its own box" : selector(a)) +
+        ", which hides " + round(past) + " px of it";
+      break;
     }
-    if (!why) {
-      const r = el.getBoundingClientRect();
-      for (let a = el.parentElement; a && a !== document.body && a !== root; a = a.parentElement) {
-        const as = getComputedStyle(a);
-        if (!clips(as)) continue;
-        const ar = a.getBoundingClientRect();
-        const cutRight = as.overflowX !== "visible" && r.right > ar.right + tol && r.left < ar.right;
-        const cutBottom = as.overflowY !== "visible" && r.bottom > ar.bottom + tol && r.top < ar.bottom;
-        if (cutRight || cutBottom) {
-          why = "a parent (" + selector(a) + ") hides part of it: " + (cutRight ? round(r.right - ar.right) + " px past its right edge" : round(r.bottom - ar.bottom) + " px past its bottom edge");
-          break;
-        }
-      }
-    }
-    if (why) clipped.push({ selector: selector(el), ref: refOf(el), label: label(el), detail: why, box: box(el.getBoundingClientRect()) });
+    if (!why || why === "skip") continue;
+    textOwners.add(el);
+    clippedTotal++;
+    const owner = controlOf(el) || el;
+    if (clipped.length < max) clipped.push({ ...named(owner), control: !!controlOf(el), detail: why, box: box(owner.getBoundingClientRect()) });
   }
 
-  // Overlap: two interactive elements whose boxes share more than tol px in both directions, where
-  // neither holds the other.
+  // Overlap: where two controls meet, ask the browser what is on top. It counts when the text of one control,
+  // or its whole box if it has no text, is under the other, so the reader can't see or reach it.
   const overlaps = [];
+  let overlapTotal = 0;
   const rects = controls.map((el) => el.getBoundingClientRect());
   const lines = controls.map((el, i) => { const l = [...el.getClientRects()].filter((r) => r.width > 0 && r.height > 0); return l.length ? l : [rects[i]]; });
-  const fixedLike = controls.map((el) => { const p = getComputedStyle(el).position; return p === "fixed" || p === "sticky"; });
-  let overlapTotal = 0;
+  const textRects = (el) => {
+    const out = [];
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let t = w.nextNode(); t && out.length < 6; t = w.nextNode()) {
+      if (!squash(t.nodeValue)) continue;
+      const range = document.createRange();
+      range.selectNodeContents(t);
+      for (const r of range.getClientRects()) if (r.width > 1 && r.height > 1) out.push(r);
+    }
+    return out;
+  };
+  // Of the points on what shows a's content, how many have the other control on top.
+  const covered = (a, b) => {
+    const tr = textRects(a);
+    const areas = tr.length ? tr : [a.getBoundingClientRect()];
+    let n = 0, of = 0;
+    for (const r0 of areas) {
+      const r = reveal(r0);
+      for (const [x, y] of grid(r, 3)) {
+        of++;
+        const h = hit(x, y);
+        if (h && within(b, h) && !within(a, h)) n++;
+      }
+    }
+    return { n, of, text: tr.length > 0 };
+  };
   for (let i = 0; i < controls.length; i++) {
     for (let j = i + 1; j < controls.length; j++) {
       const a = rects[i], b = rects[j];
+      if (a.right <= b.left + tol || b.right <= a.left + tol || a.bottom <= b.top + tol || b.bottom <= a.top + tol) continue;
       // A link that wraps has one box for each line. Compare line by line, so the empty corner of the
-      // bounding box is not counted as covered, and report the first pair that meets.
-      let w = 0, h = 0, ra = a, rb = b;
+      // bounding box is not counted as shared.
+      let meet = false;
       for (const la of lines[i]) {
         for (const lb of lines[j]) {
-          const lw = Math.min(la.right, lb.right) - Math.max(la.left, lb.left);
-          const lh = Math.min(la.bottom, lb.bottom) - Math.max(la.top, lb.top);
-          if (lw > tol && lh > tol && lw * lh > w * h) { w = lw; h = lh; ra = la; rb = lb; }
+          if (Math.min(la.right, lb.right) - Math.max(la.left, lb.left) > tol && Math.min(la.bottom, lb.bottom) - Math.max(la.top, lb.top) > tol) meet = true;
         }
       }
-      if (w <= tol || h <= tol) continue;
-      if (controls[i].contains(controls[j]) || controls[j].contains(controls[i])) continue;
-      const cx = Math.max(ra.left, rb.left) + w / 2, cy = Math.max(ra.top, rb.top) + h / 2;
-      // A bar fixed to the window only covers what is in the window.
-      if ((fixedLike[i] || fixedLike[j]) && (cy > innerHeight || cx > innerWidth)) continue;
-      // If something else is on top where they meet, neither is seen there.
-      if (cx >= 0 && cy >= 0 && cx < innerWidth && cy < innerHeight) {
-        const top = document.elementFromPoint(cx, cy);
-        if (top && !controls[i].contains(top) && !controls[j].contains(top) && !top.contains(controls[i]) && !top.contains(controls[j])) continue;
-      }
+      if (!meet || within(controls[i], controls[j]) || within(controls[j], controls[i])) continue;
+      let under = controls[i], over = controls[j], c = covered(under, over);
+      const d = covered(over, under);
+      if (d.n > c.n) { under = controls[j]; over = controls[i]; c = d; }
+      // Text counts from two points, a box with no text only when most of it is covered.
+      if (c.text ? c.n < 2 : c.n * 2 <= c.of) continue;
       overlapTotal++;
       if (overlaps.length < max) {
         overlaps.push({
-          a: { selector: selector(controls[i]), ref: refOf(controls[i]), label: label(controls[i]) },
-          b: { selector: selector(controls[j]), ref: refOf(controls[j]), label: label(controls[j]) },
-          width: round(w), height: round(h),
+          a: named(under), b: named(over),
+          covered: c.n, sampled: c.of, text: c.text,
           box: box({ left: Math.min(a.left, b.left), top: Math.min(a.top, b.top), width: Math.max(a.right, b.right) - Math.min(a.left, b.left), height: Math.max(a.bottom, b.bottom) - Math.min(a.top, b.top) }),
         });
       }
     }
   }
+  jump(sx, sy);
 
-  // Target size, WCAG 2.5.8: at least minTarget x minTarget CSS px, unless the target is a link in a
-  // sentence, or has room around it (a minTarget circle on its centre meets no other target).
+  // Target size, WCAG 2.5.8: at least minTarget x minTarget CSS px, unless the target is a link in a sentence,
+  // has room around it (a minTarget circle on its centre meets no other target), or is a control the page left at
+  // the browser's own size. The equivalent and essential exceptions need a person and are not guessed.
   const small = [];
   const isInline = (el) => {
-    if (el.tagName !== "A") return false;
-    if (getComputedStyle(el).display !== "inline") return false;
+    if (!getComputedStyle(el).display.startsWith("inline") || el.tagName !== "A") return false;
     const p = el.parentElement;
-    const own = p ? [...p.childNodes].filter((n) => n.nodeType === 3 && squash(n.nodeValue)).length : 0;
-    return own > 0;
+    return !!p && [...p.childNodes].some((n) => n.nodeType === 3 && squash(n.nodeValue));
+  };
+  const sizeProps = /^(width|height|min-width|min-height|max-width|max-height|inline-size|block-size|min-inline-size|min-block-size|padding|padding-(top|right|bottom|left)|border|border-(top|right|bottom|left)(-width)?|border-width|font|font-size|zoom|transform|appearance|box-sizing)$/;
+  let sheetsReadable = true;
+  const rules = [];
+  try {
+    const collect = (list) => {
+      for (const r of list) {
+        if (r.selectorText && r.style) rules.push(r);
+        if (r.cssRules) collect(r.cssRules);
+      }
+    };
+    for (const sh of document.styleSheets) collect(sh.cssRules);
+  } catch (e) {
+    sheetsReadable = false; // a stylesheet from another origin can't be read, so the exception can't be proven
+  }
+  const sizes = (style) => [...style].some((p) => sizeProps.test(p));
+  const browserSized = (el) => {
+    if (!sheetsReadable || !/^(BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || sizes(el.style)) return false;
+    for (const r of rules) {
+      try {
+        if (el.matches(r.selectorText) && sizes(r.style)) return false;
+      } catch (e) {
+        // a selector this browser does not understand cannot style the control
+      }
+    }
+    return true;
   };
   const targetBox = (el) => {
     const r = el.getBoundingClientRect();
@@ -218,7 +385,7 @@
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2, rad = minTarget / 2;
     let crowded = false;
     for (let j = 0; j < controls.length && !crowded; j++) {
-      if (j === i || controls[i].contains(controls[j]) || controls[j].contains(controls[i])) continue;
+      if (j === i || within(controls[i], controls[j]) || within(controls[j], controls[i])) continue;
       const o = boxes[j];
       const dx = Math.max(o.left - cx, 0, cx - o.right), dy = Math.max(o.top - cy, 0, cy - o.bottom);
       if (dx * dx + dy * dy < rad * rad) crowded = true;
@@ -228,9 +395,92 @@
         if (ox * ox + oy * oy < minTarget * minTarget) crowded = true;
       }
     }
-    if (!crowded) continue;
+    if (!crowded || browserSized(controls[i])) continue;
     smallTotal++;
-    if (small.length < max) small.push({ selector: selector(controls[i]), ref: refOf(controls[i]), label: label(controls[i]), width: round(r.width), height: round(r.height), box: box(r) });
+    if (small.length < max) small.push({ ...named(controls[i]), width: round(r.width), height: round(r.height), box: box(r) });
+  }
+
+  // Focus not obscured, WCAG 2.4.11: give each control focus, let the browser scroll it into view as it does for
+  // a keyboard user, and look at what is on top across it. It fails only when every point is under something
+  // opaque whose box holds the whole visible part of the control. Partly hidden is allowed at level AA.
+  const obscured = [];
+  let obscuredTotal = 0, focused = 0;
+  if (focus) {
+    const before = document.activeElement;
+    // An image, video or canvas covers what is behind it only where its pixels are solid. Its pixels are read
+    // through a small copy. One that cannot be read, such as an image from another site, is not counted as cover.
+    const solidCache = new Map();
+    const solid = (el) => {
+      if (solidCache.has(el)) return solidCache.get(el);
+      let ok = false;
+      try {
+        const c = document.createElement("canvas");
+        c.width = c.height = 16;
+        const g = c.getContext("2d");
+        g.drawImage(el, 0, 0, 16, 16);
+        const d = g.getImageData(0, 0, 16, 16).data;
+        ok = true;
+        for (let i = 3; i < d.length; i += 4) if (d[i] < 250) { ok = false; break; }
+      } catch (e) {
+        ok = false;
+      }
+      solidCache.set(el, ok);
+      return ok;
+    };
+    const opaque = (el) => {
+      if (/^(IMG|VIDEO|CANVAS)$/.test(el.tagName)) return solid(el);
+      const s = getComputedStyle(el);
+      if (s.transform !== "none" || s.clipPath !== "none" || parseFloat(s.borderTopLeftRadius) > 0) return false;
+      const m = /rgba?\(([^)]*)\)/.exec(s.backgroundColor);
+      if (!m) return false;
+      const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+      return p.length < 4 || p[3] >= 0.999;
+    };
+    const blocker = (h, target) => {
+      let alpha = 1;
+      const branch = [];
+      for (let n = h; n && n !== root; n = up(n)) {
+        if (within(n, target)) break; // a shared ancestor paints behind the target
+        branch.push(n);
+        alpha *= parseFloat(getComputedStyle(n).opacity) || 0;
+      }
+      if (alpha < 0.999) return null;
+      return branch.find(opaque) || null;
+    };
+    for (const el of controls) {
+      if (focused >= 150) break;
+      if (el.tabIndex < 0 && !el.matches("a[href],button,input,select,textarea,summary")) continue;
+      el.focus({ preventScroll: false });
+      if (document.activeElement !== el && !(el.shadowRoot && el.shadowRoot.activeElement)) continue;
+      focused++;
+      const r = el.getBoundingClientRect();
+      const vis = { left: Math.max(0, r.left), top: Math.max(0, r.top), right: Math.min(innerWidth, r.right), bottom: Math.min(innerHeight, r.bottom) };
+      if (vis.right - vis.left < 1 || vis.bottom - vis.top < 1) continue;
+      let shown = 0, sampled = 0;
+      const by = new Map();
+      for (const [x, y] of grid({ left: vis.left, top: vis.top, width: vis.right - vis.left, height: vis.bottom - vis.top }, 3)) {
+        sampled++;
+        const h = hit(x, y);
+        if (!h || within(el, h)) { shown++; continue; }
+        const b = blocker(h, el);
+        if (!b) { shown++; continue; }
+        by.set(b, (by.get(b) || 0) + 1);
+      }
+      if (!sampled || shown) continue;
+      const cover = [...by.keys()].find((b) => {
+        const br = b.getBoundingClientRect();
+        return br.left <= vis.left + 0.5 && br.top <= vis.top + 0.5 && br.right >= vis.right - 0.5 && br.bottom >= vis.bottom - 0.5;
+      });
+      if (!cover) continue;
+      obscuredTotal++;
+      if (obscured.length < max) {
+        const pos = getComputedStyle(cover).position;
+        obscured.push({ ...named(el), by: named(cover), by_position: pos, box: boxNow(r) });
+      }
+    }
+    if (before && before !== document.body && before.focus) before.focus({ preventScroll: true });
+    else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    jump(sx, sy);
   }
 
   const font = parseFloat(getComputedStyle(root).fontSize);
@@ -239,10 +489,16 @@
     root_font_px: font,
     controls: controls.length,
     overflow,
+    reflow_exempt: reflowExempt,
     clipped,
+    clipped_count: clippedTotal,
     overlaps,
     overlap_count: overlapTotal,
     small,
     small_count: smallTotal,
+    focus_checked: !!focus,
+    focused,
+    obscured,
+    obscured_count: obscuredTotal,
   };
 }

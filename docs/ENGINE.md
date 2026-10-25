@@ -922,20 +922,49 @@ measure the page in the browser, with no model call, and report each problem as 
 results. A layout finding fails the sweep like an axe violation, and the allow-list can accept it. The checks
 are off by default, so an existing sweep won't turn red until you ask for them.
 
+The checks read the rectangles the browser lays out for elements and lines of text. Where it matters, they also ask
+the browser what is painted on top at a point. A box that merely reaches into another box doesn't count. Only what
+a reader would see goes wrong. The approach follows the geometry scorers in LayoutLens (MIT), written afresh for this
+engine.
+
+Unless you set `--viewport` or `--text-scale` yourself, `--layout` adds the two settings the criteria name. These
+are a 320 px window for WCAG 1.4.10 and text at 200 percent for WCAG 1.4.4. So `--layout` alone tests desktop,
+phone and the 320 px window, each at 100 and 200 percent text. Set `--viewport` or `--text-scale` to test fewer.
+
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
-| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window | 1.4.10 | serious |
-| `dummyrun-clipped-text` | An interactive element, or an element inside it, hides part of its text with `overflow` or an ellipsis, or a parent that clips hides part of the element | 1.4.4 | serious |
-| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The finding lists both selectors, with an ampersand between them | 1.4.4, 1.4.10 | serious |
-| `dummyrun-target-size` | A visible, enabled interactive element is under 24 by 24 CSS px | 2.5.8 | moderate |
+| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window on the side the text runs towards. Content past the other edge, such as a skip link waiting off screen, can't be scrolled to | 1.4.10 | serious |
+| `dummyrun-clipped-text` | A line of text reaches past the edge of a box that hides its overflow, while part of the text is still inside that box | 1.4.4 | serious |
+| `dummyrun-overlap` | Where two controls meet, the browser has one of them on top of the other's text, at two or more points. A control with no text counts when most of its box is covered | 1.4.4, 1.4.10 | serious |
+| `dummyrun-target-size` | A visible, enabled control is under 24 by 24 CSS px, and none of the measurable exceptions apply | 2.5.8 | moderate |
+| `dummyrun-focus-obscured` | A control that takes focus is entirely hidden by something opaque, such as a sticky header, once the browser has scrolled it into view | 2.4.11 | serious |
 
-The checks approximate what a person sees, and each node's `detail` says so. Overlap skips a control inside
-another control, a pair that something else covers where they meet, and a fixed bar against content below the
-window. Target size follows the two exceptions in WCAG 2.5.8 that can be measured. A link inside a sentence is
-exempt, and so is a small target with room around it: a 24 px circle on its centre must meet no other target
-and no other small target's circle. A checkbox or radio counts as large as its label. Disabled controls are
-skipped, and so are elements 1 px or smaller, which pages use to hide text from the eye. Overlap and clipping
-are the strongest signals, so check a target size finding by eye before you act on it.
+What doesn't count, because WCAG allows it or a person wouldn't see a problem:
+
+- For reflow, WCAG 1.4.10 lets some content keep a two-dimensional layout, so it can be wider than the window. That
+  covers data tables, images, maps, video and toolbars. When those are the only elements past the edge, there's no
+  finding, and `reflow_exempt` in the layout result counts them.
+- For clipped text, the other slides of a carousel don't count: text with no line inside the box is hidden by
+  it. A box of 1 px or less, or one with `clip` or `clip-path`, hides text from the eye on purpose. A box
+  that scrolls, and has something to scroll to, lets the reader reach the rest, and so does a box that hides overflow around one that scrolls on the
+  same axis, such as a terminal window with a scrolling line inside a rounded frame. Only words are measured, so the
+  spaces that hang past the edge of a `pre-wrap` line don't count. Text that's moving, because it or a box
+  around it has a CSS animation or transition running, is left out, since its box shows where it is mid-flight
+  rather than where it comes to rest. Text shortened with an ellipsis or a line clamp counts only inside a
+  control, where the missing words are the control's name.
+- For overlap, a control inside another control doesn't count. Nor do boxes that meet without covering any text,
+  such as transparent padding.
+- For target size, the exceptions are a link inside a sentence and a small target with room around it. A button,
+  input, select or text area the page leaves at the browser's own size is exempt too. Room around it means a 24 px circle on its centre meets no
+  other target and no other small target's circle. A checkbox or radio counts as large as its label. The
+  equivalent-control and essential exceptions need a person, so check a target size finding by eye before you
+  act on it.
+- For focus obscured, a control only partly hidden doesn't count, because WCAG 2.4.11 allows it at level AA. An
+  image, video or canvas counts as cover only when its pixels are solid. One whose pixels can't be read, such as
+  an image from another site, never counts. Focus moves to at most 150 controls on a page. The check runs only in a sweep, never during a persona's run, because a
+  page can react to focus.
+
+Disabled controls are skipped, and so are elements 1 px or smaller.
 
 Each result in the JSON has `text_scale` (left out at 100) and `layout_checked`. Each node can have a `detail` and a
 `screenshot`. `--screenshots DIR` writes a PNG crop of each flagged element to `DIR`, up to 12 for each page and

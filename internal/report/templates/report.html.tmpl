@@ -404,6 +404,9 @@ footer p { margin: 0 0 0.4rem; }
 {{- if $f.HelpURL}}
 <dt>Fix guidance</dt><dd><a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a></dd>
 {{- end}}
+{{- with $f.Fix}}
+<dt>How to fix</dt><dd>{{.Summary}} Usually done by {{.Owner}}.<ol>{{range .Steps}}<li>{{.}}</li>{{end}}</ol></dd>
+{{- end}}
 </dl>
 <h5>How to reproduce</h5>
 <ol class="steps">
@@ -474,7 +477,22 @@ footer p { margin: 0 0 0.4rem; }
 </tbody>
 </table>
 </div>
-{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
+{{if fixRules .Axe.Rules}}
+<h3 class="sub">How to fix what failed</h3>
+<p>Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the elements listed above.</p>
+{{- range fixRules .Axe.Rules}}
+<h4><code>{{.Rule}}</code></h4>
+<p>{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.</p>
+<ol>{{range .Fix.Steps}}<li>{{.}}</li>{{end}}</ol>
+{{- with .Fix.Example}}
+<p>Before:</p><pre><code>{{.Before}}</code></pre>
+<p>After:</p><pre><code>{{.After}}</code></pre>
+{{- end}}
+{{- if .Fix.Sources}}
+<p>Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}<a href="{{$u}}">{{$u}}</a>{{end}}</p>
+{{- end}}
+{{- end}}
+{{end}}{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
 {{if .Axe.NeedsReview}}
 <h3 class="sub">Needs a person to check</h3>
 <p>Axe cannot decide these rules alone. A person has to look.</p>

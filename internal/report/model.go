@@ -4,7 +4,10 @@
 // SARIF or JUnit XML. The wording is in templates/, so the renderers differ only in markup.
 package report
 
-import "github.com/dummy-run/dummy-run/internal/coverage"
+import (
+	"github.com/dummy-run/dummy-run/internal/coverage"
+	"github.com/dummy-run/dummy-run/internal/fixes"
+)
 
 // ReportVersion is the version of the report's JSON shape. schema/report.schema.json describes it.
 const ReportVersion = 1
@@ -190,6 +193,8 @@ type Finding struct {
 	WCAG []string `json:"wcag,omitempty"`
 	// HelpURL points to fix guidance where there is some.
 	HelpURL string `json:"help_url,omitempty"`
+	// Fix says how to fix the rule, from Dummy Run's fix library, when the finding is one of its own rules.
+	Fix *fixes.Fix `json:"fix,omitempty"`
 	// Baseline is new or still-present when a baseline report was given.
 	Baseline     string       `json:"baseline,omitempty"`
 	Personas     []string     `json:"personas"`
@@ -279,15 +284,16 @@ type AxeSection struct {
 
 // AxeRule is one rule that failed (or needs a person to look), folded across pages.
 type AxeRule struct {
-	Fingerprint string    `json:"fingerprint"`
-	Rule        string    `json:"rule"`
-	Impact      string    `json:"impact"`
-	WCAG        []string  `json:"wcag,omitempty"`
-	Help        string    `json:"help"`
-	HelpURL     string    `json:"help_url,omitempty"`
-	Elements    int       `json:"elements"`
-	Baseline    string    `json:"baseline,omitempty"`
-	Pages       []AxePage `json:"pages"`
+	Fingerprint string     `json:"fingerprint"`
+	Rule        string     `json:"rule"`
+	Impact      string     `json:"impact"`
+	WCAG        []string   `json:"wcag,omitempty"`
+	Help        string     `json:"help"`
+	HelpURL     string     `json:"help_url,omitempty"`
+	Fix         *fixes.Fix `json:"fix,omitempty"`
+	Elements    int        `json:"elements"`
+	Baseline    string     `json:"baseline,omitempty"`
+	Pages       []AxePage  `json:"pages"`
 }
 
 // AxePage lists the elements of one page that failed a rule.
