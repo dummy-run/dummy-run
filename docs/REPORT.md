@@ -146,10 +146,10 @@ doing a task, so its findings count as on a journey. A reviewer can still change
 ### Confidence
 
 Every finding records the facts it rests on: what kind of evidence it is, which rule engines agree, whether it
-came back in repeated runs, whether it is on a journey, and which check produced it. There are four kinds of
+came back in repeated runs, whether it is on a journey, and which check produced it. There are five kinds of
 evidence today. A measurement is made in the browser, such as the size of a target. A fact can be read from the
-page's accessibility tree, such as a missing name. A rule engine can report a result. Or the finding is the
-persona's own report, with no check behind it.
+page's accessibility tree, such as a missing name. A rule engine can report a result. A task can fail when Dummy Run tries it, such as a control that works by
+mouse but not by keyboard. Or the finding is the persona's own report, with no check behind it.
 
 Confidence is a lookup. Dummy Run keeps a table of how often findings with each combination of those facts have
 turned out to be right. The rule engine figures come from running the engines over the W3C's published test

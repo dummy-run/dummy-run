@@ -1059,7 +1059,8 @@ for the same criterion.
 
 Every failing element in a sweep carries a `confidence` of `high`, `medium`, `low` or `unknown`, with or without
 `--engines`. Each rule says what kind of `evidence` it is: `engine-rule` for axe and the other engines,
-`measurement` for the layout and keyboard checks and `ax-fact` for the markup checks.
+`measurement` for the layout and keyboard checks and `ax-fact` for the markup checks. `dummyrun-mouse-only` is a
+`task-verdict`, because the sweep tried the control by keyboard and it did not work.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
 the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep

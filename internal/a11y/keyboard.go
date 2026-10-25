@@ -112,12 +112,17 @@ func ruleFindings(byRule map[string][]Node, path string, allow *AllowList) []Fin
 			continue
 		}
 		r := keyboardRules[id]
-		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Evidence: record.EvidenceMeasurement, Nodes: []Node{}}
+		// A mouse-only control is a task the sweep tried by keyboard and could not complete.
+		ev := record.EvidenceMeasurement
+		if id == RuleMouseOnly {
+			ev = record.EvidenceTaskVerdict
+		}
+		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Evidence: ev, Nodes: []Node{}}
 		for _, n := range nodes {
 			if e := allow.Match(id, path, n.Target); e != nil {
 				n.Allowed, n.Reason = true, e.Reason
 			}
-			n.Confidence = rate(record.EvidenceMeasurement, id, nil)
+			n.Confidence = rate(ev, id, nil)
 			f.Nodes = append(f.Nodes, n)
 		}
 		list = append(list, f)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/signin"
 )
 
@@ -207,5 +208,22 @@ func TestSignedInSweepTriesOnlyControls(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestMouseOnlyIsATaskVerdict checks that a control the sweep could not work by keyboard is a task-verdict
+// finding, while the skip link check stays a measurement.
+func TestMouseOnlyIsATaskVerdict(t *testing.T) {
+	tasks := &page.Tasks{
+		Tasks: []page.Task{{Selector: "#menu", Kind: "expanded", Mouse: true, Reached: true}},
+		Skip:  &page.SkipTry{Link: "a.skip", Target: "#main", Label: "Skip to content"},
+	}
+	got := map[string]string{}
+	for _, f := range taskFindings(tasks, "/", nil) {
+		got[f.Rule] = f.Evidence
+	}
+	want := map[string]string{RuleMouseOnly: record.EvidenceTaskVerdict, RuleSkipLinkNoFocus: record.EvidenceMeasurement}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("evidence by rule %v, want %v", got, want)
 	}
 }

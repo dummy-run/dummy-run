@@ -129,7 +129,8 @@ type Finding struct {
 	Help    string   `json:"help"`
 	HelpURL string   `json:"help_url"`
 	// Evidence is the kind of evidence behind the rule: engine-rule for axe and the other engines, measurement for
-	// the layout and keyboard checks, ax-fact for the markup checks.
+	// the layout and keyboard checks, task-verdict for a control that works by mouse but not by keyboard, ax-fact
+	// for the markup checks.
 	Evidence string `json:"evidence,omitempty"`
 	Nodes    []Node `json:"nodes"`
 }
