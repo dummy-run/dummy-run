@@ -1010,11 +1010,10 @@ The median of the contrast ratios between the text colour and each pixel behind 
 text. The figures are rounded down to two places, so a ratio just under the threshold never shows as meeting it. The `detail` gives that figure and the ratio at the worst tenth
 of the pixels, so you can see how much of the text is affected. Text that passes at the median and fails only in its
 worst tenth isn't reported. Each result has `image_contrast`, with every
-measurement, and `image_contrast_checked`. `image_contrast_unmeasured` counts the elements it couldn't measure.
-These are ones inside a shadow root or frame, text with a shadow (a halo can give the contrast, and the picture
-wouldn't show it), text on a page whose content security policy blocks the style that hides it, ones it couldn't
-find or picture, and any past the limit. Check those
-by eye.
+measurement, and `image_contrast_checked`. `image_contrast_unmeasured` counts the elements it couldn't measure. These
+are ones inside a shadow root or frame, text in more than one colour, text with a shadow (a halo can give the
+contrast, and the picture wouldn't show it), text on a page whose content security policy blocks the style that hides
+it, ones it couldn't find or picture, and any past the limit. Check those by eye.
 
 The picture is taken as the page draws it, so a slideshow that moves on or a video behind the text can give a
 different answer next time. Check a finding by eye before you change the design.

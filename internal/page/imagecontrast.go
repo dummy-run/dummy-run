@@ -42,6 +42,13 @@ const imageContrastJS = `(op, selector) => {
   const large = size >= 24 || (size >= 18.66 && weight >= 700);
   if (cs.textShadow !== "none") return null;
   for (const d of el.querySelectorAll("*")) if (getComputedStyle(d).textShadow !== "none") return null;
+  // One text colour is compared with the background, so text drawn in more than one colour is left for a person.
+  const drawn = (n) => { const h = getComputedStyle(n); return h.webkitTextFillColor || h.color; };
+  const own = drawn(el);
+  for (const d of el.querySelectorAll("*")) {
+    const words = [...d.childNodes].some((c) => c.nodeType === Node.TEXT_NODE && c.textContent.trim());
+    if (words && drawn(d) !== own) return null;
+  }
   // The box around the words, not the element: padding or empty space beside a short label isn't behind any text.
   const range = document.createRange();
   range.selectNodeContents(el);
