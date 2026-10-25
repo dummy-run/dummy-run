@@ -21,6 +21,12 @@ const layoutHead = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 const layoutTail = `</main></body></html>`
 
 // smoothScroll makes the page glide when scrolled, as many sites do.
+// One pixel PNGs: fully clear, and solid red.
+const (
+	clearPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII="
+	solidPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGM4oaHxHwAE7AIY0raoogAAAABJRU5ErkJggg=="
+)
+
 const smoothScroll = "html { scroll-behavior: smooth; } " //nolint:misspell // a CSS property name
 
 // layoutPages are fixture pages, each with one known layout problem, and a clean page.
@@ -82,6 +88,16 @@ var layoutPages = map[string]string{
 <a href="/hidden" id="under" style="display:inline-block;padding:12px">Hidden link</a>
 <p style="margin-top:44px"><a href="/partly" id="partly" style="display:inline-block;padding:12px 12px 40px">Partly hidden link</a></p>
 <h1 style="margin-top:200px">Content</h1><p style="height:1200px">Long page.</p></main></body></html>`,
+	// A box set to scroll sideways that has nothing to scroll sits inside a narrower box that hides overflow, so
+	// the outer box cuts the line off.
+	"/nested": layoutHead + `<h1>Nested</h1><div style="width:100px;overflow:hidden"><div style="width:200px;overflow-x:auto"><span id="line" style="display:inline-block;margin-left:50px;width:150px;white-space:nowrap">A line that runs on</span></div></div>` + layoutTail,
+	// Two images fixed over two links: a clear one, which hides nothing, and a solid one, which hides its link.
+	"/images": `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Images</title>
+<style>body { margin: 0; font: 1rem/1.4 sans-serif; } img { position: fixed; z-index: 1; left: 0; width: 300px; height: 80px; }</style></head>
+<body><img alt="" src="data:image/png;base64,` + clearPNG + `" style="top:0"><img alt="" src="data:image/png;base64,` + solidPNG + `" style="top:100px">
+<a href="/glass" id="glass" style="position:absolute;top:10px;left:10px;padding:12px">Behind clear glass</a>
+<a href="/photo" id="photo" style="position:absolute;top:110px;left:10px;padding:12px">Behind a photo</a>
+<h1 style="margin-top:300px">Content</h1></body></html>`,
 	// Sized in rem and in px: text that follows the default font size grows, the px text does not.
 	"/scale": layoutHead + `<h1>Scale</h1>
 <p id="rem" style="font-size:1rem">Rem text</p><p id="px" style="font-size:16px">Px text</p>
@@ -158,6 +174,8 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 		{"/small", RuleTargetSize, "s1", "2.5.8"},
 		{"/cut", RuleClippedText, "p", "1.4.4"},
 		{"/sticky", RuleFocusObscured, "under", "2.4.11"},
+		{"/nested", RuleClippedText, "line", "1.4.4"},
+		{"/images", RuleFocusObscured, "photo", "2.4.11"},
 	}
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
@@ -231,6 +249,11 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 			res = layoutRun(t, browser, srv.URL+"/sticky", nil, "")[0]
 			if f := layoutFinding(res, RuleFocusObscured); f == nil || len(f.Nodes) != 1 || !strings.Contains(f.Nodes[0].Detail, "(fixed)") {
 				t.Errorf("obscured %v, want only #under, hidden by the fixed header", f)
+			}
+			// The clear image hides nothing, so only the link behind the solid one is reported.
+			res = layoutRun(t, browser, srv.URL+"/images", nil, "")[0]
+			if f := layoutFinding(res, RuleFocusObscured); f == nil || len(f.Nodes) != 1 || strings.Contains(targets(f), "glass") {
+				t.Errorf("obscured %v, want only #photo, behind the solid image", f)
 			}
 			res = layoutRun(t, browser, srv.URL+"/clean", nil, "")[0]
 			for _, rule := range LayoutRules {

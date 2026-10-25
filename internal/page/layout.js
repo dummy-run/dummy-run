@@ -181,15 +181,16 @@
   const clippers = (el) => {
     if (clipCache.has(el)) return clipCache.get(el);
     const list = [];
-    const scrolls = (v) => v === "auto" || v === "scroll";
+    // A box set to scroll that has nothing to scroll to does not keep the text from the boxes around it.
+    const scrolls = (v, range) => (v === "auto" || v === "scroll") && range > 1;
     let scrollX = false, scrollY = false;
     for (let a = el; a && a !== root; a = a.parentElement) {
       const s = getComputedStyle(a);
       const x = !scrollX && (s.overflowX === "hidden" || s.overflowX === "clip");
       const y = !scrollY && (s.overflowY === "hidden" || s.overflowY === "clip");
       if (x || y) list.push({ a, s, x, y });
-      scrollX = scrollX || scrolls(s.overflowX);
-      scrollY = scrollY || scrolls(s.overflowY);
+      scrollX = scrollX || scrolls(s.overflowX, a.scrollWidth - a.clientWidth);
+      scrollY = scrollY || scrolls(s.overflowY, a.scrollHeight - a.clientHeight);
       if (scrollX && scrollY) break;
     }
     clipCache.set(el, list);
@@ -406,8 +407,28 @@
   let obscuredTotal = 0, focused = 0;
   if (focus) {
     const before = document.activeElement;
+    // An image, video or canvas covers what is behind it only where its pixels are solid. Its pixels are read
+    // through a small copy. One that cannot be read, such as an image from another site, is not counted as cover.
+    const solidCache = new Map();
+    const solid = (el) => {
+      if (solidCache.has(el)) return solidCache.get(el);
+      let ok = false;
+      try {
+        const c = document.createElement("canvas");
+        c.width = c.height = 16;
+        const g = c.getContext("2d");
+        g.drawImage(el, 0, 0, 16, 16);
+        const d = g.getImageData(0, 0, 16, 16).data;
+        ok = true;
+        for (let i = 3; i < d.length; i += 4) if (d[i] < 250) { ok = false; break; }
+      } catch (e) {
+        ok = false;
+      }
+      solidCache.set(el, ok);
+      return ok;
+    };
     const opaque = (el) => {
-      if (/^(IMG|VIDEO|CANVAS)$/.test(el.tagName)) return true;
+      if (/^(IMG|VIDEO|CANVAS)$/.test(el.tagName)) return solid(el);
       const s = getComputedStyle(el);
       if (s.transform !== "none" || s.clipPath !== "none" || parseFloat(s.borderTopLeftRadius) > 0) return false;
       const m = /rgba?\(([^)]*)\)/.exec(s.backgroundColor);

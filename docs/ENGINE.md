@@ -946,7 +946,7 @@ What doesn't count, because WCAG allows it or a person wouldn't see a problem:
   finding, and `reflow_exempt` in the layout result counts them.
 - For clipped text, the other slides of a carousel don't count: text with no line inside the box is hidden by
   it. A box of 1 px or less, or one with `clip` or `clip-path`, hides text from the eye on purpose. A box
-  that scrolls lets the reader reach the rest, and so does a box that hides overflow around one that scrolls on the
+  that scrolls, and has something to scroll to, lets the reader reach the rest, and so does a box that hides overflow around one that scrolls on the
   same axis, such as a terminal window with a scrolling line inside a rounded frame. Only words are measured, so the
   spaces that hang past the edge of a `pre-wrap` line don't count. Text that's moving, because it or a box
   around it has a CSS animation or transition running, is left out, since its box shows where it is mid-flight
@@ -959,8 +959,9 @@ What doesn't count, because WCAG allows it or a person wouldn't see a problem:
   other target and no other small target's circle. A checkbox or radio counts as large as its label. The
   equivalent-control and essential exceptions need a person, so check a target size finding by eye before you
   act on it.
-- For focus obscured, a control only partly hidden doesn't count, because WCAG 2.4.11 allows it at level AA. Focus
-  moves to at most 150 controls on a page. The check runs only in a sweep, never during a persona's run, because a
+- For focus obscured, a control only partly hidden doesn't count, because WCAG 2.4.11 allows it at level AA. An
+  image, video or canvas counts as cover only when its pixels are solid. One whose pixels can't be read, such as
+  an image from another site, never counts. Focus moves to at most 150 controls on a page. The check runs only in a sweep, never during a persona's run, because a
   page can react to focus.
 
 Disabled controls are skipped, and so are elements 1 px or smaller.
