@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
+	"github.com/dummy-run/dummy-run/internal/confidence"
 	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
@@ -52,8 +53,7 @@ var Tools = []provider.Tool{
 			"report": str("Your report in Markdown: what you tried, what happened, what you would tell the team. Cite steps as 'step 4' or 'steps 6-8'."),
 			"findings": map[string]any{"type": "array", "description": "Problems only: each distinct thing that is wrong, missing or confusing, with evidence. Leave out what worked. That goes in observations.",
 				"items": object(map[string]any{
-					"kind":     map[string]any{"type": "string", "enum": record.Kinds},
-					"severity": map[string]any{"type": "string", "enum": record.Severities},
+					"kind": map[string]any{"type": "string", "enum": record.Kinds},
 					"symptom": map[string]any{"type": "string", "enum": identity.Symptoms,
 						"description": "What is wrong, in the closest of these words. " + symptomHelp()},
 					"topic":   str("Only with symptom missing-information: what the missing content is about, at most four words, such as 'uk data residency'."),
@@ -63,7 +63,7 @@ var Tools = []provider.Tool{
 					"steps":   map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "minItems": 1},
 					"evidence": map[string]any{"type": "string", "enum": []string{"measured", "inferred"},
 						"description": "measured: you saw it in a step. inferred: your reasoning, labelled as such."},
-				}, "kind", "severity", "symptom", "title", "steps", "evidence")},
+				}, "kind", "symptom", "title", "steps", "evidence")},
 			"observations": map[string]any{"type": "array", "description": "Things that worked and neutral notes, such as 'The home page accessibility check found no violations.' Not problems. Leave empty when there is nothing to note.",
 				"items": object(map[string]any{
 					"text":  str("One sentence: what worked or what was neutral"),
@@ -90,8 +90,10 @@ type FinishObservation struct {
 	Steps []int  `json:"steps"`
 }
 
-// FinishFinding is one finding as the persona reported it. Class is not in the tool any more. It is
-// read so that a model that still sends class observation has the finding moved to the observations.
+// FinishFinding is one finding as the persona reported it. Class and Severity are not in the tool any more.
+// Class is read so that a model that still sends class observation has the finding moved to the observations.
+// Severity is read so that a model that still sends one is not refused, and it is then ignored: the engine sets
+// severity from a rule, never from the model.
 type FinishFinding struct {
 	Class    string `json:"class"`
 	Symptom  string `json:"symptom"`
@@ -171,9 +173,6 @@ func ParseFinish(args json.RawMessage, maxStep int) (Finish, error) {
 		if !contains(record.Kinds, ff.Kind) {
 			ff.Kind = "question"
 		}
-		if !contains(record.Severities, ff.Severity) {
-			ff.Severity = "info"
-		}
 		ff.Class = record.ClassProblem
 		if ff.Evidence != "measured" {
 			ff.Evidence = "inferred"
@@ -252,7 +251,7 @@ func (f *Finish) DropInvalid() int {
 
 // RecordFindings converts the persona's findings to run record findings with a
 // pending verdict. The reviewer is a later stage. The engine, not the model, sets the
-// route, the locus and the fingerprint. Findings with an invalid symptom are left out.
+// route, the locus, the fingerprint, the inputs and the severity. Findings with an invalid symptom are left out.
 func RecordFindings(f Finish, loc *Locator) []record.Finding {
 	out := make([]record.Finding, 0, len(f.Findings))
 	seen := map[string]bool{}
@@ -272,11 +271,33 @@ func RecordFindings(f Finish, loc *Locator) []record.Finding {
 		if err != nil {
 			continue
 		}
-		out = append(out, record.Finding{ID: id, Kind: ff.Kind, Severity: ff.Severity, Title: ff.Title,
+		inputs, impact := findingInputs(symptom, ff.Steps, loc)
+		severity := confidence.Severity(confidence.SeverityInputs{Evidence: inputs.EvidenceKind, Impact: impact, OnJourney: inputs.OnJourney, Pages: 1})
+		out = append(out, record.Finding{ID: id, Kind: ff.Kind, Severity: severity, Title: ff.Title,
 			Steps: ff.Steps, Evidence: ff.Evidence, Verdict: record.VerdictPending, Class: record.ClassProblem,
-			Route: route, Locus: locus, Symptom: symptom, TaxonomyVersion: identity.TaxonomyVersion, Fingerprint: fp})
+			Route: route, Locus: locus, Symptom: symptom, TaxonomyVersion: identity.TaxonomyVersion, Fingerprint: fp,
+			Inputs: &inputs})
 	}
 	return out
+}
+
+// findingInputs works out what a persona finding rests on, from the steps it cites and nothing the model wrote.
+// A finding that names an axe rule which a cited accessibility check reported is an engine-rule finding with
+// axe's impact for that rule. Anything else is model-only, with the impact class of its symptom. A persona met
+// the problem while doing its scenario, so the finding is on a journey.
+func findingInputs(symptom string, cited []int, loc *Locator) (record.FindingInputs, string) {
+	base, param, _ := strings.Cut(symptom, ":")
+	in := record.FindingInputs{EvidenceKind: record.EvidenceModelOnly, Engines: []string{}, Check: base, OnJourney: true}
+	if base == "a11y" && param != "" {
+		in.Check = param
+		if impact, ok := loc.A11yRule(cited, param); ok {
+			in.EvidenceKind, in.Engines = record.EvidenceEngineRule, []string{"axe"}
+			if impact != "" {
+				return in, impact
+			}
+		}
+	}
+	return in, confidence.ImpactOfSymptom(symptom)
 }
 
 func contains(list []string, v string) bool {

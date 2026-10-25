@@ -83,7 +83,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 {{range .Items}}{{$f := .Finding}}#### {{$f.Title}}
 
-{{cap $f.Severity}}. {{statusText $f.Status}}.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
+{{cap $f.Severity}}. {{statusText $f.Status}}. {{cap $f.Confidence}} confidence.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
 
 {{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
 
@@ -100,6 +100,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 | WCAG 2.2 | {{cell (join $f.WCAG)}} |
 {{- end}}
 | Review | {{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{cell (join $f.Reviewers)}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{cell $f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding{{end}} |
+| How sure | {{confidenceText $f.Confidence}} {{cell $f.ConfidenceReason}} |
 {{- if $f.HelpURL}}
 | Fix guidance | {{cell $f.HelpURL}} |
 {{- end}}
@@ -134,10 +135,10 @@ The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} 
 {{if .Axe.Rules -}}
 ### Rules that failed
 
-| Rule | What it checks | Impact | WCAG 2.2 | Elements | Fix guidance |
-|---|---|---|---|---:|---|
+| Rule | What it checks | Severity | Impact | WCAG 2.2 | Elements | How sure | Fix guidance |
+|---|---|---|---|---|---:|---|---|
 {{- range .Axe.Rules}}
-| `{{cell .Rule}}` | {{cell .Help}}{{if .Baseline}} ({{cell (baselineText .Baseline)}}){{end}} | {{if .Impact}}{{cell (cap .Impact)}}{{else}}No impact given{{end}} | {{if .WCAG}}{{cell (join .WCAG)}}{{else}}Not recorded{{end}} | {{cell .Elements}} | {{if .HelpURL}}{{cell .HelpURL}}{{else}}None recorded{{end}} |
+| `{{cell .Rule}}` | {{cell .Help}}{{if .Baseline}} ({{cell (baselineText .Baseline)}}){{end}} | {{cap .Severity}} | {{if .Impact}}{{cell (cap .Impact)}}{{else}}No impact given{{end}} | {{if .WCAG}}{{cell (join .WCAG)}}{{else}}Not recorded{{end}} | {{cell .Elements}} | {{cap .Confidence}}. {{cell .ConfidenceReason}} | {{if .HelpURL}}{{cell .HelpURL}}{{else}}None recorded{{end}} |
 {{- end}}
 
 ### Where each rule failed

@@ -897,3 +897,57 @@ func TestAdviceIsShownApartFromFailures(t *testing.T) {
 		t.Error("a report with no advice shows the section")
 	}
 }
+
+func TestSeverityAndConfidenceComeFromTheInputs(t *testing.T) {
+	rep, err := Build(loadFixture(t), fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules := map[string]AxeRule{}
+	for _, r := range rep.Axe.Rules {
+		rules[r.Rule] = r
+	}
+	// button-name is critical, so a blocker. color-contrast is serious on a page the personas visited: major, since
+	// only a critical impact makes a blocker. Both rest on axe alone, which has a measured record, so both are high.
+	if r := rules["button-name"]; r.Severity != "blocker" || r.Confidence != "high" || r.Inputs == nil || !r.Inputs.OnJourney || r.Inputs.EvidenceKind != record.EvidenceEngineRule {
+		t.Errorf("button-name: severity %q confidence %q inputs %+v", r.Severity, r.Confidence, r.Inputs)
+	}
+	if r := rules["color-contrast"]; r.Severity != "major" || r.Confidence != "high" || r.ConfidenceReason != "axe-core reports it, and no other engine was asked." { //nolint:misspell // an axe rule ID
+		t.Errorf("color-contrast: severity %q confidence %q reason %q", r.Severity, r.Confidence, r.ConfidenceReason) //nolint:misspell // an axe rule ID
+	}
+	if len(rep.Axe.NeedsReview) > 0 && rep.Axe.NeedsReview[0].Severity != "" {
+		t.Error("a rule that needs review has no severity: nothing failed yet")
+	}
+	// The fixture records predate inputs, so every persona finding is the model's own report: low, with how many of
+	// the runs that visited its route also found it.
+	for _, f := range rep.Findings {
+		if f.Confidence != "low" || f.Inputs == nil || f.Inputs.EvidenceKind != record.EvidenceModelOnly || f.Inputs.Reproduced == nil || f.Inputs.Reproduced.Of != 4 {
+			t.Errorf("%s: confidence %q inputs %+v", f.Title, f.Confidence, f.Inputs)
+		}
+		if !strings.HasPrefix(f.ConfidenceReason, "The persona's own report") || !strings.Contains(f.ConfidenceReason, "of 4 runs") {
+			t.Errorf("%s: reason %q", f.Title, f.ConfidenceReason)
+		}
+	}
+	html := render(t, rep, "html")
+	for _, want := range []string{"Low confidence</span>", "<dt>How sure</dt><dd>Low confidence. The persona&#39;s own report", `<th scope="col">How sure</th>`, "High<br>"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("HTML lacks %q", want)
+		}
+	}
+	// A record that carries inputs keeps them, and a finding the sweep's engines back rates by them.
+	runs := loadFixture(t)
+	runs[0].Rec.Findings[0].Inputs = &record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"axe"}, Check: "label", OnJourney: true}
+	rep, err = Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var backed *Finding
+	for i := range rep.Findings {
+		if rep.Findings[i].Fingerprint == runs[0].Rec.Findings[0].Fingerprint {
+			backed = &rep.Findings[i]
+		}
+	}
+	if backed == nil || backed.Confidence != "high" || backed.Inputs.Check != "label" {
+		t.Errorf("a finding with recorded inputs: %+v", backed)
+	}
+}

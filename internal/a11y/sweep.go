@@ -17,6 +17,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
@@ -113,7 +114,8 @@ type Node struct {
 	Detail string `json:"detail,omitempty"`
 	// Engines are the rule engines that report this element for the same criterion, when the sweep ran --engines.
 	Engines []string `json:"engines,omitempty"`
-	// Confidence is high when two or more engines agree, and single when one engine reports the element alone.
+	// Confidence is high, medium, low or unknown: how often findings with this element's inputs (the kind of
+	// evidence, the rule and the engines that agree) have turned out to be right, looked up in the confidence table.
 	Confidence string `json:"confidence,omitempty"`
 	// Screenshot is the path of a PNG crop of the element. Layout checks fill it when screenshots are on.
 	Screenshot string `json:"screenshot,omitempty"`
@@ -126,7 +128,10 @@ type Finding struct {
 	WCAG    []string `json:"wcag,omitempty"`
 	Help    string   `json:"help"`
 	HelpURL string   `json:"help_url"`
-	Nodes   []Node   `json:"nodes"`
+	// Evidence is the kind of evidence behind the rule: engine-rule for axe and the other engines, measurement for
+	// the layout and keyboard checks, ax-fact for the markup checks.
+	Evidence string `json:"evidence,omitempty"`
+	Nodes    []Node `json:"nodes"`
 }
 
 // PageResult is one page in one browser, viewport, colour scheme and text size.
@@ -632,9 +637,9 @@ func textScaleField(n int) int {
 }
 
 func finding(r axeRule, path string, allow *AllowList) Finding {
-	f := Finding{Rule: r.ID, Impact: r.Impact, WCAG: Criteria(r.Tags), Help: r.Help, HelpURL: r.HelpURL, Nodes: []Node{}}
+	f := Finding{Rule: r.ID, Impact: r.Impact, WCAG: Criteria(r.Tags), Help: r.Help, HelpURL: r.HelpURL, Evidence: record.EvidenceEngineRule, Nodes: []Node{}}
 	for _, t := range r.Nodes {
-		n := Node{Target: t}
+		n := Node{Target: t, Confidence: rate(record.EvidenceEngineRule, r.ID, []string{"axe"})}
 		if e := allow.Match(r.ID, path, t); e != nil {
 			n.Allowed, n.Reason = true, e.Reason
 		}

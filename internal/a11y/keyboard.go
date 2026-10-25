@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/record"
 )
 
 // Rule IDs of the keyboard checks. They sit beside axe's rule IDs in the report and the allow-list.
@@ -66,11 +67,12 @@ func keyboardFindings(w *page.TabWalk, path string, allow *AllowList) []Finding 
 			continue
 		}
 		r := keyboardRules[id]
-		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Nodes: []Node{}}
+		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Evidence: record.EvidenceMeasurement, Nodes: []Node{}}
 		for _, n := range nodes {
 			if e := allow.Match(id, path, n.Target); e != nil {
 				n.Allowed, n.Reason = true, e.Reason
 			}
+			n.Confidence = rate(record.EvidenceMeasurement, id, nil)
 			f.Nodes = append(f.Nodes, n)
 		}
 		list = append(list, f)

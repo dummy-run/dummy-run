@@ -50,6 +50,25 @@ func sortedCopy(in []int) []int {
 	return out
 }
 
+// A11yRule reports whether a cited accessibility check reported the axe rule, and that rule's impact.
+func (l *Locator) A11yRule(cited []int, rule string) (impact string, ok bool) {
+	for _, n := range cited {
+		if n < 1 || n > len(l.steps) {
+			continue
+		}
+		s := l.steps[n-1]
+		if s.Obs.Action != "a11y" || s.Obs.Error != "" {
+			continue
+		}
+		for _, v := range s.Obs.A11y {
+			if v.ID == rule {
+				return v.Impact, true
+			}
+		}
+	}
+	return "", false
+}
+
 // Locus is "role:accessible name" of the control the persona named by @ref, found in the outline of the
 // first cited step that lists it. Without a control, or when the control has no name, it is
 // "region:<nearest heading or landmark>", and "page" when the page has neither.

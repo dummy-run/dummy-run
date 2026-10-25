@@ -74,7 +74,7 @@ func TestParseFinishRepairsBadValues(t *testing.T) {
 		t.Fatalf("findings %+v", f.Findings)
 	}
 	ff := f.Findings[0]
-	if ff.Kind != "question" || ff.Severity != "info" || ff.Evidence != "inferred" || ff.Title != "The thing broke" || len(ff.Steps) != 1 || ff.Steps[0] != 2 {
+	if ff.Kind != "question" || ff.Evidence != "inferred" || ff.Title != "The thing broke" || len(ff.Steps) != 1 || ff.Steps[0] != 2 {
 		t.Errorf("finding %+v", ff)
 	}
 	if _, err := ParseFinish(json.RawMessage(`not json`), 5); err == nil {
@@ -445,5 +445,51 @@ func TestEarlyFinishIsSentBackUntilTheMinimum(t *testing.T) {
 	}
 	if earlyFinish(8, 1, 0, false, json.RawMessage(`not json`)) == "" {
 		t.Error("unreadable arguments should still be sent back")
+	}
+}
+
+func TestRecordFindingsSetsSeverityAndInputsFromTheSteps(t *testing.T) {
+	a11yStep := sampleStep(2, "a11y", "")
+	a11yStep.Obs.A11y = []page.Violation{{ID: "image-alt", Impact: "critical", Help: "Images must have alternate text", Nodes: 1}}
+	loc := NewLocator([]Step{sampleStep(1, "look", ""), a11yStep, sampleStep(3, "click", "")})
+	recs := RecordFindings(Finish{Findings: []FinishFinding{
+		// The model's severity is ignored: the rule sets it from the inputs.
+		{Kind: "accessibility", Severity: "info", Symptom: "a11y", Rule: "image-alt", Title: "The logo has no alt text", Steps: []int{2}, Evidence: "measured"},
+		{Kind: "accessibility", Severity: "blocker", Symptom: "a11y", Rule: "color-contrast", Title: "Grey text on grey", Steps: []int{1}, Evidence: "measured"}, //nolint:misspell // an axe rule ID
+		{Kind: "friction", Severity: "blocker", Symptom: "missing-information", Topic: "prices", Title: "No prices", Steps: []int{3}, Evidence: "inferred"},
+		{Kind: "bug", Severity: "info", Symptom: "not-operable", Control: "@2", Title: "Go does nothing", Steps: []int{3}, Evidence: "measured"},
+	}}, loc)
+	if len(recs) != 4 {
+		t.Fatalf("%d findings", len(recs))
+	}
+	backed := recs[0]
+	if backed.Severity != "blocker" || backed.Inputs == nil || backed.Inputs.EvidenceKind != record.EvidenceEngineRule ||
+		backed.Inputs.Check != "image-alt" || len(backed.Inputs.Engines) != 1 || backed.Inputs.Engines[0] != "axe" || !backed.Inputs.OnJourney {
+		t.Errorf("a finding the a11y step backs: severity %s inputs %+v", backed.Severity, backed.Inputs)
+	}
+	claimed := recs[1]
+	if claimed.Severity != "major" || claimed.Inputs.EvidenceKind != record.EvidenceModelOnly || claimed.Inputs.Check != "color-contrast" || len(claimed.Inputs.Engines) != 0 { //nolint:misspell // an axe rule ID
+		t.Errorf("a rule the a11y step did not report: severity %s inputs %+v", claimed.Severity, claimed.Inputs)
+	}
+	if recs[2].Severity != "minor" || recs[2].Inputs.Check != "missing-information" || recs[2].Inputs.EvidenceKind != record.EvidenceModelOnly {
+		t.Errorf("missing information: severity %s inputs %+v", recs[2].Severity, recs[2].Inputs)
+	}
+	if recs[3].Severity != "major" || recs[3].Inputs.Check != "not-operable" {
+		t.Errorf("not operable on a journey: severity %s inputs %+v", recs[3].Severity, recs[3].Inputs)
+	}
+	var finish provider.Tool
+	for _, tl := range Tools {
+		if tl.Name == "finish" {
+			finish = tl
+		}
+	}
+	items := finish.Parameters["properties"].(map[string]any)["findings"].(map[string]any)["items"].(map[string]any)
+	if _, ok := items["properties"].(map[string]any)["severity"]; ok {
+		t.Error("the finish tool still asks the model for a severity")
+	}
+	for _, r := range items["required"].([]string) {
+		if r == "severity" {
+			t.Error("severity is still required")
+		}
 	}
 }

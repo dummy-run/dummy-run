@@ -5,26 +5,14 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/dummy-run/dummy-run/internal/confidence"
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/record"
 )
 
 // RuleEnginesPrefix starts the rule ID of a failure that the other engines report and axe does not. The criterion
 // follows, as in dummyrun-engines-1.1.1.
 const RuleEnginesPrefix = "dummyrun-engines-"
-
-// Confidence of a failing element, from how many engines report it for the same criterion.
-const (
-	ConfidenceHigh   = "high"   // two or more engines agree
-	ConfidenceSingle = "single" // one engine alone
-)
-
-// engineNames are the names a report shows for each engine.
-var engineNames = map[string]string{
-	"axe":    "axe-core",
-	"ibm":    "IBM Equal Access",
-	"htmlcs": "HTML_CodeSniffer",
-	"alfa":   "Siteimprove Alfa",
-}
 
 // IsEnginesRule reports whether the rule ID is one the other engines produced.
 func IsEnginesRule(id string) bool { return strings.HasPrefix(id, RuleEnginesPrefix) }
@@ -40,9 +28,9 @@ func axeNodes(violations []Finding) []page.AxeNode {
 	return out
 }
 
-// engineFindings marks each axe violation node with the engines that agree with it, and turns the failures axe did
-// not report into findings. A group two or more engines agree on is a violation. A group one engine reports alone is
-// a candidate: it is kept for review and never fails the sweep.
+// engineFindings marks each axe violation node with the engines that agree with it and rates its confidence again
+// with them, and turns the failures axe did not report into findings. A group two or more engines agree on is a
+// violation. A group one engine reports alone is a candidate: it is kept for review and never fails the sweep.
 func engineFindings(r *page.EngineResults, violations []Finding, path string, allow *AllowList) (agreed, candidates []Finding) {
 	i := 0
 	for _, f := range violations {
@@ -54,7 +42,7 @@ func engineFindings(r *page.EngineResults, violations []Finding, path string, al
 			}
 			slices.Sort(engines)
 			n.Engines = engines
-			n.Confidence = confidence(engines)
+			n.Confidence = rate(record.EvidenceEngineRule, f.Rule, engines)
 			f.Nodes[ni] = n
 			i++
 		}
@@ -76,11 +64,11 @@ func engineFindings(r *page.EngineResults, violations []Finding, path string, al
 		k, ok := at[id]
 		if !ok {
 			*list = append(*list, Finding{Rule: id, Impact: impact, WCAG: []string{sc[0]}, Help: help + "WCAG " + sc[0] + " " + wcag22[sc[0]].title,
-				HelpURL: understandingURL(sc[0]), Nodes: []Node{}})
+				HelpURL: understandingURL(sc[0]), Evidence: record.EvidenceEngineRule, Nodes: []Node{}})
 			k = len(*list) - 1
 			at[id] = k
 		}
-		n := Node{Target: g.Selector, Detail: hitsDetail(g.Hits), Engines: g.Engines, Confidence: confidence(g.Engines)}
+		n := Node{Target: g.Selector, Detail: hitsDetail(g.Hits), Engines: g.Engines, Confidence: rate(record.EvidenceEngineRule, id, g.Engines)}
 		if e := allow.Match(id, path, n.Target); e != nil {
 			n.Allowed, n.Reason = true, e.Reason
 		}
@@ -100,19 +88,12 @@ func enginesFailed(r *page.EngineResults) string {
 	names := slices.Sorted(maps.Keys(r.Errors))
 	parts := make([]string, 0, len(names))
 	for _, n := range names {
-		parts = append(parts, engineNames[n]+": "+r.Errors[n])
+		parts = append(parts, confidence.EngineName(n)+": "+r.Errors[n])
 	}
 	if len(parts) == 0 {
 		return "none of the other accessibility engines ran"
 	}
 	return "none of the other accessibility engines ran (" + strings.Join(parts, "; ") + ")"
-}
-
-func confidence(engines []string) string {
-	if len(engines) >= 2 {
-		return ConfidenceHigh
-	}
-	return ConfidenceSingle
 }
 
 // hitsDetail says in words which engine reported what, one rule per engine.
@@ -125,7 +106,7 @@ func hitsDetail(hits []page.EngineHit) string {
 			continue
 		}
 		seen[key] = true
-		s := engineNames[h.Engine] + " (" + h.Rule + ")"
+		s := confidence.EngineName(h.Engine) + " (" + h.Rule + ")"
 		if h.Message != "" {
 			s += ": " + h.Message
 		}
