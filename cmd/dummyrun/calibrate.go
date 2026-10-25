@@ -16,7 +16,7 @@ func calibrateCmd(args []string) int { return calibrateTo(args, os.Stdout) }
 func calibrateTo(args []string, stdout io.Writer) int {
 	fs := flag.NewFlagSet("calibrate", flag.ContinueOnError)
 	var labels, eval listFlag
-	fs.Var(&labels, "labels", "a JSON file of labelled findings, each with its inputs and whether it was true; repeat the flag to read several")
+	fs.Var(&labels, "labels", "a JSON file of labelled findings, each with its inputs and whether it was true; repeat the flag for each file, as in --labels a.json --labels b.json")
 	fs.Var(&eval, "eval", "labelled findings to check the table against instead of the ones it was built from; repeatable")
 	table := fs.String("table", "", "rate the --eval findings with this table instead of building one from --labels")
 	outTable := fs.String("out-table", "", "write the rebuilt confidence table here (JSON)")
@@ -43,8 +43,16 @@ command. To check a table against findings it was not built from, pass them with
 		}
 		return 2
 	}
+	if fs.NArg() > 0 {
+		fmt.Fprintf(os.Stderr, "dummyrun calibrate: unexpected argument %q; give each file with --labels FILE or --eval FILE\n", fs.Arg(0))
+		return exitRefused
+	}
 	if len(labels) == 0 && *table == "" {
 		fmt.Fprintln(os.Stderr, "dummyrun calibrate: give --labels to build a table, or --table to check one")
+		return exitRefused
+	}
+	if len(labels) > 0 && *table != "" && *outTable != "" {
+		fmt.Fprintln(os.Stderr, "dummyrun calibrate: --out-table with both --labels and --table is ambiguous; drop --table to write the rebuilt table, or drop --labels to copy the loaded one")
 		return exitRefused
 	}
 	var t *confidence.Table

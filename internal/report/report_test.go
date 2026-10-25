@@ -909,7 +909,7 @@ func TestSeverityAndConfidenceComeFromTheInputs(t *testing.T) {
 	}
 	// button-name is critical, so a blocker. color-contrast is serious on a page the personas visited: major, since
 	// only a critical impact makes a blocker. Both rest on axe alone, which has a measured record, so both are high.
-	if r := rules["button-name"]; r.Severity != "blocker" || r.Confidence != "high" || r.Inputs == nil || !r.Inputs.OnJourney || r.Inputs.EvidenceKind != record.EvidenceEngineRule {
+	if r := rules["button-name"]; r.Inputs == nil || r.Severity != "blocker" || r.Confidence != "high" || !r.Inputs.OnJourney || r.Inputs.EvidenceKind != record.EvidenceEngineRule {
 		t.Errorf("button-name: severity %q confidence %q inputs %+v", r.Severity, r.Confidence, r.Inputs)
 	}
 	if r := rules["color-contrast"]; r.Severity != "major" || r.Confidence != "high" || !strings.HasSuffix(r.ConfidenceReason, "so the band comes from all findings axe-core reports together (159 checked).") { //nolint:misspell // an axe rule ID
@@ -921,7 +921,11 @@ func TestSeverityAndConfidenceComeFromTheInputs(t *testing.T) {
 	// The fixture records predate inputs, so every persona finding is the model's own report: low. A finding whose
 	// role had repeated runs over its route says how many of them also found it; the editor ran once, so hers do not.
 	for _, f := range rep.Findings {
-		if f.Confidence != "low" || f.Inputs == nil || f.Inputs.EvidenceKind != record.EvidenceModelOnly || !strings.HasPrefix(f.ConfidenceReason, "The persona's own report") {
+		if f.Inputs == nil {
+			t.Errorf("%s: no inputs", f.Title)
+			continue
+		}
+		if f.Confidence != "low" || f.Inputs.EvidenceKind != record.EvidenceModelOnly || !strings.HasPrefix(f.ConfidenceReason, "The persona's own report") {
 			t.Errorf("%s: confidence %q inputs %+v reason %q", f.Title, f.Confidence, f.Inputs, f.ConfidenceReason)
 		}
 		if r := f.Inputs.Reproduced; (r != nil) != (f.Route == "/payments") || (r != nil && !strings.Contains(f.ConfidenceReason, "3 runs")) {
@@ -944,7 +948,12 @@ func TestSeverityAndConfidenceComeFromTheInputs(t *testing.T) {
 		t.Fatalf("the fixture needs two roles, got %v", roles)
 	}
 	for _, f := range rep.Findings {
-		if f.Route == "/payments" && f.Inputs.Reproduced.Of != 3 {
+		if f.Route != "/payments" {
+			continue
+		}
+		if f.Inputs == nil || f.Inputs.Reproduced == nil {
+			t.Errorf("%s: no reproduction count", f.Title)
+		} else if f.Inputs.Reproduced.Of != 3 {
 			t.Errorf("%s: of %d runs, want the 3 contributor runs, not the editor's", f.Title, f.Inputs.Reproduced.Of)
 		}
 	}

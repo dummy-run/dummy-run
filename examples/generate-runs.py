@@ -115,11 +115,13 @@ def make_run(rng, start, n, seen):
             if kind == "bug":
                 steps[at - 1]["status"] = 500
                 steps[at - 1]["console_errors"] = 2
-            # The engine records what each finding rests on. A finding that names an axe rule its a11y check reported
-            # is an engine result; every other persona finding is the persona's own report.
+            # The engine records what each finding rests on. A finding that names an axe rule which the cited a11y
+            # step reported is an engine result; every other persona finding is the persona's own report.
             inputs = {"evidence_kind": "model-only", "engines": [], "check": symptom.split(":")[0], "on_journey": True}
             if symptom.startswith("a11y:"):
-                inputs = {"evidence_kind": "engine-rule", "engines": ["axe"], "check": symptom.split(":", 1)[1], "on_journey": True}
+                inputs["check"] = symptom.split(":", 1)[1]
+                if steps[at - 1]["action"] == "a11y" and steps[at - 1].get("a11y_violations", 0) > 0:
+                    inputs.update({"evidence_kind": "engine-rule", "engines": ["axe"]})
             findings.append({"id": fid, "kind": kind, "severity": sev, "title": ftitle, "steps": [at],
                              "evidence": evidence, "verdict": rng.choices(["confirmed", "pending", "rejected"], [7, 2, 1])[0],
                              "class": "problem", "route": froute, "locus": flocus, "symptom": symptom,

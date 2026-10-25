@@ -65,11 +65,13 @@ func TestCalibrateRefusals(t *testing.T) {
 	dir := t.TempDir()
 	bad := writeLabels(t, dir, "bad.json", `[{"inputs":{"evidence_kind":"vibes","engines":[],"check":"x","on_journey":false},"true":true}]`)
 	for name, args := range map[string][]string{
-		"no inputs":        {"calibrate"},
-		"unreadable":       {"calibrate", "--labels", filepath.Join(dir, "missing.json")},
-		"bad evidence":     {"calibrate", "--labels", bad},
-		"missing table":    {"calibrate", "--table", filepath.Join(dir, "none.json")},
-		"nothing to check": {"calibrate", "--table", writeLabels(t, dir, "t.json", `{"min_samples":10,"buckets":[]}`)},
+		"no inputs":                   {"calibrate"},
+		"unreadable":                  {"calibrate", "--labels", filepath.Join(dir, "missing.json")},
+		"bad evidence":                {"calibrate", "--labels", bad},
+		"missing table":               {"calibrate", "--table", filepath.Join(dir, "none.json")},
+		"nothing to check":            {"calibrate", "--table", writeLabels(t, dir, "t.json", `{"min_samples":10,"buckets":[]}`)},
+		"positional file":             {"calibrate", "--labels", bad, filepath.Join(dir, "b.json")},
+		"labels, table and out-table": {"calibrate", "--labels", bad, "--table", filepath.Join(dir, "t.json"), "--out-table", filepath.Join(dir, "o.json")},
 	} {
 		if got := run(args); got != exitRefused {
 			t.Errorf("%s: exited %d, want %d", name, got, exitRefused)
