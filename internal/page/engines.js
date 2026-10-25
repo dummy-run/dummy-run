@@ -161,29 +161,33 @@ async (axeJSON, criteriaJSON, max) => {
     errors.alfa = squash(String(e && e.message || e)).slice(0, 200);
   }
 
-  try {
-    if (typeof ACTRulesRunner !== "function" || typeof WCAGTechniquesRunner !== "function") throw new Error("did not load");
-    // A technique's page on the W3C site, from its ID: G1 is general, H44 html, ARIA6 aria and so on.
-    const techniqueDirs = { G: "general", H: "html", ARIA: "aria", C: "css", F: "failures", SCR: "client-side-script", SVR: "server-side-script", SM: "smil", T: "text", PDF: "pdf" };
-    const help = (kind, mapping) => {
-      if (!mapping) return "";
-      if (kind === "act") return "https://www.w3.org/WAI/standards-guidelines/act/rules/" + encodeURIComponent(mapping) + "/";
-      const m = /^([A-Z]+)\d+$/.exec(mapping);
-      return m && techniqueDirs[m[1]] ? "https://www.w3.org/WAI/WCAG22/Techniques/" + techniqueDirs[m[1]] + "/" + mapping : "";
-    };
-    const byPointer = (p) => {
-      try {
-        return document.querySelector(p);
-      } catch (e) {
-        return null;
-      }
-    };
-    // The ACT rule that needs the page at another window size (QW-ACT-R40) is left out, so the window never changes.
-    const reports = [
-      ["act", new ACTRulesRunner({}, "en").configure({}).test({}).getReport()],
-      ["wcag", new WCAGTechniquesRunner({}, "en").configure({}).test({}).getReport()],
-    ];
-    for (const [kind, rep] of reports) {
+  // A technique's page on the W3C site, from its ID: G1 is general, H44 html, ARIA6 aria and so on.
+  const techniqueDirs = { G: "general", H: "html", ARIA: "aria", C: "css", F: "failures", SCR: "client-side-script", SVR: "server-side-script", SM: "smil", T: "text", PDF: "pdf" };
+  const qwHelp = (kind, mapping) => {
+    if (!mapping) return "";
+    if (kind === "act") return "https://www.w3.org/WAI/standards-guidelines/act/rules/" + encodeURIComponent(mapping) + "/";
+    const m = /^([A-Z]+)\d+$/.exec(mapping);
+    return m && techniqueDirs[m[1]] ? "https://www.w3.org/WAI/WCAG22/Techniques/" + techniqueDirs[m[1]] + "/" + mapping : "";
+  };
+  const byPointer = (p) => {
+    try {
+      return document.querySelector(p);
+    } catch (e) {
+      return null;
+    }
+  };
+  // QualWeb's ACT rules and its WCAG techniques run apart, so one that throws leaves the other's results. QualWeb
+  // counts as run when either does. The ACT rule that needs the page at another window size (QW-ACT-R40) is left out,
+  // so the window never changes.
+  const qwRunners = [
+    ["act", () => new ACTRulesRunner({}, "en").configure({ exclude: ["QW-ACT-R40"] })],
+    ["wcag", () => new WCAGTechniquesRunner({}, "en").configure({})],
+  ];
+  const qwLoaded = globalThis.qwPage && globalThis.DomUtils;
+  for (const [kind, runner] of qwRunners) {
+    try {
+      if (!qwLoaded || typeof ACTRulesRunner !== "function" || typeof WCAGTechniquesRunner !== "function") throw new Error("did not load");
+      const rep = runner().test({}).getReport();
       for (const [code, a] of Object.entries(rep.assertions || {})) {
         if (!a || !a.metadata || a.metadata.outcome !== "failed") continue;
         const sc = (a.metadata["success-criteria"] || []).map((c) => c.name);
@@ -191,13 +195,13 @@ async (axeJSON, criteriaJSON, max) => {
           if (r.verdict !== "failed") continue;
           // A result with no element is about the page as a whole.
           const els = r.elements && r.elements.length ? r.elements : [{}];
-          for (const e of els) add("qualweb", code, sc, e.pointer ? byPointer(e.pointer) : document, r.description, help(kind, a.mapping));
+          for (const e of els) add("qualweb", code, sc, e.pointer ? byPointer(e.pointer) : document, r.description, qwHelp(kind, a.mapping));
         }
       }
+      if (!ran.includes("qualweb")) ran.push("qualweb");
+    } catch (e) {
+      if (!errors.qualweb) errors.qualweb = squash(String(e && e.message || e)).slice(0, 200);
     }
-    ran.push("qualweb");
-  } catch (e) {
-    errors.qualweb = squash(String(e && e.message || e)).slice(0, 200);
   }
 
   const used = new Set();

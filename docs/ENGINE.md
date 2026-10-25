@@ -1053,8 +1053,9 @@ These findings fail the sweep like axe rules, and you can accept one with the al
 Each rule engine catches things the others miss, and each has its own false alarms. Add `--engines` to run four
 more beside axe-core on every page: IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb. QualWeb
 brings two sets, its ACT rules and its WCAG techniques. Its one ACT rule that needs the window resized
-(QW-ACT-R40, text clipped when zoomed) is left out, so the window you chose never changes. They all run inside the
-page, in a sandbox of their own, so the page's scripts can't see them or change them. Only their WCAG 2.2 A and AA
+(QW-ACT-R40, text clipped when zoomed) is left out, so the window you chose never changes. The two sets run
+apart, so if one fails the other's results are kept, and `engine_errors` says which one failed. They all run
+inside the page, in a sandbox of their own, so the page's scripts can't see them or change them. Only their WCAG 2.2 A and AA
 failures are kept. Their warnings, AAA rules and "check this by hand" results are left out. A contrast
 failure (1.4.3) on text no one can see is left out too. That's text pushed off the page with `text-indent`, text
 set at `font-size: 0` and text that its element or a parent clips away by hiding overflow. A search button's
