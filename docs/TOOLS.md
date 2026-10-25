@@ -14,6 +14,7 @@ These run inside the page you test, so their results describe the page as your v
 | [IBM Equal Access accessibility-checker-engine](https://github.com/IBMa/equal-access) | 4.0.34 | A second set of WCAG rules, with `--engines` | Apache-2.0 |
 | [HTML_CodeSniffer](https://github.com/squizlabs/HTML_CodeSniffer) by Squiz | 2.5.1 | WCAG 2 AA rules on the markup, with `--engines` | BSD-3-Clause |
 | [Siteimprove Alfa](https://github.com/Siteimprove/alfa) | 0.120.0 | Rules written against the W3C ACT test cases, with `--engines` | MIT |
+| [QualWeb](https://github.com/qualweb/qualweb) by the University of Lisbon (FCUL) | act-rules 0.8.6, wcag-techniques 0.4.9, qw-page 0.3.8, util 0.7.4 | ACT rules and WCAG techniques, with `--engines` | ISC |
 
 Alfa is bundled into one script with [esbuild](https://github.com/evanw/esbuild) (MIT), which is used only to
 build it. The bundle includes [Color.js](https://github.com/color-js/color.js) (MIT), which Alfa uses for its colour

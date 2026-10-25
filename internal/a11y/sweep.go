@@ -81,7 +81,7 @@ type Config struct {
 	// PlainLanguage checks the main content of each page with Vale: readability scores, long sentences, words the
 	// GOV.UK style guide asks you to avoid and Latin abbreviations. The results are advice.
 	PlainLanguage bool
-	// Engines runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core, and counts how many
+	// Engines runs IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
 	// ScreenshotDir, when set, receives a PNG crop of each element the layout checks flag.

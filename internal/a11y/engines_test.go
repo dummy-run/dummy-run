@@ -25,6 +25,7 @@ const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="A red dot">
 <a href="/a">Read the guide</a>
 <label for="f">Name</label><input id="f" type="text">
+<button id="go" style="width:40px;height:40px;text-indent:-5000px;overflow:hidden;color:#bbb;background:#ccc;border:2px solid #000">Search</button>
 </main></body></html>`
 
 func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
@@ -50,18 +51,22 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(rep.Engines) != 3 {
+			if len(rep.Engines) != 4 {
 				t.Errorf("report engines: %v", rep.Engines)
 			}
 			for _, r := range rep.Results {
 				if r.Error != "" || len(r.EngineErrors) > 0 {
 					t.Fatalf("%s: error %q engine errors %v", r.URL, r.Error, r.EngineErrors)
 				}
-				if !slices.Equal(r.EnginesRan, []string{"ibm", "htmlcs", "alfa"}) {
+				if !slices.Equal(r.EnginesRan, []string{"ibm", "htmlcs", "alfa", "qualweb"}) {
 					t.Errorf("%s: engines ran %v", r.URL, r.EnginesRan)
 				}
 				high := map[string][]string{}
 				for _, f := range r.Violations {
+					// Agreement among the other engines alone is its own finding, on the same element; axe's are checked here.
+					if IsEnginesRule(f.Rule) {
+						continue
+					}
 					for _, n := range f.Nodes {
 						if n.Confidence == "" {
 							t.Errorf("%s: %s %s has no confidence", r.URL, f.Rule, n.Target)
@@ -75,6 +80,14 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 					if len(r.Violations) != 0 {
 						t.Errorf("the good page has violations: %+v", r.Violations)
 					}
+					// The off-screen label of #go has no contrast anyone sees.
+					for _, c := range r.Candidates {
+						for _, n := range c.Nodes {
+							if c.Rule == RuleEnginesPrefix+"1.4.3" && strings.Contains(n.Target, "#go") {
+								t.Errorf("contrast reported for text that is not painted: %+v", n)
+							}
+						}
+					}
 					continue
 				}
 				seen := map[string]bool{}
@@ -86,7 +99,7 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 						seen[name] = true
 					}
 				}
-				for _, name := range []string{"axe", "ibm", "htmlcs", "alfa"} {
+				for _, name := range []string{"axe", "ibm", "htmlcs", "alfa", "qualweb"} {
 					if !seen[name] {
 						t.Errorf("%s never agreed on a planted problem", name)
 					}

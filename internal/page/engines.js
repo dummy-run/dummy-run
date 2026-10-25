@@ -1,4 +1,4 @@
-// Runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa on the loaded page, in the sweep's sandbox, and
+// Runs IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb on the loaded page, in the sweep's sandbox, and
 // matches their failures to elements. No model is involved: each result is an engine's own rule outcome.
 // Called as a function expression with (axeJSON, criteriaJSON, max):
 //   axeJSON       [{sc: ["1.1.1"], selector: "img"}] as JSON: axe's failing nodes, so agreement can be counted
@@ -57,9 +57,27 @@ async (axeJSON, criteriaJSON, max) => {
   const ran = [];
   const errors = {};
   const items = []; // {engine, rule, sc, el, message, help}
+  // Text that is not painted inside its element, such as a button label pushed off-screen with text-indent or set at
+  // font-size 0, has no contrast a person sees. Engines that measure it anyway report a false contrast failure.
+  const unpainted = (el) => {
+    const box = el.getBoundingClientRect();
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let any = false;
+    for (let t = walker.nextNode(), n = 0; t && n < 200; t = walker.nextNode(), n++) {
+      if (!t.data.trim()) continue;
+      any = true;
+      const r = document.createRange();
+      r.selectNodeContents(t);
+      for (const q of r.getClientRects()) {
+        if (q.width > 1 && q.height > 1 && q.right > box.left && q.left < box.right && q.bottom > box.top && q.top < box.bottom) return false;
+      }
+    }
+    return any;
+  };
   const add = (engine, rule, sc, node, message, help) => {
     sc = [...new Set(sc)].filter((c) => keep.has(c));
     const el = element(node);
+    if (el && el !== PAGE && sc.includes("1.4.3") && unpainted(el)) sc = sc.filter((c) => c !== "1.4.3");
     if (!sc.length || !el) return;
     items.push({ engine, rule, sc, el, message: squash(message).slice(0, 200), help });
   };
@@ -104,6 +122,45 @@ async (axeJSON, criteriaJSON, max) => {
     ran.push("alfa");
   } catch (e) {
     errors.alfa = squash(String(e && e.message || e)).slice(0, 200);
+  }
+
+  try {
+    if (typeof ACTRulesRunner !== "function" || typeof WCAGTechniquesRunner !== "function") throw new Error("did not load");
+    // A technique's page on the W3C site, from its ID: G1 is general, H44 html, ARIA6 aria and so on.
+    const techniqueDirs = { G: "general", H: "html", ARIA: "aria", C: "css", F: "failures", SCR: "client-side-script", SVR: "server-side-script", SM: "smil", T: "text", PDF: "pdf" };
+    const help = (kind, mapping) => {
+      if (!mapping) return "";
+      if (kind === "act") return "https://www.w3.org/WAI/standards-guidelines/act/rules/" + encodeURIComponent(mapping) + "/";
+      const m = /^([A-Z]+)\d+$/.exec(mapping);
+      return m && techniqueDirs[m[1]] ? "https://www.w3.org/WAI/WCAG22/Techniques/" + techniqueDirs[m[1]] + "/" + mapping : "";
+    };
+    const byPointer = (p) => {
+      try {
+        return document.querySelector(p);
+      } catch (e) {
+        return null;
+      }
+    };
+    // The ACT rule that needs the page at another window size (QW-ACT-R40) is left out, so the window never changes.
+    const reports = [
+      ["act", new ACTRulesRunner({}, "en").configure({}).test({}).getReport()],
+      ["wcag", new WCAGTechniquesRunner({}, "en").configure({}).test({}).getReport()],
+    ];
+    for (const [kind, rep] of reports) {
+      for (const [code, a] of Object.entries(rep.assertions || {})) {
+        if (!a || !a.metadata || a.metadata.outcome !== "failed") continue;
+        const sc = (a.metadata["success-criteria"] || []).map((c) => c.name);
+        for (const r of a.results || []) {
+          if (r.verdict !== "failed") continue;
+          // A result with no element is about the page as a whole.
+          const els = r.elements && r.elements.length ? r.elements : [{}];
+          for (const e of els) add("qualweb", code, sc, e.pointer ? byPointer(e.pointer) : document, r.description, help(kind, a.mapping));
+        }
+      }
+    }
+    ran.push("qualweb");
+  } catch (e) {
+    errors.qualweb = squash(String(e && e.message || e)).slice(0, 200);
   }
 
   const used = new Set();
