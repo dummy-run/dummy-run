@@ -41,6 +41,10 @@ var layoutPages = map[string]string{
 <button id="two" class="btn" style="position:absolute;left:60px;top:30px;width:140px;height:48px">Save for later</button>
 <button id="touch" class="btn" style="position:absolute;left:250px;top:10px;width:48px;height:48px">Ok</button>
 <button id="touch2" class="btn" style="position:absolute;left:298px;top:10px;width:48px;height:48px">No</button></div>` + layoutTail,
+	// The same overlap far below the fold, on a page that scrolls smoothly: the check has to jump to it, not glide.
+	"/smooth": strings.Replace(layoutHead, "<style>", "<style>html { scroll-behavior: smooth; } ", 1) + `<h1>Smooth</h1><div style="height:3000px"></div><div style="position:relative;height:120px">
+<button id="one" class="btn" style="position:absolute;left:10px;top:10px;width:140px;height:48px">Buy now</button>
+<button id="two" class="btn" style="position:absolute;left:60px;top:30px;width:140px;height:48px">Save for later</button></div>` + layoutTail,
 	"/small": layoutHead + `<h1>Small</h1>
 <button id="s1" style="width:14px;height:14px;margin:0 2px 20px 8px;padding:0"></button><button id="s2" style="width:14px;height:14px;margin:0;padding:0"></button>
 <button id="ok" class="btn">Fine</button>` + layoutTail,
@@ -147,6 +151,7 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 		{"/clipped", RuleClippedText, "clip", "1.4.4"},
 		{"/clipped", RuleClippedText, "ell", "1.4.4"},
 		{"/overlap", RuleOverlap, "one", "1.4.10 1.4.4"},
+		{"/smooth", RuleOverlap, "one", "1.4.10 1.4.4"},
 		{"/small", RuleTargetSize, "s1", "2.5.8"},
 		{"/cut", RuleClippedText, "p", "1.4.4"},
 		{"/sticky", RuleFocusObscured, "under", "2.4.11"},

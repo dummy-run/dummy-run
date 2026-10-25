@@ -90,7 +90,7 @@
     - For a closed menu or drawer, set inert on it until it opens.
   example:
     before: "<nav class=\"drawer closed\" style=\"left:-300px\">"
-    after: "<nav class=\"drawer closed\" inert>"
+    after: "<nav class=\"drawer closed\" style=\"left:-300px\" inert> (remove inert when the drawer opens)"
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
 
@@ -136,7 +136,7 @@
   summary: Tell the browser what each personal-details field is for, so it can fill it in.
   steps:
     - Add an autocomplete attribute with the matching field name, such as email, tel, given-name, family-name or postal-code.
-    - Replace off or on with a field name. Browsers and assistive technology cannot use either to fill in or explain the field.
+    - Replace off or on with a field name. Off asks the browser not to fill the field in. On lets it guess, but only a field name tells browsers and assistive technology what the field is for.
     - Leave fields that ask for someone else's details without one.
   example:
     before: "<input type=\"email\" name=\"email\">"

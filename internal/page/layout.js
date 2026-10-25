@@ -115,12 +115,14 @@
     }
     return pts;
   };
+  // A page with scroll-behavior: smooth would animate a plain scrollTo, and the measuring would start mid-scroll.
+  const jump = (x, y) => scrollTo({ left: x, top: y, behavior: "instant" });
   // Brings a rectangle into the window, so the browser can say what is on top there, and returns it moved.
   const reveal = (r) => {
     if (r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth) return r;
     const dy = r.top + r.height / 2 - innerHeight / 2, dx = r.left + r.width / 2 - innerWidth / 2;
     const bx = scrollX, by = scrollY;
-    scrollTo(bx + (r.left < 0 || r.right > innerWidth ? dx : 0), by + dy);
+    jump(bx + (r.left < 0 || r.right > innerWidth ? dx : 0), by + dy);
     const mx = scrollX - bx, my = scrollY - by;
     return { left: r.left - mx, right: r.right - mx, top: r.top - my, bottom: r.bottom - my, width: r.width, height: r.height };
   };
@@ -322,7 +324,7 @@
       }
     }
   }
-  scrollTo(sx, sy);
+  jump(sx, sy);
 
   // Target size, WCAG 2.5.8: at least minTarget x minTarget CSS px, unless the target is a link in a sentence,
   // has room around it (a minTarget circle on its centre meets no other target), or is a control the page left at
@@ -457,7 +459,7 @@
     }
     if (before && before !== document.body && before.focus) before.focus({ preventScroll: true });
     else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    scrollTo(sx, sy);
+    jump(sx, sy);
   }
 
   const font = parseFloat(getComputedStyle(root).fontSize);

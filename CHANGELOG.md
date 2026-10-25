@@ -17,6 +17,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - A persona whose modality is `screen-reader-view`, such as `screen-reader-user`, now gets what a screen reader says on each look: the current page read from the top, one phrase per line, from guidepup's virtual screen reader. It's computed from the page's accessibility semantics as they are at that look, so it changes when the page does.
 - `dummyrun a11y --engines` runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa inside the page beside axe-core. It matches their results by element and WCAG criterion. Each axe violation node says which engines agree and how confident the result is. A failure two other engines agree on is a violation (`dummyrun-engines-<criterion>`). One that only one engine reports goes to `candidates`, which never fail the sweep. A new [Tools we build on](docs/TOOLS.md) page credits each engine with its licence.
 
+### Changed
+- Unless you set `--viewport` or `--text-scale`, `dummyrun a11y --layout` now adds the 320 px window and a run at 200 percent text, the two settings WCAG 1.4.10 and 1.4.4 name.
+
 ## [0.1.4] - 2026-10-24
 
 ### Security

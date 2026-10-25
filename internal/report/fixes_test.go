@@ -1,6 +1,7 @@
 package report
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -39,9 +40,32 @@ func TestOwnRuleCarriesItsFix(t *testing.T) {
 			t.Errorf("md: the first step is missing: %q", step)
 		}
 	}
-	if got := render(t, rep, "json"); !strings.Contains(got, `"owner": "development"`) {
-		t.Errorf("json: no fix on dummyrun-reflow")
+	// The fix belongs on the rule itself, at axe.rules[].fix.
+	var doc struct {
+		Axe struct {
+			Rules []struct {
+				Rule string          `json:"rule"`
+				Fix  json.RawMessage `json:"fix"`
+			} `json:"rules"`
+		} `json:"axe"`
 	}
+	if err := json.Unmarshal([]byte(render(t, rep, "json")), &doc); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range doc.Axe.Rules {
+		if r.Rule != "dummyrun-reflow" {
+			continue
+		}
+		var fix struct {
+			Owner string   `json:"owner"`
+			Steps []string `json:"steps"`
+		}
+		if err := json.Unmarshal(r.Fix, &fix); err != nil || fix.Owner != "development" || len(fix.Steps) == 0 {
+			t.Errorf("json: dummyrun-reflow has no fix object: %s", r.Fix)
+		}
+		return
+	}
+	t.Error("json: dummyrun-reflow is missing from axe.rules")
 }
 
 // A persona finding on one of Dummy Run's own rules gets its fix, and no Deque link, which only covers axe rules.
