@@ -1056,9 +1056,10 @@ brings two sets, its ACT rules and its WCAG techniques. Its one ACT rule that ne
 (QW-ACT-R40, text clipped when zoomed) is left out, so the window you chose never changes. They all run inside the
 page, in a sandbox of their own, so the page's scripts can't see them or change them. Only their WCAG 2.2 A and AA
 failures are kept. Their warnings, AAA rules and "check this by hand" results are left out. A contrast
-failure (1.4.3) on an element whose text isn't painted inside it is left out too. That's text pushed off-screen
-with `text-indent` or set at `font-size: 0`, such as a search button's hidden label, which some engines still
-measure.
+failure (1.4.3) on text no one can see is left out too. That's text pushed off the page with `text-indent`, text
+clipped by an element that hides its overflow, or text set at `font-size: 0`, such as a search button's hidden
+label, which some engines still measure. Text that spills out of its element but stays on the page is still
+checked.
 
 The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
 for the same criterion.

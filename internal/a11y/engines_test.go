@@ -19,6 +19,7 @@ const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <img id="pic" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
 <a id="empty" href="/a"></a>
 <input id="field" type="text">
+<span id="spill" style="display:inline-block;width:40px;height:20px;text-indent:60px;white-space:nowrap;color:#bbb;background:#ccc">Spills out</span>
 </main></body></html>`
 
 const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Good</title></head><body><main><h1>Good</h1>
@@ -89,6 +90,18 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 						}
 					}
 					continue
+				}
+				// #spill's text sits outside its box but is on the page and not clipped, so its contrast still counts.
+				spilt := false
+				for _, list := range [][]Finding{r.Violations, r.Candidates} {
+					for _, f := range list {
+						for _, n := range f.Nodes {
+							spilt = spilt || (strings.Contains(n.Target, "#spill") && (f.Rule == "color-contrast" || f.Rule == RuleEnginesPrefix+"1.4.3"))
+						}
+					}
+				}
+				if !spilt {
+					t.Errorf("no contrast failure for text that overflows its element but is seen")
 				}
 				seen := map[string]bool{}
 				for _, sel := range []string{"#pic", "#empty", "#field"} {

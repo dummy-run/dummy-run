@@ -57,8 +57,19 @@ async (axeJSON, criteriaJSON, max) => {
   const ran = [];
   const errors = {};
   const items = []; // {engine, rule, sc, el, message, help}
-  // Text that is not painted inside its element, such as a button label pushed off-screen with text-indent or set at
-  // font-size 0, has no contrast a person sees. Engines that measure it anyway report a false contrast failure.
+  // Text no one can see, such as a button label pushed off the page with text-indent or set at font-size 0, has no
+  // contrast a person sees. Engines that measure it anyway report a false contrast failure. Text that overflows its
+  // element but is still on the page and not clipped is seen, so it counts as painted.
+  const meets = (q, b) => q.right > b.left && q.left < b.right && q.bottom > b.top && q.top < b.bottom;
+  const seen = (q, t) => {
+    if (q.width <= 1 || q.height <= 1) return false;
+    if (q.right + scrollX <= 0 || q.bottom + scrollY <= 0) return false; // off the page to the left or top
+    for (let a = t.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if ((cs.overflowX !== "visible" || cs.overflowY !== "visible") && !meets(q, a.getBoundingClientRect())) return false;
+    }
+    return true;
+  };
   const unpainted = (el) => {
     const box = el.getBoundingClientRect();
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -69,7 +80,7 @@ async (axeJSON, criteriaJSON, max) => {
       const r = document.createRange();
       r.selectNodeContents(t);
       for (const q of r.getClientRects()) {
-        if (q.width > 1 && q.height > 1 && q.right > box.left && q.left < box.right && q.bottom > box.top && q.top < box.bottom) return false;
+        if ((q.width > 1 && q.height > 1 && meets(q, box)) || seen(q, t)) return false;
       }
     }
     return any;
