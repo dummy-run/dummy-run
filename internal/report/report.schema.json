@@ -192,6 +192,24 @@
     "warnings": { "type": "array", "items": { "type": "string" } }
   },
   "$defs": {
+    "fix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "summary", "steps"],
+      "description": "How to fix a rule, from Dummy Run's fix library",
+      "properties": {
+        "owner": { "enum": ["content", "design", "development"], "description": "Who usually makes the fix" },
+        "summary": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" } },
+        "example": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["before", "after"],
+          "properties": { "before": { "type": "string" }, "after": { "type": "string" } }
+        },
+        "sources": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "baselineStatus": { "enum": ["new", "still-present", "fixed"] },
     "finding": {
       "type": "object",
@@ -213,6 +231,7 @@
         "reason": { "type": "string" },
         "wcag": { "type": "array", "items": { "type": "string", "pattern": "^[1-4]\\.[0-9]+\\.[0-9]+$" }, "description": "WCAG 2.2 success criteria where known" },
         "help_url": { "type": "string" },
+        "fix": { "$ref": "#/$defs/fix" },
         "baseline": { "enum": ["new", "still-present"] },
         "personas": { "type": "array", "items": { "type": "string" } },
         "runs": { "type": "integer", "description": "Runs that found the problem" },
@@ -301,6 +320,7 @@
         "wcag": { "type": "array", "items": { "type": "string" } },
         "help": { "type": "string" },
         "help_url": { "type": "string" },
+        "fix": { "$ref": "#/$defs/fix" },
         "elements": { "type": "integer" },
         "baseline": { "enum": ["new", "still-present"] },
         "pages": {

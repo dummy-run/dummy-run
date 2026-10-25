@@ -136,6 +136,7 @@ func commonFuncs() map[string]any {
 		"cell":         mdCell,
 		"inline":       mdInline,
 		"inc":          func(i int) int { return i + 1 },
+		"fixRules":     fixRules,
 		"symptomText":  symptomText,
 		"placeText":    placeText,
 		"whoText":      whoText,
@@ -216,4 +217,15 @@ func mdCell(v any) string {
 func mdInline(v any) string {
 	s := fmt.Sprint(v)
 	return strings.NewReplacer("`", "'", "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
+}
+
+// fixRules keeps the failed rules the fix library has an entry for, in report order.
+func fixRules(rules []AxeRule) []AxeRule {
+	var out []AxeRule
+	for _, r := range rules {
+		if r.Fix != nil {
+			out = append(out, r)
+		}
+	}
+	return out
 }

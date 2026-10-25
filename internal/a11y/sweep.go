@@ -579,7 +579,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Violations = append(res.Violations, imageContrastFindings(ms, path, cfg.Allow)...)
 	}
 	if cfg.Layout {
-		l, err := page.MeasureLayout(pctx, conn, cx)
+		l, err := page.MeasureLayout(pctx, conn, cx, true)
 		if err != nil {
 			res.Error = "layout checks: " + firstLine(err.Error())
 			return res

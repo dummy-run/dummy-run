@@ -586,6 +586,16 @@ td code, th code { white-space: nowrap; }
 .timeline-steps li .step-n { font-family: var(--font-mono); }
 .timeline-flagged { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 0.7rem; align-items: center; padding: 0.6rem 0.7rem; border-radius: 0.6rem; background: var(--g-paper); border: 1.5px solid var(--g-rule); }
 .timeline-flagged strong { font-family: var(--font-heading); font-weight: 600; font-size: var(--type-small); display: block; line-height: 1.3; }
+/* In a narrow column, or with large text, the time or tag goes under the step instead of squeezing it. */
+@media (max-width: 30em) {
+  .timeline { padding: 0.9rem 0.6rem 1rem; }
+  .timeline-steps li { grid-template-columns: auto minmax(0, 1fr); gap: 0.4rem; }
+  /* The dot is decoration: the flagged step keeps its finding tag. */
+  .timeline-steps li::before { display: none; }
+  .timeline-steps li > :last-child { grid-column: 2; justify-self: start; }
+  .timeline-flagged { grid-template-columns: minmax(0, 1fr); }
+  .timeline-flagged .thumb { width: 3rem; }
+}
 
 /* results board */
 .board { padding: 0.5rem 0.25rem; }

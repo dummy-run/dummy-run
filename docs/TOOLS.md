@@ -65,6 +65,7 @@ Some checks follow a method another project worked out, written again in our own
 | Project | What we took | Licence of the project |
 |---|---|---|
 | [contrastcap](https://github.com/ICJIA/contrastcap-mcp) by ICJIA | Measuring text contrast over an image by hiding the text, taking a picture of what is behind it and comparing every pixel, for `--image-contrast` | MIT |
+| [LayoutLens](https://github.com/gojiplus/layoutlens) by goji+ | Measuring layout from the browser's rectangles and what is painted on top at a point: outermost elements past the window, clipped text, controls under other controls, focus hidden behind opaque content, and the measurable target size exceptions. Used by `--layout` | MIT |
 
 ## Data
 

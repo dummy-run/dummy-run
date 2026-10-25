@@ -10,7 +10,7 @@ func TestLayoutNoteNamesOnlyNumericRefs(t *testing.T) {
 			{A: LayoutElement{}, B: LayoutElement{Ref: "9"}},
 		},
 		OverlapN: 3,
-		Clipped:  []LayoutClipped{{LayoutElement: LayoutElement{Ref: "2"}}, {LayoutElement: LayoutElement{Ref: "@x"}}},
+		Clipped:  []LayoutClipped{{LayoutElement: LayoutElement{Ref: "2"}, Control: true}, {LayoutElement: LayoutElement{Ref: "@x"}, Control: true}, {LayoutElement: LayoutElement{Ref: "3"}}},
 	}
 	n := l.Note()
 	if n == nil || n.Overlaps != 3 || n.Clipped != 2 {
