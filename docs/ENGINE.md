@@ -1003,8 +1003,9 @@ The pixel comparison covers no more than the first 30 stops that need it. The wa
 The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
 sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden
 element, a closed `<details>`, an unselected tab, a custom checkbox or switch, and something that shows the hand
-pointer but isn't a control. When the sweep is signed in, with a session or preview access, it leaves out the last
-kind, since a click handler on it could change the account or sign it out. Each has a success test that the page computes, such as "`aria-expanded` became
+pointer but isn't a control. When the sweep is signed in, with a session or preview access, it tries no controls
+and only checks the skip link, since any click handler could send a request that changes the account or signs it
+out. Each has a success test that the page computes, such as "`aria-expanded` became
 true" or, for the last kind, "the address, the words or the shown elements changed".
 
 For each control, the sweep loads the page afresh and checks the test is false. It clicks the control with the

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -118,23 +119,17 @@ func sleep(ctx context.Context, d time.Duration) error {
 // TryTasks tries up to limit controls on the page at url, each by mouse and then by keyboard on a fresh load, and the
 // skip link by keyboard. It loads the page many times. Give it a tab of its own that has not had keys pressed in it:
 // once focus has left a page for the browser's own controls, as it does at the end of a Tab walk, Firefox no longer
-// runs Enter's default action in that tab. Nothing that would leave the page or send a form is tried. Pointers says
-// whether to try things that only look clickable, whose click handler could do anything; leave it false when the
-// browser is signed in.
-func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int, pointers bool) (*Tasks, error) {
+// runs Enter's default action in that tab. Nothing that would leave the page or send a form is tried, but a click
+// handler can still send a request, so pass a limit of 0 when the browser is signed in: only the skip link is tried.
+func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int) (*Tasks, error) {
 	if err := load(ctx, conn, cx, url); err != nil {
 		return nil, fmt.Errorf("tasks: %w", err)
 	}
-	var found []Task
-	find, err := json.Marshal(struct {
-		Limit    int  `json:"limit"`
-		Pointers bool `json:"pointers"`
-	}{limit, pointers})
-	if err != nil {
-		return nil, fmt.Errorf("tasks: %w", err)
-	}
-	if err := taskCall(ctx, conn, cx, "find", string(find), &found); err != nil {
-		return nil, fmt.Errorf("tasks: %w", err)
+	found := []Task{}
+	if limit > 0 {
+		if err := taskCall(ctx, conn, cx, "find", strconv.Itoa(limit), &found); err != nil {
+			return nil, fmt.Errorf("tasks: %w", err)
+		}
 	}
 	tab, _ := bidi.Key("Tab")
 	enter, _ := bidi.Key("Enter")

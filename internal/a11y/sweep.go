@@ -666,8 +666,13 @@ func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			return nil, err
 		}
 	}
-	// Signed in, a click handler on something that only looks clickable could change the account or sign it out.
-	return page.TryTasks(ctx, conn, tab, u, page.MaxTasks, cfg.Session == nil && cfg.Access == nil)
+	// Signed in, any click handler could send a request that changes the account or signs it out, so only the skip
+	// link is tried.
+	limit := page.MaxTasks
+	if cfg.Session != nil || cfg.Access != nil {
+		limit = 0
+	}
+	return page.TryTasks(ctx, conn, tab, u, limit)
 }
 
 // adviceOnly is true for a rule that has none of the WCAG A and AA level tags the sweep tests: a best-practice

@@ -1,8 +1,7 @@
 // The page side of the keyboard and mouse comparison. Called as a function expression with (op, arg) in a
 // sandbox, so its state lives beside the page and not in it. Every verdict is computed from the page: a task's
 // success test must be false when the page has just loaded and true after the action. Ops:
-//   "find"     the controls worth trying, up to limit of them, with arg {limit, pointers} as JSON, each with how its success is tested. Things that
-//              only look clickable are left out unless pointers is true
+//   "find"     the controls worth trying, up to the limit in arg, each with how its success is tested
 //   "arm"      on a freshly loaded page, find the element of the task in arg, as JSON, and test it: is it there, is the test
 //              false, and where would a mouse press it
 //   "check"    test the task in arg again, after the action
@@ -73,8 +72,9 @@
     return false;
   };
   // A control that would leave the page or send a form is never tried, and nor is anything holding one: a click or
-  // Enter on a card can land on the link or button inside it.
-  const goes = (a) => !/^#/.test(a.getAttribute("href") || "") && !/^javascript:/i.test(a.getAttribute("href") || "");
+  // Enter on a card can land on the link or button inside it. Only a link to somewhere on the same page stays: a
+  // javascript: link can go anywhere.
+  const goes = (a) => !/^#/.test(a.getAttribute("href") || "");
   const sends = (b) => !!b.form && (b.type === "submit" || b.type === "image");
   const leaves = (el) => {
     const a = el.closest("a[href]");
@@ -85,8 +85,7 @@
   };
 
   if (op === "find") {
-    arg = JSON.parse(arg);
-    const out = [], used = new Set(), limit = arg.limit;
+    const out = [], used = new Set(), limit = Number(arg);
     const add = (el, kind, target) => {
       if (out.length >= limit || used.has(el) || !shown(el) || el.disabled || el.getAttribute("aria-disabled") === "true" || leaves(el)) return;
       const sel = selector(el);
@@ -106,7 +105,7 @@
     // Something that looks clickable, where the pointer turns into a hand, but is not a control. Its parent's
     // pointer is not a hand, so this is where the look starts, not an inherited style.
     let seen = 0;
-    for (const el of arg.pointers && document.body ? document.body.querySelectorAll("*") : []) {
+    for (const el of document.body ? document.body.querySelectorAll("*") : []) {
       if (out.length >= limit || ++seen > 4000) break;
       if (el.closest(interactive) || getComputedStyle(el).cursor !== "pointer") continue;
       const p = el.parentElement;

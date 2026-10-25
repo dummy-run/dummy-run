@@ -41,6 +41,7 @@ ok.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") 
 <h1>Cards</h1>
 <div id="linkcard" style="cursor:pointer"><a href="/elsewhere" style="display:block;padding:20px">Read the story</a></div>
 <form action="/sent"><div id="sendcard" style="cursor:pointer"><button type="submit" style="display:block;padding:20px">Send it</button></div></form>
+<a id="jslink" href="javascript:location.href='/elsewhere'" aria-expanded="false">More</a>
 </main></body></html>`,
 	// The first control can't be reached by Tab, so the walk for it runs off the end of the page, and in Firefox
 	// focus is left in the browser's own controls. The next control must still be reached on the next load.
@@ -131,7 +132,7 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 				}
 			}
 			if n := len(by["/cards"].Tasks.Tasks); n != 0 {
-				t.Errorf("a card holding a link or a submit button was tried: %+v", by["/cards"].Tasks.Tasks)
+				t.Errorf("a javascript: link, or a card holding a link or a submit button, was tried: %+v", by["/cards"].Tasks.Tasks)
 			}
 			rec := map[string]page.Task{}
 			for _, task := range by["/recover"].Tasks.Tasks {
@@ -177,8 +178,8 @@ func TestTaskFindingsNeedAWorkingClick(t *testing.T) {
 	}
 }
 
-// Signed in, something that only looks clickable is not tried: its click handler could change the account.
-func TestSignedInSweepTriesOnlyControls(t *testing.T) {
+// Signed in, no control is tried: any click handler could send a request that changes the account.
+func TestSignedInSweepTriesNoControls(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
@@ -199,13 +200,11 @@ func TestSignedInSweepTriesOnlyControls(t *testing.T) {
 				t.Fatal(err)
 			}
 			r := rep.Results[0]
-			if r.Error != "" || r.Tasks == nil || len(r.Tasks.Tasks) == 0 {
+			if r.Error != "" || r.Tasks == nil {
 				t.Fatalf("error %q tasks %v", r.Error, r.Tasks)
 			}
-			for _, task := range r.Tasks.Tasks {
-				if task.Kind == "change" {
-					t.Errorf("signed in, %s was tried", task.Selector)
-				}
+			if len(r.Tasks.Tasks) != 0 {
+				t.Errorf("signed in, controls were tried: %+v", r.Tasks.Tasks)
 			}
 		})
 	}
