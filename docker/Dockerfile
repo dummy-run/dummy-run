@@ -17,6 +17,10 @@ ARG CHROMEDRIVER_SHA256_AMD64=ff08004e6f813c9a9084639b53f8faf0e99fa37afde7ce1c05
 ARG CHROMEDRIVER_SHA256_ARM64=511da4ed4025c7e3f213152d9a701adec84b8372d2e8af542ef67f10d44b8794
 ARG FIREFOX_SHA256_AMD64=42f2c62a562316982ef5a796738c57602bf84a984f5c616e80bcff4627f78fff
 ARG FIREFOX_SHA256_ARM64=73fc3d6f6f4d3fcdeee59db90156568af9959405120ad686e535f572995074d0
+# Vale checks plain language with --plain-language. The version matches plain.ValeVersion in internal/plain.
+ARG VALE_VERSION=3.24.0
+ARG VALE_SHA256_AMD64=867534ddb678abca7f214bc4706ead0922bd5252ffe8035fc227013f66c8b214
+ARG VALE_SHA256_ARM64=104cbd349279e50c4cb40adb70adf345d93cc4a3a0191f9e68bdccb97086b582
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 RUN apt-get update \
@@ -25,8 +29,8 @@ RUN apt-get update \
 
 # Each download is checked against a hash kept in this file, so a changed file upstream fails the build.
 RUN case "${TARGETARCH}" in \
-      amd64) cft=linux64;     cft_zip=linux64;     ff=linux-x86_64;  chrome_sha="${CHROME_SHA256_AMD64}"; driver_sha="${CHROMEDRIVER_SHA256_AMD64}"; ff_sha="${FIREFOX_SHA256_AMD64}" ;; \
-      arm64) cft=linux-arm64; cft_zip=linux-arm64; ff=linux-aarch64; chrome_sha="${CHROME_SHA256_ARM64}"; driver_sha="${CHROMEDRIVER_SHA256_ARM64}"; ff_sha="${FIREFOX_SHA256_ARM64}" ;; \
+      amd64) cft=linux64;     cft_zip=linux64;     ff=linux-x86_64;  vale=Linux_64-bit; chrome_sha="${CHROME_SHA256_AMD64}"; driver_sha="${CHROMEDRIVER_SHA256_AMD64}"; ff_sha="${FIREFOX_SHA256_AMD64}"; vale_sha="${VALE_SHA256_AMD64}" ;; \
+      arm64) cft=linux-arm64; cft_zip=linux-arm64; ff=linux-aarch64; vale=Linux_arm64;  chrome_sha="${CHROME_SHA256_ARM64}"; driver_sha="${CHROMEDRIVER_SHA256_ARM64}"; ff_sha="${FIREFOX_SHA256_ARM64}"; vale_sha="${VALE_SHA256_ARM64}" ;; \
       *) echo "unsupported architecture ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
     base="https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING}/${cft}"; \
@@ -35,8 +39,11 @@ RUN case "${TARGETARCH}" in \
     curl -fsSL -o firefox.tar.xz "https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/${ff}/en-US/firefox-${FIREFOX_VERSION}.tar.xz"; \
     echo "${chrome_sha}  chrome.zip" | sha256sum -c -; \
     echo "${driver_sha}  chromedriver.zip" | sha256sum -c -; \
+    curl -fsSL -o vale.tar.gz "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_${vale}.tar.gz"; \
     echo "${ff_sha}  firefox.tar.xz" | sha256sum -c -; \
-    mkdir -p /opt/chrome /opt/chromedriver /opt/firefox; \
+    echo "${vale_sha}  vale.tar.gz" | sha256sum -c -; \
+    mkdir -p /opt/chrome /opt/chromedriver /opt/firefox /opt/vale; \
+    tar -xzf vale.tar.gz -C /opt/vale vale; \
     unzip -q chrome.zip -d /tmp/chrome; \
     mv /tmp/chrome/chrome-*/* /opt/chrome/; \
     unzip -q chromedriver.zip -d /tmp/chromedriver; \
@@ -63,6 +70,7 @@ RUN apt-get update \
 COPY --from=browsers /opt/chrome /opt/chrome
 COPY --from=browsers /opt/chromedriver /opt/chromedriver
 COPY --from=browsers /opt/firefox /opt/firefox
+COPY --from=browsers /opt/vale /opt/vale
 ARG TARGETOS
 ARG TARGETARCH
 COPY --chmod=0755 ${TARGETOS}/${TARGETARCH}/dummyrun /usr/local/bin/dummyrun
@@ -71,6 +79,7 @@ COPY --chmod=0755 ${TARGETOS}/${TARGETARCH}/dummyrun /usr/local/bin/dummyrun
 ENV DUMMYRUN_CHROME=/opt/chrome/chrome \
     DUMMYRUN_CHROMEDRIVER=/opt/chromedriver/chromedriver \
     DUMMYRUN_FIREFOX=/opt/firefox/firefox \
+    DUMMYRUN_VALE=/opt/vale/vale \
     DUMMYRUN_NO_SANDBOX=1 \
     HOME=/home/dummyrun
 

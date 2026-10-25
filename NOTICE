@@ -34,3 +34,8 @@ lz-string (Copyright (c) 2013 pieroxy), pretty-format and react-is (Copyright (c
 ansi-regex and ansi-styles (Copyright (c) Sindre Sorhus) and dequal (Copyright (c) Luke Edwards). It also includes
 aria-query (Copyright (c) Jesse Beach and the A11yance contributors), licensed under the Apache License 2.0 (see
 LICENSES/Apache-2.0.txt). The bundle is built from internal/page/screenreader/build.
+
+This product includes two rules from the Vale Readability style (internal/plain/styles/Readability), Copyright (c) 2026
+Joseph Kato, licensed under the MIT licence (see internal/plain/styles/Readability/LICENSE). The container image
+includes the Vale 3.24.0 program (/opt/vale), Copyright (c) 2016 Joseph Kato, licensed under the MIT licence. Its
+source is at https://github.com/vale-cli/vale.

@@ -226,6 +226,9 @@ Flags:
                     skip link that goes nowhere
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
+  --plain-language  check the main content of each page with Vale: Flesch reading ease and grade, sentences over 25
+                    words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The results are
+                    advice and never fail the sweep. Needs vale on the PATH or DUMMYRUN_VALE
   --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
                     A banner with an accept button and no reject button is reported as advice
                     (dummyrun-consent-no-reject), which never fails the sweep
