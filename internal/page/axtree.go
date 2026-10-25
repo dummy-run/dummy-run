@@ -3,6 +3,7 @@ package page
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"sync"
 
@@ -188,7 +189,10 @@ func (s *axState) readLocked(ctx context.Context, conn *bidi.Conn, cx string) bo
 	if s.session == "" {
 		session, err := conn.CDPSession(ctx, cx)
 		if err != nil {
-			s.off = true
+			// Only a browser that refuses the command, as Firefox does, is never asked again. A timeout or a
+			// cancelled look tries again next time.
+			var ce *bidi.CommandError
+			s.off = errors.As(err, &ce)
 			return false
 		}
 		s.session = session

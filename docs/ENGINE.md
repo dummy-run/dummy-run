@@ -285,15 +285,15 @@ outline line has a role, a name and sometimes a state:
 
 In Chrome, roles, names, states and whether a screen reader can reach an element come from Chrome's own
 accessibility tree. WebDriver BiDi has no command for it, so the engine asks for it over the Chrome DevTools
-Protocol through chromedriver's `goog:cdp` passthrough, with `Accessibility.getFullAXTree`, before each look
+Protocol through chromedriver's `goog:cdp` passthrough. It reads `Accessibility.getFullAXTree` before each look
 and each accessibility check. It marks each element the tree gives a role with `data-dummyrun-ax` and hands the
-table of what Chrome says to its sandbox. An element Chrome left out, such as one in a frame, one added after
-the tree was read or one past the first 3,000, is named by the script below. Chrome's names include CSS
+table of what Chrome says to its sandbox. Chrome leaves some elements out: one in a frame, one added after the
+tree was read and any past the first 3,000. The script below names those. Chrome's names include CSS
 generated content, such as an icon button's `::before` text, which the script can't read. A look in Chrome
-records `names_from: chrome`. On GOV.UK's home page the extra commands add about a tenth of a second to a look.
+whose tree was read records `names_from: chrome`. On GOV.UK's home page the extra commands add about a tenth of a second to a look.
 
-Firefox has no such passthrough. There, and in Chrome when the tree can't be read, names and visibility come
-from one script, `internal/page/names.js`. The engine splices it into the control numbering, the outline and
+Firefox refuses the passthrough. In Firefox, and in Chrome when the tree can't be read, names and visibility
+come from one script, `internal/page/names.js`. The engine splices it into the control numbering, the outline and
 the accessibility check, so an element is never named two ways. When axe-core is
 loaded in the page, the script uses axe's own functions: `axe.commons.text.accessibleText` for the name and
 `axe.commons.dom.isVisibleToScreenReaders` for whether a screen reader can reach it. The engine loads its own

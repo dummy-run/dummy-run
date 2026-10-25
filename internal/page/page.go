@@ -941,7 +941,7 @@ const axeRunSrc = `() => window.__DR_AXE__.run(document, { elementRef: true, run
     // and stay unnamed.
     const named = (el) => {
       try {
-        return el && el.nodeType === 1 ? drClip(drSpecName(el, drRole(el)), 60) : "";
+        return el && el.nodeType === 1 ? drClip(drName(el, drRole(el)), 60) : "";
       } catch (e) {
         return "";
       }

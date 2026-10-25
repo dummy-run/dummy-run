@@ -2,10 +2,13 @@ package bidi_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/dummy-run/dummy-run/internal/bidi"
 )
 
 func TestCDPPassthrough(t *testing.T) {
@@ -29,8 +32,10 @@ func TestCDPPassthrough(t *testing.T) {
 			}
 			session, err := c.CDPSession(ctx, cx)
 			if browser != "chrome" {
-				if err == nil {
-					t.Fatalf("%s gave a CDP session %q; only Chrome has one", browser, session)
+				// The page code stops asking only when the browser refuses with a command error.
+				var ce *bidi.CommandError
+				if !errors.As(err, &ce) {
+					t.Fatalf("%s: CDPSession gave %q, %v; want a command error", browser, session, err)
 				}
 				return
 			}
