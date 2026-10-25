@@ -87,10 +87,10 @@
   steps:
     - If the element named in the finding should be hidden, hide it from everyone, for example with the hidden attribute or display none, so Tab skips it.
     - If it is off screen on purpose, such as a skip link, move it into view when it gets focus.
-    - For a closed menu or drawer, set inert on it until it opens.
+    - For a closed menu or drawer, set inert on it while it is closed, and remove inert when it opens.
   example:
-    before: "<nav class=\"drawer closed\" style=\"left:-300px\">"
-    after: "<nav class=\"drawer closed\" style=\"left:-300px\" inert> (remove inert when the drawer opens)"
+    before: "<nav class=\"drawer closed\" style=\"left:-300px\">…</nav>"
+    after: "<nav class=\"drawer closed\" style=\"left:-300px\" inert>…</nav>"
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
 

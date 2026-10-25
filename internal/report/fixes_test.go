@@ -103,3 +103,33 @@ func TestOwnRuleFindingCarriesItsFix(t *testing.T) {
 		t.Errorf("md: the finding's steps are missing")
 	}
 }
+
+// An axe rule the run did not describe still gets its Deque link.
+func TestAxeRuleFindingKeepsItsDequeLink(t *testing.T) {
+	runs := loadFixture(t)
+	moved := false
+	for _, r := range runs {
+		for i := range r.Rec.Findings {
+			if r.Rec.Findings[i].Symptom == "a11y:color-contrast" { //nolint:misspell // an axe rule ID
+				r.Rec.Findings[i].Symptom = "a11y:frame-title"
+				moved = true
+			}
+		}
+	}
+	if !moved {
+		t.Fatal("the fixture has no contrast finding to move")
+	}
+	rep, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range rep.Findings {
+		if f.Symptom == "a11y:frame-title" {
+			if !strings.HasPrefix(f.HelpURL, "https://dequeuniversity.com/rules/axe/") || !strings.HasSuffix(f.HelpURL, "/frame-title") {
+				t.Errorf("help %q", f.HelpURL)
+			}
+			return
+		}
+	}
+	t.Fatal("no frame-title finding")
+}
