@@ -1104,6 +1104,36 @@ sweep's browser, so later settings for the same site may show no banner.
 dummyrun a11y --consent --layout https://example.com/
 ```
 
+### Check the sweep against known problems
+
+The benchmark in `internal/benchmark` measures how many known problems the sweep finds. It plants known barriers in
+clean pages and counts the ones the sweep reports. Each planted barrier is one change a visitor would meet: a form field
+with no label, an image with no text alternative, a focus outline removed, a skip link that goes nowhere, or a page that
+traps the Tab key. The clean pages are in `testdata/benchmark/pages`.
+
+Each barrier is planted in every clean page it fits. For each of those pairs the benchmark runs the sweep twice, on the
+clean page and on the changed copy. A barrier counts as found when the copy shows one of its rules and the clean page
+did not, so a rule that fires on the clean page earns nothing. The result is recall for each check: how many of the
+barriers planted for it the sweep found, and which ones it missed. A barrier that lists several rules is found by
+any of them, and counts toward the first rule listed. A pair the browser could not run is counted
+separately, left out of recall, and fails the test.
+
+```sh
+DUMMYRUN_BROWSERS=chrome go test ./internal/benchmark -run TestBenchmark -v
+```
+
+Set `DUMMYRUN_BENCHMARK_OUT` to a file name to keep the scores as JSON. With more than one browser, each gets its own
+file, with the browser's name before the extension. The browsers run one after another, so only one is open at a time.
+
+The same run also tests rule by rule against real markup. `testdata/benchmark/accessguru/cases.json` holds 150 elements
+that axe-core reported on real pages, taken from the AccessGuru dataset (MIT), each with the rule that failed. The
+benchmark puts each element alone in a small clean page and checks that the sweep reports the rule. An element comes
+without its page, so a miss can mean the rule needs the surrounding page, such as a required parent. Look at each miss before you
+decide the check is weak.
+
+To plant a new kind of barrier, add a `Defect` to `internal/benchmark/inject.go` with the rule IDs that should find it.
+A test checks that every defect fits at least one of the clean pages.
+
 ## Troubleshooting
 
 Leftover browsers fill the disk and the process table. To list the browsers and profile directories that

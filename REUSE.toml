@@ -77,3 +77,9 @@ path = ["internal/plain/styles/Readability/*.yml", "internal/plain/styles/Readab
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Joseph Kato"
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["testdata/benchmark/accessguru/cases.json", "testdata/benchmark/accessguru/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2025 Nadeen Fathallah"
+SPDX-License-Identifier = "MIT"

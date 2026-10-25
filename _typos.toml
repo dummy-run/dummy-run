@@ -1,5 +1,5 @@
 [files]
-extend-exclude = ["*.png", "*.svg", "LICENSES/*", "LICENSE", "internal/page/axe/*", "internal/page/engines/*.js", "internal/page/engines/alfa/package-lock.json", "internal/page/consent/*", "internal/page/screenreader/vsr.min.js", "internal/page/screenreader/build/package-lock.json"]
+extend-exclude = ["*.png", "*.svg", "LICENSES/*", "LICENSE", "internal/page/axe/*", "internal/page/engines/*.js", "internal/page/engines/alfa/package-lock.json", "internal/page/consent/*", "internal/page/screenreader/vsr.min.js", "internal/page/screenreader/build/package-lock.json", "testdata/benchmark/accessguru/*"]
 
 [default.extend-words]
 # Firefox language group "x-beng" (Bengali) in internal/bidi/textscale.go
