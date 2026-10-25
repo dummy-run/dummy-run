@@ -1013,8 +1013,7 @@ stayed outside the page for three presses. A control counts only when the click 
 control whose test was already true, that something else covers, that a click didn't change, or that Tab didn't reach
 within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
 form's submit button are never picked, and nor is anything holding one. A control's own script can still navigate
-or send a request when it's clicked, but a sweep that isn't signed in has no account for it to change. A page that never takes
-keyboard focus shows as an error.
+or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
 
 The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
 is shown, it presses Enter and then Tab. Focus must then land inside the target or after it. When Tab alone gets

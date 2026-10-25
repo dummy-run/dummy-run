@@ -614,10 +614,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	// The keyboard and mouse comparison loads the page many times, so it runs last, once for each page and window.
 	defer func() {
 		key := u + "|" + vp.Name
-		// Signed in, a click or Enter on anything, even a skip link, could run a handler that sends a request and
-		// changes the account or signs it out, so nothing is tried.
-		signedIn := cfg.Session != nil || cfg.Access != nil
-		if !cfg.Keyboard || signedIn || res.Error != "" || rep.triedTasks[key] {
+		if !triesTasks(cfg) || res.Error != "" || rep.triedTasks[key] {
 			return
 		}
 		// It gets a deadline of its own, since the checks before it have used part of the page's.
@@ -645,6 +642,13 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
 	}
 	return res
+}
+
+// triesTasks says whether the sweep runs the keyboard and mouse comparison. Signed in, with a session or preview
+// access, a click or Enter on anything, even a skip link, could run a handler that sends a request and changes the
+// account or signs it out, so nothing is tried.
+func triesTasks(cfg Config) bool {
+	return cfg.Keyboard && cfg.Session == nil && cfg.Access == nil
 }
 
 // tryTasks runs the keyboard and mouse comparison in a tab of its own, set up like the sweep's tab, and closes it.

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/signin"
@@ -233,5 +234,22 @@ func TestMouseOnlyIsATaskVerdict(t *testing.T) {
 	want := map[string]string{RuleMouseOnly: record.EvidenceTaskVerdict, RuleSkipLinkNoFocus: record.EvidenceMeasurement}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("evidence by rule %v, want %v", got, want)
+	}
+}
+
+func TestTasksAreTriedOnlyWhenNotSignedIn(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		cfg  Config
+		want bool
+	}{
+		{"keyboard", Config{Keyboard: true}, true},
+		{"no keyboard", Config{}, false},
+		{"session", Config{Keyboard: true, Session: &signin.Session{}}, false},
+		{"preview access", Config{Keyboard: true, Access: &access.Resolved{}}, false},
+	} {
+		if got := triesTasks(c.cfg); got != c.want {
+			t.Errorf("%s: triesTasks %v, want %v", c.name, got, c.want)
+		}
 	}
 }
