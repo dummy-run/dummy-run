@@ -20,6 +20,8 @@
     {{ partial "schema-table.html" (dict "name" "target.route_universe, each item" "schema" $schema.properties.target.properties.route_universe.items "id" "route-universe") }}
     {{ partial "schema-table.html" (dict "name" "steps, each item" "schema" $schema.properties.steps.items "id" "steps") }}
     {{ partial "schema-table.html" (dict "name" "findings, each item" "schema" $schema.properties.findings.items "id" "findings") }}
+    {{ partial "schema-table.html" (dict "name" "findings[].inputs" "schema" $schema.properties.findings.items.properties.inputs "id" "inputs") }}
+    {{ partial "schema-table.html" (dict "name" "findings[].inputs.reproduced" "schema" $schema.properties.findings.items.properties.inputs.properties.reproduced "id" "reproduced") }}
 
     <h2 id="example">An example record</h2>
     {{ $ex := resources.Get "repo/examples/runs/2026-10-17-lin-contributor-008.json" }}
