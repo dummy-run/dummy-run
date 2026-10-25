@@ -39,3 +39,7 @@ This product includes two rules from the Vale Readability style (internal/plain/
 Joseph Kato, licensed under the MIT licence (see internal/plain/styles/Readability/LICENSE). The container image
 includes the Vale 3.24.0 program (/opt/vale), Copyright (c) 2016 Joseph Kato, licensed under the MIT licence. Its
 source is at https://github.com/vale-cli/vale.
+
+The test fixtures in testdata/benchmark/accessguru hold the rule names and element markup of 150 cases from the AccessGuru
+dataset, Copyright (c) 2025 Nadeen Fathallah, licensed under the MIT licence (see
+testdata/benchmark/accessguru/LICENSE). The source is at https://github.com/NadeenAhmad/AccessGuruLLM.
