@@ -1003,22 +1003,25 @@ The pixel comparison covers no more than the first 30 stops that need it. The wa
 The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
 sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden
 element, a closed `<details>`, an unselected tab, a custom checkbox or switch, and something that shows the hand
-pointer but isn't a control. When the sweep is signed in, with a session or preview access, it tries no controls
-and only checks the skip link, since any click handler could send a request that changes the account or signs it
-out. Each has a success test that the page computes, such as "`aria-expanded` became
-true" or, for the last kind, "the address, the words or the shown elements changed".
+pointer but isn't a control. Each has a success test that the page computes, such as "`aria-expanded` became true"
+or, for the last kind, "the address, the words or the shown elements changed".
 
 For each control, the sweep loads the page afresh and checks the test is false. It clicks the control with the
 mouse and checks the test is now true. On another fresh load, it presses Tab until the control has focus, then
 Enter, then Space, and checks the test again. Tab stops once focus has come back round to where it started, or has
 stayed outside the page for three presses. A control counts only when the click worked and the keyboard didn't. A
 control whose test was already true, that something else covers, that a click didn't change, or that Tab didn't reach
-within 80 stops has no verdict, and its `skipped` says why. Nothing that would leave the page or send a form is tried,
-and nor is anything holding a link to another page or a submit button. A page that never takes keyboard focus shows
-as an error.
+within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
+form's submit button are never picked, and nor is anything holding one. A control's own script can still navigate
+or send a request when it's clicked, but a sweep that isn't signed in has no account for it to change. A page that never takes
+keyboard focus shows as an error.
 
 The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
-is shown, it presses Enter and then Tab. Focus must then land inside the target or after it.
+is shown, it presses Enter and then Tab. Focus must then land inside the target or after it. When Tab alone gets
+there, as it does when the link sits just before its target, the check gives no verdict.
+
+When the sweep is signed in, with a session or preview access, it tries nothing: no controls and no skip link. Any
+click or Enter could run a script that sends a request and changes the account or signs it out.
 
 This loads each page a dozen times or so, so it runs once for each page and window size, on the first colour
 scheme and text size. It runs in a tab of its own, so the rest of the sweep is unchanged. The results are in

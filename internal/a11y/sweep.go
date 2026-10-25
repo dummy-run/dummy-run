@@ -614,7 +614,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	// The keyboard and mouse comparison loads the page many times, so it runs last, once for each page and window.
 	defer func() {
 		key := u + "|" + vp.Name
-		if !cfg.Keyboard || res.Error != "" || rep.triedTasks[key] {
+		// Signed in, a click or Enter on anything, even a skip link, could run a handler that sends a request and
+		// changes the account or signs it out, so nothing is tried.
+		signedIn := cfg.Session != nil || cfg.Access != nil
+		if !cfg.Keyboard || signedIn || res.Error != "" || rep.triedTasks[key] {
 			return
 		}
 		// It gets a deadline of its own, since the checks before it have used part of the page's.
@@ -666,13 +669,7 @@ func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			return nil, err
 		}
 	}
-	// Signed in, any click handler could send a request that changes the account or signs it out, so only the skip
-	// link is tried.
-	limit := page.MaxTasks
-	if cfg.Session != nil || cfg.Access != nil {
-		limit = 0
-	}
-	return page.TryTasks(ctx, conn, tab, u, limit)
+	return page.TryTasks(ctx, conn, tab, u, page.MaxTasks)
 }
 
 // adviceOnly is true for a rule that has none of the WCAG A and AA level tags the sweep tests: a best-practice

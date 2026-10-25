@@ -120,7 +120,7 @@ func sleep(ctx context.Context, d time.Duration) error {
 // skip link by keyboard. It loads the page many times. Give it a tab of its own that has not had keys pressed in it:
 // once focus has left a page for the browser's own controls, as it does at the end of a Tab walk, Firefox no longer
 // runs Enter's default action in that tab. Nothing that would leave the page or send a form is tried, but a click
-// handler can still send a request, so pass a limit of 0 when the browser is signed in: only the skip link is tried.
+// handler can still send a request, so don't call it when the browser is signed in.
 func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int) (*Tasks, error) {
 	if err := load(ctx, conn, cx, url); err != nil {
 		return nil, fmt.Errorf("tasks: %w", err)
@@ -254,8 +254,30 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab,
 }
 
 // trySkip presses Tab once on a fresh load. If focus is on a skip link with a shown target, it presses Enter and Tab
-// and says whether focus then landed inside the target or after it.
+// and says whether focus then landed inside the target or after it. It gives no verdict when Tab alone gets there.
 func trySkip(ctx context.Context, conn *bidi.Conn, cx, url, tab, enter string) (*SkipTry, error) {
+	// First Tab alone from the link. If that already lands in or after the target, as it does when the link sits
+	// just before it, the test can't tell a working link from one that does nothing.
+	sk, err := armSkip(ctx, conn, cx, url, tab)
+	if err != nil || sk == nil {
+		return nil, err
+	}
+	var plain bool
+	if err := pressAndCheck(ctx, conn, cx, sk.Target, &plain, tab); err != nil || plain {
+		return nil, err
+	}
+	if sk, err = armSkip(ctx, conn, cx, url, tab); err != nil || sk == nil {
+		return nil, err
+	}
+	if err := pressAndCheck(ctx, conn, cx, sk.Target, &sk.Moved, enter, tab); err != nil {
+		return nil, err
+	}
+	return sk, nil
+}
+
+// armSkip loads the page and presses Tab once. It returns the skip link if that put focus on one whose target
+// comes after it.
+func armSkip(ctx context.Context, conn *bidi.Conn, cx, url, tab string) (*SkipTry, error) {
 	if err := load(ctx, conn, cx, url); err != nil {
 		return nil, fmt.Errorf("tasks: %w", err)
 	}
@@ -274,16 +296,18 @@ func trySkip(ctx context.Context, conn *bidi.Conn, cx, url, tab, enter string) (
 	if before {
 		return nil, nil // the target comes before the link, so the test can't tell
 	}
-	for _, key := range []string{enter, tab} {
+	return sk, nil
+}
+
+// pressAndCheck presses keys in turn, then says whether focus is in or after target.
+func pressAndCheck(ctx context.Context, conn *bidi.Conn, cx, target string, past *bool, keys ...string) error {
+	for _, key := range keys {
 		if err := conn.PressKey(ctx, cx, key); err != nil {
-			return nil, fmt.Errorf("tasks: %w", err)
+			return fmt.Errorf("tasks: %w", err)
 		}
 		if err := sleep(ctx, taskSettle/2); err != nil {
-			return nil, err
+			return err
 		}
 	}
-	if err := taskCall(ctx, conn, cx, "past", sk.Target, &sk.Moved); err != nil {
-		return nil, err
-	}
-	return sk, nil
+	return taskCall(ctx, conn, cx, "past", target, past)
 }

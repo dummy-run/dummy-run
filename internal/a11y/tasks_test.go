@@ -60,6 +60,11 @@ document.getElementById("both").addEventListener("click", (e) => e.currentTarget
 <a id="skip" href="#main">Skip to content</a><nav><a href="/a">Home</a> <a href="/b">About</a></nav>
 <main id="main"><h1>Main</h1><a id="first" href="/c">First in main</a></main>
 <script>document.getElementById("skip").addEventListener("click", (e) => e.preventDefault());</script></body></html>`,
+	// A broken skip link just before its target: Tab alone lands in the target, so there is no verdict.
+	"/skip-next": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Skip</title></head><body>
+<a id="skip" href="#main">Skip to content</a>
+<main id="main"><h1>Main</h1><a id="first" href="/c">First in main</a></main>
+<script>document.getElementById("skip").addEventListener("click", (e) => e.preventDefault());</script></body></html>`,
 }
 
 // longPage puts more Tab stops than a walk takes before a button that works both ways, so the button has no verdict.
@@ -97,7 +102,7 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/long"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/skip-next", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/long"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
@@ -154,6 +159,9 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 			if f := layoutFinding(by["/skip-bad"], RuleSkipLinkNoFocus); f == nil || f.Nodes[0].Target != "#skip" {
 				t.Errorf("broken skip link not reported: %+v", by["/skip-bad"].Tasks.Skip)
 			}
+			if sk := by["/skip-next"].Tasks.Skip; sk != nil {
+				t.Errorf("a skip link just before its target should have no verdict: %+v", sk)
+			}
 		})
 	}
 }
@@ -178,15 +186,15 @@ func TestTaskFindingsNeedAWorkingClick(t *testing.T) {
 	}
 }
 
-// Signed in, no control is tried: any click handler could send a request that changes the account.
-func TestSignedInSweepTriesNoControls(t *testing.T) {
+// Signed in, nothing is tried, not even the skip link: any handler could send a request that changes the account.
+func TestSignedInSweepTriesNothing(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		_, _ = fmt.Fprint(w, tasksPages["/tasks"])
+		_, _ = fmt.Fprint(w, tasksPages[r.URL.Path])
 	}))
 	defer srv.Close()
 	session := &signin.Session{Cookies: []signin.SessionCookie{{Name: "sid", Value: "test", Domain: "127.0.0.1", Path: "/", Expires: -1, SameSite: "Lax"}}}
@@ -194,17 +202,18 @@ func TestSignedInSweepTriesNoControls(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks"}, Browser: browser, Session: session,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-bad"}, Browser: browser, Session: session,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
 			}
-			r := rep.Results[0]
-			if r.Error != "" || r.Tasks == nil {
-				t.Fatalf("error %q tasks %v", r.Error, r.Tasks)
-			}
-			if len(r.Tasks.Tasks) != 0 {
-				t.Errorf("signed in, controls were tried: %+v", r.Tasks.Tasks)
+			for _, r := range rep.Results {
+				if r.Error != "" || !r.KeyboardChecked {
+					t.Fatalf("%s: error %q, keyboard checked %v", r.URL, r.Error, r.KeyboardChecked)
+				}
+				if r.Tasks != nil {
+					t.Errorf("signed in, %s was tried: %+v", r.URL, r.Tasks)
+				}
 			}
 		})
 	}
