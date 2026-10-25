@@ -34,7 +34,8 @@ const imageContrastJS = `(op, selector) => {
   try { el = document.querySelector(selector); } catch (e) { return null; }
   if (!el) return null;
   const cs = getComputedStyle(el);
-  const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(cs.color);
+  // The fill colour is what is drawn; it is the text colour unless something sets it.
+  const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(cs.webkitTextFillColor || cs.color);
   if (!m || (m[4] !== undefined && Number(m[4]) < 1)) return null;
   const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
   // WCAG large text: 18pt (24 CSS px) or 14pt (about 18.66 CSS px) bold.

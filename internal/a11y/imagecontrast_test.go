@@ -21,6 +21,7 @@ const imageContrastPage = `<!doctype html><html lang="en"><head><meta charset="u
 <p id="short" class="hero" style="background:linear-gradient(90deg,#000 0 30%,#fff 30%)">Sale</p>
 <p id="pinned" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="color:#000 !important;-webkit-text-fill-color:#000 !important">your</b> appointment</p>
 <p id="tinted" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="color:#000 !important">your</b> appointment</p>
+<p id="filled" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);-webkit-text-fill-color:#000">Book your appointment online today</p>
 <p id="halo" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);text-shadow:0 0 3px #000">Book your appointment online today</p>
 </main></body></html>`
 
@@ -60,6 +61,9 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			}
 			// A child whose inline !important fill colour beats the hiding style would still be in the picture. One
 			// that sets only its colour stays hidden, because the fill colour is what is drawn.
+			if !slices.Contains(imageContrastTargets(r.NeedsReview), "#pinned") {
+				t.Fatalf("axe should leave #pinned for review, or the visible-child case isn't tested: %+v", r.NeedsReview)
+			}
 			if measured["#pinned"] || !measured["#tinted"] {
 				t.Errorf("#pinned should be left unmeasured and #tinted measured: %+v", r.ImageContrast)
 			}
@@ -68,6 +72,15 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			}
 			if want := len(imageContrastTargets(r.NeedsReview)) - len(r.ImageContrast); r.ImageContrastUnmeasured != want {
 				t.Errorf("unmeasured %d, want %d", r.ImageContrastUnmeasured, want)
+			}
+			// #filled is white by colour but drawn black by its fill colour, so it's measured as black and passes.
+			for _, m := range r.ImageContrast {
+				if m.Selector == "#filled" && m.Text != "#000000" {
+					t.Errorf("#filled should be measured with its drawn colour #000000, got %s", m.Text)
+				}
+			}
+			if !measured["#filled"] {
+				t.Errorf("#filled should be measured: %+v", r.ImageContrast)
 			}
 			var flagged []string
 			for _, f := range r.Violations {
