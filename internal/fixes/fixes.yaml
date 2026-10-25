@@ -122,7 +122,7 @@
   owner: development
   summary: Make the control work from the keyboard as it does with a mouse.
   steps:
-    - Use a real button or link for the element named in the finding, which takes focus and responds to Enter and Space on its own.
+    - If the element named in the finding does something on the page, make it a real button, which takes focus and responds to Enter and Space on its own. If it goes to another page, make it a link, which responds to Enter.
     - If it must stay a custom element, give it a role, tabindex 0 and a keydown handler for Enter and Space that does what the click does.
     - Run the action on click, not on mousedown, so a key press triggers it too.
   example:
