@@ -127,8 +127,8 @@ func TestAccessGuruCasesLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(cs) < 100 {
-		t.Fatalf("%d cases, want the full set", len(cs))
+	if len(cs) != 150 {
+		t.Fatalf("%d cases, want 150", len(cs))
 	}
 	seen := map[string]bool{}
 	for _, c := range cs {
@@ -228,6 +228,10 @@ func TestBenchmark(t *testing.T) {
 			t.Log("\nAccessGuru elements\n" + buf.String())
 
 			if out := os.Getenv("DUMMYRUN_BENCHMARK_OUT"); out != "" {
+				if len(strings.Split(v, ",")) > 1 {
+					// One file for each browser, so a later browser doesn't replace an earlier one's scores.
+					out = strings.TrimSuffix(out, filepath.Ext(out)) + "." + browser + filepath.Ext(out)
+				}
 				b, _ := json.MarshalIndent(map[string]Score{"planted": s, "accessguru": as}, "", " ")
 				if err := os.WriteFile(out, b, 0o600); err != nil {
 					t.Fatal(err)

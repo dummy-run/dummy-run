@@ -1120,7 +1120,7 @@ which ones it missed.
 DUMMYRUN_BROWSERS=chrome go test ./internal/benchmark -run TestBenchmark -v
 ```
 
-Set `DUMMYRUN_BENCHMARK_OUT` to a file name to keep the scores as JSON. The browsers run one after another, so a run
+Set `DUMMYRUN_BENCHMARK_OUT` to a file name to keep the scores as JSON. With more than one browser, each gets its own file, with the browser's name before the extension. The browsers run one after another, so a run
 doesn't flood your machine.
 
 The same run also tests rule by rule against real markup. `testdata/benchmark/accessguru/cases.json` holds elements that

@@ -34,7 +34,7 @@ func (r *Runner) Start() {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = io.WriteString(w, body)
+		_, _ = io.WriteString(w, body) // nosemgrep: go.lang.security.audit.xss.no-io-writestring-to-responsewriter.no-io-writestring-to-responsewriter // fixture pages the benchmark wrote itself
 	}))
 }
 
