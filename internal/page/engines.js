@@ -71,7 +71,7 @@ async (axeJSON, criteriaJSON, max) => {
     cs.filter !== "none" ||
     cs.perspective !== "none" ||
     /paint|layout|strict|content/.test(cs.contain) ||
-    /transform|perspective|filter/.test(cs.willChange);
+    cs.willChange.split(",").some((w) => ["transform", "perspective", "filter"].includes(w.trim()));
   const seen = (q, t) => {
     let l = q.left, r = q.right, top = q.top, bot = q.bottom;
     let skip = ""; // "absolute" or "fixed" while the parents being walked do not contain the text

@@ -23,6 +23,7 @@ const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <div style="width:20px;height:20px;overflow:hidden"><span id="fixed" style="position:fixed;bottom:10px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Fixed note</span></div>
 <div style="width:20px;height:20px;overflow:hidden"><span id="placed" style="position:absolute;top:400px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Placed note</span></div>
 <div style="position:relative;width:20px;height:20px;overflow:hidden"><div style="position:absolute"><span id="deep" style="position:fixed;bottom:40px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Deep note</span></div></div>
+<div style="width:20px;height:20px;overflow:hidden;will-change:transform-origin"><span id="origin" style="position:fixed;bottom:70px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Origin note</span></div>
 <span id="spill" style="display:inline-block;width:40px;height:20px;text-indent:60px;white-space:nowrap;color:#bbb;background:#ccc">Spills out</span>
 </main></body></html>`
 
@@ -112,9 +113,9 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 				}
 				// #scrolled sits outside its box's view, but the box scrolls, so you can reach it and the other engines'
 				// contrast failures on it count too, not axe's alone.
-				// #fixed, #placed and #deep sit in boxes that hide their overflow, but those boxes do not contain them, so they
+				// #fixed, #placed, #deep and #origin sit in boxes that hide their overflow, but those boxes do not contain them, so they
 				// are painted and their contrast counts too.
-				for _, sel := range []string{"#scrolled", "#fixed", "#placed", "#deep"} {
+				for _, sel := range []string{"#scrolled", "#fixed", "#placed", "#deep", "#origin"} {
 					found := false
 					for _, list := range [][]Finding{r.Violations, r.Candidates} {
 						for _, f := range list {
