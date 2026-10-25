@@ -616,7 +616,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		if !cfg.Keyboard || res.Error != "" || rep.triedTasks[key] {
 			return
 		}
-		t, err := tryTasks(pctx, conn, cx, cfg, u, vp)
+		// It gets a deadline of its own, since the checks before it have used part of the page's.
+		tctx, tcancel := context.WithTimeout(ctx, 90*time.Second)
+		defer tcancel()
+		t, err := tryTasks(tctx, conn, cx, cfg, u, vp)
 		if err != nil {
 			res.Error = "keyboard and mouse checks: " + firstLine(err.Error())
 			return
@@ -662,7 +665,8 @@ func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			return nil, err
 		}
 	}
-	return page.TryTasks(ctx, conn, tab, u, page.MaxTasks)
+	// Signed in, a click handler on something that only looks clickable could change the account or sign it out.
+	return page.TryTasks(ctx, conn, tab, u, page.MaxTasks, cfg.Session == nil && cfg.Access == nil)
 }
 
 // adviceOnly is true for a rule that has none of the WCAG A and AA level tags the sweep tests: a best-practice

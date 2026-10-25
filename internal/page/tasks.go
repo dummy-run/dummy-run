@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -37,7 +38,7 @@ type Task struct {
 	Keyboard bool `json:"keyboard"`
 	Reached  bool `json:"reached"`
 	// Skipped says why the task has no verdict: the test was already true on a fresh page, the element was
-	// covered so a mouse could not press it, or the click did nothing either.
+	// covered so a mouse could not press it, the click did nothing either, or Tab ran out of stops first.
 	Skipped string `json:"skipped,omitempty"`
 }
 
@@ -80,8 +81,9 @@ func load(ctx context.Context, conn *bidi.Conn, cx, url string) error {
 	// browser's own controls, such as the address bar after Tab has run off the end of a page, and then Firefox
 	// keeps it there across loads. Tab moves it back into the page, and loading the page again starts the next Tab
 	// from the top.
+	// A page that never takes focus is an error, not a control that Enter and Space did nothing to.
 	tab, _ := bidi.Key("Tab")
-	for i := 0; i < 10; i++ {
+	for i := 0; ; i++ {
 		var has bool
 		if err := conn.CallFunctionJSON(ctx, cx, "() => document.hasFocus()", &has); err != nil {
 			return err
@@ -93,6 +95,9 @@ func load(ctx context.Context, conn *bidi.Conn, cx, url string) error {
 				}
 			}
 			break
+		}
+		if i == 10 {
+			return errors.New("the page never took keyboard focus")
 		}
 		if err := conn.PressKey(ctx, cx, tab); err != nil {
 			return err
@@ -113,13 +118,22 @@ func sleep(ctx context.Context, d time.Duration) error {
 // TryTasks tries up to limit controls on the page at url, each by mouse and then by keyboard on a fresh load, and the
 // skip link by keyboard. It loads the page many times. Give it a tab of its own that has not had keys pressed in it:
 // once focus has left a page for the browser's own controls, as it does at the end of a Tab walk, Firefox no longer
-// runs Enter's default action in that tab. Nothing that would leave the page or send a form is tried.
-func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int) (*Tasks, error) {
+// runs Enter's default action in that tab. Nothing that would leave the page or send a form is tried. Pointers says
+// whether to try things that only look clickable, whose click handler could do anything; leave it false when the
+// browser is signed in.
+func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int, pointers bool) (*Tasks, error) {
 	if err := load(ctx, conn, cx, url); err != nil {
 		return nil, fmt.Errorf("tasks: %w", err)
 	}
 	var found []Task
-	if err := taskCall(ctx, conn, cx, "find", limit, &found); err != nil {
+	find, err := json.Marshal(struct {
+		Limit    int  `json:"limit"`
+		Pointers bool `json:"pointers"`
+	}{limit, pointers})
+	if err != nil {
+		return nil, fmt.Errorf("tasks: %w", err)
+	}
+	if err := taskCall(ctx, conn, cx, "find", string(find), &found); err != nil {
 		return nil, fmt.Errorf("tasks: %w", err)
 	}
 	tab, _ := bidi.Key("Tab")
@@ -199,15 +213,38 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab,
 		t.Skipped = "the page differed on the second load"
 		return nil
 	}
-	for i := 0; i < MaxTabStops && !t.Reached; i++ {
+	// The walk ends when focus comes back to the first stop it found, or stays out of the page for three presses,
+	// so Tab has been everywhere. Chrome can start the walk part way down the page and pass through its own
+	// controls before it comes round to the top, and Firefox can leave focus in its own controls. A walk that runs
+	// out of stops first has no verdict.
+	first, out, ended := "", 0, false
+	for i := 0; i < MaxTabStops && !t.Reached && !ended; i++ {
 		if err := conn.PressKey(ctx, cx, tab); err != nil {
 			return fmt.Errorf("tasks: %w", err)
 		}
-		if err := taskCall(ctx, conn, cx, "focused", t.Selector, &t.Reached); err != nil {
+		var f struct {
+			On bool   `json:"on"`
+			At string `json:"at"`
+		}
+		if err := taskCall(ctx, conn, cx, "focused", t.Selector, &f); err != nil {
 			return fmt.Errorf("tasks: %w", err)
+		}
+		t.Reached = f.On
+		switch {
+		case f.At == "":
+			out++
+			ended = out >= 3
+		case first == "":
+			first, out = f.At, 0
+		default:
+			out = 0
+			ended = f.At == first
 		}
 	}
 	if !t.Reached {
+		if !ended {
+			t.Skipped = fmt.Sprintf("Tab did not reach it within %d stops", MaxTabStops)
+		}
 		return nil
 	}
 	for _, key := range []string{enter, space} {

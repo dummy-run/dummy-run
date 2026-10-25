@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/signin"
 )
 
 // tasksPages have controls whose answer is known: some work by keyboard and by mouse, some only by mouse.
@@ -33,6 +34,23 @@ const open = () => ok.setAttribute("aria-expanded", "true");
 ok.addEventListener("click", open);
 ok.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") open(); });
 </script></main></body></html>`,
+	// Cards that look clickable and hold a link to another page or a submit button: a click on the card can land on
+	// what it holds, so neither is tried.
+	"/cards": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Cards</title></head><body><main>
+<h1>Cards</h1>
+<div id="linkcard" style="cursor:pointer"><a href="/elsewhere" style="display:block;padding:20px">Read the story</a></div>
+<form action="/sent"><div id="sendcard" style="cursor:pointer"><button type="submit" style="display:block;padding:20px">Send it</button></div></form>
+</main></body></html>`,
+	// The first control can't be reached by Tab, so the walk for it runs off the end of the page, and in Firefox
+	// focus is left in the browser's own controls. The next control must still be reached on the next load.
+	"/recover": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Recover</title></head><body><main>
+<h1>Recover</h1>
+<div id="mouse" aria-expanded="false">Mouse only</div>
+<button id="both" aria-expanded="false">Both ways</button>
+<script>
+document.getElementById("mouse").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-expanded", "true"));
+document.getElementById("both").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-expanded", "true"));
+</script></main></body></html>`,
 	"/skip-good": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Skip</title></head><body>
 <a id="skip" href="#main">Skip to content</a><nav><a href="/a">Home</a> <a href="/b">About</a></nav>
 <main id="main"><h1>Main</h1><a id="first" href="/c">First in main</a></main></body></html>`,
@@ -42,13 +60,30 @@ ok.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") 
 <script>document.getElementById("skip").addEventListener("click", (e) => e.preventDefault());</script></body></html>`,
 }
 
+// longPage puts more Tab stops than a walk takes before a button that works both ways, so the button has no verdict.
+func longPage() string {
+	var b strings.Builder
+	b.WriteString(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Long</title></head><body><main><h1>Long</h1>`)
+	for i := 0; i < page.MaxTabStops+5; i++ {
+		fmt.Fprintf(&b, `<a href="#s%d">Stop %d</a> `, i, i)
+	}
+	b.WriteString(`<button id="late" aria-expanded="false">Late</button>
+<script>document.getElementById("late").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-expanded", "true"));</script>
+</main></body></html>`)
+	return b.String()
+}
+
 func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
 	mux := http.NewServeMux()
+	pages := map[string]string{"/long": longPage()}
 	for path, body := range tasksPages {
+		pages[path] = body
+	}
+	for path, body := range pages {
 		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, body)
@@ -60,7 +95,7 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/long"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
@@ -94,6 +129,23 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 					t.Errorf("%s should work both ways: %+v", sel, task)
 				}
 			}
+			if n := len(by["/cards"].Tasks.Tasks); n != 0 {
+				t.Errorf("a card holding a link or a submit button was tried: %+v", by["/cards"].Tasks.Tasks)
+			}
+			rec := map[string]page.Task{}
+			for _, task := range by["/recover"].Tasks.Tasks {
+				rec[task.Selector] = task
+			}
+			if m := rec["#mouse"]; !m.Mouse || m.Reached || m.Skipped != "" {
+				t.Errorf("#mouse should be a mouse-only verdict: %+v", m)
+			}
+			if b := rec["#both"]; !b.Mouse || !b.Keyboard {
+				t.Errorf("#both should work both ways after the walk ran off the page: %+v", b)
+			}
+			long := by["/long"]
+			if len(long.Tasks.Tasks) != 1 || !strings.Contains(long.Tasks.Tasks[0].Skipped, "within") || layoutFinding(long, RuleMouseOnly) != nil {
+				t.Errorf("a button past the last Tab stop the walk takes should have no verdict: %+v", long.Tasks.Tasks)
+			}
 			if sk := by["/skip-good"].Tasks.Skip; sk == nil || !sk.Moved || layoutFinding(by["/skip-good"], RuleSkipLinkNoFocus) != nil {
 				t.Errorf("working skip link: %+v", sk)
 			}
@@ -121,5 +173,39 @@ func TestTaskFindingsNeedAWorkingClick(t *testing.T) {
 	}
 	if taskFindings(&page.Tasks{}, "/", nil) != nil {
 		t.Error("no tasks should give no findings")
+	}
+}
+
+// Signed in, something that only looks clickable is not tried: its click handler could change the account.
+func TestSignedInSweepTriesOnlyControls(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, tasksPages["/tasks"])
+	}))
+	defer srv.Close()
+	session := &signin.Session{Cookies: []signin.SessionCookie{{Name: "sid", Value: "test", Domain: "127.0.0.1", Path: "/", Expires: -1, SameSite: "Lax"}}}
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks"}, Browser: browser, Session: session,
+				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Results[0]
+			if r.Error != "" || r.Tasks == nil || len(r.Tasks.Tasks) == 0 {
+				t.Fatalf("error %q tasks %v", r.Error, r.Tasks)
+			}
+			for _, task := range r.Tasks.Tasks {
+				if task.Kind == "change" {
+					t.Errorf("signed in, %s was tried", task.Selector)
+				}
+			}
+		})
 	}
 }
