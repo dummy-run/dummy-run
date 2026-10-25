@@ -22,6 +22,8 @@ const imageContrastPage = `<!doctype html><html lang="en"><head><meta charset="u
 <p id="pinned" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="color:#fff !important;-webkit-text-fill-color:#fff !important">your</b> appointment</p>
 <p id="tinted" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="-webkit-text-fill-color:#000">your</b> appointment</p>
 <p id="filled" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);-webkit-text-fill-color:#000">Book your appointment online today</p>
+<p id="faded" class="hero" style="background:linear-gradient(90deg,#123,#000)">Book <b style="opacity:.3">your</b> appointment</p>
+<p id="sized" class="hero" style="background:linear-gradient(90deg,#123,#000);font-size:24px">Book <small style="font-size:14px">your</small> appointment</p>
 <p id="halo" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);text-shadow:0 0 3px #000">Book your appointment online today</p>
 </main></body></html>`
 
@@ -70,6 +72,16 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			}
 			if measured["#pinned"] || measured["#tinted"] {
 				t.Errorf("#pinned and #tinted should be left unmeasured: %+v", r.ImageContrast)
+			}
+			// #faded has a word at 30% opacity, drawn paler than its colour. #sized mixes large text with a smaller word
+			// that needs 4.5:1, not 3:1. One colour and one threshold can't stand for either, so both are left.
+			for _, id := range []string{"#faded", "#sized"} {
+				if !slices.Contains(imageContrastTargets(r.NeedsReview), id) {
+					t.Fatalf("axe should leave %s for review: %+v", id, r.NeedsReview)
+				}
+				if measured[id] {
+					t.Errorf("%s should be left unmeasured: %+v", id, r.ImageContrast)
+				}
 			}
 			if measured["#halo"] {
 				t.Errorf("text with a shadow should be left unmeasured: %+v", r.ImageContrast)

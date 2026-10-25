@@ -37,17 +37,24 @@ const imageContrastJS = `(op, selector) => {
   // The fill colour is what is drawn; it is the text colour unless something sets it.
   const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(cs.webkitTextFillColor || cs.color);
   if (!m || (m[4] !== undefined && Number(m[4]) < 1)) return null;
-  const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
   // WCAG large text: 18pt (24 CSS px) or 14pt (about 18.66 CSS px) bold.
-  const large = size >= 24 || (size >= 18.66 && weight >= 700);
+  const isLarge = (h) => { const size = parseFloat(h.fontSize), weight = Number(h.fontWeight) || 400;
+    return size >= 24 || (size >= 18.66 && weight >= 700); };
+  const large = isLarge(cs);
   if (cs.textShadow !== "none") return null;
   for (const d of el.querySelectorAll("*")) if (getComputedStyle(d).textShadow !== "none") return null;
-  // One text colour is compared with the background, so text drawn in more than one colour is left for a person.
-  const drawn = (n) => { const h = getComputedStyle(n); return h.webkitTextFillColor || h.color; };
-  const own = drawn(el);
+  // Text faded with opacity is drawn paler than its colour, and the picture can't tell by how much.
+  for (let n = el; n; n = n.parentElement) if (Number(getComputedStyle(n).opacity) < 1) return null;
+  for (const d of el.querySelectorAll("*")) if (Number(getComputedStyle(d).opacity) < 1) return null;
+  // One text colour and one threshold are compared with the background, so text drawn in more than one colour, or
+  // mixing large and smaller text, is left for a person.
+  const drawn = (h) => h.webkitTextFillColor || h.color;
+  const own = drawn(cs);
   for (const d of el.querySelectorAll("*")) {
     const words = [...d.childNodes].some((c) => c.nodeType === Node.TEXT_NODE && c.textContent.trim());
-    if (words && drawn(d) !== own) return null;
+    if (!words) continue;
+    const h = getComputedStyle(d);
+    if (drawn(h) !== own || isLarge(h) !== large) return null;
   }
   // The box around the words, not the element: padding or empty space beside a short label isn't behind any text.
   const range = document.createRange();
