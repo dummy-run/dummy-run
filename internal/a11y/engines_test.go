@@ -24,6 +24,7 @@ const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <div style="width:20px;height:20px;overflow:hidden"><span id="placed" style="position:absolute;top:400px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Placed note</span></div>
 <div style="position:relative;width:20px;height:20px;overflow:hidden"><div style="position:absolute"><span id="deep" style="position:fixed;bottom:40px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Deep note</span></div></div>
 <div style="width:20px;height:20px;overflow:hidden;will-change:transform-origin"><span id="origin" style="position:fixed;bottom:70px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Origin note</span></div>
+<!--many-->
 <span id="spill" style="display:inline-block;width:40px;height:20px;text-indent:60px;white-space:nowrap;color:#bbb;background:#ccc">Spills out</span>
 </main></body></html>`
 
@@ -32,9 +33,15 @@ const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <a href="/a">Read the guide</a>
 <label for="f">Name</label><input id="f" type="text">
 <button id="go" style="width:40px;height:40px;text-indent:-5000px;overflow:hidden;color:#bbb;background:#ccc;border:2px solid #000">Search</button>
+<div style="width:20px;height:20px;overflow:hidden;will-change:perspective"><span id="heldp" style="position:fixed;top:30px;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
+<div style="width:20px;height:20px;overflow:hidden;will-change:opacity, filter"><span id="heldf" style="position:fixed;top:60px;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
 <div style="width:20px;height:20px;overflow:hidden;will-change:transform"><span id="held" style="position:fixed;top:0;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
 <div style="width:60px;height:24px;overflow:hidden"><span id="hid" style="display:inline-block;margin-left:200px;white-space:nowrap;color:#bbb;background:#ccc">Hidden away</span></div>
 </main></body></html>`
+
+// many is a span whose first 250 text nodes are set at font-size 0 and whose last is seen, so the contrast filter has
+// to look past them all.
+var many = `<span id="many" style="color:#bbb;background:#ccc">` + strings.Repeat(`<b style="font-size:0">x</b>`, 250) + `Seen at last</span>`
 
 func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
@@ -42,7 +49,7 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
 	mux := http.NewServeMux()
-	for path, body := range map[string]string{"/bad": enginesBad, "/good": enginesGood} {
+	for path, body := range map[string]string{"/bad": strings.Replace(enginesBad, "<!--many-->", many, 1), "/good": enginesGood} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, body)
@@ -88,8 +95,8 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 					if len(r.Violations) != 0 {
 						t.Errorf("the good page has violations: %+v", r.Violations)
 					}
-					// The off-screen label of #go, the text of #hid, which its parent clips away, and #held, which the box that
-					// holds it as if transformed clips away, have no contrast anyone sees.
+					// The off-screen label of #go, the text of #hid, which its parent clips away, and #held, #heldp and #heldf,
+					// which the box that holds them as if transformed clips away, have no contrast anyone sees.
 					for _, c := range r.Candidates {
 						for _, n := range c.Nodes {
 							if c.Rule == RuleEnginesPrefix+"1.4.3" && (strings.Contains(n.Target, "#go") || strings.Contains(n.Target, "#hid") || strings.Contains(n.Target, "#held")) {
@@ -113,9 +120,9 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 				}
 				// #scrolled sits outside its box's view, but the box scrolls, so you can reach it and the other engines'
 				// contrast failures on it count too, not axe's alone.
-				// #fixed, #placed, #deep and #origin sit in boxes that hide their overflow, but those boxes do not contain them, so they
-				// are painted and their contrast counts too.
-				for _, sel := range []string{"#scrolled", "#fixed", "#placed", "#deep", "#origin"} {
+				// #fixed, #placed, #deep and #origin sit in boxes that hide their overflow, but those boxes do not contain
+				// them, so they are painted and their contrast counts too. So does #many, whose seen text comes last.
+				for _, sel := range []string{"#scrolled", "#fixed", "#placed", "#deep", "#origin", "#many"} {
 					found := false
 					for _, list := range [][]Finding{r.Violations, r.Candidates} {
 						for _, f := range list {

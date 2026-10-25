@@ -98,7 +98,7 @@ async (axeJSON, criteriaJSON, max) => {
   const unpainted = (el) => {
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     let any = false;
-    for (let t = walker.nextNode(), n = 0; t && n < 200; t = walker.nextNode(), n++) {
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
       if (!t.data.trim()) continue;
       any = true;
       const r = document.createRange();
