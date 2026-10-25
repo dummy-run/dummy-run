@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/dummy-run/dummy-run/internal/record"
@@ -181,8 +182,8 @@ func (t *Table) Rate(in record.FindingInputs) Rating {
 		}
 		r.Band, r.Bucket, r.Accuracy, r.Samples = b.Band(t.MinSamples), k.String(), b.Accuracy, b.Total
 		if k.Check == Any && KeyOf(in).Check != Any {
-			r.Reason += fmt.Sprintf(" This check has too few checked findings of its own, so the band comes from all %s findings together (%d checked).",
-				evidenceNoun(in.Evidence()), b.Total)
+			r.Reason += fmt.Sprintf(" This check has too few checked findings of its own, so the band comes from all %s together (%d checked).",
+				population(k), b.Total)
 		}
 		return r
 	}
@@ -194,19 +195,42 @@ func (t *Table) Rate(in record.FindingInputs) Rating {
 	return r
 }
 
-// evidenceNoun names an evidence kind in a sentence about a pooled bucket.
-func evidenceNoun(kind string) string {
-	switch kind {
+// population names the findings a pooled bucket holds: its evidence kind, the engines it is scoped to and, when
+// it is scoped to one, its reproduction class.
+func population(k Key) string {
+	var s string
+	switch k.Evidence {
 	case record.EvidenceEngineRule:
-		return "rule engine"
+		if k.Engines == None || k.Engines == Any {
+			s = "rule engine findings"
+		} else {
+			names := strings.Split(k.Engines, "+")
+			for i, n := range names {
+				names[i] = EngineName(n)
+			}
+			s = "findings " + strings.Join(names, " and ") + " report"
+			if len(names) == 1 {
+				s += "s"
+			}
+		}
 	case record.EvidenceMeasurement:
-		return "measured"
+		s = "measured findings"
 	case record.EvidenceAxFact:
-		return "accessibility tree"
+		s = "accessibility tree findings"
 	case record.EvidenceTaskVerdict:
-		return "task"
+		s = "task findings"
+	default:
+		s = "persona-only findings"
 	}
-	return "persona-only"
+	switch k.Repro {
+	case ReproAll:
+		s += " seen in every run"
+	case ReproSome:
+		s += " seen in some runs"
+	case ReproOnce:
+		s += " seen in one run"
+	}
+	return s
 }
 
 // Wilson returns the 95 percent Wilson score interval for k successes in n trials. For n of zero it is 0 to 1.

@@ -912,26 +912,40 @@ func TestSeverityAndConfidenceComeFromTheInputs(t *testing.T) {
 	if r := rules["button-name"]; r.Severity != "blocker" || r.Confidence != "high" || r.Inputs == nil || !r.Inputs.OnJourney || r.Inputs.EvidenceKind != record.EvidenceEngineRule {
 		t.Errorf("button-name: severity %q confidence %q inputs %+v", r.Severity, r.Confidence, r.Inputs)
 	}
-	if r := rules["color-contrast"]; r.Severity != "major" || r.Confidence != "high" || !strings.HasPrefix(r.ConfidenceReason, "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own") { //nolint:misspell // an axe rule ID
+	if r := rules["color-contrast"]; r.Severity != "major" || r.Confidence != "high" || !strings.HasSuffix(r.ConfidenceReason, "so the band comes from all findings axe-core reports together (159 checked).") { //nolint:misspell // an axe rule ID
 		t.Errorf("color-contrast: severity %q confidence %q reason %q", r.Severity, r.Confidence, r.ConfidenceReason) //nolint:misspell // an axe rule ID
 	}
 	if len(rep.Axe.NeedsReview) > 0 && rep.Axe.NeedsReview[0].Severity != "" {
 		t.Error("a rule that needs review has no severity: nothing failed yet")
 	}
-	// The fixture records predate inputs, so every persona finding is the model's own report: low, with how many of
-	// the runs that visited its route also found it.
+	// The fixture records predate inputs, so every persona finding is the model's own report: low. A finding whose
+	// role had repeated runs over its route says how many of them also found it; the editor ran once, so hers do not.
 	for _, f := range rep.Findings {
-		if f.Confidence != "low" || f.Inputs == nil || f.Inputs.EvidenceKind != record.EvidenceModelOnly || f.Inputs.Reproduced == nil || f.Inputs.Reproduced.Of != 4 {
-			t.Errorf("%s: confidence %q inputs %+v", f.Title, f.Confidence, f.Inputs)
+		if f.Confidence != "low" || f.Inputs == nil || f.Inputs.EvidenceKind != record.EvidenceModelOnly || !strings.HasPrefix(f.ConfidenceReason, "The persona's own report") {
+			t.Errorf("%s: confidence %q inputs %+v reason %q", f.Title, f.Confidence, f.Inputs, f.ConfidenceReason)
 		}
-		if !strings.HasPrefix(f.ConfidenceReason, "The persona's own report") || !strings.Contains(f.ConfidenceReason, "of 4 runs") {
-			t.Errorf("%s: reason %q", f.Title, f.ConfidenceReason)
+		if r := f.Inputs.Reproduced; (r != nil) != (f.Route == "/payments") || (r != nil && !strings.Contains(f.ConfidenceReason, "3 runs")) {
+			t.Errorf("%s on %s: reproduced %+v reason %q", f.Title, f.Route, r, f.ConfidenceReason)
 		}
 	}
 	html := render(t, rep, "html")
 	for _, want := range []string{"Low confidence</span>", "<dt>How sure</dt><dd>Low confidence. The persona&#39;s own report", `<th scope="col">How sure</th>`, "High<br>"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("HTML lacks %q", want)
+		}
+	}
+	// Only runs in a role that found the problem count towards how often it reproduced. The fixture's /payments
+	// findings come from contributors, and the editor run that also visited /payments is left out.
+	roles := map[string]bool{}
+	for _, run := range rep.Scope.Personas {
+		roles[run.Role] = true
+	}
+	if len(roles) < 2 {
+		t.Fatalf("the fixture needs two roles, got %v", roles)
+	}
+	for _, f := range rep.Findings {
+		if f.Route == "/payments" && f.Inputs.Reproduced.Of != 3 {
+			t.Errorf("%s: of %d runs, want the 3 contributor runs, not the editor's", f.Title, f.Inputs.Reproduced.Of)
 		}
 	}
 	// A record that carries inputs keeps them, and a finding the sweep's engines back rates by them.

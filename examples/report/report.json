@@ -454,14 +454,10 @@
         "evidence_kind": "model-only",
         "engines": [],
         "check": "error-shown",
-        "on_journey": true,
-        "reproduced": {
-          "runs": 1,
-          "of": 4
-        }
+        "on_journey": true
       },
       "confidence": "low",
-      "confidence_reason": "The persona's own report, with no check behind it, and it happened in 1 of 4 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).",
+      "confidence_reason": "The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).",
       "personas": [
         "ada-editor"
       ],
@@ -519,11 +515,11 @@
         "on_journey": true,
         "reproduced": {
           "runs": 3,
-          "of": 4
+          "of": 3
         }
       },
       "confidence": "low",
-      "confidence_reason": "The persona's own report, with no check behind it, and it happened in 3 of 4 runs.",
+      "confidence_reason": "The persona's own report, with no check behind it, and it happened in all 3 runs.",
       "personas": [
         "lin-contributor"
       ],
@@ -639,7 +635,7 @@
           "on_journey": true
         },
         "confidence": "high",
-        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all rule engine findings together (159 checked).",
+        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).",
         "pages": [
           {
             "url": "https://pr-41.inkwell.example/issues",
@@ -672,7 +668,7 @@
           "on_journey": true
         },
         "confidence": "high",
-        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all rule engine findings together (159 checked).",
+        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).",
         "pages": [
           {
             "url": "https://pr-41.inkwell.example/issues",

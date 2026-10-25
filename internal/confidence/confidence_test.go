@@ -137,7 +137,7 @@ func TestRateUsesTheMostSpecificBucketWithEnoughSamples(t *testing.T) {
 		bucket("engine-rule|image-alt|axe|*", 5, 5),
 	)
 	axe := record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"axe"}, Check: "image-alt"}
-	if r := tb.Rate(axe); r.Band != BandHigh || r.Bucket != "engine-rule|*|axe|*" || r.Samples != 149 || !strings.HasSuffix(r.Reason, "so the band comes from all rule engine findings together (149 checked).") {
+	if r := tb.Rate(axe); r.Band != BandHigh || r.Bucket != "engine-rule|*|axe|*" || r.Samples != 149 || !strings.HasSuffix(r.Reason, "so the band comes from all findings axe-core reports together (149 checked).") {
 		t.Errorf("image-alt with five samples falls back to all axe rules and says so: %+v", r)
 	}
 	spacing := record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"axe"}, Check: "avoid-inline-spacing"}
@@ -148,9 +148,17 @@ func TestRateUsesTheMostSpecificBucketWithEnoughSamples(t *testing.T) {
 	if r := tb.Rate(three); r.Band != BandHigh || r.Bucket != "engine-rule|*|axe|*" {
 		t.Errorf("three engines fall back to the axe subset: %+v", r)
 	}
-	if !strings.HasPrefix(tb.Rate(three).Reason, "Three engines agree (axe-core, IBM Equal Access, Siteimprove Alfa)") {
-		t.Errorf("reason %q", tb.Rate(three).Reason)
+	// The reason names the bucket that set the band: axe-core's own record, not all three engines.
+	if r := tb.Rate(three).Reason; !strings.HasPrefix(r, "Three engines agree (axe-core, IBM Equal Access, Siteimprove Alfa).") ||
+		!strings.HasSuffix(r, "so the band comes from all findings axe-core reports together (149 checked).") {
+		t.Errorf("reason %q", r)
 	}
+	tb.Buckets = append(tb.Buckets, bucket("engine-rule|*|axe+ibm|all", 20, 20))
+	three.Reproduced = &record.Reproduced{Runs: 2, Of: 2}
+	if r := tb.Rate(three); r.Bucket != "engine-rule|*|axe+ibm|all" || !strings.HasSuffix(r.Reason, "all findings axe-core and IBM Equal Access report seen in every run together (20 checked).") {
+		t.Errorf("the largest subset with data wins: %+v", r)
+	}
+	three.Reproduced = nil
 	alone := record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"ibm"}, Check: "dummyrun-engines-1.3.1"}
 	if r := tb.Rate(alone); r.Band != BandUnknown || r.Bucket != "" || !strings.Contains(r.Reason, "has not been measured yet") {
 		t.Errorf("an engine with no data on its own is unknown, never high: %+v", r)

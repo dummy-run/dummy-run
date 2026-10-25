@@ -96,7 +96,10 @@ command. To check a table against findings it was not built from, pass them with
 	}
 	md := confidence.Evaluate(t, check).Markdown()
 	if *report == "" {
-		fmt.Fprint(stdout, md)
+		if _, err := io.WriteString(stdout, md); err != nil {
+			fmt.Fprintln(os.Stderr, "dummyrun calibrate: write the report:", err)
+			return 1
+		}
 		return 0
 	}
 	if err := os.WriteFile(*report, []byte(md), 0o600); err != nil {

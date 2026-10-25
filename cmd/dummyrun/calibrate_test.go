@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,6 +47,17 @@ func TestCalibrateBuildsATableAndAReport(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "1 labelled findings") || !strings.Contains(out.String(), "| medium | 1 | 0 |") {
 		t.Errorf("eval report:\n%s", out.String())
+	}
+}
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("closed pipe") }
+
+func TestCalibrateFailsWhenTheReportCannotBeWritten(t *testing.T) {
+	labels := writeLabels(t, t.TempDir(), "l.json", `[{"inputs":{"evidence_kind":"model-only","engines":[],"check":"x","on_journey":true},"true":false}]`)
+	if got := calibrateTo([]string{"--labels", labels}, failingWriter{}); got != 1 {
+		t.Errorf("exited %d, want 1", got)
 	}
 }
 

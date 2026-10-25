@@ -343,19 +343,46 @@ type hit struct {
 	status string
 }
 
-// routesVisited counts the runs that visited each route.
-func routesVisited(runs []*Run) map[string]int {
-	out := map[string]int{}
+// visits counts the runs that visited each route, by the role the persona played. A finding one role met is
+// only expected of runs in the same role, so another role's runs never count against it.
+type visits map[string]map[string]int
+
+// routesVisited counts, for each role and route, the runs in that role that visited the route.
+func routesVisited(runs []*Run) visits {
+	out := visits{}
 	for _, run := range runs {
+		role := run.Rec.Persona.Role
+		if out[role] == nil {
+			out[role] = map[string]int{}
+		}
 		seen := map[string]bool{}
 		for _, st := range run.Rec.Steps {
 			if st.Route != "" && !seen[st.Route] {
 				seen[st.Route] = true
-				out[st.Route]++
+				out[role][st.Route]++
 			}
 		}
 	}
 	return out
+}
+
+// any reports whether a run in any role visited the route.
+func (v visits) any(route string) bool {
+	for _, byRoute := range v {
+		if byRoute[route] > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// eligible counts the runs in the given roles that visited the route.
+func (v visits) eligible(roles map[string]bool, route string) int {
+	n := 0
+	for role := range roles {
+		n += v[role][route]
+	}
+	return n
 }
 
 func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axeVersion string) ([]Finding, []string) {
@@ -423,7 +450,7 @@ func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axe
 	return out, omitted
 }
 
-func makeFinding(key string, hits []hit, status string, total int, axe map[string]AxeRule, axeVersion string, visited map[string]int) Finding {
+func makeFinding(key string, hits []hit, status string, total int, axe map[string]AxeRule, axeVersion string, visited visits) Finding {
 	// The lead sighting gives the title: the worst severity, then the earliest run. A confirmed finding
 	// takes its lead and its reproduction from the confirmed sightings, so a model's claim that no person
 	// checked cannot set the severity beside the badge that says a person confirmed it.
@@ -457,9 +484,11 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 	// Review details come from the confirmed sightings.
 	reviewers := map[string]bool{}
 	personas := map[string]bool{}
+	roles := map[string]bool{}
 	runSet := map[string]bool{}
 	for _, h := range hits {
 		personas[h.run.Rec.Persona.ID] = true
+		roles[h.run.Rec.Persona.Role] = true
 		runSet[h.run.Rec.ID] = true
 		f.Instances = append(f.Instances, Instance{Run: h.run.Rec.ID, FindingID: h.f.ID, Persona: h.run.Rec.Persona.ID,
 			Device: h.run.Rec.Persona.Device, Browser: h.run.Rec.Browser.Name, Steps: append([]int{}, h.f.Steps...), Status: h.status})
@@ -525,8 +554,10 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 		}
 		f.Fix = fixes.For(rule)
 	}
+	// Reproduction counts the runs that could have met the problem: those in a role that found it, which visited
+	// its route. Runs in other roles may not see the same page, so they never dilute the count.
 	in := deriveInputs(lead.f)
-	if of := visited[f.Route]; of >= 2 || f.Runs >= 2 {
+	if of := visited.eligible(roles, f.Route); of >= 2 || f.Runs >= 2 {
 		in.Reproduced = &record.Reproduced{Runs: f.Runs, Of: max(of, f.Runs)}
 	}
 	rating := confidence.Default().Rate(in)
@@ -604,7 +635,7 @@ func axeFingerprint(rule string) string {
 	return hex.EncodeToString(sum[:])[:16]
 }
 
-func buildAxe(reps []*a11y.Report, visited map[string]int) *AxeSection {
+func buildAxe(reps []*a11y.Report, visited visits) *AxeSection {
 	if len(reps) == 0 {
 		return nil
 	}
@@ -638,7 +669,7 @@ func buildAxe(reps []*a11y.Report, visited map[string]int) *AxeSection {
 				continue
 			}
 			// Only an element that still fails puts the rule on a journey. An allow-listed one does not count.
-			if visited[identity.NormaliseRoute(p.URL)] > 0 {
+			if visited.any(identity.NormaliseRoute(p.URL)) {
 				a.journey = true
 			}
 			a.engines = agreeing(a.engines, nodeEngines(f, n), len(a.nodes) == 0)

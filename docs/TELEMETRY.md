@@ -124,7 +124,9 @@ finding's first step, or at the run's start when the finding cites no step. Secu
 
 The verdict is whatever the record holds when you export it, so review with `dummyrun review` first
 and export afterwards. Review also adds `reviewer`, `reviewed_at` and `reason` to the record. The
-exporter reads those fields but doesn't send them.
+exporter reads those fields but doesn't send them. The same goes for each finding's `inputs` block (its
+evidence kind, engines, check, journey and reproduction), which the engine writes and a report turns into a
+confidence band. The block is optional in the schema, so records from before it existed still load.
 
 Exporting a reviewed record again won't update what Grafana already holds. The trace IDs stay the same,
 but Loki keeps the repeated log lines and Prometheus counts the run again, as the exporter guide explains. Panels that count confirmed findings
