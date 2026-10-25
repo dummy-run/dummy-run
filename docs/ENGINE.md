@@ -918,8 +918,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
-rule engines, contrast over images, the layout checks and plain language. This guide describes each check below.
-Add `--text-scale 100,200` to test large text in the same run.
+rule engines, contrast over images, the HTML check, the layout checks and plain language. Add `--text-scale 100,200` to test large text in the same run.
 
 ```sh
 dummyrun a11y --all --text-scale 100,200 --json report.json https://example.com/
@@ -1150,6 +1149,52 @@ The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names.
 
 ```sh
 dummyrun a11y --plain-language https://example.com/
+```
+
+### HTML errors that change what assistive technology gets
+
+Browsers forgive broken HTML, but they repair it in ways you didn't write, and some mistakes reach assistive
+technology directly. Two elements with the same ID can send a label to the wrong field. A link inside a button may
+be announced as one, the other or neither. Add `--html` and the sweep checks each page with the
+[Nu HTML Checker](https://validator.github.io/validator/) (vnu), the checker behind the W3C's own validator. It
+runs on your machine as a separate program.
+
+The sweep checks two copies of each page in one vnu run:
+
+- the HTML as the server sent it, fetched again from the page with the page's own cookies, which is where parse
+  errors such as tags closed in the wrong order are;
+- the page as the browser built it, with what scripts added, which is where a duplicate ID from a template is.
+
+An error both copies have is reported once. vnu stops reading a document after some errors, such as a `div` inside
+a `table`, so the second copy often finds what the first one couldn't.
+
+Only errors that change what assistive technology gets are kept:
+
+| Rule ID | Reports |
+|---|---|
+| `dummyrun-html-broken-reference` | An `aria-labelledby`, `aria-describedby` or label `for` that points at no element that can take it |
+| `dummyrun-html-duplicate-id` | Two elements with the same ID |
+| `dummyrun-html-nested-interactive` | A link, button or other control inside another one |
+| `dummyrun-html-aria` | A role or `aria-*` attribute the element can't have, or a value it can't take |
+| `dummyrun-html-structure` | A list, table or select with children that don't belong, or tags the browser had to rearrange |
+| `dummyrun-html-img-alt` | An image with no `alt` attribute |
+
+Everything else vnu reports, such as an obsolete `center` element or a stray end tag the browser ignores, is
+counted in `html_ignored` and left out. Every result goes to `advice` and never fails the sweep. WCAG 2.2 dropped
+parsing (4.1.1) as a criterion, and a validator can't tell whether the error also fails another one. axe-core and
+the other engines report many of the same problems as WCAG failures when they do.
+
+The HTML is the same at every window size and colour scheme, so it's checked once for each URL. The first result
+for the URL has `html_checked`, `html_source_checked` when the source could be fetched again, and `html_error` when
+vnu couldn't run. vnu reads the first 2 MB of each copy, and `html_partial` is true when there was more. A source
+line number in a finding counts lines of the HTML as the server sent it.
+
+The sweep looks for `vnu` on your `PATH`, or the program `DUMMYRUN_VNU` names. The container image includes the
+Nu HTML Checker 26.10.12, on a Java runtime cut down to the modules it needs. Without vnu, the rest of the sweep
+still runs and each page says why it wasn't checked. Each check starts Java, which takes a second or two.
+
+```sh
+dummyrun a11y --html https://example.com/
 ```
 
 ### Cookie banners

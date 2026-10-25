@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/dummy-run/dummy-run/internal/validate"
 )
 
 // The rules Dummy Run's own checks report. Each needs an entry.
@@ -14,12 +16,19 @@ var ownRules = []string{
 	"dummyrun-label-in-name", "dummyrun-autocomplete-missing", "dummyrun-contrast-over-image", "dummyrun-consent-no-reject",
 	"dummyrun-plain-reading-ease", "dummyrun-plain-reading-grade", "dummyrun-plain-long-sentence",
 	"dummyrun-plain-words-to-avoid", "dummyrun-plain-latin", "dummyrun-engines-1.1.1",
+	"dummyrun-html-broken-reference", "dummyrun-html-duplicate-id", "dummyrun-html-nested-interactive",
+	"dummyrun-html-aria", "dummyrun-html-structure", "dummyrun-html-img-alt",
 }
 
 func TestEveryOwnRuleHasAFix(t *testing.T) {
 	for _, r := range ownRules {
 		if For(r) == nil {
 			t.Errorf("no fix for %s", r)
+		}
+	}
+	for _, r := range validate.Rules {
+		if For(r.ID) == nil {
+			t.Errorf("no fix for the HTML check's %s", r.ID)
 		}
 	}
 	if For("image-alt") != nil {

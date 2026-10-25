@@ -52,3 +52,10 @@ source is at https://github.com/vale-cli/vale.
 The test fixtures in testdata/benchmark/accessguru hold the rule names and element markup of 150 cases from the AccessGuru
 dataset, Copyright (c) 2025 Nadeen Fathallah, licensed under the MIT licence (see
 testdata/benchmark/accessguru/LICENSE). The source is at https://github.com/NadeenAhmad/AccessGuruLLM.
+
+The container image includes the Nu HTML Checker 26.10.12 (/opt/vnu/vnu.jar), Copyright (c) 2007-2016 Mozilla
+Foundation and the validator contributors, licensed under the MIT licence (see /opt/vnu/LICENSE). The jar carries
+the licences of the libraries it includes. Its source is at https://github.com/validator/validator. vnu runs on a
+Java runtime (/opt/vnu/jre) made with jlink from Debian's OpenJDK 21 package, licensed under the GNU General Public
+License version 2 with the Classpath Exception (see /opt/vnu/jre/legal). Its source is in Debian's openjdk-21
+source package.
