@@ -630,15 +630,16 @@ func buildAxe(reps []*a11y.Report, visited map[string]int) *AxeSection {
 			into[f.Rule] = a
 		}
 		setting := p.Setting()
-		if visited[identity.NormaliseRoute(p.URL)] > 0 {
-			a.journey = true
-		}
 		for _, n := range f.Nodes {
 			if n.Allowed {
 				if countAllowed {
 					sec.AllowedNodes++
 				}
 				continue
+			}
+			// Only an element that still fails puts the rule on a journey. An allow-listed one does not count.
+			if visited[identity.NormaliseRoute(p.URL)] > 0 {
+				a.journey = true
 			}
 			a.engines = agreeing(a.engines, nodeEngines(f, n), len(a.nodes) == 0)
 			pg := a.pages[p.URL]

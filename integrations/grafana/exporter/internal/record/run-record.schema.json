@@ -656,7 +656,9 @@
                   "type": "string",
                   "pattern": "^[a-z0-9-]+$"
                 },
-                "description": "The rule engines that report the problem, by short name (axe, ibm, htmlcs, alfa). Empty when none does"
+                "description": "The rule engines that report the problem, by short name (axe, ibm, htmlcs, alfa). Empty when none does",
+                "maxItems": 8,
+                "uniqueItems": true
               },
               "check": {
                 "type": "string",

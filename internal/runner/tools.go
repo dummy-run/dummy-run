@@ -271,7 +271,7 @@ func RecordFindings(f Finish, loc *Locator) []record.Finding {
 		if err != nil {
 			continue
 		}
-		inputs, impact := findingInputs(symptom, ff.Steps, loc)
+		inputs, impact := findingInputs(symptom, ff.Steps, locus, loc)
 		severity := confidence.Severity(confidence.SeverityInputs{Evidence: inputs.EvidenceKind, Impact: impact, OnJourney: inputs.OnJourney, Pages: 1})
 		out = append(out, record.Finding{ID: id, Kind: ff.Kind, Severity: severity, Title: ff.Title,
 			Steps: ff.Steps, Evidence: ff.Evidence, Verdict: record.VerdictPending, Class: record.ClassProblem,
@@ -282,15 +282,15 @@ func RecordFindings(f Finish, loc *Locator) []record.Finding {
 }
 
 // findingInputs works out what a persona finding rests on, from the steps it cites and nothing the model wrote.
-// A finding that names an axe rule which a cited accessibility check reported is an engine-rule finding with
-// axe's impact for that rule. Anything else is model-only, with the impact class of its symptom. A persona met
-// the problem while doing its scenario, so the finding is on a journey.
-func findingInputs(symptom string, cited []int, loc *Locator) (record.FindingInputs, string) {
+// A finding that names an axe rule which a cited accessibility check reported, on the element the finding is
+// about, is an engine-rule finding with axe's impact for that rule. Anything else is model-only, with the
+// impact class of its symptom. A persona met the problem while doing its scenario, so the finding is on a journey.
+func findingInputs(symptom string, cited []int, locus string, loc *Locator) (record.FindingInputs, string) {
 	base, param, _ := strings.Cut(symptom, ":")
 	in := record.FindingInputs{EvidenceKind: record.EvidenceModelOnly, Engines: []string{}, Check: base, OnJourney: true}
 	if base == "a11y" && param != "" {
 		in.Check = param
-		if impact, ok := loc.A11yRule(cited, param); ok {
+		if impact, ok := loc.A11yRule(cited, param, locus); ok {
 			in.EvidenceKind, in.Engines = record.EvidenceEngineRule, []string{"axe"}
 			if impact != "" {
 				return in, impact

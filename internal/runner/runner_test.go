@@ -450,18 +450,27 @@ func TestEarlyFinishIsSentBackUntilTheMinimum(t *testing.T) {
 
 func TestRecordFindingsSetsSeverityAndInputsFromTheSteps(t *testing.T) {
 	a11yStep := sampleStep(2, "a11y", "")
-	a11yStep.Obs.A11y = []page.Violation{{ID: "image-alt", Impact: "critical", Help: "Images must have alternate text", Nodes: 1}}
+	a11yStep.Obs.A11y = []page.Violation{
+		{ID: "image-alt", Impact: "critical", Help: "Images must have alternate text", Nodes: 1},
+		{ID: "button-name", Impact: "critical", Help: "Buttons must have discernible text", Nodes: 1, Elements: []page.ViolationElement{{Selector: "#menu", Name: "Menu"}}},
+	}
 	loc := NewLocator([]Step{sampleStep(1, "look", ""), a11yStep, sampleStep(3, "click", "")})
 	recs := RecordFindings(Finish{Findings: []FinishFinding{
 		// The model's severity is ignored: the rule sets it from the inputs.
 		{Kind: "accessibility", Severity: "info", Symptom: "a11y", Rule: "image-alt", Title: "The logo has no alt text", Steps: []int{2}, Evidence: "measured"},
+		// Naming a rule axe reported is not enough when the finding is about a control axe did not flag.
+		{Kind: "accessibility", Symptom: "a11y", Rule: "button-name", Control: "@2", Title: "Go has no name", Steps: []int{2}, Evidence: "measured"},
 		{Kind: "accessibility", Severity: "blocker", Symptom: "a11y", Rule: "color-contrast", Title: "Grey text on grey", Steps: []int{1}, Evidence: "measured"}, //nolint:misspell // an axe rule ID
 		{Kind: "friction", Severity: "blocker", Symptom: "missing-information", Topic: "prices", Title: "No prices", Steps: []int{3}, Evidence: "inferred"},
 		{Kind: "bug", Severity: "info", Symptom: "not-operable", Control: "@2", Title: "Go does nothing", Steps: []int{3}, Evidence: "measured"},
 	}}, loc)
-	if len(recs) != 4 {
+	if len(recs) != 5 {
 		t.Fatalf("%d findings", len(recs))
 	}
+	if other := recs[1]; other.Inputs.EvidenceKind != record.EvidenceModelOnly || other.Severity != "major" {
+		t.Errorf("a rule axe reported on another element: %s %+v", other.Severity, other.Inputs)
+	}
+	recs = append(recs[:1], recs[2:]...)
 	backed := recs[0]
 	if backed.Severity != "blocker" || backed.Inputs == nil || backed.Inputs.EvidenceKind != record.EvidenceEngineRule ||
 		backed.Inputs.Check != "image-alt" || len(backed.Inputs.Engines) != 1 || backed.Inputs.Engines[0] != "axe" || !backed.Inputs.OnJourney {

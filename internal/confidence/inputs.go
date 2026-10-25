@@ -11,6 +11,10 @@ import (
 // Any is the wildcard in a bucket key: the bucket pools every value of that field.
 const Any = "*"
 
+// MaxEngines bounds the engine set a key names. Candidates lists every subset of the set, so a larger one is
+// looked up exactly and never by its subsets. Real sweeps run at most four engines.
+const MaxEngines = 8
+
 // None is the key value for a field that does not apply: no engines, or no repeated runs.
 const None = "-"
 
@@ -90,8 +94,8 @@ func KeyOf(in record.FindingInputs) Key {
 func Candidates(in record.FindingInputs) []Key {
 	exact := KeyOf(in)
 	engines := []string{exact.Engines}
-	if exact.Engines != None {
-		engines = append(engines, subsets(strings.Split(exact.Engines, "+"))...)
+	if names := strings.Split(exact.Engines, "+"); exact.Engines != None && len(names) <= MaxEngines {
+		engines = append(engines, subsets(names)...)
 	}
 	var out []Key
 	seen := map[Key]bool{}

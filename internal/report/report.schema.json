@@ -219,7 +219,7 @@
       "description": "The facts a finding's severity and confidence rest on, as the run record's inputs block",
       "properties": {
         "evidence_kind": { "enum": ["measurement", "ax-fact", "engine-rule", "task-verdict", "model-only"] },
-        "engines": { "type": "array", "items": { "type": "string" } },
+        "engines": { "type": "array", "items": { "type": "string" }, "maxItems": 8, "uniqueItems": true },
         "check": { "type": "string" },
         "on_journey": { "type": "boolean" },
         "reproduced": {

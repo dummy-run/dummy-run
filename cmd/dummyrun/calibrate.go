@@ -4,12 +4,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/dummy-run/dummy-run/internal/confidence"
 )
 
-func calibrateCmd(args []string) int {
+func calibrateCmd(args []string) int { return calibrateTo(args, os.Stdout) }
+
+// calibrateTo runs dummyrun calibrate and writes the report to stdout when no --report file is given.
+func calibrateTo(args []string, stdout io.Writer) int {
 	fs := flag.NewFlagSet("calibrate", flag.ContinueOnError)
 	var labels, eval listFlag
 	fs.Var(&labels, "labels", "a JSON file of labelled findings, each with its inputs and whether it was true; repeat the flag to read several")
@@ -92,7 +96,7 @@ command. To check a table against findings it was not built from, pass them with
 	}
 	md := confidence.Evaluate(t, check).Markdown()
 	if *report == "" {
-		fmt.Print(md)
+		fmt.Fprint(stdout, md)
 		return 0
 	}
 	if err := os.WriteFile(*report, []byte(md), 0o600); err != nil {

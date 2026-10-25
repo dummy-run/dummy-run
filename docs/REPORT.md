@@ -125,8 +125,8 @@ list of runs marks the sightings nobody has reviewed.
 ## How severity and confidence are decided
 
 Severity says how much a problem matters if it is real. Confidence says how likely it is to be real. Neither is
-a model's opinion. A persona can propose a finding, but it is never asked how serious it is or how sure it feels,
-because a number a model writes down is not a measurement. Both come from facts the engine recorded.
+a model's opinion. A persona can propose a finding, but it is never asked how serious it is or how sure it feels.
+Both come from facts the engine recorded.
 
 ### Severity
 
@@ -134,25 +134,27 @@ Severity follows a fixed rule. Each check has an impact class, the one axe-core 
 Dummy Run's own checks declares. Critical is a blocker, serious is major, moderate is minor, and minor or no impact
 is info. A problem on a journey a persona was trying to complete moves up one step, because it stands between
 someone and what they came to do. So does a problem on three or more pages, because a pattern across the site is
-worth fixing once. Neither goes above major: only a critical impact, or a task the engine tried itself and could
-not complete, makes a blocker. A failure of a WCAG level A criterion is never below minor.
+worth fixing once. Neither goes above major: only a critical impact makes a blocker. A failure of a WCAG level A
+criterion is never below minor.
 
 A persona finding gets the impact class of its symptom. A control that cannot be reached or operated, or access
 that is wrongly allowed or denied, is serious. A wrong outcome, an error, a broken layout or an unclear label is
 moderate. Missing information is minor. A finding that names an axe rule which the persona's own accessibility
-check reported takes that rule's impact. A persona met its problem while doing a task, so its findings count as on
-a journey. A reviewer can still change a severity in `dummyrun review`, and the record keeps that.
+check reported, on the element the finding is about, takes that rule's impact. A persona met its problem while
+doing a task, so its findings count as on a journey. A reviewer can still change a severity in `dummyrun review`, and the record keeps that.
 
 ### Confidence
 
 Every finding records the facts it rests on: what kind of evidence it is, which rule engines agree, whether it
-came back in repeated runs, whether it is on a journey, and which check produced it. There are five kinds of
-evidence. A measurement is made in the browser, such as the size of a target. A fact can be read from the page's
-accessibility tree, such as a missing name. A rule engine can report a result. The engine can try a task and fail
-to complete it. Or the finding is the persona's own report, with no check behind it.
+came back in repeated runs, whether it is on a journey, and which check produced it. There are four kinds of
+evidence today. A measurement is made in the browser, such as the size of a target. A fact can be read from the
+page's accessibility tree, such as a missing name. A rule engine can report a result. Or the finding is the
+persona's own report, with no check behind it.
 
 Confidence is a lookup. Dummy Run keeps a table of how often findings with each combination of those facts have
-turned out to be right when someone checked them against the page. A finding is high when findings like it are
+turned out to be right. The rule engine figures come from running the engines over the W3C's published test
+pages, where the right answer for each page is known. The persona figures come from findings that were checked by
+hand against the page. The table says where each figure came from. A finding is high when findings like it are
 right at least four times in five, after allowing for how few have been checked; medium when at least half are;
 and low otherwise. The table is read from the most specific match outward: a rule's own record comes first, then
 the record of the engines that agree on it. More engines agreeing is never weaker evidence than fewer, so the
@@ -160,9 +162,10 @@ record of a smaller set of engines is a floor for a larger one. An engine with n
 from the others.
 
 A combination with fewer than ten checked findings is not yet known, and the report says so rather than guessing.
-A finding with nothing but the persona's word behind it is low until the table says otherwise. Each finding's one
-line says what it rests on, for example "Three engines agree (axe-core, IBM Equal Access, Siteimprove Alfa), and
-it happened in all 3 runs."
+When a rule has too few checked findings of its own, its band comes from all findings of its kind together, and
+the line says so with the number pooled. A finding with nothing but the persona's word behind it is low until the
+table says otherwise. Each finding's one line says what it rests on, for example "Three engines agree (axe-core,
+IBM Equal Access, Siteimprove Alfa), and it happened in all 3 runs."
 
 The table ships with the engine, in `internal/confidence/table.json`, and says where each figure came from. If you
 check findings yourself, you can rebuild it from your labels. Write them as a JSON array of `{"inputs": {...},

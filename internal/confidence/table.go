@@ -180,6 +180,10 @@ func (t *Table) Rate(in record.FindingInputs) Rating {
 			continue
 		}
 		r.Band, r.Bucket, r.Accuracy, r.Samples = b.Band(t.MinSamples), k.String(), b.Accuracy, b.Total
+		if k.Check == Any && KeyOf(in).Check != Any {
+			r.Reason += fmt.Sprintf(" This check has too few checked findings of its own, so the band comes from all %s findings together (%d checked).",
+				evidenceNoun(in.Evidence()), b.Total)
+		}
 		return r
 	}
 	if in.Evidence() == record.EvidenceModelOnly {
@@ -188,6 +192,21 @@ func (t *Table) Rate(in record.FindingInputs) Rating {
 	}
 	r.Reason += " How often this kind of check is right has not been measured yet."
 	return r
+}
+
+// evidenceNoun names an evidence kind in a sentence about a pooled bucket.
+func evidenceNoun(kind string) string {
+	switch kind {
+	case record.EvidenceEngineRule:
+		return "rule engine"
+	case record.EvidenceMeasurement:
+		return "measured"
+	case record.EvidenceAxFact:
+		return "accessibility tree"
+	case record.EvidenceTaskVerdict:
+		return "task"
+	}
+	return "persona-only"
 }
 
 // Wilson returns the 95 percent Wilson score interval for k successes in n trials. For n of zero it is 0 to 1.

@@ -69,7 +69,7 @@ The Payments page, the Rates link (`/payments`)
 | What went wrong | Let in when it should have been blocked |
 | Who hit it | Lin, a contributor, in 1 of 4 runs |
 | Review | Confirmed by example-reviewer on 18 October 2026. Reason: Reproduced on the preview with a contributor account. |
-| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in 1 of 4 runs. |
+| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in 1 of 4 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |
 
 How to reproduce:
 
@@ -94,7 +94,7 @@ The Issues page, the Schedule button (`/issues`)
 | What went wrong | An error appeared |
 | Who hit it | Ada, an editor, in 1 of 4 runs |
 | Review | Confirmed |
-| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in 1 of 4 runs. |
+| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in 1 of 4 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |
 
 How to reproduce:
 
@@ -120,7 +120,7 @@ The Issues page, the Schedule form area (`/issues`)
 | Who hit it | Ada, an editor, in 1 of 4 runs |
 | WCAG 2.2 | 1.4.3 |
 | Review | Not reviewed. No person has checked this finding |
-| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in 1 of 4 runs. |
+| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in 1 of 4 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |
 | Fix guidance | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
 
 How to reproduce:
@@ -168,8 +168,8 @@ The sweep ran axe-core 4.13.0 with dummyrun a11y on 2 pages in 3 settings (brows
 
 | Rule | What it checks | Severity | Impact | WCAG 2.2 | Elements | How sure | Fix guidance |
 |---|---|---|---|---|---:|---|---|
-| `button-name` | Buttons must have discernible text | Blocker | Critical | 4.1.2 | 1 | High. axe-core reports it, and no other engine was asked. | https://dequeuniversity.com/rules/axe/4.13/button-name |
-| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | Major | Serious | 1.4.3 | 1 | High. axe-core reports it, and no other engine was asked. | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
+| `button-name` | Buttons must have discernible text | Blocker | Critical | 4.1.2 | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all rule engine findings together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/button-name |
+| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | Major | Serious | 1.4.3 | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all rule engine findings together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
 
 ### Where each rule failed
 

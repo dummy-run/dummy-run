@@ -912,7 +912,7 @@ func TestSeverityAndConfidenceComeFromTheInputs(t *testing.T) {
 	if r := rules["button-name"]; r.Severity != "blocker" || r.Confidence != "high" || r.Inputs == nil || !r.Inputs.OnJourney || r.Inputs.EvidenceKind != record.EvidenceEngineRule {
 		t.Errorf("button-name: severity %q confidence %q inputs %+v", r.Severity, r.Confidence, r.Inputs)
 	}
-	if r := rules["color-contrast"]; r.Severity != "major" || r.Confidence != "high" || r.ConfidenceReason != "axe-core reports it, and no other engine was asked." { //nolint:misspell // an axe rule ID
+	if r := rules["color-contrast"]; r.Severity != "major" || r.Confidence != "high" || !strings.HasPrefix(r.ConfidenceReason, "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own") { //nolint:misspell // an axe rule ID
 		t.Errorf("color-contrast: severity %q confidence %q reason %q", r.Severity, r.Confidence, r.ConfidenceReason) //nolint:misspell // an axe rule ID
 	}
 	if len(rep.Axe.NeedsReview) > 0 && rep.Axe.NeedsReview[0].Severity != "" {

@@ -137,11 +137,11 @@ func TestRateUsesTheMostSpecificBucketWithEnoughSamples(t *testing.T) {
 		bucket("engine-rule|image-alt|axe|*", 5, 5),
 	)
 	axe := record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"axe"}, Check: "image-alt"}
-	if r := tb.Rate(axe); r.Band != BandHigh || r.Bucket != "engine-rule|*|axe|*" || r.Samples != 149 {
-		t.Errorf("image-alt with five samples falls back to all axe rules: %+v", r)
+	if r := tb.Rate(axe); r.Band != BandHigh || r.Bucket != "engine-rule|*|axe|*" || r.Samples != 149 || !strings.HasSuffix(r.Reason, "so the band comes from all rule engine findings together (149 checked).") {
+		t.Errorf("image-alt with five samples falls back to all axe rules and says so: %+v", r)
 	}
 	spacing := record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"axe"}, Check: "avoid-inline-spacing"}
-	if r := tb.Rate(spacing); r.Band != BandMedium || r.Bucket != "engine-rule|avoid-inline-spacing|axe|*" {
+	if r := tb.Rate(spacing); r.Band != BandMedium || r.Bucket != "engine-rule|avoid-inline-spacing|axe|*" || strings.Contains(r.Reason, "too few") {
 		t.Errorf("a check with its own evidence uses it: %+v", r)
 	}
 	three := record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"alfa", "axe", "ibm"}, Check: "label"}
@@ -173,11 +173,11 @@ func TestModelOnlyIsNeverAboveLowWithoutData(t *testing.T) {
 		t.Errorf("model-only with strong data: %+v", r)
 	}
 	in.Reproduced = &record.Reproduced{Runs: 2, Of: 3}
-	if r := tb.Rate(in); !strings.HasSuffix(r.Reason, "and it happened in 2 of 3 runs.") {
+	if r := tb.Rate(in); !strings.Contains(r.Reason, "and it happened in 2 of 3 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (50 checked).") {
 		t.Errorf("reason %q", r.Reason)
 	}
 	in.Reproduced = &record.Reproduced{Runs: 3, Of: 3}
-	if r := tb.Rate(in); !strings.HasSuffix(r.Reason, "and it happened in all 3 runs.") {
+	if r := tb.Rate(in); !strings.Contains(r.Reason, "and it happened in all 3 runs.") {
 		t.Errorf("reason %q", r.Reason)
 	}
 }
@@ -311,6 +311,8 @@ func TestShippedTableMatchesLabels(t *testing.T) {
 	}
 }
 
+// This checks the shipped table against the labels it was built from, so it shows the bands are consistent with
+// the seed data, not that they hold on new findings. Held-out labels are for dummyrun calibrate --eval.
 func TestShippedTableRatesAsPromised(t *testing.T) {
 	tb := Default()
 	axe := record.FindingInputs{EvidenceKind: record.EvidenceEngineRule, Engines: []string{"axe"}, Check: "image-alt"}
