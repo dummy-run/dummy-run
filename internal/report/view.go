@@ -139,6 +139,19 @@ func impactSeverity(impact string) string {
 	return "info"
 }
 
+// confidenceText says a confidence band in words, to lead the one-line reason.
+func confidenceText(band string) string {
+	switch band {
+	case "high":
+		return "High confidence."
+	case "medium":
+		return "Medium confidence."
+	case "low":
+		return "Low confidence."
+	}
+	return "Confidence not yet known."
+}
+
 // pagesTested is the number of pages the axe sweep tested, or the number of routes the personas visited when there was no sweep.
 func pagesTested(rep *Report) int {
 	if rep.Axe != nil {

@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/confidence"
 	"github.com/dummy-run/dummy-run/internal/coverage"
 	"github.com/dummy-run/dummy-run/internal/fixes"
+	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
 
@@ -96,7 +98,7 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 		rep.Basis = "confirmed findings and findings not reviewed"
 	}
 	rep.Scope = buildScope(runs)
-	rep.Axe = buildAxe(opt.A11y)
+	rep.Axe = buildAxe(opt.A11y, routesVisited(runs))
 	var axeRules map[string]AxeRule
 	if rep.Axe != nil {
 		axeRules = map[string]AxeRule{}
@@ -341,9 +343,52 @@ type hit struct {
 	status string
 }
 
+// visits counts the runs that visited each route, by the role the persona played. A finding one role met is
+// only expected of runs in the same role, so another role's runs never count against it.
+type visits map[string]map[string]int
+
+// routesVisited counts, for each role and route, the runs in that role that visited the route.
+func routesVisited(runs []*Run) visits {
+	out := visits{}
+	for _, run := range runs {
+		role := run.Rec.Persona.Role
+		if out[role] == nil {
+			out[role] = map[string]int{}
+		}
+		seen := map[string]bool{}
+		for _, st := range run.Rec.Steps {
+			if st.Route != "" && !seen[st.Route] {
+				seen[st.Route] = true
+				out[role][st.Route]++
+			}
+		}
+	}
+	return out
+}
+
+// any reports whether a run in any role visited the route.
+func (v visits) any(route string) bool {
+	for _, byRoute := range v {
+		if byRoute[route] > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// eligible counts the runs in the given roles that visited the route.
+func (v visits) eligible(roles map[string]bool, route string) int {
+	n := 0
+	for role := range roles {
+		n += v[role][route]
+	}
+	return n
+}
+
 func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axeVersion string) ([]Finding, []string) {
 	groups := map[string][]hit{}
 	var order []string
+	visited := routesVisited(runs)
 	for _, run := range runs {
 		for _, f := range run.Rec.Findings {
 			if f.Class == record.ClassObservation || f.Verdict == "rejected" {
@@ -387,7 +432,7 @@ func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axe
 		} else if includePending {
 			use = hits
 		}
-		out = append(out, makeFinding(key, use, status, total, axe, axeVersion))
+		out = append(out, makeFinding(key, use, status, total, axe, axeVersion, visited))
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
@@ -405,7 +450,7 @@ func buildFindings(runs []*Run, includePending bool, axe map[string]AxeRule, axe
 	return out, omitted
 }
 
-func makeFinding(key string, hits []hit, status string, total int, axe map[string]AxeRule, axeVersion string) Finding {
+func makeFinding(key string, hits []hit, status string, total int, axe map[string]AxeRule, axeVersion string, visited visits) Finding {
 	// The lead sighting gives the title: the worst severity, then the earliest run. A confirmed finding
 	// takes its lead and its reproduction from the confirmed sightings, so a model's claim that no person
 	// checked cannot set the severity beside the badge that says a person confirmed it.
@@ -439,9 +484,11 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 	// Review details come from the confirmed sightings.
 	reviewers := map[string]bool{}
 	personas := map[string]bool{}
+	roles := map[string]bool{}
 	runSet := map[string]bool{}
 	for _, h := range hits {
 		personas[h.run.Rec.Persona.ID] = true
+		roles[h.run.Rec.Persona.Role] = true
 		runSet[h.run.Rec.ID] = true
 		f.Instances = append(f.Instances, Instance{Run: h.run.Rec.ID, FindingID: h.f.ID, Persona: h.run.Rec.Persona.ID,
 			Device: h.run.Rec.Persona.Device, Browser: h.run.Rec.Browser.Name, Steps: append([]int{}, h.f.Steps...), Status: h.status})
@@ -507,7 +554,35 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 		}
 		f.Fix = fixes.For(rule)
 	}
+	// Reproduction counts the runs that could have met the problem: those in a role that found it, which visited
+	// its route. Runs in other roles may not see the same page, so they never dilute the count.
+	in := deriveInputs(lead.f)
+	if of := visited.eligible(roles, f.Route); of >= 2 || f.Runs >= 2 {
+		in.Reproduced = &record.Reproduced{Runs: f.Runs, Of: max(of, f.Runs)}
+	}
+	rating := confidence.Default().Rate(in)
+	f.Inputs, f.Confidence, f.ConfidenceReason = &in, rating.Band, rating.Reason
 	return f
+}
+
+// deriveInputs is a finding's inputs: the record's when it has them, else what can be read from the finding
+// alone. A record from before inputs existed gives no way to tell what a cited accessibility check reported,
+// so its finding counts as the model's own report.
+func deriveInputs(f record.Finding) record.FindingInputs {
+	if f.Inputs != nil {
+		in := *f.Inputs
+		in.Engines = append([]string{}, in.Engines...)
+		return in
+	}
+	base, param, _ := strings.Cut(f.Symptom, ":")
+	check := base
+	if base == "a11y" && param != "" {
+		check = param
+	}
+	if check == "" {
+		check = f.Kind
+	}
+	return record.FindingInputs{EvidenceKind: record.EvidenceModelOnly, Engines: []string{}, Check: check, OnJourney: true}
 }
 
 func orHundred(z int) int {
@@ -560,7 +635,7 @@ func axeFingerprint(rule string) string {
 	return hex.EncodeToString(sum[:])[:16]
 }
 
-func buildAxe(reps []*a11y.Report) *AxeSection {
+func buildAxe(reps []*a11y.Report, visited visits) *AxeSection {
 	if len(reps) == 0 {
 		return nil
 	}
@@ -573,11 +648,16 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 		rule  AxeRule
 		pages map[string]*AxePage
 		nodes map[string]bool
+		// evidence is the rule's evidence kind, and engines the engines that agree on every failing element.
+		evidence string
+		engines  []string
+		journey  bool
 	}
 	collect := func(into map[string]*acc, f a11y.Finding, p a11y.PageResult, countAllowed bool) {
 		a := into[f.Rule]
 		if a == nil {
-			a = &acc{rule: AxeRule{Fingerprint: axeFingerprint(f.Rule), Rule: f.Rule, Impact: f.Impact, WCAG: f.WCAG, Help: f.Help, HelpURL: f.HelpURL, Fix: fixes.For(f.Rule)}, pages: map[string]*AxePage{}, nodes: map[string]bool{}}
+			a = &acc{rule: AxeRule{Fingerprint: axeFingerprint(f.Rule), Rule: f.Rule, Impact: f.Impact, WCAG: f.WCAG, Help: f.Help, HelpURL: f.HelpURL, Fix: fixes.For(f.Rule)},
+				pages: map[string]*AxePage{}, nodes: map[string]bool{}, evidence: evidenceOf(f)}
 			into[f.Rule] = a
 		}
 		setting := p.Setting()
@@ -588,6 +668,11 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 				}
 				continue
 			}
+			// Only an element that still fails puts the rule on a journey. An allow-listed one does not count.
+			if visited.any(identity.NormaliseRoute(p.URL)) {
+				a.journey = true
+			}
+			a.engines = agreeing(a.engines, nodeEngines(f, n), len(a.nodes) == 0)
 			pg := a.pages[p.URL]
 			if pg == nil {
 				pg = &AxePage{URL: p.URL, Targets: []string{}, Settings: []string{}}
@@ -656,6 +741,10 @@ func buildAxe(reps []*a11y.Report) *AxeSection {
 			a.rule.Elements = len(a.nodes)
 			if countFailing {
 				sec.FailingNodes += len(a.nodes)
+				in := record.FindingInputs{EvidenceKind: a.evidence, Engines: append([]string{}, a.engines...), Check: a.rule.Rule, OnJourney: a.journey}
+				rating := confidence.Default().Rate(in)
+				a.rule.Severity = confidence.Severity(confidence.SeverityInputs{Evidence: a.evidence, Impact: a.rule.Impact, Level: a11y.Level(a.rule.WCAG), OnJourney: a.journey, Pages: len(a.pages)})
+				a.rule.Inputs, a.rule.Confidence, a.rule.ConfidenceReason = &in, rating.Band, rating.Reason
 			}
 			for _, pg := range a.pages {
 				sort.Strings(pg.Targets)
@@ -688,6 +777,48 @@ func contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// evidenceOf is a sweep finding's evidence kind. A sweep from before the field existed is read from the rule ID:
+// the layout and keyboard checks measure, the markup checks read the accessibility tree, and the rest are rule
+// engines.
+func evidenceOf(f a11y.Finding) string {
+	switch {
+	case f.Evidence != "":
+		return f.Evidence
+	case a11y.IsLayoutRule(f.Rule), a11y.IsKeyboardRule(f.Rule):
+		return record.EvidenceMeasurement
+	case a11y.IsMarkupRule(f.Rule):
+		return record.EvidenceAxFact
+	}
+	return record.EvidenceEngineRule
+}
+
+// nodeEngines is the engines that report one failing element: the ones the sweep recorded, or axe alone for an
+// axe rule from a sweep that ran no other engine.
+func nodeEngines(f a11y.Finding, n a11y.Node) []string {
+	if len(n.Engines) > 0 {
+		return n.Engines
+	}
+	if evidenceOf(f) == record.EvidenceEngineRule && !a11y.IsEnginesRule(f.Rule) {
+		return []string{"axe"}
+	}
+	return nil
+}
+
+// agreeing keeps the engines that report every element so far: the first element's engines, then the
+// intersection with each later one.
+func agreeing(sofar, next []string, first bool) []string {
+	if first {
+		return append([]string{}, next...)
+	}
+	var out []string
+	for _, e := range sofar {
+		if contains(next, e) {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 func buildCoverage(runs []*Run, opt Options) CoverageSection {

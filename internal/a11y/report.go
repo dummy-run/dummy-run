@@ -7,6 +7,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/dummy-run/dummy-run/internal/confidence"
 )
 
 // WriteJSON writes the report as indented JSON.
@@ -81,7 +83,7 @@ func (r *Report) WriteSummary(w io.Writer) {
 			_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
 		}
 		for _, e := range sortedKeys(p.EngineErrors) {
-			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", engineNames[e], p.URL, p.Setting(), p.EngineErrors[e])
+			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", confidence.EngineName(e), p.URL, p.Setting(), p.EngineErrors[e])
 		}
 	}
 	s := r.Summary

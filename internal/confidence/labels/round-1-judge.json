@@ -1,0 +1,539 @@
+[
+ {
+  "id": "r1-01",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "layout-broken",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-02",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-03",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-04",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-05",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-06",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "select-name",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-07",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "target-size",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-08",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-09",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "image-alt",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-10",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "color-contrast",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-11",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "misleading-copy",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-12",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "wrong-outcome",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-13",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-14",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "error-shown",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-15",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-16",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "misleading-copy",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-17",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "error-shown",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-18",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-19",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-20",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-21",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-22",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "image-alt",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-23",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "not-reachable",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-24",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-25",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "button-name",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-26",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-27",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-28",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "list",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-29",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "layout-broken",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-30",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "a11y",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-31",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-32",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "misleading-copy",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-33",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-34",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-35",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-36",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "access-wrongly-allowed",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-37",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-38",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "layout-broken",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-39",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-40",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "dead-link",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-41",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "a11y",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-42",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "a11y",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-43",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": true,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-44",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-45",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-46",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "missing-information",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ },
+ {
+  "id": "r1-47",
+  "inputs": {
+   "evidence_kind": "model-only",
+   "engines": [],
+   "check": "unclear-label",
+   "on_journey": true
+  },
+  "true": false,
+  "source": "Persona findings from 16 public sites, judged against the page on 2026-10-21"
+ }
+]

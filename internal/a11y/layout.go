@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/dummy-run/dummy-run/internal/record"
+
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/page"
 )
@@ -107,11 +109,12 @@ func layoutFindings(l *page.Layout, path string, allow *AllowList) (list []Findi
 			continue
 		}
 		r := layoutRules[id]
-		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Nodes: []Node{}}
+		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Evidence: record.EvidenceMeasurement, Nodes: []Node{}}
 		for _, n := range nodes {
 			if e := allow.Match(id, path, n.Target); e != nil {
 				n.Allowed, n.Reason = true, e.Reason
 			}
+			n.Confidence = rate(record.EvidenceMeasurement, id, nil)
 			f.Nodes = append(f.Nodes, n.Node)
 			boxes[id] = append(boxes[id], n.box)
 		}

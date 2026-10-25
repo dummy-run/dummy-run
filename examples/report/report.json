@@ -385,6 +385,14 @@
         "example-reviewer"
       ],
       "reviewed_at": "2026-10-18T09:54:03Z",
+      "inputs": {
+        "evidence_kind": "model-only",
+        "engines": [],
+        "check": "access-wrongly-allowed",
+        "on_journey": true
+      },
+      "confidence": "low",
+      "confidence_reason": "The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).",
       "personas": [
         "lin-contributor"
       ],
@@ -442,6 +450,14 @@
         "example-reviewer"
       ],
       "reviewed_at": "2026-10-17T15:34:26Z",
+      "inputs": {
+        "evidence_kind": "model-only",
+        "engines": [],
+        "check": "error-shown",
+        "on_journey": true
+      },
+      "confidence": "low",
+      "confidence_reason": "The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).",
       "personas": [
         "ada-editor"
       ],
@@ -492,6 +508,18 @@
         "example-reviewer"
       ],
       "reviewed_at": "2026-10-17T11:43:24Z",
+      "inputs": {
+        "evidence_kind": "model-only",
+        "engines": [],
+        "check": "unclear-label",
+        "on_journey": true,
+        "reproduced": {
+          "runs": 3,
+          "of": 3
+        }
+      },
+      "confidence": "low",
+      "confidence_reason": "The persona's own report, with no check behind it, and it happened in all 3 runs.",
       "personas": [
         "lin-contributor"
       ],
@@ -597,6 +625,17 @@
         "help": "Buttons must have discernible text",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/button-name",
         "elements": 1,
+        "severity": "blocker",
+        "inputs": {
+          "evidence_kind": "engine-rule",
+          "engines": [
+            "axe"
+          ],
+          "check": "button-name",
+          "on_journey": true
+        },
+        "confidence": "high",
+        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).",
         "pages": [
           {
             "url": "https://pr-41.inkwell.example/issues",
@@ -619,6 +658,17 @@
         "help": "Elements must meet minimum color contrast ratio thresholds",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
         "elements": 1,
+        "severity": "major",
+        "inputs": {
+          "evidence_kind": "engine-rule",
+          "engines": [
+            "axe"
+          ],
+          "check": "color-contrast",
+          "on_journey": true
+        },
+        "confidence": "high",
+        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).",
         "pages": [
           {
             "url": "https://pr-41.inkwell.example/issues",

@@ -203,6 +203,25 @@ type Finding struct {
 	Reviewer   string     `json:"reviewer,omitempty"`
 	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
 	Reason     string     `json:"reason,omitempty"`
+	// Inputs are the facts the engine recorded about the finding, from which its severity and confidence come.
+	// The exporter accepts them and sends nothing for them yet.
+	Inputs *FindingInputs `json:"inputs,omitempty"`
+}
+
+// FindingInputs are the observable inputs of a finding: the kind of evidence, the engines that agree, the check,
+// whether it sits on a journey and how often it reproduced.
+type FindingInputs struct {
+	EvidenceKind string      `json:"evidence_kind"`
+	Engines      []string    `json:"engines"`
+	Check        string      `json:"check"`
+	OnJourney    bool        `json:"on_journey"`
+	Reproduced   *Reproduced `json:"reproduced,omitempty"`
+}
+
+// Reproduced counts the runs that found a problem out of those that visited where it is.
+type Reproduced struct {
+	Runs int `json:"runs"`
+	Of   int `json:"of"`
 }
 
 // Usage is what the run cost in model calls, tokens and money.

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/record"
 )
 
 const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Bad</title></head><body><main><h1>Bad</h1>
@@ -65,7 +66,7 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 						if n.Confidence == "" {
 							t.Errorf("%s: %s %s has no confidence", r.URL, f.Rule, n.Target)
 						}
-						if n.Confidence == ConfidenceHigh {
+						if len(n.Engines) >= 3 {
 							high[n.Target] = n.Engines
 						}
 					}
@@ -111,8 +112,17 @@ func TestEngineFindingsSplitAgreementFromCandidates(t *testing.T) {
 		},
 	}
 	agreed, cands := engineFindings(r, violations, "/", allow)
-	if n := violations[0].Nodes; n[0].Confidence != ConfidenceHigh || !slices.Equal(n[0].Engines, []string{"alfa", "axe", "ibm"}) || n[1].Confidence != ConfidenceSingle {
+	// Three engines agree on the first node and axe is alone on the second. Both rest on axe's measured record, so both
+	// rate high: the table has no separate data for three-way agreement yet and falls back to the axe subset.
+	if n := violations[0].Nodes; n[0].Confidence != "high" || !slices.Equal(n[0].Engines, []string{"alfa", "axe", "ibm"}) || n[1].Confidence != "high" {
 		t.Errorf("axe nodes: %+v", n)
+	}
+	if violations[0].Evidence != "" || agreed[0].Evidence != record.EvidenceEngineRule || cands[0].Evidence != record.EvidenceEngineRule {
+		t.Errorf("evidence: axe %q agreed %q candidate %q", violations[0].Evidence, agreed[0].Evidence, cands[0].Evidence)
+	}
+	// Two other engines without axe have no measured record of their own, so the band is unknown and never high.
+	if agreed[0].Nodes[0].Confidence != "unknown" || cands[0].Nodes[0].Confidence != "unknown" {
+		t.Errorf("agreed %q candidate %q", agreed[0].Nodes[0].Confidence, cands[0].Nodes[0].Confidence)
 	}
 	if len(agreed) != 1 || agreed[0].Rule != "dummyrun-engines-4.1.2" || agreed[0].Impact != "serious" || agreed[0].Nodes[0].Detail != "IBM Equal Access (a_text_purpose): no text; HTML_CodeSniffer (H91)" {
 		t.Errorf("agreed: %+v", agreed)

@@ -71,6 +71,21 @@ var wcag22 = map[string]wcagCriterion{
 	"4.1.3":  {"Status Messages", "AA", "status-messages"},
 }
 
+// Level is the WCAG level of a set of criteria: A when any of them is level A, else AA when any is level AA,
+// else empty.
+func Level(criteria []string) string {
+	level := ""
+	for _, sc := range criteria {
+		switch wcag22[sc].level {
+		case "A":
+			return "A"
+		case "AA":
+			level = "AA"
+		}
+	}
+	return level
+}
+
 // CriteriaAA returns the numbers of the WCAG 2.2 A and AA criteria, sorted.
 func CriteriaAA() []string {
 	out := make([]string, 0, len(wcag22))

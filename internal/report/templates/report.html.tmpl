@@ -112,6 +112,9 @@ dt.k, .cover-meta dt { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0
 .badge { display: inline-block; border: 1.5px solid; border-radius: 6px; padding: 0 0.55rem; font-size: 0.875rem; font-weight: 700; line-height: 1.6; margin: 0 0.35rem 0.25rem 0; vertical-align: middle; }
 .st-confirmed { background: var(--good-bg); color: var(--good-ink); border-color: var(--good-ink); }
 .st-not-reviewed { background: transparent; color: var(--ink); border: 1.5px dashed var(--muted); }
+/* Confidence badges. The band is always written out; the dashed border marks the bands to read as leads. */
+.cf-high, .cf-medium, .cf-low, .cf-unknown { background: transparent; color: var(--ink); border-color: var(--muted); }
+.cf-low, .cf-unknown { border-style: dashed; }
 .bl-new { background: var(--info-bg); color: var(--info-ink); border-color: var(--info); }
 .bl-still-present, .bl-fixed { background: var(--panel); color: var(--ink); border-color: var(--muted); }
 
@@ -384,7 +387,7 @@ footer p { margin: 0 0 0.4rem; }
 <div class="group-head"><h3 id="g-{{$g.Severity}}">{{cap $g.Severity}}</h3><span class="count">{{plural (len $g.Items) "finding" "findings"}}</span></div>
 {{range .Items}}{{$f := .Finding}}{{$i := .Index}}
 <article class="finding f-{{$f.Severity}}" id="f-{{$i}}" aria-labelledby="f-{{$i}}-t">
-<p class="f-badges"><span class="badge b-{{$f.Severity}}">{{cap $f.Severity}}</span><span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span>
+<p class="f-badges"><span class="badge b-{{$f.Severity}}">{{cap $f.Severity}}</span><span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span><span class="badge cf-{{$f.Confidence}}">{{cap $f.Confidence}} confidence</span>
 {{- if $f.Baseline}}<span class="badge bl-{{$f.Baseline}}">{{baselineText $f.Baseline}}</span>{{end}}</p>
 <h4 id="f-{{$i}}-t">{{$f.Title}}</h4>
 {{- $place := placeText $f.Route $f.Locus}}
@@ -401,6 +404,7 @@ footer p { margin: 0 0 0.4rem; }
 <dt>WCAG 2.2</dt><dd>{{join $f.WCAG}}</dd>
 {{- end}}
 <dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
+<dt>How sure</dt><dd>{{confidenceText $f.Confidence}} {{$f.ConfidenceReason}}</dd>
 {{- if $f.HelpURL}}
 <dt>Fix guidance</dt><dd><a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a></dd>
 {{- end}}
@@ -451,14 +455,16 @@ footer p { margin: 0 0 0.4rem; }
 <div class="table-wrap" role="region" tabindex="0" aria-label="Rules that failed">
 <table>
 <caption>Rules that failed</caption>
-<thead><tr><th scope="col">Rule</th><th scope="col">Impact</th><th scope="col">WCAG 2.2</th><th scope="col" class="num">Elements</th><th scope="col">Fix guidance</th></tr></thead>
+<thead><tr><th scope="col">Rule</th><th scope="col">Severity</th><th scope="col">Impact</th><th scope="col">WCAG 2.2</th><th scope="col" class="num">Elements</th><th scope="col">How sure</th><th scope="col">Fix guidance</th></tr></thead>
 <tbody>
 {{- range .Axe.Rules}}
 <tr>
 <th scope="row"><code>{{.Rule}}</code><br><span class="muted help">{{.Help}}</span>{{if .Baseline}}<br><span class="badge bl-{{.Baseline}}">{{baselineText .Baseline}}</span>{{end}}</th>
-<td><span class="badge b-{{impactSev .Impact}}">{{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}</span></td>
+<td><span class="badge b-{{.Severity}}">{{cap .Severity}}</span></td>
+<td>{{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}</td>
 <td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td>
 <td class="num">{{.Elements}}</td>
+<td>{{cap .Confidence}}<br><span class="muted help">{{.ConfidenceReason}}</span></td>
 <td>{{if .HelpURL}}<a href="{{.HelpURL}}">How to fix {{.Rule}}</a>{{else}}None recorded{{end}}</td>
 </tr>
 {{- end}}

@@ -628,6 +628,67 @@
           "reason": {
             "type": "string",
             "description": "Why the reviewer set the verdict. Required by dummyrun review for a rejection and optional for a confirmation"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "evidence_kind",
+              "engines",
+              "check",
+              "on_journey"
+            ],
+            "description": "The facts the engine recorded about the finding. Severity is a rule over them and confidence is a table lookup on them. Written by the engine, never by the model. Absent in records from before inputs existed",
+            "properties": {
+              "evidence_kind": {
+                "enum": [
+                  "measurement",
+                  "ax-fact",
+                  "engine-rule",
+                  "task-verdict",
+                  "model-only"
+                ],
+                "description": "What the finding rests on: a measurement made in the browser, a fact read from the accessibility tree, a rule engine's result, a task the engine tried and could not complete, or the persona's own report with no check behind it"
+              },
+              "engines": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]+$"
+                },
+                "description": "The rule engines that report the problem, by short name (axe, ibm, htmlcs, alfa). Empty when none does",
+                "maxItems": 8,
+                "uniqueItems": true
+              },
+              "check": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The ID of the check behind the finding: an axe rule, a dummyrun-* rule, or the symptom when only the persona reports it"
+              },
+              "on_journey": {
+                "type": "boolean",
+                "description": "True when the finding sits on a journey a persona was trying to complete"
+              },
+              "reproduced": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "runs",
+                  "of"
+                ],
+                "description": "How many of the runs that visited where the problem is also found it. Absent when there was only one such run",
+                "properties": {
+                  "runs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "of": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
           }
         }
       }

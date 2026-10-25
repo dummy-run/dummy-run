@@ -112,6 +112,12 @@ engine works out the finding's route, locus and fingerprint from the page. [COVE
 list and explains what the fingerprint is for. If the model gives a symptom that isn't on the list, it's sent
 back to `finish` up to twice, and after that the finding is dropped.
 
+The persona is never asked for a severity or a confidence. The engine sets the severity from a rule over the
+symptom's impact class and the journey, and records the finding's `inputs`: the kind of evidence, the engines
+that report it, the check and whether it's on a journey. A finding that names an axe rule which the persona's
+own `a11y` check reported rests on that engine result; any other finding is the persona's own report. A report
+turns those inputs into a confidence band. [REPORT.md](REPORT.md) explains both rules.
+
 ## Browser cleanup
 
 You shouldn't find browsers left running after a run. The engine starts the driver and the browser in their
@@ -331,7 +337,10 @@ before writing it. `dummyrun coverage` and the Grafana exporter can still read v
 releases.
 
 A version 2 record adds the fingerprint of each finding and the route of each step. It also adds the
-persona's dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
+persona's dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Each finding has an `inputs` block with
+its `evidence_kind`, `engines`, `check` and `on_journey`, and `reproduced` when a batch has repeated runs.
+Records written before inputs existed have none, and a report then reads each of their findings as the
+persona's own report. Its cost comes from the price table in
 `internal/price/prices.json`, and it's null for a model that isn't in the table. If the target has no
 `commit`, the engine makes one from a hash of the home page, fetched with a single GET request outside the
 browser. Findings start with the verdict `pending` until a person reviews them (see [Review](#review)).
@@ -1012,14 +1021,19 @@ The sweep then matches results by element and WCAG criterion. Two engines agree 
 for the same criterion.
 
 - Each axe violation node gets `engines`, the engines that fail the same element for one criterion axe's rule maps
-  to, and `confidence`. When the rule maps to more than one criterion, the criterion with the most engines counts. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
-  axe violation still fails the sweep either way.
+  to. When the rule maps to more than one criterion, the criterion with the most engines counts. Its `confidence`
+  is rated again with those engines, as [REPORT.md](REPORT.md) describes. An axe violation still fails the sweep
+  either way.
 - A failure axe doesn't report, but two of the other engines agree on, is a violation with the rule ID
   `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. Its impact is serious. It fails the
   sweep and the allow-list can accept it. Its `detail` names each engine's rule, with the engine's message where it
   gives one. Alfa gives none, so its rule ID stands alone.
 - A failure only one engine reports goes to the page's `candidates` list and the summary's `candidate_nodes`. It
   never fails the sweep. Look at the element before you change anything.
+
+Every failing element in a sweep carries a `confidence` of `high`, `medium`, `low` or `unknown`, with or without
+`--engines`. Each rule says what kind of `evidence` it is: `engine-rule` for axe and the other engines,
+`measurement` for the layout and keyboard checks and `ax-fact` for the markup checks.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
 the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
