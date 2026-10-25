@@ -27,6 +27,7 @@ const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <a href="/a">Read the guide</a>
 <label for="f">Name</label><input id="f" type="text">
 <button id="go" style="width:40px;height:40px;text-indent:-5000px;overflow:hidden;color:#bbb;background:#ccc;border:2px solid #000">Search</button>
+<div style="width:60px;height:24px;overflow:hidden"><span id="hid" style="display:inline-block;margin-left:200px;white-space:nowrap;color:#bbb;background:#ccc">Hidden away</span></div>
 </main></body></html>`
 
 func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
@@ -81,10 +82,10 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 					if len(r.Violations) != 0 {
 						t.Errorf("the good page has violations: %+v", r.Violations)
 					}
-					// The off-screen label of #go has no contrast anyone sees.
+					// The off-screen label of #go and the text of #hid, which its parent clips away, have no contrast anyone sees.
 					for _, c := range r.Candidates {
 						for _, n := range c.Nodes {
-							if c.Rule == RuleEnginesPrefix+"1.4.3" && strings.Contains(n.Target, "#go") {
+							if c.Rule == RuleEnginesPrefix+"1.4.3" && (strings.Contains(n.Target, "#go") || strings.Contains(n.Target, "#hid")) {
 								t.Errorf("contrast reported for text that is not painted: %+v", n)
 							}
 						}

@@ -57,21 +57,25 @@ async (axeJSON, criteriaJSON, max) => {
   const ran = [];
   const errors = {};
   const items = []; // {engine, rule, sc, el, message, help}
-  // Text no one can see, such as a button label pushed off the page with text-indent or set at font-size 0, has no
-  // contrast a person sees. Engines that measure it anyway report a false contrast failure. Text that overflows its
-  // element but is still on the page and not clipped is seen, so it counts as painted.
-  const meets = (q, b) => q.right > b.left && q.left < b.right && q.bottom > b.top && q.top < b.bottom;
+  // Text no one can see, such as a button label pushed off the page with text-indent, text set at font-size 0 or
+  // visually hidden text clipped to a pixel, has no contrast a person sees. Engines that measure it anyway report a
+  // false contrast failure. Text counts as seen when more than a pixel square of it is left on the page once every
+  // element that hides its overflow has clipped it. Text that spills out of its element is still seen.
   const seen = (q, t) => {
-    if (q.width <= 1 || q.height <= 1) return false;
-    if (q.right + scrollX <= 0 || q.bottom + scrollY <= 0) return false; // off the page to the left or top
+    let l = q.left, r = q.right, top = q.top, bot = q.bottom;
+    if (r + scrollX <= 0 || bot + scrollY <= 0) return false; // off the page to the left or top
     for (let a = t.parentElement; a && a !== document.documentElement; a = a.parentElement) {
       const cs = getComputedStyle(a);
-      if ((cs.overflowX !== "visible" || cs.overflowY !== "visible") && !meets(q, a.getBoundingClientRect())) return false;
+      if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+      const b = a.getBoundingClientRect();
+      l = Math.max(l, b.left);
+      r = Math.min(r, b.right);
+      top = Math.max(top, b.top);
+      bot = Math.min(bot, b.bottom);
     }
-    return true;
+    return r - l > 1 && bot - top > 1;
   };
   const unpainted = (el) => {
-    const box = el.getBoundingClientRect();
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     let any = false;
     for (let t = walker.nextNode(), n = 0; t && n < 200; t = walker.nextNode(), n++) {
@@ -80,7 +84,7 @@ async (axeJSON, criteriaJSON, max) => {
       const r = document.createRange();
       r.selectNodeContents(t);
       for (const q of r.getClientRects()) {
-        if ((q.width > 1 && q.height > 1 && meets(q, box)) || seen(q, t)) return false;
+        if (seen(q, t)) return false;
       }
     }
     return any;
