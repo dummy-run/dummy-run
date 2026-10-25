@@ -21,7 +21,7 @@ const layoutHead = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 const layoutTail = `</main></body></html>`
 
 // smoothScroll makes the page glide when scrolled, as many sites do.
-// One pixel PNGs: fully clear, and solid red.
+// Two images of one pixel each, in PNG: one fully clear and one solid red.
 const (
 	clearPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII="
 	solidPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGM4oaHxHwAE7AIY0raoogAAAABJRU5ErkJggg=="
