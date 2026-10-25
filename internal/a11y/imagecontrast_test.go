@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dummy-run/dummy-run/internal/page"
 )
 
 const imageContrastPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Banners</title>
@@ -69,5 +71,42 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 				t.Errorf("flagged %v, want #faint only: %+v", flagged, r.ImageContrast)
 			}
 		})
+	}
+}
+
+func TestImageContrastTargetsAndFindings(t *testing.T) {
+	review := []Finding{
+		{Rule: "color-contrast", Nodes: []Node{{Target: "#hero"}, {Target: "#card >> p"}}},
+		{Rule: "image-alt", Nodes: []Node{{Target: "img"}}},
+	}
+	if got := strings.Join(imageContrastTargets(review), ","); got != "#hero,#card >> p" {
+		t.Errorf("targets %q: only color-contrast nodes, in order", got)
+	}
+	allow, err := ParseAllowList(strings.NewReader("dummyrun-contrast-over-image | /home | #b | the banner is decorative\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ms := []page.ImageContrast{
+		{Selector: "#a", Text: "#ffffff", Need: 4.5, Median: 2.1, Worst: 1.3},
+		{Selector: "#b", Text: "#ffffff", Need: 3, Median: 2.9, Worst: 2},
+		{Selector: "#ok", Text: "#ffffff", Need: 4.5, Median: 7, Worst: 3},
+	}
+	got := imageContrastFindings(ms, "/home", allow)
+	if len(got) != 1 || got[0].Rule != RuleImageContrast || got[0].WCAG[0] != "1.4.3" || got[0].Impact != "serious" {
+		t.Fatalf("one serious 1.4.3 finding: %+v", got)
+	}
+	n := got[0].Nodes
+	// #ok passes at the median and fails only in its worst tenth, so it isn't reported.
+	if len(n) != 2 || n[0].Target != "#a" || n[1].Target != "#b" {
+		t.Fatalf("nodes %+v, want #a and #b", n)
+	}
+	if want := "text #ffffff measures 2.10:1 at the median of its background pixels and 1.30:1 at the worst tenth, and needs 4.5:1"; n[0].Detail != want {
+		t.Errorf("detail %q, want %q", n[0].Detail, want)
+	}
+	if n[0].Allowed || !n[1].Allowed || n[1].Reason != "the banner is decorative" {
+		t.Errorf("allow-list marking: %+v", n)
+	}
+	if imageContrastFindings(ms[2:], "/home", allow) != nil {
+		t.Error("no failures should give no finding")
 	}
 }
