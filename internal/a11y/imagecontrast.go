@@ -25,7 +25,7 @@ func imageContrastTargets(needsReview []Finding) []string {
 }
 
 // imageContrastFindings reports each element whose text sits, for most of its box, on pixels with too little
-// contrast. An element that passes at the median pixel and fails only in its worst tenth is not reported.
+// contrast. An element that passes at the median pixel contrast and fails only in its worst tenth is not reported.
 func imageContrastFindings(ms []page.ImageContrast, path string, allow *AllowList) []Finding {
 	f := Finding{Rule: RuleImageContrast, Impact: "serious", WCAG: []string{"1.4.3"},
 		Help:    "Text on an image or gradient has too little contrast with what is behind it",
@@ -34,7 +34,7 @@ func imageContrastFindings(ms []page.ImageContrast, path string, allow *AllowLis
 		if !m.Fails() {
 			continue
 		}
-		n := Node{Target: m.Selector, Detail: fmt.Sprintf("text %s measures %.2f:1 against the middle pixel behind it and %.2f:1 against the worst tenth, and needs %.1f:1",
+		n := Node{Target: m.Selector, Detail: fmt.Sprintf("text %s measures %.2f:1 at the median of its background pixels and %.2f:1 at the worst tenth, and needs %.1f:1",
 			m.Text, m.Median, m.Worst, m.Need)}
 		if e := allow.Match(RuleImageContrast, path, n.Target); e != nil {
 			n.Allowed, n.Reason = true, e.Reason

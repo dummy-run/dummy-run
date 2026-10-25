@@ -19,8 +19,9 @@ const ImageContrastMax = 20
 
 // imageContrastJS prepares one element for a picture of what is behind its text. Called with (op, selector):
 //
-//	"hide"  returns the text colour, the size the text needs and the element's box in document coordinates, then
-//	        makes the text and its shadow transparent, so a screenshot shows only what is behind it
+//	"hide"  returns the text colour, the size the text needs and the box around the text itself in document
+//	        coordinates, then makes the text transparent, so a screenshot shows only what is behind it. Text with a
+//	        shadow is left unmeasured, because a halo can give the contrast the picture wouldn't show
 //	"show"  puts the text back
 const imageContrastJS = `(op, selector) => {
   const id = "dummyrun-image-contrast";
@@ -38,12 +39,17 @@ const imageContrastJS = `(op, selector) => {
   const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
   // WCAG large text: 18pt (24 CSS px) or 14pt (about 18.66 CSS px) bold.
   const large = size >= 24 || (size >= 18.66 && weight >= 700);
-  const r = el.getBoundingClientRect();
+  if (cs.textShadow !== "none") return null;
+  for (const d of el.querySelectorAll("*")) if (getComputedStyle(d).textShadow !== "none") return null;
+  // The box around the words, not the element: padding or empty space beside a short label isn't behind any text.
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const r = range.getBoundingClientRect();
   if (r.width < 2 || r.height < 2) return null;
   el.setAttribute("data-dummyrun-hide", "");
   const st = document.createElement("style");
   st.id = id;
-  st.textContent = "[data-dummyrun-hide], [data-dummyrun-hide] * { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; }";
+  st.textContent = "[data-dummyrun-hide], [data-dummyrun-hide] * { color: transparent !important; -webkit-text-fill-color: transparent !important; caret-color: transparent !important; }";
   document.documentElement.appendChild(st);
   return { rgb: [Number(m[1]), Number(m[2]), Number(m[3])], need: large ? 3 : 4.5, large,
     box: { x: r.left + scrollX, y: r.top + scrollY, width: Math.min(r.width, 1200), height: Math.min(r.height, 800) } };
@@ -56,9 +62,12 @@ type ImageContrast struct {
 	Text string `json:"text"`
 	// Need is the contrast ratio WCAG 1.4.3 asks for: 4.5, or 3 for large text.
 	Need float64 `json:"need"`
-	// Median is the contrast against the middle background pixel, and Worst against the worst tenth of them.
+	// Median is the median of the contrast ratios between the text colour and each background pixel, and Worst is
+	// the ratio at the worst tenth of them. Both are rounded to two places.
 	Median float64 `json:"median"`
 	Worst  float64 `json:"worst"`
+	// exact is Median before rounding. WCAG says not to round a ratio before comparing it with the threshold.
+	exact float64
 	// Spread is the standard deviation of the background's luminance, from 0 to 255. Above 15 it is an image or
 	// a gradient rather than one colour.
 	Spread float64 `json:"spread"`
@@ -66,7 +75,12 @@ type ImageContrast struct {
 }
 
 // Fails says most of the text sits on a background with too little contrast.
-func (c ImageContrast) Fails() bool { return c.Median < c.Need }
+func (c ImageContrast) Fails() bool {
+	if c.exact > 0 {
+		return c.exact < c.Need
+	}
+	return c.Median < c.Need
+}
 
 // MeasureImageContrast measures each element's text against what is behind it: it hides the text, takes a picture of
 // the element's box and compares the text colour with every pixel. Elements it cannot measure are left out, and
@@ -100,7 +114,10 @@ func MeasureImageContrast(ctx context.Context, conn *bidi.Conn, cx string, selec
 		}
 		data, err := conn.CaptureScreenshotClip(ctx, cx, bidi.Clip{X: prep.Box.X, Y: prep.Box.Y, Width: prep.Box.Width, Height: prep.Box.Height})
 		var none any
-		_ = conn.CallFunctionJSON(ctx, cx, imageContrastJS, &none, "show", "")
+		if serr := conn.CallFunctionJSON(ctx, cx, imageContrastJS, &none, "show", ""); serr != nil {
+			// The text is still hidden, so later checks on this page would see a page without it.
+			return nil, fmt.Errorf("image contrast: putting the text back: %w", serr)
+		}
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil, fmt.Errorf("image contrast: %w", ctx.Err())
@@ -147,9 +164,11 @@ func contrastBehind(img image.Image, text [3]float64) (ImageContrast, bool) {
 	n := float64(len(ratios))
 	slices.Sort(ratios)
 	mean := sum / n
+	median := ratios[len(ratios)/2]
 	return ImageContrast{
 		Text:   fmt.Sprintf("#%02x%02x%02x", int(text[0]), int(text[1]), int(text[2])),
-		Median: round2(ratios[len(ratios)/2]),
+		Median: round2(median),
+		exact:  median,
 		Worst:  round2(ratios[len(ratios)/10]),
 		Spread: round2(math.Sqrt(math.Max(sq/n-mean*mean, 0))),
 		Pixels: len(ratios),

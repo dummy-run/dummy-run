@@ -15,6 +15,8 @@ const imageContrastPage = `<!doctype html><html lang="en"><head><meta charset="u
 <style>.hero{padding:30px;font-size:18px;color:#fff;width:600px}</style></head><body><main><h1>Banners</h1>
 <p id="faint" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book your appointment online today</p>
 <p id="strong" class="hero" style="background:linear-gradient(90deg,#123,#000)">Book your appointment online today</p>
+<p id="short" class="hero" style="background:linear-gradient(90deg,#000 0 30%,#fff 30%)">Sale</p>
+<p id="halo" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);text-shadow:0 0 3px #000">Book your appointment online today</p>
 </main></body></html>`
 
 func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
@@ -44,8 +46,12 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			for _, m := range r.ImageContrast {
 				measured[m.Selector] = true
 			}
-			if !measured["#faint"] || !measured["#strong"] {
-				t.Fatalf("both gradients should be measured: %+v (needs review %+v)", r.ImageContrast, r.NeedsReview)
+			if !measured["#faint"] || !measured["#strong"] || !measured["#short"] {
+				t.Fatalf("the gradients should be measured: %+v (needs review %+v)", r.ImageContrast, r.NeedsReview)
+			}
+			// A shadow can give text its contrast, and the picture can't show it, so that text is left for a person.
+			if measured["#halo"] {
+				t.Errorf("text with a shadow should be left unmeasured: %+v", r.ImageContrast)
 			}
 			if want := len(imageContrastTargets(r.NeedsReview)) - len(r.ImageContrast); r.ImageContrastUnmeasured != want {
 				t.Errorf("unmeasured %d, want %d", r.ImageContrastUnmeasured, want)
@@ -58,6 +64,7 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 					}
 				}
 			}
+			// #short sits on black, with white only in the empty part of its box, which isn't behind any words.
 			if strings.Join(flagged, ",") != "#faint" {
 				t.Errorf("flagged %v, want #faint only: %+v", flagged, r.ImageContrast)
 			}
