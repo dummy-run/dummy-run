@@ -40,10 +40,11 @@ const (
 
 // EngineNames are the names a report shows for each engine's short name.
 var EngineNames = map[string]string{
-	"axe":    "axe-core",
-	"ibm":    "IBM Equal Access",
-	"htmlcs": "HTML_CodeSniffer",
-	"alfa":   "Siteimprove Alfa",
+	"axe":     "axe-core",
+	"ibm":     "IBM Equal Access",
+	"htmlcs":  "HTML_CodeSniffer",
+	"alfa":    "Siteimprove Alfa",
+	"qualweb": "QualWeb",
 }
 
 // EngineName returns the display name of an engine, or the short name when it has none.

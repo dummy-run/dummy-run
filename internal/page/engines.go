@@ -17,15 +17,24 @@ var (
 	htmlcsJS string
 	//go:embed engines/alfa.min.js
 	alfaJS string
+	//go:embed engines/qualweb/qw-page.bundle.js
+	qwPageJS string
+	//go:embed engines/qualweb/util.bundle.js
+	qwUtilJS string
+	//go:embed engines/qualweb/act.bundle.js
+	qwACTJS string
+	//go:embed engines/qualweb/wcag.bundle.js
+	qwWCAGJS string
 	//go:embed engines.js
 	enginesJS string
 )
 
 // EngineVersions are the versions of the bundled engines, by the short name a result uses.
 var EngineVersions = map[string]string{
-	"ibm":    "accessibility-checker-engine 4.0.34",
-	"htmlcs": "HTML_CodeSniffer 2.5.1",
-	"alfa":   "Siteimprove Alfa 0.120.0",
+	"ibm":     "accessibility-checker-engine 4.0.34",
+	"htmlcs":  "HTML_CodeSniffer 2.5.1",
+	"alfa":    "Siteimprove Alfa 0.120.0",
+	"qualweb": "QualWeb act-rules 0.8.6 and wcag-techniques 0.4.9",
 }
 
 // enginesSandbox keeps the engines' globals out of the page's own scripts. The DOM is shared.
@@ -67,8 +76,8 @@ type EngineResults struct {
 	Omitted int `json:"omitted"`
 }
 
-// RunEngines injects IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa into a sandbox on the loaded page and
-// runs them. An engine that fails to load or throws is named in Errors and the others still run. Only the criteria in
+// RunEngines injects IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb into a sandbox on the loaded
+// page and runs them. An engine that fails to load or throws is named in Errors and the others still run. Only the criteria in
 // keep are kept.
 func RunEngines(ctx context.Context, conn *bidi.Conn, cx string, axe []AxeNode, keep []string) (*EngineResults, error) {
 	// Indirect eval runs each bundle at the sandbox's global scope, where HTML_CodeSniffer looks up its standards. A
@@ -76,12 +85,18 @@ func RunEngines(ctx context.Context, conn *bidi.Conn, cx string, axe []AxeNode, 
 	// because it means the connection or the page has gone.
 	const load = "(name, src) => { try { if (!globalThis[name]) (0, eval)(src); } catch (e) { return String(e && e.message || e).slice(0, 200); } return globalThis[name] ? '' : 'did not load'; }"
 	loadErrs := map[string]string{}
-	for _, b := range []struct{ global, engine, src string }{{"ace", "ibm", aceJS}, {"HTMLCS", "htmlcs", htmlcsJS}, {"dummyrunAlfa", "alfa", alfaJS}} {
+	// QualWeb comes as four bundles, loaded in this order: the page model first, then its utilities, then the runners
+	// of the ACT rules and the WCAG techniques.
+	for _, b := range []struct{ global, engine, src string }{
+		{"ace", "ibm", aceJS}, {"HTMLCS", "htmlcs", htmlcsJS}, {"dummyrunAlfa", "alfa", alfaJS},
+		{"qwPage", "qualweb", qwPageJS}, {"DomUtils", "qualweb", qwUtilJS},
+		{"ACTRulesRunner", "qualweb", qwACTJS}, {"WCAGTechniquesRunner", "qualweb", qwWCAGJS},
+	} {
 		var msg string
 		if err := conn.CallFunctionJSONIn(ctx, cx, enginesSandbox, load, &msg, b.global, b.src); err != nil {
 			return nil, fmt.Errorf("engines: load %s: %w", b.engine, err)
 		}
-		if msg != "" {
+		if msg != "" && loadErrs[b.engine] == "" {
 			loadErrs[b.engine] = "load: " + msg
 		}
 	}

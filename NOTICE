@@ -19,6 +19,15 @@ This product bundles Siteimprove Alfa 0.120.0 (internal/page/engines/alfa.min.js
 licensed under the MIT licence (see LICENSES/MIT.txt). The bundle includes Color.js, Copyright (c) 2021 Lea Verou and
 Chris Lilley, licensed under the MIT licence. The bundle is built from internal/page/engines/alfa.
 
+This product bundles QualWeb act-rules 0.8.6, wcag-techniques 0.4.9, qw-page 0.3.8 and util 0.7.4
+(internal/page/engines/qualweb), Copyright (c) 2024, FCUL, licensed under the ISC licence (see
+internal/page/engines/qualweb/LICENSE and LICENSES/ISC.txt). The util bundle includes franc-min, trigram-utils,
+n-gram and collapse-white-space (Copyright (c) Titus Wormer), string-pixel-width (Copyright (c) Adam Bisek) and
+lodash.deburr (Copyright JS Foundation and other contributors), licensed under the MIT licence. The act-rules and
+wcag-techniques bundles include code from lodash (Copyright JS Foundation and other contributors), and the act-rules
+bundle includes Color.js (Copyright (c) 2021 Lea Verou and Chris Lilley), both licensed under the MIT licence. The files are
+unmodified and internal/page/engines/qualweb/fetch.sh fetches them.
+
 This product bundles DuckDuckGo autoconsent 16.61.0 (internal/page/consent/autoconsent.playwright.js and
 internal/page/consent/compact-rules.json), Copyright (c) DuckDuckGo, Inc. and the autoconsent contributors, licensed under the Mozilla Public License 2.0
 (see internal/page/consent/LICENSE and LICENSES/MPL-2.0.txt). The rule set is unmodified. In the bundle, one regular

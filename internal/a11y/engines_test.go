@@ -19,13 +19,30 @@ const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <img id="pic" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
 <a id="empty" href="/a"></a>
 <input id="field" type="text">
+<div style="width:120px;height:24px;overflow:auto"><span id="scrolled" style="display:inline-block;margin-left:300px;white-space:nowrap;color:#bbb;background:#ccc">Scroll to me</span></div>
+<div style="width:20px;height:20px;overflow:hidden"><span id="fixed" style="position:fixed;bottom:10px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Fixed note</span></div>
+<div style="width:20px;height:20px;overflow:hidden"><span id="placed" style="position:absolute;top:400px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Placed note</span></div>
+<div style="position:relative;width:20px;height:20px;overflow:hidden"><div style="position:absolute"><span id="deep" style="position:fixed;bottom:40px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Deep note</span></div></div>
+<div style="width:20px;height:20px;overflow:hidden;will-change:transform-origin"><span id="origin" style="position:fixed;bottom:70px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Origin note</span></div>
+<!--many-->
+<span id="spill" style="display:inline-block;width:40px;height:20px;text-indent:60px;white-space:nowrap;color:#bbb;background:#ccc">Spills out</span>
 </main></body></html>`
 
 const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Good</title></head><body><main><h1>Good</h1>
 <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="A red dot">
 <a href="/a">Read the guide</a>
 <label for="f">Name</label><input id="f" type="text">
+<button id="go" style="width:40px;height:40px;text-indent:-5000px;overflow:hidden;color:#bbb;background:#ccc;border:2px solid #000">Search</button>
+<div style="width:20px;height:20px;overflow:hidden;will-change:perspective"><span id="heldp" style="position:fixed;top:30px;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
+<div style="width:20px;height:20px;overflow:hidden;will-change:opacity, filter"><span id="heldf" style="position:fixed;top:60px;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
+<div style="width:20px;height:20px;overflow:hidden;will-change:transform"><span id="held" style="position:fixed;top:0;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
+<span id="past" style="position:fixed;top:0;left:3000px;white-space:nowrap;color:#bbb;background:#ccc">Past the edge</span>
+<div style="width:60px;height:24px;overflow:hidden"><span id="hid" style="display:inline-block;margin-left:200px;white-space:nowrap;color:#bbb;background:#ccc">Hidden away</span></div>
 </main></body></html>`
+
+// many is a span whose first 250 text nodes are set at font-size 0 and whose last is seen, so the contrast filter has
+// to look past them all.
+var many = `<span id="many" style="color:#bbb;background:#ccc">` + strings.Repeat(`<b style="font-size:0">x</b>`, 250) + `Seen at last</span>`
 
 func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
@@ -33,7 +50,7 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
 	mux := http.NewServeMux()
-	for path, body := range map[string]string{"/bad": enginesBad, "/good": enginesGood} {
+	for path, body := range map[string]string{"/bad": strings.Replace(enginesBad, "<!--many-->", many, 1), "/good": enginesGood} {
 		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, body)
@@ -50,18 +67,22 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(rep.Engines) != 3 {
+			if len(rep.Engines) != 4 {
 				t.Errorf("report engines: %v", rep.Engines)
 			}
 			for _, r := range rep.Results {
 				if r.Error != "" || len(r.EngineErrors) > 0 {
 					t.Fatalf("%s: error %q engine errors %v", r.URL, r.Error, r.EngineErrors)
 				}
-				if !slices.Equal(r.EnginesRan, []string{"ibm", "htmlcs", "alfa"}) {
+				if !slices.Equal(r.EnginesRan, []string{"ibm", "htmlcs", "alfa", "qualweb"}) {
 					t.Errorf("%s: engines ran %v", r.URL, r.EnginesRan)
 				}
 				high := map[string][]string{}
 				for _, f := range r.Violations {
+					// Agreement among the other engines alone is its own finding, on the same element; axe's are checked here.
+					if IsEnginesRule(f.Rule) {
+						continue
+					}
 					for _, n := range f.Nodes {
 						if n.Confidence == "" {
 							t.Errorf("%s: %s %s has no confidence", r.URL, f.Rule, n.Target)
@@ -75,7 +96,48 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 					if len(r.Violations) != 0 {
 						t.Errorf("the good page has violations: %+v", r.Violations)
 					}
+					// No one sees the off-screen label of #go, the text of #hid, which its parent clips away, or #held, #heldp
+					// and #heldf, which the box that holds them as if transformed clips away. Nor #past, fixed beyond the
+					// window's edge, where no scrolling reaches it.
+					for _, c := range r.Candidates {
+						for _, n := range c.Nodes {
+							if c.Rule == RuleEnginesPrefix+"1.4.3" && (strings.Contains(n.Target, "#go") || strings.Contains(n.Target, "#hid") || strings.Contains(n.Target, "#held") ||
+								strings.Contains(n.Target, "#past")) {
+								t.Errorf("contrast reported for text that is not painted: %+v", n)
+							}
+						}
+					}
 					continue
+				}
+				// #spill's text sits outside its box but is on the page and not clipped, so its contrast still counts.
+				spilt := false
+				for _, list := range [][]Finding{r.Violations, r.Candidates} {
+					for _, f := range list {
+						for _, n := range f.Nodes {
+							spilt = spilt || (strings.Contains(n.Target, "#spill") && (f.Rule == "color-contrast" || f.Rule == RuleEnginesPrefix+"1.4.3"))
+						}
+					}
+				}
+				if !spilt {
+					t.Errorf("no contrast failure for text that overflows its element but is seen")
+				}
+				// #scrolled sits outside its box's view, but the box scrolls, so you can reach it and the other engines'
+				// contrast failures on it count too, not axe's alone.
+				// #fixed, #placed, #deep and #origin sit in boxes that hide their overflow, but those boxes do not contain
+				// them, so they are painted and their contrast counts too. So does #many, whose seen text comes last.
+				for _, sel := range []string{"#scrolled", "#fixed", "#placed", "#deep", "#origin", "#many"} {
+					found := false
+					for _, list := range [][]Finding{r.Violations, r.Candidates} {
+						for _, f := range list {
+							for _, n := range f.Nodes {
+								found = found || (strings.Contains(n.Target, sel) &&
+									((f.Rule == "color-contrast" && len(n.Engines) >= 3) || f.Rule == RuleEnginesPrefix+"1.4.3"))
+							}
+						}
+					}
+					if !found {
+						t.Errorf("%s: the other engines' contrast failures on text that is seen were left out", sel)
+					}
 				}
 				seen := map[string]bool{}
 				for _, sel := range []string{"#pic", "#empty", "#field"} {
@@ -86,7 +148,7 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 						seen[name] = true
 					}
 				}
-				for _, name := range []string{"axe", "ibm", "htmlcs", "alfa"} {
+				for _, name := range []string{"axe", "ibm", "htmlcs", "alfa", "qualweb"} {
 					if !seen[name] {
 						t.Errorf("%s never agreed on a planted problem", name)
 					}

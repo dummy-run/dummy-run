@@ -20,4 +20,5 @@ tests/
 internal/page/axe/
 internal/page/engines/ace.js
 internal/page/engines/HTMLCS.js
+internal/page/engines/qualweb/
 internal/page/consent/

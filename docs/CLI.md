@@ -258,10 +258,10 @@ Flags:
                     200 percent text
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
-  --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. Each failing element
-                    says which engines agree, and its confidence is rated with them. A failure axe misses and
-                    two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
-                    reports is a candidate, kept in the JSON and never failing the sweep
+  --engines         also run IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb beside axe-core.
+                    Each failing element says which engines agree, and its confidence is rated with them. A failure
+                    axe misses and two others agree on is a violation (rule dummyrun-engines-<criterion>); one that
+                    only one engine reports is a candidate, kept in the JSON and never failing the sweep
   --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
                     hide the text, take a picture of what is behind it and compare the text colour with every pixel.
                     Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)

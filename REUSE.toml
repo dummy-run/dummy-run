@@ -61,6 +61,30 @@ SPDX-FileCopyrightText = ["Siteimprove A/S", "2021 Lea Verou and Chris Lilley"]
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
+path = ["internal/page/engines/qualweb/qw-page.bundle.js", "internal/page/engines/qualweb/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2024 FCUL"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = "internal/page/engines/qualweb/act.bundle.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["2024 FCUL", "JS Foundation and other contributors", "2021 Lea Verou and Chris Lilley"]
+SPDX-License-Identifier = "ISC AND MIT"
+
+[[annotations]]
+path = "internal/page/engines/qualweb/wcag.bundle.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["2024 FCUL", "JS Foundation and other contributors"]
+SPDX-License-Identifier = "ISC AND MIT"
+
+[[annotations]]
+path = "internal/page/engines/qualweb/util.bundle.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["2024 FCUL", "Titus Wormer", "Adam Bisek", "JS Foundation and other contributors"]
+SPDX-License-Identifier = "ISC AND MIT"
+
+[[annotations]]
 path = ["internal/page/consent/autoconsent.playwright.js", "internal/page/consent/compact-rules.json", "internal/page/consent/LICENSE"]
 precedence = "override"
 SPDX-FileCopyrightText = "DuckDuckGo, Inc. and the autoconsent contributors"
