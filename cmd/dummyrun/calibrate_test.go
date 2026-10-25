@@ -64,14 +64,16 @@ func TestCalibrateFailsWhenTheReportCannotBeWritten(t *testing.T) {
 func TestCalibrateRefusals(t *testing.T) {
 	dir := t.TempDir()
 	bad := writeLabels(t, dir, "bad.json", `[{"inputs":{"evidence_kind":"vibes","engines":[],"check":"x","on_journey":false},"true":true}]`)
+	good := writeLabels(t, dir, "good.json", `[{"inputs":{"evidence_kind":"model-only","engines":[],"check":"x","on_journey":true},"true":false}]`)
+	table := writeLabels(t, dir, "t.json", `{"min_samples":10,"buckets":[]}`)
 	for name, args := range map[string][]string{
 		"no inputs":                   {"calibrate"},
 		"unreadable":                  {"calibrate", "--labels", filepath.Join(dir, "missing.json")},
 		"bad evidence":                {"calibrate", "--labels", bad},
 		"missing table":               {"calibrate", "--table", filepath.Join(dir, "none.json")},
-		"nothing to check":            {"calibrate", "--table", writeLabels(t, dir, "t.json", `{"min_samples":10,"buckets":[]}`)},
-		"positional file":             {"calibrate", "--labels", bad, filepath.Join(dir, "b.json")},
-		"labels, table and out-table": {"calibrate", "--labels", bad, "--table", filepath.Join(dir, "t.json"), "--out-table", filepath.Join(dir, "o.json")},
+		"nothing to check":            {"calibrate", "--table", table},
+		"positional file":             {"calibrate", "--labels", good, filepath.Join(dir, "b.json")},
+		"labels, table and out-table": {"calibrate", "--labels", good, "--table", table, "--out-table", filepath.Join(dir, "o.json")},
 	} {
 		if got := run(args); got != exitRefused {
 			t.Errorf("%s: exited %d, want %d", name, got, exitRefused)
