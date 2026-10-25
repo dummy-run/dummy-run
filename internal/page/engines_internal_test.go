@@ -12,8 +12,9 @@ import (
 	"time"
 )
 
-// TestQualWebRunnersFailApart swaps in broken QualWeb bundles. When the WCAG techniques throw, the ACT rules still run
-// and QualWeb counts as run, with the error kept. When the page model is missing, QualWeb does not count as run at all.
+// TestQualWebRunnersFailApart swaps in broken QualWeb bundles. When the WCAG techniques throw or are missing, the ACT
+// rules still run and QualWeb counts as run, with the error kept. When the page model is missing, QualWeb does not
+// count as run at all.
 func TestQualWebRunnersFailApart(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
@@ -50,6 +51,11 @@ func TestQualWebRunnersFailApart(t *testing.T) {
 			r := run()
 			if !slices.Contains(r.Ran, "qualweb") || !strings.Contains(r.Errors["qualweb"], "techniques broke") {
 				t.Errorf("with the techniques broken, the ACT rules should still run: ran %v errors %v", r.Ran, r.Errors)
+			}
+			qwPageJS, qwWCAGJS = page, ""
+			r = run()
+			if !slices.Contains(r.Ran, "qualweb") || r.Errors["qualweb"] == "" {
+				t.Errorf("with the techniques missing, the ACT rules should still run: ran %v errors %v", r.Ran, r.Errors)
 			}
 			qwPageJS, qwWCAGJS = "", wcag
 			r = run()

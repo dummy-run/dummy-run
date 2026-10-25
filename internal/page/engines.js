@@ -180,14 +180,15 @@ async (axeJSON, criteriaJSON, max) => {
   // counts as run when either does. The ACT rule that needs the page at another window size (QW-ACT-R40) is left out,
   // so the window never changes.
   const qwRunners = [
-    ["act", () => new ACTRulesRunner({}, "en").configure({ exclude: ["QW-ACT-R40"] })],
-    ["wcag", () => new WCAGTechniquesRunner({}, "en").configure({})],
+    ["act", "ACTRulesRunner", (R) => new R({}, "en").configure({ exclude: ["QW-ACT-R40"] })],
+    ["wcag", "WCAGTechniquesRunner", (R) => new R({}, "en").configure({})],
   ];
   const qwLoaded = globalThis.qwPage && globalThis.DomUtils;
-  for (const [kind, runner] of qwRunners) {
+  for (const [kind, name, runner] of qwRunners) {
     try {
-      if (!qwLoaded || typeof ACTRulesRunner !== "function" || typeof WCAGTechniquesRunner !== "function") throw new Error("did not load");
-      const rep = runner().test({}).getReport();
+      const R = globalThis[name];
+      if (!qwLoaded || typeof R !== "function") throw new Error(name + " did not load");
+      const rep = runner(R).test({}).getReport();
       for (const [code, a] of Object.entries(rep.assertions || {})) {
         if (!a || !a.metadata || a.metadata.outcome !== "failed") continue;
         const sc = (a.metadata["success-criteria"] || []).map((c) => c.name);
