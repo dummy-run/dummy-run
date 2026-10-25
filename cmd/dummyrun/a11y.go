@@ -32,27 +32,28 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
-                    skip link that goes nowhere
-  --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
-                    your own details with no purpose-specific autocomplete value
-  --image-contrast  measure the text axe could not judge for contrast, usually text on an image or gradient: hide
-                    the text, take a picture of what is behind it and compare the text colour with every pixel.
-                    Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
-  --plain-language  check the main content of each page with Vale: Flesch reading ease and grade, sentences over 25
-                    words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The results are
-                    advice and never fail the sweep. Needs vale on the PATH or DUMMYRUN_VALE
-  --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
-                    A banner with an accept button and no reject button is reported as advice
-                    (dummyrun-consent-no-reject), which never fails the sweep
+  --all             run every check listed below in the same sweep. Add --text-scale 100,200 to test large text
+                    as well
+  --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
+                    A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
   --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
                     or more engines fail for the same WCAG criterion has high confidence. A failure axe misses and
                     two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
                     reports is a candidate, kept in the JSON and never failing the sweep
+  --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
+                    hide the text, take a picture of what is behind it and compare the text colour with every pixel.
+                    Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
+  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
+                    skip link that goes nowhere
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
                     allow-list can accept them
+  --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
+                    your own details with no purpose-specific autocomplete value
+  --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
+                    over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
+                    results are advice. Needs vale on the PATH or DUMMYRUN_VALE
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
@@ -73,6 +74,9 @@ Flags:
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
 tested, 2 for a usage error, 3 when robots.txt disallows every page. Pages skipped for robots.txt do not fail the sweep.`
 
+// a11yRun runs the sweep. Tests replace it to see the configuration the flags make.
+var a11yRun = a11y.Run
+
 func a11yCmd(args []string) int {
 	fs := flag.NewFlagSet("a11y", flag.ContinueOnError)
 	fs.Usage = func() { fmt.Fprintln(os.Stderr, a11yUsage) }
@@ -82,6 +86,7 @@ func a11yCmd(args []string) int {
 	viewport := fs.String("viewport", "both", "desktop, phone, small or both")
 	scheme := fs.String("scheme", "both", "light, dark or both")
 	textScale := fs.String("text-scale", "", "system text size in percent, or a comma-separated list")
+	all := fs.Bool("all", false, "run every check")
 	layout := fs.Bool("layout", false, "run the layout checks")
 	keyboard := fs.Bool("keyboard", false, "run the keyboard checks")
 	markup := fs.Bool("markup", false, "run the markup checks")
@@ -129,6 +134,12 @@ func a11yCmd(args []string) int {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "dummyrun a11y: --scheme %q: want light, dark or both\n", *scheme)
 		return 2
+	}
+	if *all {
+		// One switch for every check. A check added later joins this list.
+		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, imageContrast} {
+			*on = true
+		}
 	}
 	scales, err := parseTextScales(*textScale)
 	if err != nil {
@@ -188,7 +199,7 @@ func a11yCmd(args []string) int {
 		urls = append(pages, urls...)
 	}
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
-	rep, err := a11y.Run(ctx, a11y.Config{
+	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
 		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
