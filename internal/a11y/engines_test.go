@@ -36,6 +36,7 @@ const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <div style="width:20px;height:20px;overflow:hidden;will-change:perspective"><span id="heldp" style="position:fixed;top:30px;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
 <div style="width:20px;height:20px;overflow:hidden;will-change:opacity, filter"><span id="heldf" style="position:fixed;top:60px;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
 <div style="width:20px;height:20px;overflow:hidden;will-change:transform"><span id="held" style="position:fixed;top:0;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
+<span id="past" style="position:fixed;top:0;left:3000px;white-space:nowrap;color:#bbb;background:#ccc">Past the edge</span>
 <div style="width:60px;height:24px;overflow:hidden"><span id="hid" style="display:inline-block;margin-left:200px;white-space:nowrap;color:#bbb;background:#ccc">Hidden away</span></div>
 </main></body></html>`
 
@@ -95,11 +96,13 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 					if len(r.Violations) != 0 {
 						t.Errorf("the good page has violations: %+v", r.Violations)
 					}
-					// The off-screen label of #go, the text of #hid, which its parent clips away, and #held, #heldp and #heldf,
-					// which the box that holds them as if transformed clips away, have no contrast anyone sees.
+					// No one sees the off-screen label of #go, the text of #hid, which its parent clips away, or #held, #heldp
+					// and #heldf, which the box that holds them as if transformed clips away. Nor #past, fixed beyond the
+					// window's edge, where no scrolling reaches it.
 					for _, c := range r.Candidates {
 						for _, n := range c.Nodes {
-							if c.Rule == RuleEnginesPrefix+"1.4.3" && (strings.Contains(n.Target, "#go") || strings.Contains(n.Target, "#hid") || strings.Contains(n.Target, "#held")) {
+							if c.Rule == RuleEnginesPrefix+"1.4.3" && (strings.Contains(n.Target, "#go") || strings.Contains(n.Target, "#hid") || strings.Contains(n.Target, "#held") ||
+								strings.Contains(n.Target, "#past")) {
 								t.Errorf("contrast reported for text that is not painted: %+v", n)
 							}
 						}

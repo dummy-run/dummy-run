@@ -93,6 +93,8 @@ async (axeJSON, criteriaJSON, max) => {
       }
     }
     if (r + scrollX <= 0 || bot + scrollY <= 0) return false; // what is left is off the page to the left or top
+    // Fixed text past the window's right or bottom edge stays there however far you scroll.
+    if (skip === "fixed" && (l >= innerWidth || top >= innerHeight)) return false;
     return r - l > 1 && bot - top > 1;
   };
   const unpainted = (el) => {

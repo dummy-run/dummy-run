@@ -1059,7 +1059,7 @@ failures are kept. Their warnings, AAA rules and "check this by hand" results ar
 failure (1.4.3) on text no one can see is left out too. That's text pushed off the page with `text-indent`, text
 set at `font-size: 0` and text that its element or a parent clips away by hiding overflow. A search button's
 hidden label is one, and some engines still measure it. Text that spills out of its element but stays on the page
-is still checked, and so is text a scrolling box holds out of view, since you can scroll to it. A parent only clips what it contains, so fixed or absolutely placed text that sits outside it is still checked too.
+is still checked, and so is text a scrolling box holds out of view, since you can scroll to it. A parent only clips what it contains, so fixed or absolutely placed text that sits outside it is still checked too. Fixed text set past the right or bottom edge of the window is left out, since no scrolling brings it into view.
 
 The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
 for the same criterion.
