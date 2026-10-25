@@ -118,6 +118,32 @@
     - https://www.w3.org/WAI/WCAG22/Techniques/general/G1
     - https://design-system.service.gov.uk/components/skip-link/
 
+- rule: dummyrun-mouse-only
+  owner: development
+  summary: Make the control work from the keyboard as it does with a mouse.
+  steps:
+    - If the element named in the finding does something on the page, make it a real button, which takes focus and responds to Enter and Space on its own. If it goes to another page, make it a link, which responds to Enter.
+    - If it must stay a custom element, give it a role, tabindex 0 and a keydown handler for Enter and Space that does what the click does.
+    - Run the action on click, not on mousedown, so a key press triggers it too.
+  example:
+    before: '<div class="card" onclick="showPrices()">Show prices</div>'
+    after: '<button type="button" class="card" onclick="showPrices()">Show prices</button>'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
+
+- rule: dummyrun-skip-link-no-focus
+  owner: development
+  summary: Let the skip link move keyboard focus to the main content.
+  steps:
+    - Remove any script that stops the skip link's default action.
+    - Give the target tabindex minus 1 if a script moves focus to it, so it can take focus.
+    - Check by pressing Tab, Enter and Tab again; focus should land in the main content.
+  example:
+    before: "skip.addEventListener('click', (e) => e.preventDefault());"
+    after: '<a href="#main">Skip to content</a> ... <main id="main" tabindex="-1">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html
+
 - rule: dummyrun-label-in-name
   owner: development
   summary: Start a control's accessible name with the words it shows.

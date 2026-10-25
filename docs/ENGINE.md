@@ -986,8 +986,9 @@ dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://
 
 ### Keyboard checks
 
-To check the page by keyboard, add `--keyboard`. The sweep clicks nothing. It presses Tab from the top of the page, up to 80
-times and records where focus goes. It then reports what it measured. There is no model call. The checks are off by default.
+To check the page by keyboard, add `--keyboard`. The sweep presses Tab from the top of the page, up to 80
+times and records where focus goes. It also clicks up to 5 controls on each page to compare mouse and keyboard, as
+described below. It then reports what it measured. There is no model call. The checks are off by default.
 The pixel comparison covers no more than the first 30 stops that need it. The walk ends at the first loop or repeated stop, so later stops go unchecked. When that happens the page's result says `keyboard_partial`, so a page with no keyboard findings is not read as one that was checked all the way through.
 
 | Rule ID | Fails when | WCAG | Impact |
@@ -996,6 +997,34 @@ The pixel comparison covers no more than the first 30 stops that need it. The wa
 | `dummyrun-focus-hidden` | Focus lands on an element with no size, hidden, or outside the window | 2.4.7 | serious |
 | `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
 | `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
+| `dummyrun-skip-link-no-focus` | The skip link's target is there, but after Enter on the link the next Tab lands before the target, so focus never moved | 2.4.1 | serious |
+| `dummyrun-mouse-only` | A click on a control does what it's for, but from the keyboard Tab never reaches it, or Enter and Space do nothing | 2.1.1 | serious |
+
+The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
+sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden
+element, a closed `<details>`, an unselected tab, a custom checkbox or switch, and something that shows the hand
+pointer but isn't a control. Each has a success test that the page computes, such as "`aria-expanded` became true"
+or, for the last kind, "the address, the words or the shown elements changed".
+
+For each control, the sweep loads the page afresh and checks the test is false. It clicks the control with the
+mouse and checks the test is now true. On another fresh load, it presses Tab until the control has focus, then
+Enter, then Space, and checks the test again. Tab stops once focus has come back round to where it started, or has
+stayed outside the page for three presses. A control counts only when the click worked and the keyboard didn't. A
+control whose test was already true, that something else covers, that a click didn't change, or that Tab didn't reach
+within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
+form's submit button are never picked, and nor is anything holding one. A control's own script can still navigate
+or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
+
+The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
+is shown, it presses Enter and then Tab. Focus must then land inside the target or after it. When Tab alone gets
+there, as it does when the link sits just before its target, the check gives no verdict.
+
+When the sweep is signed in, with a session or preview access, it tries nothing: no controls and no skip link. Any
+click or Enter could run a script that sends a request and changes the account or signs it out.
+
+This loads each page a dozen times or so, so it runs once for each page and window size, on the first colour
+scheme and text size. It runs in a tab of its own, so the rest of the sweep is unchanged. The results are in
+`tasks` in each page's JSON.
 
 Focus that moves into a frame or a media player is followed no further, so the walk counts as partial. A dialog that keeps focus inside itself is not a trap, even when it has only one control. A page with nothing that takes focus counts as fully walked. If the trap test cannot finish, the page shows an error instead of a clean result.
 
@@ -1033,7 +1062,8 @@ for the same criterion.
 
 Every failing element in a sweep carries a `confidence` of `high`, `medium`, `low` or `unknown`, with or without
 `--engines`. Each rule says what kind of `evidence` it is: `engine-rule` for axe and the other engines,
-`measurement` for the layout and keyboard checks and `ax-fact` for the markup checks.
+`measurement` for the layout and keyboard checks and `ax-fact` for the markup checks. `dummyrun-mouse-only` is a
+`task-verdict`, because the sweep tried the control by keyboard and it did not work.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
 the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep

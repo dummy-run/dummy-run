@@ -146,10 +146,10 @@ doing a task, so its findings count as on a journey. A reviewer can still change
 ### Confidence
 
 Every finding records the facts it rests on: what kind of evidence it is, which rule engines agree, whether it
-came back in repeated runs, whether it is on a journey, and which check produced it. There are four kinds of
+came back in repeated runs, whether it is on a journey, and which check produced it. There are five kinds of
 evidence today. A measurement is made in the browser, such as the size of a target. A fact can be read from the
-page's accessibility tree, such as a missing name. A rule engine can report a result. Or the finding is the
-persona's own report, with no check behind it.
+page's accessibility tree, such as a missing name. A rule engine can report a result. A task can fail when Dummy Run tries it, such as a control that works by
+mouse but not by keyboard. Or the finding is the persona's own report, with no check behind it.
 
 Confidence is a lookup. Dummy Run keeps a table of how often findings with each combination of those facts have
 turned out to be right. The rule engine figures come from running the engines over the W3C's published test
@@ -191,7 +191,7 @@ table, "Advice beyond WCAG A and AA". A few of them are WCAG AAA rules. They are
 they aren't counted as failing elements. The report's JSON keeps them in `axe.advice` and the tags checked in
 `axe.advice_tags`. A sweep made before advice existed has none.
 
-Layout rules appear in the same section when the sweep ran with `--layout`, or with a `--text-scale` above 100, which turns `--layout` on. Keyboard rules appear there when it ran with `--keyboard`, and markup rules when it ran with `--markup`. The report lists them with the axe rules. The rule IDs all begin `dummyrun-`. The layout rules map to WCAG 1.4.10, 1.4.4, 2.5.8 and 2.4.11. The keyboard rules map to WCAG 2.1.2, 2.4.7 and 2.4.1. The markup rules map to WCAG 1.3.5 and 2.5.3. Each is a measurement made in the browser, and the help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
+Layout rules appear in the same section when the sweep ran with `--layout`, or with a `--text-scale` above 100, which turns `--layout` on. Keyboard rules appear there when it ran with `--keyboard`, and markup rules when it ran with `--markup`. The report lists them with the axe rules. The rule IDs all begin `dummyrun-`. The layout rules map to WCAG 1.4.10, 1.4.4, 2.5.8 and 2.4.11. The keyboard rules map to WCAG 2.1.1, 2.1.2, 2.4.7 and 2.4.1. The markup rules map to WCAG 1.3.5 and 2.5.3. The layout and keyboard rules are measurements made in the browser, except `dummyrun-mouse-only`, which is a task the sweep tried and could not complete. The markup rules are facts read from the accessibility tree. Each help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
 
 ## Compare with an earlier report
 
