@@ -24,6 +24,7 @@ Usage:
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
+  dummyrun calibrate --labels FILE... [--eval FILE...] [--table FILE] [--out-table FILE] [--report FILE] [--min-samples N]
   dummyrun a11y [--sitemap URL] [URL...] [--all] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox] \
@@ -33,7 +34,7 @@ Usage:
   dummyrun version
 
 First run: "dummyrun browsers install" once, set one model key, then "dummyrun try https://your-site".
-Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun calibrate -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers (leave out --provider and --model to have them chosen from your environment, in this order:
 DUMMYRUN_AZURE_ENDPOINT, OPENAI_API_KEY, ANTHROPIC_API_KEY, then Ollama on OLLAMA_HOST or localhost:11434;
@@ -202,6 +203,37 @@ Usage of review:
     	with --list, which findings to show: pending, confirmed, rejected or all (default "pending")
 ```
 
+## dummyrun calibrate
+
+Rebuild the confidence table from labelled findings and report how well its bands match them. See [REPORT.md](REPORT.md).
+
+```text
+Usage: dummyrun calibrate --labels FILE... [--eval FILE...] [--table FILE] [--out-table FILE] [--report FILE] [--min-samples N]
+
+Rebuild the confidence table from labelled findings and report how well its bands match what the labels show.
+
+A labelled finding is {"inputs": {...}, "true": true|false, "id": "...", "source": "..."}, where inputs is the
+finding's inputs block from a run record: evidence_kind, engines, check, on_journey and, with repeated runs,
+reproduced. The table groups findings by those inputs and records how often each group was right, with a 95
+percent interval. The report shows each band's observed accuracy, each bucket's stated accuracy against the
+labels it rated, and whether the bands discriminate.
+
+The engine ships with internal/confidence/table.json, built from internal/confidence/labels/*.json by this
+command. To check a table against findings it was not built from, pass them with --eval.
+  -eval value
+    	labelled findings to check the table against instead of the ones it was built from; repeatable
+  -labels value
+    	a JSON file of labelled findings, each with its inputs and whether it was true; repeat the flag for each file, as in --labels a.json --labels b.json
+  -min-samples int
+    	the fewest labelled findings a bucket needs before it is used (default 10)
+  -out-table string
+    	write the rebuilt confidence table here (JSON)
+  -report string
+    	write the calibration report here (Markdown) instead of standard output
+  -table string
+    	rate the --eval findings with this table instead of building one from --labels
+```
+
 ## dummyrun a11y
 
 Check pages for WCAG 2.2 A and AA failures with no model. `dummyrun audit a11y` is the same command.
@@ -226,8 +258,8 @@ Flags:
                     200 percent text
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
-  --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
-                    or more engines fail for the same WCAG criterion has high confidence. A failure axe misses and
+  --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. Each failing element
+                    says which engines agree, and its confidence is rated with them. A failure axe misses and
                     two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
                     reports is a candidate, kept in the JSON and never failing the sweep
   --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
