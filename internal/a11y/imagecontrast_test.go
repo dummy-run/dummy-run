@@ -19,6 +19,7 @@ const imageContrastPage = `<!doctype html><html lang="en"><head><meta charset="u
 <p id="faint" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book your appointment online today</p>
 <p id="strong" class="hero" style="background:linear-gradient(90deg,#123,#000)">Book your appointment online today</p>
 <p id="short" class="hero" style="background:linear-gradient(90deg,#000 0 30%,#fff 30%)">Sale</p>
+<p id="pinned" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="color:#000 !important">your</b> appointment</p>
 <p id="halo" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);text-shadow:0 0 3px #000">Book your appointment online today</p>
 </main></body></html>`
 
@@ -55,6 +56,10 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			// A shadow can give text its contrast, and the picture can't show it, so that text is left for a person.
 			if !slices.Contains(imageContrastTargets(r.NeedsReview), "#halo") {
 				t.Fatalf("axe should leave #halo for review, or the shadow case isn't tested: %+v", r.NeedsReview)
+			}
+			// A child whose inline !important colour beats the hiding style would still be in the picture.
+			if measured["#pinned"] {
+				t.Errorf("text the style can't hide should be left unmeasured: %+v", r.ImageContrast)
 			}
 			if measured["#halo"] {
 				t.Errorf("text with a shadow should be left unmeasured: %+v", r.ImageContrast)
