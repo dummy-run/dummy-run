@@ -72,5 +72,5 @@ The list of WCAG 2.2 success criteria at levels A and AA, with their titles and 
 criteria data in Siteimprove Alfa (MIT).
 
 The test fixtures for checking the sweep against real markup come from the
-[AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) by Nadeen Fathallah and colleagues (MIT). We use
-the rule names and the markup of the elements it lists, and none of its code.
+[AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) (MIT). The fixtures use the rule names and the markup of
+the elements it lists, and none of its code.
