@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join the library</title>
+<style>
+  body { font: 18px/1.5 system-ui, sans-serif; color: #1a1a1a; background: #fff; margin: 0; }
+  a { color: #0b5394; }
+  main { max-width: 36rem; margin: 2rem auto; padding: 0 1rem; }
+  label { display: block; margin-top: 1rem; font-weight: 600; }
+  input, select { font: inherit; padding: .5rem; width: 100%; box-sizing: border-box; }
+  button { font: inherit; margin-top: 1.5rem; padding: .6rem 1.2rem; }
+  .note { color: #444; }
+  :focus-visible { outline: 3px solid #0b5394; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<a href="#content" class="skip">Skip to the form</a>
+<header><nav aria-label="Main"><a href="/">Home</a> <a href="/books">Books</a> <a href="/help">Help</a></nav></header>
+<main id="content">
+  <h1>Join the library</h1>
+  <p class="note">Membership is free. We use your details to send your card.</p>
+  <form action="/join" method="get">
+    <label for="first">First name</label>
+    <input id="first" name="first" autocomplete="given-name">
+    <label for="last">Last name</label>
+    <input id="last" name="last" autocomplete="family-name">
+    <label for="email">Email address</label>
+    <input id="email" name="email" type="email" autocomplete="email">
+    <label for="branch">Nearest branch</label>
+    <select id="branch" name="branch"><option>Central</option><option>Riverside</option></select>
+    <button type="submit" aria-label="Join now">Join now</button>
+  </form>
+</main>
+<footer><p><a href="/privacy">Privacy</a> <a href="/contact">Contact us</a></p></footer>
+</body>
+</html>

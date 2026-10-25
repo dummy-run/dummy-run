@@ -19,7 +19,7 @@ pre-commit:
     - name: spelling
       glob: "*.{md,yml,yaml,json,toml,py,go,sh}"
       run: >-
-        command -v typos >/dev/null || { echo "typos not installed, skipping"; exit 0; }; typos {staged_files}
+        command -v typos >/dev/null || { echo "typos not installed, skipping"; exit 0; }; typos --force-exclude {staged_files}
     - name: workflows
       glob: ".github/workflows/*.yml"
       run: |
