@@ -167,6 +167,25 @@ func TestAccessGuruLoaderRejectsAHalfFilledCase(t *testing.T) {
 	}
 }
 
+// outPath is the file a browser's scores go to. With several browsers each gets its own, so a later browser doesn't
+// replace an earlier one's scores.
+func outPath(out, browser string, many bool) string {
+	if !many {
+		return out
+	}
+	return strings.TrimSuffix(out, filepath.Ext(out)) + "." + browser + filepath.Ext(out)
+}
+
+func TestOutPathKeepsBrowsersApart(t *testing.T) {
+	if got := outPath("s.json", "chrome", false); got != "s.json" {
+		t.Errorf("one browser: %q", got)
+	}
+	a, b := outPath("s.json", "chrome", true), outPath("s.json", "firefox", true)
+	if a == b || a != "s.chrome.json" || b != "s.firefox.json" {
+		t.Errorf("two browsers: %q and %q", a, b)
+	}
+}
+
 // TestBenchmark plants every defect in every page it fits, and the AccessGuru elements, and prints recall per check.
 // It needs a browser: set DUMMYRUN_BROWSERS to chrome or firefox. DUMMYRUN_BENCHMARK_OUT names a file for the score
 // as JSON. The browsers run one after the other.
@@ -228,10 +247,7 @@ func TestBenchmark(t *testing.T) {
 			t.Log("\nAccessGuru elements\n" + buf.String())
 
 			if out := os.Getenv("DUMMYRUN_BENCHMARK_OUT"); out != "" {
-				if len(strings.Split(v, ",")) > 1 {
-					// One file for each browser, so a later browser doesn't replace an earlier one's scores.
-					out = strings.TrimSuffix(out, filepath.Ext(out)) + "." + browser + filepath.Ext(out)
-				}
+				out = outPath(out, browser, len(strings.Split(v, ",")) > 1)
 				b, _ := json.MarshalIndent(map[string]Score{"planted": s, "accessguru": as}, "", " ")
 				if err := os.WriteFile(out, b, 0o600); err != nil {
 					t.Fatal(err)
