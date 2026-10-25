@@ -32,9 +32,9 @@ func TestContrastBehind(t *testing.T) {
 	if !(ImageContrast{Median: 4.4, Need: 4.5}).Fails() || (ImageContrast{Median: 3.1, Need: 3}).Fails() {
 		t.Error("Fails compares the median with the need")
 	}
-	// 4.499 shows as 4.5 but still fails: WCAG says not to round before comparing.
-	if !(ImageContrast{Median: 4.5, exact: 4.499, Need: 4.5}).Fails() {
-		t.Error("Fails should compare the unrounded median")
+	// A ratio just under the threshold is rounded down, so it still fails and never shows as 4.50.
+	if m := floor2(4.4999); m != 4.49 || !(ImageContrast{Median: m, Need: 4.5}).Fails() {
+		t.Errorf("4.4999 should round down to 4.49 and fail, got %v", m)
 	}
 	if l := luminance(255, 255, 255); l != 1 {
 		t.Errorf("white luminance %v", l)

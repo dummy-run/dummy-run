@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -52,6 +53,9 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 				t.Fatalf("the gradients should be measured: %+v (needs review %+v)", r.ImageContrast, r.NeedsReview)
 			}
 			// A shadow can give text its contrast, and the picture can't show it, so that text is left for a person.
+			if !slices.Contains(imageContrastTargets(r.NeedsReview), "#halo") {
+				t.Fatalf("axe should leave #halo for review, or the shadow case isn't tested: %+v", r.NeedsReview)
+			}
 			if measured["#halo"] {
 				t.Errorf("text with a shadow should be left unmeasured: %+v", r.ImageContrast)
 			}
@@ -108,5 +112,46 @@ func TestImageContrastTargetsAndFindings(t *testing.T) {
 	}
 	if imageContrastFindings(ms[2:], "/home", allow) != nil {
 		t.Error("no failures should give no finding")
+	}
+}
+
+// A page whose content security policy blocks inline styles keeps its text visible, so nothing is measured.
+func TestImageContrastLeavesTextItCannotHide(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/s.css" {
+			w.Header().Set("Content-Type", "text/css")
+			_, _ = fmt.Fprint(w, "p{padding:30px;font-size:18px;color:#fff;width:600px;background:linear-gradient(90deg,#ddd,#fff)}")
+			return
+		}
+		w.Header().Set("Content-Security-Policy", "style-src 'self'")
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Banner</title>
+<link rel="stylesheet" href="/s.css"></head><body><main><h1>Banner</h1><p id="faint">Book your appointment online today</p></main></body></html>`)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, ImageContrast: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Results[0]
+			if r.Error != "" {
+				t.Fatal(r.Error)
+			}
+			if !slices.Contains(imageContrastTargets(r.NeedsReview), "#faint") {
+				t.Fatalf("axe should leave #faint for review: %+v", r.NeedsReview)
+			}
+			if len(r.ImageContrast) != 0 || r.ImageContrastUnmeasured != 1 {
+				t.Errorf("measured %+v, unmeasured %d: text the style can't hide should be left unmeasured", r.ImageContrast, r.ImageContrastUnmeasured)
+			}
+		})
 	}
 }

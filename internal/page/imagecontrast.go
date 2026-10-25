@@ -51,6 +51,14 @@ const imageContrastJS = `(op, selector) => {
   st.id = id;
   st.textContent = "[data-dummyrun-hide], [data-dummyrun-hide] * { color: transparent !important; -webkit-text-fill-color: transparent !important; caret-color: transparent !important; }";
   document.documentElement.appendChild(st);
+  // A content security policy can block the style. Then the text would still be in the picture, so leave it.
+  const hidden = getComputedStyle(el);
+  const clear = (c) => /^rgba\(.*,\s*0\)$|^transparent$/.test(c);
+  if (!clear(hidden.color) || !clear(hidden.webkitTextFillColor || "transparent")) {
+    st.remove();
+    el.removeAttribute("data-dummyrun-hide");
+    return null;
+  }
   return { rgb: [Number(m[1]), Number(m[2]), Number(m[3])], need: large ? 3 : 4.5, large,
     box: { x: r.left + scrollX, y: r.top + scrollY, width: Math.min(r.width, 1200), height: Math.min(r.height, 800) } };
 }`
@@ -63,11 +71,10 @@ type ImageContrast struct {
 	// Need is the contrast ratio WCAG 1.4.3 asks for: 4.5, or 3 for large text.
 	Need float64 `json:"need"`
 	// Median is the median of the contrast ratios between the text colour and each background pixel, and Worst is
-	// the ratio at the worst tenth of them. Both are rounded to two places.
+	// the ratio at the worst tenth of them. Both are rounded down to two places, so a ratio just under the threshold
+	// never shows as meeting it. WCAG says not to round a ratio up before comparing it.
 	Median float64 `json:"median"`
 	Worst  float64 `json:"worst"`
-	// exact is Median before rounding. WCAG says not to round a ratio before comparing it with the threshold.
-	exact float64
 	// Spread is the standard deviation of the background's luminance, from 0 to 255. Above 15 it is an image or
 	// a gradient rather than one colour.
 	Spread float64 `json:"spread"`
@@ -75,12 +82,7 @@ type ImageContrast struct {
 }
 
 // Fails says most of the text sits on a background with too little contrast.
-func (c ImageContrast) Fails() bool {
-	if c.exact > 0 {
-		return c.exact < c.Need
-	}
-	return c.Median < c.Need
-}
+func (c ImageContrast) Fails() bool { return c.Median < c.Need }
 
 // MeasureImageContrast measures each element's text against what is behind it: it hides the text, takes a picture of
 // the element's box and compares the text colour with every pixel. Elements it cannot measure are left out, and
@@ -167,9 +169,8 @@ func contrastBehind(img image.Image, text [3]float64) (ImageContrast, bool) {
 	median := ratios[len(ratios)/2]
 	return ImageContrast{
 		Text:   fmt.Sprintf("#%02x%02x%02x", int(text[0]), int(text[1]), int(text[2])),
-		Median: round2(median),
-		exact:  median,
-		Worst:  round2(ratios[len(ratios)/10]),
+		Median: floor2(median),
+		Worst:  floor2(ratios[len(ratios)/10]),
 		Spread: round2(math.Sqrt(math.Max(sq/n-mean*mean, 0))),
 		Pixels: len(ratios),
 	}, true
@@ -196,3 +197,5 @@ func ratio(a, b float64) float64 {
 }
 
 func round2(f float64) float64 { return math.Round(f*100) / 100 }
+
+func floor2(f float64) float64 { return math.Floor(f*100) / 100 }
