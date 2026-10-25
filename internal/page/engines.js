@@ -63,19 +63,23 @@ async (axeJSON, criteriaJSON, max) => {
   // element that hides its overflow has clipped it. Text that spills out of its element, or that a scrolling box
   // holds out of view, is still seen: you can see it, or scroll to it.
   // Only the boxes that contain an element clip it: a fixed element escapes every parent but one that is transformed,
-  // filtered or contained, and an absolute one escapes the parents between it and the nearest positioned one.
+  // filtered, contained or about to be transformed, and an absolute one escapes the parents between it and the
+  // nearest positioned one.
   const hides = (o) => o === "hidden" || o === "clip";
   const holdsFixed = (cs) =>
-    cs.transform !== "none" || cs.filter !== "none" || cs.perspective !== "none" || /paint|layout|strict|content/.test(cs.contain);
+    cs.transform !== "none" ||
+    cs.filter !== "none" ||
+    cs.perspective !== "none" ||
+    /paint|layout|strict|content/.test(cs.contain) ||
+    /transform|perspective|filter/.test(cs.willChange);
   const seen = (q, t) => {
     let l = q.left, r = q.right, top = q.top, bot = q.bottom;
     let skip = ""; // "absolute" or "fixed" while the parents being walked do not contain the text
     for (let a = t.parentElement; a && a !== document.documentElement; a = a.parentElement) {
       const cs = getComputedStyle(a);
       const contains = skip === "" || holdsFixed(cs) || (skip === "absolute" && cs.position !== "static");
-      if (contains) skip = "";
-      if (cs.position === "absolute" || cs.position === "fixed") skip = cs.position;
       if (!contains) continue;
+      skip = cs.position === "absolute" || cs.position === "fixed" ? cs.position : "";
       const x = hides(cs.overflowX), y = hides(cs.overflowY);
       if (!x && !y) continue;
       const b = a.getBoundingClientRect();

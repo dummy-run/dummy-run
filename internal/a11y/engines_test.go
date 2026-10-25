@@ -22,6 +22,7 @@ const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <div style="width:120px;height:24px;overflow:auto"><span id="scrolled" style="display:inline-block;margin-left:300px;white-space:nowrap;color:#bbb;background:#ccc">Scroll to me</span></div>
 <div style="width:20px;height:20px;overflow:hidden"><span id="fixed" style="position:fixed;bottom:10px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Fixed note</span></div>
 <div style="width:20px;height:20px;overflow:hidden"><span id="placed" style="position:absolute;top:400px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Placed note</span></div>
+<div style="position:relative;width:20px;height:20px;overflow:hidden"><div style="position:absolute"><span id="deep" style="position:fixed;bottom:40px;left:10px;white-space:nowrap;color:#bbb;background:#ccc">Deep note</span></div></div>
 <span id="spill" style="display:inline-block;width:40px;height:20px;text-indent:60px;white-space:nowrap;color:#bbb;background:#ccc">Spills out</span>
 </main></body></html>`
 
@@ -30,6 +31,7 @@ const enginesGood = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <a href="/a">Read the guide</a>
 <label for="f">Name</label><input id="f" type="text">
 <button id="go" style="width:40px;height:40px;text-indent:-5000px;overflow:hidden;color:#bbb;background:#ccc;border:2px solid #000">Search</button>
+<div style="width:20px;height:20px;overflow:hidden;will-change:transform"><span id="held" style="position:fixed;top:0;left:200px;white-space:nowrap;color:#bbb;background:#ccc">Held note</span></div>
 <div style="width:60px;height:24px;overflow:hidden"><span id="hid" style="display:inline-block;margin-left:200px;white-space:nowrap;color:#bbb;background:#ccc">Hidden away</span></div>
 </main></body></html>`
 
@@ -85,10 +87,11 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 					if len(r.Violations) != 0 {
 						t.Errorf("the good page has violations: %+v", r.Violations)
 					}
-					// The off-screen label of #go and the text of #hid, which its parent clips away, have no contrast anyone sees.
+					// The off-screen label of #go, the text of #hid, which its parent clips away, and #held, which the box that
+					// holds it as if transformed clips away, have no contrast anyone sees.
 					for _, c := range r.Candidates {
 						for _, n := range c.Nodes {
-							if c.Rule == RuleEnginesPrefix+"1.4.3" && (strings.Contains(n.Target, "#go") || strings.Contains(n.Target, "#hid")) {
+							if c.Rule == RuleEnginesPrefix+"1.4.3" && (strings.Contains(n.Target, "#go") || strings.Contains(n.Target, "#hid") || strings.Contains(n.Target, "#held")) {
 								t.Errorf("contrast reported for text that is not painted: %+v", n)
 							}
 						}
@@ -109,9 +112,9 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 				}
 				// #scrolled sits outside its box's view, but the box scrolls, so you can reach it and the other engines'
 				// contrast failures on it count too, not axe's alone.
-				// #fixed and #placed sit in boxes that hide their overflow, but those boxes do not contain them, so they
+				// #fixed, #placed and #deep sit in boxes that hide their overflow, but those boxes do not contain them, so they
 				// are painted and their contrast counts too.
-				for _, sel := range []string{"#scrolled", "#fixed", "#placed"} {
+				for _, sel := range []string{"#scrolled", "#fixed", "#placed", "#deep"} {
 					found := false
 					for _, list := range [][]Finding{r.Violations, r.Candidates} {
 						for _, f := range list {
