@@ -188,6 +188,9 @@ type Snapshot struct {
 	Tree string `json:"tree,omitempty"`
 	// TreeOmitted counts the outline entries cut to fit the budget.
 	TreeOmitted int `json:"tree_omitted,omitempty"`
+	// NamesFrom is "chrome" when the roles, names, states and exposure of the controls and the outline came from
+	// Chrome's own accessibility tree. Empty means the engine worked them out in the page (names.js), as in Firefox.
+	NamesFrom string `json:"names_from,omitempty"`
 	// TreeError is set when focus and the outline could not be read, so that
 	// "no focus" is never reported for a page that was not checked.
 	TreeError string `json:"tree_error,omitempty"`
@@ -268,6 +271,8 @@ type Page struct {
 	zoom          int
 	textScale     int
 	screenReader  bool
+	// ax is Chrome's accessibility tree for this tab, read before each look. It stays off in Firefox.
+	ax axState
 }
 
 // Browser returns the launched browser.
@@ -632,6 +637,7 @@ func (p *Page) A11y(ctx context.Context) Observation {
 		if !loaded {
 			return errors.New("axe-core did not load")
 		}
+		p.ax.read(ctx, p.conn, p.cx)
 		actx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
 		if err := p.conn.CallFunctionJSONIn(actx, p.cx, sandbox, p.withAxe(axeRunJS), &violations); err != nil {
@@ -747,7 +753,14 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 func (p *Page) lookWithAxe(ctx context.Context, snap *Snapshot, mark string) error {
 	var loaded bool
 	_ = p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.loadAxeJS(), &loaded)
-	return p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.withAxe(lookJS), snap, maxControls, textLimit, logLimit, mark)
+	chrome := p.ax.read(ctx, p.conn, p.cx)
+	if err := p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.withAxe(lookJS), snap, maxControls, textLimit, logLimit, mark); err != nil {
+		return err
+	}
+	if chrome {
+		snap.NamesFrom = NamesFromChrome
+	}
+	return nil
 }
 
 // loadAxeJS loads the engine's axe-core into a web page under p.axeName, once per document. Whatever the page had

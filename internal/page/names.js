@@ -5,6 +5,10 @@
   // Names and exposure come from axe-core's own functions (axe.commons.text.accessibleText and
   // axe.commons.dom.isVisibleToScreenReaders) when the engine has loaded its axe into the page, and from the spec
   // computation below otherwise. axe misses a <label for> on a button with a role, so an empty axe name falls back to the spec one.
+  //
+  // In Chrome the engine reads the browser's own accessibility tree first and marks each element it names with
+  // data-dummyrun-ax, keyed into the table it leaves at __drAX in this sandbox (axtree.go). A marked element takes
+  // Chrome's role, name, states and exposure; anything unmarked is worked out here.
   const drSquash = (s) => (s || "").replace(/\s+/g, " ").trim();
   // Cut a name at a word boundary, never inside a word.
   const drClip = (s, n) => {
@@ -13,6 +17,20 @@
     const i = cut.lastIndexOf(" ");
     if (i > n / 2) cut = cut.slice(0, i);
     return cut.replace(/[\s.,;:–-]+$/, "") + "…";
+  };
+  const drAX = (() => {
+    try {
+      const t = globalThis.__drAX;
+      return t && typeof t === "object" ? t : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  // Chrome's entry for an element, or null.
+  const drAXOf = (el) => {
+    if (!drAX || !el.getAttribute) return null;
+    const id = el.getAttribute("data-dummyrun-ax");
+    return id && Object.prototype.hasOwnProperty.call(drAX, id) ? drAX[id] : null;
   };
   const drAxe = (() => {
     try {
@@ -77,7 +95,10 @@
   };
   // Exposed: what a screen reader user can reach. Only exposed controls are listed and numbered.
   const drExposed = (el) => {
-    if (!drRendered(el) || drHiddenFromAT(el)) return false;
+    if (!drRendered(el)) return false;
+    const ax = drAXOf(el);
+    if (ax) return !ax.i;
+    if (drHiddenFromAT(el)) return false;
     if (drAxeReady) {
       try {
         return !!drAxe.commons.dom.isVisibleToScreenReaders(el);
@@ -142,6 +163,8 @@
     }
   };
   const drRole = (el) => {
+    const ax = drAXOf(el);
+    if (ax && typeof ax.r === "string") return ax.r;
     const explicit = drSquash(el.getAttribute("role")).split(" ")[0].toLowerCase();
     if (explicit && explicit !== "none" && explicit !== "presentation") return explicit;
     // isContentEditable is inherited; only the editing host itself is a textbox.
@@ -190,6 +213,8 @@
     return "";
   };
   const drName = (el, role) => {
+    const ax = drAXOf(el);
+    if (ax) return drSquash(ax.n);
     let n = "";
     if (drAxeReady) {
       try {
@@ -201,6 +226,13 @@
     return n || drSpecName(el, role);
   };
   const drStates = (el) => {
+    const ax = drAXOf(el);
+    if (ax) {
+      const out = [...(ax.s || [])];
+      const current = el.getAttribute("aria-current");
+      if (current && current !== "false") out.push("current");
+      return out;
+    }
     const out = [];
     if (el.matches(":disabled") || el.getAttribute("aria-disabled") === "true") out.push("disabled");
     if (el.checked === true || el.getAttribute("aria-checked") === "true") out.push("checked");

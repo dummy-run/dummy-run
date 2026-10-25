@@ -48,6 +48,12 @@ copyright lines:
 
 `internal/page/screenreader/build/build.sh` rebuilds it from the pinned versions.
 
+## Browser accessibility tree
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/), reached through [chromedriver](https://developer.chrome.com/docs/chromedriver)'s `goog:cdp` commands | the Chrome you run | In Chrome, `Accessibility.getFullAXTree` gives the roles, names, states and visibility of the controls you see listed. Firefox has no such protocol, so it keeps the engine's own name script | Part of Chrome; no code of it is bundled |
+
 ## Plain language
 
 | Tool | Version | What it does in Dummy Run | Licence |
