@@ -60,19 +60,26 @@ async (axeJSON, criteriaJSON, max) => {
   // Text no one can see, such as a button label pushed off the page with text-indent, text set at font-size 0 or
   // visually hidden text clipped to a pixel, has no contrast a person sees. Engines that measure it anyway report a
   // false contrast failure. Text counts as seen when more than a pixel square of it is left on the page once every
-  // element that hides its overflow has clipped it. Text that spills out of its element is still seen.
+  // element that hides its overflow has clipped it. Text that spills out of its element, or that a scrolling box
+  // holds out of view, is still seen: you can see it, or scroll to it.
+  const hides = (o) => o === "hidden" || o === "clip";
   const seen = (q, t) => {
     let l = q.left, r = q.right, top = q.top, bot = q.bottom;
-    if (r + scrollX <= 0 || bot + scrollY <= 0) return false; // off the page to the left or top
     for (let a = t.parentElement; a && a !== document.documentElement; a = a.parentElement) {
       const cs = getComputedStyle(a);
-      if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+      const x = hides(cs.overflowX), y = hides(cs.overflowY);
+      if (!x && !y) continue;
       const b = a.getBoundingClientRect();
-      l = Math.max(l, b.left);
-      r = Math.min(r, b.right);
-      top = Math.max(top, b.top);
-      bot = Math.min(bot, b.bottom);
+      if (x) {
+        l = Math.max(l, b.left);
+        r = Math.min(r, b.right);
+      }
+      if (y) {
+        top = Math.max(top, b.top);
+        bot = Math.min(bot, b.bottom);
+      }
     }
+    if (r + scrollX <= 0 || bot + scrollY <= 0) return false; // what is left is off the page to the left or top
     return r - l > 1 && bot - top > 1;
   };
   const unpainted = (el) => {

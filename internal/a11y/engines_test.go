@@ -19,6 +19,7 @@ const enginesBad = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 <img id="pic" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
 <a id="empty" href="/a"></a>
 <input id="field" type="text">
+<div style="width:120px;height:24px;overflow:auto"><span id="scrolled" style="display:inline-block;margin-left:300px;white-space:nowrap;color:#bbb;background:#ccc">Scroll to me</span></div>
 <span id="spill" style="display:inline-block;width:40px;height:20px;text-indent:60px;white-space:nowrap;color:#bbb;background:#ccc">Spills out</span>
 </main></body></html>`
 
@@ -103,6 +104,19 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 				}
 				if !spilt {
 					t.Errorf("no contrast failure for text that overflows its element but is seen")
+				}
+				// #scrolled sits outside its box's view, but the box scrolls, so you can reach it and the other engines'
+				// contrast failures on it count too, not axe's alone.
+				scrolled := false
+				for _, list := range [][]Finding{r.Violations, r.Candidates} {
+					for _, f := range list {
+						for _, n := range f.Nodes {
+							scrolled = scrolled || (strings.Contains(n.Target, "#scrolled") && f.Rule == "color-contrast" && len(n.Engines) >= 3)
+						}
+					}
+				}
+				if !scrolled {
+					t.Errorf("the other engines' contrast failures on text a scrolling box holds out of view were left out")
 				}
 				seen := map[string]bool{}
 				for _, sel := range []string{"#pic", "#empty", "#field"} {
