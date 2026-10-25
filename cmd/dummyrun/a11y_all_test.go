@@ -1,0 +1,54 @@
+package main
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/dummy-run/dummy-run/internal/a11y"
+)
+
+// TestAllNamesEveryCheck keeps --all honest: every check flag in the help is one --all turns on.
+func TestAllNamesEveryCheck(t *testing.T) {
+	for _, flag := range []string{"--consent", "--engines", "--image-contrast", "--keyboard", "--layout", "--markup", "--plain-language"} {
+		i := strings.Index(a11yUsage, "\n  "+flag+" ")
+		if i < 0 {
+			t.Fatalf("%s is not in the help", flag)
+		}
+		if line := a11yUsage[i+1 : i+1+strings.Index(a11yUsage[i+1:], "\n")]; !strings.Contains(line, " also ") {
+			t.Errorf("%s does not start with \"also\": %q", flag, line)
+		}
+	}
+	if !strings.Contains(a11yUsage, "--all             run every check listed below") {
+		t.Error("--all is not described")
+	}
+}
+
+// TestAllTurnsOnEveryCheck runs the command with a stand-in sweep and checks what --all asks for.
+func TestAllTurnsOnEveryCheck(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	checks := func(c a11y.Config) []bool {
+		return []bool{c.Layout, c.Keyboard, c.Markup, c.Engines, c.Consent, c.PlainLanguage, c.ImageContrast}
+	}
+	if code := a11yCmd([]string{"https://example.com/"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	for i, on := range checks(got) {
+		if on {
+			t.Errorf("check %d is on without --all", i)
+		}
+	}
+	if code := a11yCmd([]string{"--all", "https://example.com/"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	for i, on := range checks(got) {
+		if !on {
+			t.Errorf("check %d is off with --all", i)
+		}
+	}
+}

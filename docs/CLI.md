@@ -24,7 +24,7 @@ Usage:
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
+  dummyrun a11y [--sitemap URL] [URL...] [--all] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
@@ -222,27 +222,28 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
-                    skip link that goes nowhere
-  --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
-                    your own details with no purpose-specific autocomplete value
-  --image-contrast  measure the text axe could not judge for contrast, usually text on an image or gradient: hide
-                    the text, take a picture of what is behind it and compare the text colour with every pixel.
-                    Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
-  --plain-language  check the main content of each page with Vale: Flesch reading ease and grade, sentences over 25
-                    words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The results are
-                    advice and never fail the sweep. Needs vale on the PATH or DUMMYRUN_VALE
-  --consent         answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks run.
-                    A banner with an accept button and no reject button is reported as advice
-                    (dummyrun-consent-no-reject), which never fails the sweep
+  --all             run every check listed below in the same sweep. Add --text-scale 100,200 to test large text
+                    as well
+  --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
+                    A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
   --engines         also run IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa beside axe-core. An element two
                     or more engines fail for the same WCAG criterion has high confidence. A failure axe misses and
                     two others agree on is a violation (rule dummyrun-engines-<criterion>); one that only one engine
                     reports is a candidate, kept in the JSON and never failing the sweep
+  --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
+                    hide the text, take a picture of what is behind it and compare the text colour with every pixel.
+                    Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
+  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
+                    skip link that goes nowhere
   --layout          also run the layout checks: sideways overflow, cut-off text in controls, overlapping controls
                     and targets under 24 by 24 CSS px. Rules dummyrun-reflow, dummyrun-clipped-text,
                     dummyrun-overlap and dummyrun-target-size. They fail the sweep like axe rules and the
                     allow-list can accept them
+  --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
+                    your own details with no purpose-specific autocomplete value
+  --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
+                    over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
+                    results are advice. Needs vale on the PATH or DUMMYRUN_VALE
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
