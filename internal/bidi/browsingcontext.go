@@ -28,6 +28,12 @@ func (c *Conn) CreateContext(ctx context.Context) (string, error) {
 	return out.Context, err
 }
 
+// Activate brings a tab to the front and gives it focus, as a person clicking on it would. Firefox runs a key's
+// default action, such as Enter clicking a button, only in the tab that has focus.
+func (c *Conn) Activate(ctx context.Context, context string) error {
+	return c.Call(ctx, "browsingContext.activate", map[string]any{"context": context}, nil)
+}
+
 // CloseContext closes a tab.
 func (c *Conn) CloseContext(ctx context.Context, context string) error {
 	return c.Call(ctx, "browsingContext.close", map[string]any{"context": context}, nil)

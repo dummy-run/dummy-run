@@ -996,6 +996,27 @@ The pixel comparison covers no more than the first 30 stops that need it. The wa
 | `dummyrun-focus-hidden` | Focus lands on an element with no size, hidden, or outside the window | 2.4.7 | serious |
 | `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
 | `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
+| `dummyrun-skip-link-no-focus` | The skip link's target is there, but after Enter on the link the next Tab lands before the target, so focus never moved | 2.4.1 | serious |
+| `dummyrun-mouse-only` | A click on a control does what it's for, but from the keyboard Tab never reaches it, or Enter and Space do nothing | 2.1.1 | serious |
+
+The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
+sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden
+element, a closed `<details>`, an unselected tab, a custom checkbox or switch, and something that shows the hand
+pointer but isn't a control. Each has a success test that the page computes, such as "`aria-expanded` became
+true" or, for the last kind, "the address, the words or the shown elements changed".
+
+For each control, the sweep loads the page afresh and checks the test is false. It clicks the control with the
+mouse and checks the test is now true. On another fresh load, it presses Tab until the control has focus, then
+Enter, then Space, and checks the test again. A control counts only when the click worked and the keyboard
+didn't. A control whose test was already true, that something else covers, or that a click didn't change has no
+verdict, and its `skipped` says why. Nothing that would leave the page or send a form is tried.
+
+The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
+is shown, it presses Enter and then Tab. Focus must then land inside the target or after it.
+
+This loads each page a dozen times or so, so it runs once for each page and window size, on the first colour
+scheme and text size. It runs in a tab of its own, so the rest of the sweep is unchanged. The results are in
+`tasks` in each page's JSON.
 
 Focus that moves into a frame or a media player is followed no further, so the walk counts as partial. A dialog that keeps focus inside itself is not a trap, even when it has only one control. A page with nothing that takes focus counts as fully walked. If the trap test cannot finish, the page shows an error instead of a clean result.
 

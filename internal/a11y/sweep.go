@@ -151,6 +151,9 @@ type PageResult struct {
 	KeyboardChecked bool `json:"keyboard_checked,omitempty"`
 	// KeyboardPartial says the Tab walk stopped before it had been through every stop, so later stops went unchecked.
 	KeyboardPartial bool `json:"keyboard_partial,omitempty"`
+	// Tasks is the keyboard and mouse comparison: each control tried both ways and the skip link tried by keyboard.
+	// A page has it once for each window size, on the first colour scheme and text size.
+	Tasks *page.Tasks `json:"tasks,omitempty"`
 	// ImageContrast holds each measurement of text against the pixels behind it, when the sweep ran
 	// --image-contrast. ImageContrastChecked says the check ran, even when there was nothing to measure.
 	// ImageContrastUnmeasured counts the elements it was asked about and could not measure: ones inside a shadow
@@ -209,6 +212,9 @@ func (p PageResult) Failing() int {
 
 // Report is the result of a sweep.
 type Report struct {
+	// triedTasks marks each page and window the keyboard and mouse comparison has run on.
+	triedTasks map[string]bool
+
 	Tool           string `json:"tool"`
 	Browser        string `json:"browser"`
 	BrowserVersion string `json:"browser_version,omitempty"`
@@ -604,6 +610,24 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.KeyboardPartial = !w.Completed
 		res.Violations = append(res.Violations, keyboardFindings(w, path, cfg.Allow)...)
 	}
+	// The keyboard and mouse comparison loads the page many times, so it runs last, once for each page and window.
+	defer func() {
+		key := u + "|" + vp.Name
+		if !cfg.Keyboard || res.Error != "" || rep.triedTasks[key] {
+			return
+		}
+		t, err := tryTasks(pctx, conn, cx, cfg, u, vp)
+		if err != nil {
+			res.Error = "keyboard and mouse checks: " + firstLine(err.Error())
+			return
+		}
+		if rep.triedTasks == nil {
+			rep.triedTasks = map[string]bool{}
+		}
+		rep.triedTasks[key] = true
+		res.Tasks = t
+		res.Violations = append(res.Violations, taskFindings(t, path, cfg.Allow)...)
+	}()
 	if cfg.Markup {
 		m, err := page.RunMarkupChecks(pctx, conn, cx)
 		if err != nil {
@@ -614,6 +638,31 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
 	}
 	return res
+}
+
+// tryTasks runs the keyboard and mouse comparison in a tab of its own, set up like the sweep's tab, and closes it.
+// Keys pressed in the sweep's tab can leave focus in the browser's own controls, and the comparison needs a page
+// that has focus.
+func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u string, vp Viewport) (*page.Tasks, error) {
+	tab, err := conn.CreateContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = conn.CloseContext(context.WithoutCancel(ctx), tab) }()
+	if err := conn.SetViewport(ctx, tab, vp.Width, vp.Height); err != nil {
+		return nil, err
+	}
+	if cfg.Identify {
+		v, err := conn.Evaluate(ctx, cx, "navigator.userAgent")
+		if err != nil {
+			return nil, err
+		}
+		ua, _ := v.String()
+		if err := conn.SetUserAgentOverride(ctx, ua, []string{tab}); err != nil {
+			return nil, err
+		}
+	}
+	return page.TryTasks(ctx, conn, tab, u, page.MaxTasks)
 }
 
 // adviceOnly is true for a rule that has none of the WCAG A and AA level tags the sweep tests: a best-practice
