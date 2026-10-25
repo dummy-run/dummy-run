@@ -20,6 +20,9 @@ const layoutHead = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 
 const layoutTail = `</main></body></html>`
 
+// smoothScroll makes the page glide when scrolled, as many sites do.
+const smoothScroll = "html { scroll-behavior: smooth; } " //nolint:misspell // a CSS property name
+
 // layoutPages are fixture pages, each with one known layout problem, and a clean page.
 var layoutPages = map[string]string{
 	"/clean": layoutHead + `<h1>Clean</h1><p>Text in a <a href="/x">sentence link</a> is exempt.</p>
@@ -42,7 +45,7 @@ var layoutPages = map[string]string{
 <button id="touch" class="btn" style="position:absolute;left:250px;top:10px;width:48px;height:48px">Ok</button>
 <button id="touch2" class="btn" style="position:absolute;left:298px;top:10px;width:48px;height:48px">No</button></div>` + layoutTail,
 	// The same overlap far below the fold, on a page that scrolls smoothly: the check has to jump to it, not glide.
-	"/smooth": strings.Replace(layoutHead, "<style>", "<style>html { scroll-behavior: smooth; } ", 1) + `<h1>Smooth</h1><div style="height:3000px"></div><div style="position:relative;height:120px">
+	"/smooth": strings.Replace(layoutHead, "<style>", "<style>"+smoothScroll, 1) + `<h1>Smooth</h1><div style="height:3000px"></div><div style="position:relative;height:120px">
 <button id="one" class="btn" style="position:absolute;left:10px;top:10px;width:140px;height:48px">Buy now</button>
 <button id="two" class="btn" style="position:absolute;left:60px;top:30px;width:140px;height:48px">Save for later</button></div>` + layoutTail,
 	"/small": layoutHead + `<h1>Small</h1>
