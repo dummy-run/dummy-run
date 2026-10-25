@@ -1114,7 +1114,8 @@ traps the Tab key. The clean pages are in `testdata/benchmark/pages`.
 Each barrier is planted in every clean page it fits. For each of those pairs the benchmark runs the sweep twice, on the
 clean page and on the changed copy. A barrier counts as found when the copy shows one of its rules and the clean page
 did not, so a rule that fires on the clean page earns nothing. The result is recall for each check: how many of the
-barriers planted for it the sweep found, and which ones it missed. A pair the browser could not run is counted
+barriers planted for it the sweep found, and which ones it missed. A barrier that lists several rules is found by
+any of them, and counts toward the first rule listed. A pair the browser could not run is counted
 separately, left out of recall, and fails the test.
 
 ```sh
