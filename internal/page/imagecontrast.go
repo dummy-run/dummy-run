@@ -51,10 +51,11 @@ const imageContrastJS = `(op, selector) => {
   st.id = id;
   st.textContent = "[data-dummyrun-hide], [data-dummyrun-hide] * { color: transparent !important; -webkit-text-fill-color: transparent !important; caret-color: transparent !important; }";
   document.documentElement.appendChild(st);
-  // A content security policy can block the style, and an inline !important colour beats it. Then some text
-  // would still be in the picture, so leave the element.
+  // A content security policy can block the style, and an inline !important fill colour beats it. Then some text
+  // would still be in the picture, so leave the element. The fill colour is what is drawn; it is the text colour
+  // unless something sets it.
   const clear = (c) => /^rgba\(.*,\s*0\)$|^transparent$/.test(c);
-  const shows = (n) => { const h = getComputedStyle(n); return !clear(h.color) || !clear(h.webkitTextFillColor || "transparent"); };
+  const shows = (n) => { const h = getComputedStyle(n); return !clear(h.webkitTextFillColor || h.color); };
   if (shows(el) || [...el.querySelectorAll("*")].some(shows)) {
     st.remove();
     el.removeAttribute("data-dummyrun-hide");

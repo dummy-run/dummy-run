@@ -19,7 +19,8 @@ const imageContrastPage = `<!doctype html><html lang="en"><head><meta charset="u
 <p id="faint" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book your appointment online today</p>
 <p id="strong" class="hero" style="background:linear-gradient(90deg,#123,#000)">Book your appointment online today</p>
 <p id="short" class="hero" style="background:linear-gradient(90deg,#000 0 30%,#fff 30%)">Sale</p>
-<p id="pinned" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="color:#000 !important">your</b> appointment</p>
+<p id="pinned" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="color:#000 !important;-webkit-text-fill-color:#000 !important">your</b> appointment</p>
+<p id="tinted" class="hero" style="background:linear-gradient(90deg,#ddd,#fff)">Book <b style="color:#000 !important">your</b> appointment</p>
 <p id="halo" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);text-shadow:0 0 3px #000">Book your appointment online today</p>
 </main></body></html>`
 
@@ -57,9 +58,10 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			if !slices.Contains(imageContrastTargets(r.NeedsReview), "#halo") {
 				t.Fatalf("axe should leave #halo for review, or the shadow case isn't tested: %+v", r.NeedsReview)
 			}
-			// A child whose inline !important colour beats the hiding style would still be in the picture.
-			if measured["#pinned"] {
-				t.Errorf("text the style can't hide should be left unmeasured: %+v", r.ImageContrast)
+			// A child whose inline !important fill colour beats the hiding style would still be in the picture. One
+			// that sets only its colour stays hidden, because the fill colour is what is drawn.
+			if measured["#pinned"] || !measured["#tinted"] {
+				t.Errorf("#pinned should be left unmeasured and #tinted measured: %+v", r.ImageContrast)
 			}
 			if measured["#halo"] {
 				t.Errorf("text with a shadow should be left unmeasured: %+v", r.ImageContrast)
@@ -76,8 +78,9 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 				}
 			}
 			// #short sits on black, with white only in the empty part of its box, which isn't behind any words.
-			if strings.Join(flagged, ",") != "#faint" {
-				t.Errorf("flagged %v, want #faint only: %+v", flagged, r.ImageContrast)
+			// #tinted is white on a light gradient like #faint; its black child passes on its own.
+			if strings.Join(flagged, ",") != "#faint,#tinted" {
+				t.Errorf("flagged %v, want #faint and #tinted: %+v", flagged, r.ImageContrast)
 			}
 		})
 	}
