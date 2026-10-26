@@ -895,6 +895,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		rep.triedTasks[key] = true
 		res.Tasks = t
 		res.Violations = append(res.Violations, taskFindings(t, path, cfg.Allow)...)
+		res.Advice = append(res.Advice, slowResponseAdvice(t, path, cfg.Allow)...)
 	}()
 	// With --repeat, only the first repeat compares and writes the snapshots, so the comparison is always with the
 	// sweep before and never with an earlier repeat.

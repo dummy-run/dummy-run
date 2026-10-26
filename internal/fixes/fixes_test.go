@@ -12,7 +12,7 @@ import (
 var ownRules = []string{
 	"dummyrun-reflow", "dummyrun-overlap", "dummyrun-clipped-text", "dummyrun-target-size", "dummyrun-focus-obscured",
 	"dummyrun-focus-not-visible", "dummyrun-focus-low-contrast", "dummyrun-focus-appearance", "dummyrun-focus-hidden", "dummyrun-keyboard-trap", "dummyrun-skip-link-broken",
-	"dummyrun-mouse-only", "dummyrun-skip-link-no-focus",
+	"dummyrun-mouse-only", "dummyrun-skip-link-no-focus", "dummyrun-slow-response",
 	"dummyrun-label-in-name", "dummyrun-autocomplete-missing", "dummyrun-aria-support", "dummyrun-contrast-over-image", "dummyrun-consent-no-reject",
 	"dummyrun-plain-reading-ease", "dummyrun-plain-reading-grade", "dummyrun-plain-long-sentence",
 	"dummyrun-plain-words-to-avoid", "dummyrun-plain-latin", "dummyrun-engines-1.1.1",

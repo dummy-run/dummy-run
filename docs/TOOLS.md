@@ -47,6 +47,15 @@ ansi-styles and dequal.
 
 `internal/page/screenreader/build/build.sh` rebuilds it from the pinned versions.
 
+## Response times
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [web-vitals](https://github.com/GoogleChrome/web-vitals) by Google | 6.2.3 | Measures how long a page takes to respond to each click and key press the keyboard checks make, as Interaction to Next Paint (INP), with where the time went. `fetch.sh` checks the package's SHA-256 before it copies the file | Apache-2.0 |
+
+It's bundled unchanged as `internal/page/webvitals/web-vitals.attribution.iife.js`, and `fetch.sh` next to it fetches
+it again.
+
 ## Browser accessibility tree
 
 | Tool | Version | What it does in Dummy Run | Licence |

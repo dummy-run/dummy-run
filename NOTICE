@@ -35,6 +35,10 @@ expression in ACKNOWLEDGE_PATTERNS is modified, as a comment there marks: two re
 stop exponential backtracking. The modified file is distributed in source form in this repository under the same
 licence. The original source is at https://github.com/duckduckgo/autoconsent.
 
+This product bundles web-vitals 6.2.3 (internal/page/webvitals/web-vitals.attribution.iife.js), Copyright 2020 Google LLC,
+licensed under the Apache License 2.0 (see internal/page/webvitals/LICENSE and LICENSES/Apache-2.0.txt). The source is
+at https://github.com/GoogleChrome/web-vitals.
+
 This product bundles guidepup virtual-screen-reader 0.33.0 (internal/page/screenreader/vsr.min.js), Copyright (c) 2023
 Craig Morten, licensed under the MIT licence (see LICENSES/MIT.txt). Its browser build includes, under the MIT licence:
 @testing-library/dom (Copyright (c) 2017 Kent C. Dodds), @testing-library/user-event (Copyright (c) 2020 Giorgio

@@ -157,6 +157,17 @@
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
 
+- rule: dummyrun-slow-response
+  owner: development
+  summary: Make the page respond to the control within a fifth of a second.
+  steps:
+    - Look at which part of the time the finding names. Handlers that run long are the usual cause.
+    - Show a response first, such as the menu opening or a busy state, and do the slow work after the next frame.
+    - Break long scripts into smaller pieces, or move the work off the main thread, so a press is never kept waiting.
+  sources:
+    - https://web.dev/articles/inp
+    - https://web.dev/articles/optimize-inp
+
 - rule: dummyrun-skip-link-no-focus
   owner: development
   summary: Let the skip link move keyboard focus to the main content.
