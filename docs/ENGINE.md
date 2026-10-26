@@ -1184,8 +1184,9 @@ counted in `html_ignored` and left out. Every result goes to `advice` and never 
 parsing (4.1.1) as a criterion, and a validator can't tell whether the error also fails another one. axe-core and
 the other engines report many of the same problems as WCAG failures when they do.
 
-The HTML is the same at every window size and colour scheme, so it's checked once for each URL, on the first result
-for the URL that axe could check. That result has `html_checked` when vnu finished, `html_source_checked` when the
+The HTML is checked once for each URL, on the first result for the URL that axe could check: the first window size
+and colour scheme you set, desktop and light by default. Scripts can change the HTML at other sizes and schemes, and
+vnu doesn't see those changes. That result has `html_checked` when vnu finished, `html_source_checked` when the
 source could be fetched again too, and `html_error` instead when vnu couldn't run or took more than 30 seconds. vnu
 reads the first 2 MB of each copy, and `html_partial` is true when there was more. When vnu hits a fatal error,
 such as bytes that aren't valid in the page's encoding, it stops reading that copy, and `html_stopped` is true. An error found in both copies is listed once, and the same error twice in one copy is listed

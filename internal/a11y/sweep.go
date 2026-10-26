@@ -569,7 +569,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.NeedsReview = append(res.NeedsReview, finding(r, path, nil))
 	}
-	// The HTML is the same at every window size and colour scheme, so it is checked once for each URL. It runs
+	// The HTML is checked once for each URL, at the first window size and colour scheme axe could check. It runs
 	// before the checks that can end the page early, so the first result axe could check has it.
 	if cfg.HTML && !rep.htmlChecked[u] {
 		if rep.htmlChecked == nil {
