@@ -17,16 +17,24 @@ const (
 	RuleMouseOnly = "dummyrun-mouse-only"
 	// RuleSkipLinkNoFocus is a skip link whose target is there, but focus does not move to it.
 	RuleSkipLinkNoFocus = "dummyrun-skip-link-no-focus"
+	// RuleFocusLowContrast is a focus indicator none of whose pixels changes by 3:1 when focus arrives.
+	RuleFocusLowContrast = "dummyrun-focus-low-contrast"
+	// RuleFocusAppearance is a focus indicator smaller than WCAG 2.4.13 asks for. It is a AAA criterion, so advice.
+	RuleFocusAppearance = "dummyrun-focus-appearance"
 )
 
 // KeyboardRules are the keyboard checks in the order the report lists them.
-var KeyboardRules = []string{RuleKeyboardTrap, RuleMouseOnly, RuleFocusNotVisible, RuleFocusHidden, RuleSkipLinkBroken, RuleSkipLinkNoFocus}
+var KeyboardRules = []string{RuleKeyboardTrap, RuleMouseOnly, RuleFocusNotVisible, RuleFocusLowContrast, RuleFocusHidden, RuleSkipLinkBroken, RuleSkipLinkNoFocus}
 
 var keyboardRules = map[string]layoutRule{
 	RuleKeyboardTrap: {"critical", "Keyboard focus gets stuck and Tab and Escape do not get out",
 		"https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html", []string{"2.1.2"}},
 	RuleFocusNotVisible: {"serious", "Nothing on screen changes when the element has keyboard focus",
 		"https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html", []string{"2.4.7"}},
+	RuleFocusLowContrast: {"serious", "The focus indicator changes the colours around the element by less than 3:1",
+		"https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html", []string{"1.4.11"}},
+	RuleFocusAppearance: {"", "The focus indicator is smaller than a 2 pixel line round the element",
+		"https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html", []string{"2.4.13"}},
 	RuleFocusHidden: {"serious", "Keyboard focus lands on an element you cannot see",
 		"https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html", []string{"2.4.7"}},
 	RuleSkipLinkBroken: {"serious", "The skip link points to a place that does not exist or is not shown",
@@ -91,6 +99,9 @@ func keyboardFindings(w *page.TabWalk, path string, allow *AllowList) []Finding 
 		case s.NoIndicator:
 			byRule[RuleFocusNotVisible] = append(byRule[RuleFocusNotVisible], Node{Target: s.Selector,
 				Detail: "the pixels around it are the same with and without focus"})
+		case lowContrast(s.Appearance):
+			byRule[RuleFocusLowContrast] = append(byRule[RuleFocusLowContrast], Node{Target: s.Selector,
+				Detail: fmt.Sprintf("%.0f pixels change when it gets focus, and the biggest change in contrast is %.2f:1", s.Appearance.Changed, s.Appearance.Contrast)})
 		}
 	}
 	if sk := w.Skip; sk != nil && (!sk.Found || !sk.Rendered) {
@@ -128,4 +139,35 @@ func ruleFindings(byRule map[string][]Node, path string, allow *AllowList) []Fin
 		list = append(list, f)
 	}
 	return list
+}
+
+// minIndicatorArea is how many CSS pixels must change before a focus indicator is measured. Fewer can be a blinking
+// caret or a pixel of anti-aliasing.
+const minIndicatorArea = 6
+
+// lowContrast says a focus indicator was seen, but none of its pixels changes by 3:1.
+func lowContrast(a *page.FocusAppearance) bool {
+	return a != nil && a.Changed >= minIndicatorArea && a.Contrast < 3
+}
+
+// focusAppearanceAdvice reports focus indicators with enough contrast but less area than WCAG 2.4.13 asks for: a
+// 2 CSS pixel line round the element. WCAG 2.4.13 is level AAA, so this is advice.
+func focusAppearanceAdvice(w *page.TabWalk, path string, allow *AllowList) []Finding {
+	r := keyboardRules[RuleFocusAppearance]
+	f := Finding{Rule: RuleFocusAppearance, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Evidence: record.EvidenceMeasurement, Nodes: []Node{}}
+	for _, s := range w.Stops {
+		a := s.Appearance
+		if s.NoIndicator || s.Hidden || s.Offscreen || a == nil || a.Changed < minIndicatorArea || lowContrast(a) || a.Area >= a.Need {
+			continue
+		}
+		n := Node{Target: s.Selector, Detail: fmt.Sprintf("%.0f square pixels change by 3:1 or more when it gets focus, and a 2 pixel line round it is %.0f", a.Area, a.Need)}
+		if e := allow.Match(RuleFocusAppearance, path, n.Target); e != nil {
+			n.Allowed, n.Reason = true, e.Reason
+		}
+		f.Nodes = append(f.Nodes, n)
+	}
+	if len(f.Nodes) == 0 {
+		return nil
+	}
+	return []Finding{f}
 }

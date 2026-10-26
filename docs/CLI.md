@@ -272,9 +272,11 @@ Flags:
   --journeys        also find the journeys each page offers (search, menu, sign-up, basket, booking, contact form)
                     and try each by mouse and by keyboard, never submitting anything. One that works by mouse but
                     not by keyboard is a violation (dummyrun-journey-keyboard, WCAG 2.1.1)
-  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
-                    skip link that goes nowhere or doesn't move focus. It also tries up to 5 controls on each page
-                    by mouse and by keyboard, and reports each one that works only by mouse
+  --keyboard        also press Tab through each page and report focus you cannot see, a focus indicator of at
+                    least 6 changed screenshot pixels with none of them changing by 3:1, focus that gets stuck
+                    and a skip link that goes nowhere or doesn't move focus. An indicator with 3:1 contrast but
+                    smaller than a 2 px line round the control is advice. It also tries up to 5
+                    controls on each page by mouse and by keyboard, and reports each one that works only by mouse
   --layout          also run the layout checks, measured from what the browser lays out and paints: sideways
                     scrolling, text cut off by its box, a control covered by another, targets under 24 by 24 CSS
                     px and a control hidden behind other content when it has focus. Rules dummyrun-reflow,
@@ -306,6 +308,9 @@ Flags:
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
+                    gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
+                    summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
