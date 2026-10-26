@@ -113,6 +113,16 @@ func TestMergeRepeatsKeepsTheResultThatRan(t *testing.T) {
 	if !got.MarkupChecked || got.Error != "load: timed out" || *got.ErrorRuns != 1 || len(got.Violations) != 1 || got.Violations[0].Nodes[0].Runs != 1 {
 		t.Errorf("%+v", got)
 	}
+	// Only the first repeat takes the --visual picture, so the merged result has it even when a later result is kept.
+	failed.Visual = &Visual{First: true}
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.Visual == nil || !got.Visual.First {
+		t.Errorf("visual %+v", got.Visual)
+	}
+	// Only the first repeat takes the ARIA snapshot, so the merged result has it even when a later result is kept.
+	failed.ARIASnapshot, failed.ARIAChanges = "shop.yaml", &ARIAChanges{AddedCount: 1}
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.ARIASnapshot != "shop.yaml" || got.ARIAChanges == nil || got.ARIAChanges.AddedCount != 1 {
+		t.Errorf("snapshot %q, changes %+v", got.ARIASnapshot, got.ARIAChanges)
+	}
 }
 
 func TestSummaryShowsRepeatCounts(t *testing.T) {
@@ -179,5 +189,54 @@ func TestRepeatCountsAFlakyElement(t *testing.T) {
 				t.Errorf("runs %v, want #always in 2 and #flaky in 1", runs)
 			}
 		})
+	}
+}
+
+// TestMergeRepeatsKeepsTheChecksThatRanOnce checks the HTML check and Lighthouse, which run in the first repeat only,
+// stay in the merged result when the first repeat's page failed after them and a later result is kept.
+func TestMergeRepeatsKeepsTheChecksThatRanOnce(t *testing.T) {
+	failed := repeatResult("layout checks: no boxes")
+	failed.HTMLChecked, failed.HTMLIgnored = true, 2
+	failed.LighthouseChecked, failed.LighthouseScores = true, map[string]float64{"accessibility": 0.9}
+	ok := repeatResult("")
+	got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]
+	if !got.HTMLChecked || got.HTMLIgnored != 2 || !got.LighthouseChecked || got.LighthouseScores["accessibility"] != 0.9 {
+		t.Errorf("html %v %d, lighthouse %v %v", got.HTMLChecked, got.HTMLIgnored, got.LighthouseChecked, got.LighthouseScores)
+	}
+	// A later repeat's own results stay when the first repeat didn't run the checks.
+	ok.HTMLChecked = true
+	if got := mergeRepeats([][]PageResult{{repeatResult("load: timed out")}, {ok}})[0]; !got.HTMLChecked {
+		t.Error("the kept result's HTML check was dropped")
+	}
+}
+
+// TestMergeRepeatsKeepsTheFailureProbe checks the probe, which runs once for each URL, stays in the merged result
+// when the first repeat's page failed after it, and that a probe from a later repeat stays when the first never ran it.
+func TestMergeRepeatsKeepsTheFailureProbe(t *testing.T) {
+	failed := repeatResult("layout checks: no boxes")
+	failed.FailureProbe = &FailureProbe{Failed: 1}
+	ok := repeatResult("")
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.FailureProbe == nil || got.FailureProbe.Failed != 1 {
+		t.Errorf("probe %+v", got.FailureProbe)
+	}
+	ok.FailureProbe = &FailureProbe{Failed: 2}
+	if got := mergeRepeats([][]PageResult{{repeatResult("axe.run: no")}, {ok}})[0]; got.FailureProbe == nil || got.FailureProbe.Failed != 2 {
+		t.Errorf("a later repeat's probe: %+v", got.FailureProbe)
+	}
+}
+
+// TestMergeRepeatsKeepsErrorsFromTheFirstRepeat checks a check that failed in the first repeat keeps its error in the
+// merged result, and so does a failure probe that couldn't run or wasn't tried.
+func TestMergeRepeatsKeepsErrorsFromTheFirstRepeat(t *testing.T) {
+	failed := repeatResult("layout checks: no boxes")
+	failed.HTMLError, failed.LighthouseError, failed.FailureProbeError = "vnu: no Java", "lighthouse: timed out", "probe: no tab"
+	got := mergeRepeats([][]PageResult{{failed}, {repeatResult("")}})[0]
+	if got.HTMLError != "vnu: no Java" || got.LighthouseError != "lighthouse: timed out" || got.FailureProbeError != "probe: no tab" {
+		t.Errorf("html %q, lighthouse %q, probe %q", got.HTMLError, got.LighthouseError, got.FailureProbeError)
+	}
+	skipped := repeatResult("layout checks: no boxes")
+	skipped.FailureProbeSkipped = "not run with preview access"
+	if got := mergeRepeats([][]PageResult{{skipped}, {repeatResult("")}})[0]; got.FailureProbeSkipped != "not run with preview access" {
+		t.Errorf("probe skipped %q", got.FailureProbeSkipped)
 	}
 }

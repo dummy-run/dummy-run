@@ -35,6 +35,10 @@ expression in ACKNOWLEDGE_PATTERNS is modified, as a comment there marks: two re
 stop exponential backtracking. The modified file is distributed in source form in this repository under the same
 licence. The original source is at https://github.com/duckduckgo/autoconsent.
 
+This product bundles web-vitals 6.2.3 (internal/page/webvitals/web-vitals.attribution.iife.js), Copyright 2020 Google LLC,
+licensed under the Apache License 2.0 (see internal/page/webvitals/LICENSE and LICENSES/Apache-2.0.txt). The source is
+at https://github.com/GoogleChrome/web-vitals.
+
 This product bundles guidepup virtual-screen-reader 0.33.0 (internal/page/screenreader/vsr.min.js), Copyright (c) 2023
 Craig Morten, licensed under the MIT licence (see LICENSES/MIT.txt). Its browser build includes, under the MIT licence:
 @testing-library/dom (Copyright (c) 2017 Kent C. Dodds), @testing-library/user-event (Copyright (c) 2020 Giorgio
@@ -64,6 +68,10 @@ the licences of the libraries it includes. Its source is at https://github.com/v
 Java runtime (/opt/vnu/jre) made with jlink from Debian's OpenJDK 21 package, licensed under the GNU General Public
 License version 2 with the Classpath Exception (see /opt/vnu/jre/legal). Its source is in Debian's openjdk-21
 source package.
+
+internal/visual/pixelmatch.go is a Go port of pixelmatch 7.1.0, Copyright (c) 2025, Mapbox, licensed under the ISC
+licence (see LICENSES/ISC.txt). The file carries the licence. The original source is at
+https://github.com/mapbox/pixelmatch.
 
 The container image includes the lychee 0.24.2 program (/opt/lychee/lychee), Copyright (c) 2020 Matthias Endler and
 the lychee contributors, licensed under the MIT licence or the Apache License 2.0, at your option. Its source is at
