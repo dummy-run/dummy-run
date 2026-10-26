@@ -64,15 +64,23 @@
     }
     const label = a.getAttribute("aria-label");
     if (squash(label)) return squash(label);
+    // An image or icon a screen reader skips, because it or a parent is aria-hidden or CSS hides it, adds nothing.
+    const heard = (el) => !el.closest("[aria-hidden=true]") && (!el.checkVisibility || el.checkVisibility({ visibilityProperty: true }));
     const bits = [a.innerText];
-    for (const img of a.querySelectorAll("img[alt]")) bits.push(img.getAttribute("alt"));
-    for (const icon of a.querySelectorAll("svg[aria-label], [role=img][aria-label]")) bits.push(icon.getAttribute("aria-label"));
+    for (const img of a.querySelectorAll("img[alt]")) if (heard(img)) bits.push(img.getAttribute("alt"));
+    for (const icon of a.querySelectorAll("svg[aria-label], [role=img][aria-label]")) if (heard(icon)) bits.push(icon.getAttribute("aria-label"));
     return squash(bits.join(" "));
   };
   const vague = /^(click here|click|here|tap here|read more|more|learn more|find out more|more info|more information|details|this link|link|this page|go|continue|see more|view more)$/;
   const documents = /\.(pdf|docx?|xlsx?|pptx?|odt|ods|odp|rtf|csv)$/i;
-  // Only the link's name counts, since a title is shown to few people and read out by few screen readers.
-  const kinds = /\b(pdf|word|excel|powerpoint|spreadsheet|opendocument|docx?|xlsx?|pptx?|odt|ods|odp|rtf|csv)\b/i;
+  // The words that name each kind of file. Only the link's name counts, since a title is shown to few people and read
+  // out by few screen readers, and the name has to give the kind the link goes to, so "(Word)" on a PDF is reported.
+  const kinds = {
+    pdf: /\bpdf\b/i, doc: /\b(word|docx?)\b/i, docx: /\b(word|docx?)\b/i, xls: /\b(excel|xlsx?|spreadsheet)\b/i,
+    xlsx: /\b(excel|xlsx?|spreadsheet)\b/i, ppt: /\b(powerpoint|pptx?|slides)\b/i, pptx: /\b(powerpoint|pptx?|slides)\b/i,
+    odt: /\b(opendocument|odt)\b/i, ods: /\b(opendocument|ods|spreadsheet)\b/i, odp: /\b(opendocument|odp|slides)\b/i,
+    rtf: /\b(rtf|rich text)\b/i, csv: /\bcsv\b/i,
+  };
   const warns = /\bnew (browser )?(tab|window)\b/i;
   for (const a of document.querySelectorAll("a[href]")) {
     if (!shown(a)) continue;
@@ -85,8 +93,9 @@
     }
     let path = "";
     try { path = new URL(a.href, document.baseURI).pathname; } catch (e) { /* an address the browser can't read has no file type */ }
-    if (documents.test(path) && english && !kinds.test(name)) {
-      push(out.documentLink, a, "the link " + quote(name, 60) + " goes to a ." + path.split(".").pop().toLowerCase() + " file and doesn't say what kind of file");
+    const ext = documents.test(path) ? path.split(".").pop().toLowerCase() : "";
+    if (ext && english && !kinds[ext].test(name)) {
+      push(out.documentLink, a, "the link " + quote(name, 60) + " goes to a ." + ext + " file and doesn't say what kind of file");
     }
   }
 

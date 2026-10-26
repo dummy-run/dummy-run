@@ -32,6 +32,9 @@ const contentPage = `<!doctype html><html lang="en-GB"><head><meta charset="utf-
 <p><a id="bad-new2" href="/x2" target="_blank">Partners (external)</a></p>
 <p><a id="bad-new3" href="/x3" target="_blank" title="Opens in a new tab">Suppliers</a></p>
 <p><a id="ok-new2" href="/y2" target="_blank">Suppliers <svg aria-label="opens in a new window" width="8" height="8"></svg></a></p>
+<p><a id="bad-new4" href="/x4" target="_blank">Makers <svg aria-hidden="true"><g aria-label="opens in a new window"></g></svg><svg role="img" aria-label="opens in a new tab" aria-hidden="true" width="8" height="8"></svg></a></p>
+<p><a id="bad-doc4" href="/files/plan3.pdf">The plan (Word)</a></p>
+<p><a id="ok-doc3" href="/files/plan4.xlsx">The figures (spreadsheet)</a></p>
 <img id="bad-file" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="IMG_20240101.jpg">
 <img id="bad-file2" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="hero-banner.png">
 <img id="ok-file" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="The pier at sunset">
@@ -78,8 +81,8 @@ func TestContentChecksFindOnlyPlantedProblems(t *testing.T) {
 	want := map[string][]string{
 		RuleVagueLink:    {"#bad-vague", "#bad-vague2"},
 		RuleURLLink:      {"#bad-url"},
-		RuleNewWindow:    {"#bad-new", "#bad-new2", "#bad-new3"},
-		RuleDocumentLink: {"#bad-doc", "#bad-doc2", "#bad-doc3"},
+		RuleNewWindow:    {"#bad-new", "#bad-new2", "#bad-new3", "#bad-new4"},
+		RuleDocumentLink: {"#bad-doc", "#bad-doc2", "#bad-doc3", "#bad-doc4"},
 		RuleAltFileName:  {"#bad-file", "#bad-file2", "#bad-file3"},
 		RuleAltRedundant: {"#bad-redundant"},
 		RuleAltLong:      {"#bad-long"},
