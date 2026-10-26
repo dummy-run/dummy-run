@@ -103,8 +103,9 @@ func TestRunEndToEnd(t *testing.T) {
 					_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Docs</title><main><h1>Docs</h1><p>All the docs.</p></main></html>`)
 					return
 				}
-				// The home page carries one technology marker, which the run records with the journeys it suggests.
-				_, _ = io.WriteString(w, strings.Replace(sitePage, "</head>", `<script>window.Shopify = {shop: "t"};</script></head>`, 1))
+				// The home page carries one technology marker, a meta tag, which the run records with the journeys it
+				// suggests.
+				_, _ = io.WriteString(w, strings.Replace(sitePage, "</head>", `<meta name="generator" content="PrestaShop"></head>`, 1))
 			}))
 			t.Cleanup(srv.Close)
 
@@ -149,8 +150,8 @@ func TestRunEndToEnd(t *testing.T) {
 			if rec.Target.TechError != "" {
 				t.Errorf("tech detection failed: %s", rec.Target.TechError)
 			}
-			if len(rec.Target.Tech) != 1 || rec.Target.Tech[0].Name != "Shopify" || !slices.Equal(rec.Target.Journeys, []string{"basket", "checkout"}) {
-				t.Errorf("target tech %+v journeys %v: want Shopify, with basket and checkout", rec.Target.Tech, rec.Target.Journeys)
+			if len(rec.Target.Tech) != 1 || rec.Target.Tech[0].Name != "PrestaShop" || !slices.Equal(rec.Target.Journeys, []string{"basket", "checkout"}) {
+				t.Errorf("target tech %+v journeys %v: want PrestaShop, with basket and checkout", rec.Target.Tech, rec.Target.Journeys)
 			}
 			if len(rec.Target.Commit) != 12 || rec.Target.Commit != rec.Target.BuildHash {
 				t.Errorf("target %+v", rec.Target)
