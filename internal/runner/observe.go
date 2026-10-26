@@ -333,8 +333,19 @@ func Signature(o page.Observation) uint64 {
 	return h.Sum64()
 }
 
-// spokenMax is the most screen reader phrases one observation shows.
-const spokenMax = 150
+// spokenMax is the most screen reader phrases one observation shows, and spokenPhraseMax the most characters of
+// one phrase. A page decides how long a phrase is, such as an image's alt text.
+const (
+	spokenMax       = 150
+	spokenPhraseMax = 300
+)
+
+func clipPhrase(s string) string {
+	if r := []rune(s); len(r) > spokenPhraseMax {
+		return string(r[:spokenPhraseMax]) + "..."
+	}
+	return s
+}
 
 // spokenLines shows what a screen reader says reading the page from the top, for a persona that works without
 // seeing the screen. It is empty for every other persona.
@@ -358,7 +369,7 @@ func spokenLines(p *page.Snapshot) string {
 			fmt.Fprintf(&b, "  ... %d more phrases\n", len(p.Spoken.Phrases)-spokenMax)
 			break
 		}
-		b.WriteString("  " + inject.Strip(ph) + "\n")
+		b.WriteString("  " + clipPhrase(inject.Strip(ph)) + "\n")
 	}
 	if !p.Spoken.Complete {
 		b.WriteString("  ... the reading stopped before the end of the page\n")

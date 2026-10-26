@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/page"
 )
 
@@ -39,5 +40,26 @@ func TestSpokenLines(t *testing.T) {
 	}
 	if got := spokenLines(&page.Snapshot{SpokenError: "boom"}); !strings.Contains(got, "could not read the page aloud (boom)") {
 		t.Errorf("error: %q", got)
+	}
+	// A phrase the page made very long is cut.
+	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{Phrases: []string{"img, " + strings.Repeat("a", 2000)}, Complete: true}}); len(got) > 500 || !strings.Contains(got, "...") {
+		t.Errorf("long phrase not cut: %d characters", len(got))
+	}
+}
+
+// A persona that gets no screenshots hears the page, even when it may not click either.
+func TestReadsAloudWithoutScreenshots(t *testing.T) {
+	for _, tc := range []struct {
+		denied []string
+		want   bool
+	}{
+		{nil, false},
+		{[]string{"screenshot"}, true},
+		{[]string{"click", "screenshot"}, true},
+		{[]string{"click"}, false},
+	} {
+		if got := readsAloud(&cast.Persona{ToolsDenied: tc.denied}); got != tc.want {
+			t.Errorf("denied %v: reads aloud %v, want %v", tc.denied, got, tc.want)
+		}
 	}
 }
