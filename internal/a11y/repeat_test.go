@@ -113,6 +113,11 @@ func TestMergeRepeatsKeepsTheResultThatRan(t *testing.T) {
 	if !got.MarkupChecked || got.Error != "load: timed out" || *got.ErrorRuns != 1 || len(got.Violations) != 1 || got.Violations[0].Nodes[0].Runs != 1 {
 		t.Errorf("%+v", got)
 	}
+	// Only the first repeat takes the --visual picture, so the merged result has it even when a later result is kept.
+	failed.Visual = &Visual{First: true}
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.Visual == nil || !got.Visual.First {
+		t.Errorf("visual %+v", got.Visual)
+	}
 }
 
 func TestSummaryShowsRepeatCounts(t *testing.T) {

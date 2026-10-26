@@ -202,3 +202,51 @@ func TestMaskLeavesNothingBehind(t *testing.T) {
 		})
 	}
 }
+
+// TestVisualTakesTheFirstRepeat sweeps a page whose box changes colour on every load with --repeat 2, then once
+// more. Only the first repeat keeps its picture, so the repeated sweep says it is the first, and the next sweep,
+// on a load the same colour as the first, finds nothing changed.
+func TestVisualTakesTheFirstRepeat(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var loads atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		bg := []string{"#d4351c", "#1d70b8"}[loads.Add(1)%2]
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Visual</title>
+<style>body{margin:0} #box{width:200px;height:120px;background:%s}</style></head><body><main><h1>Visual</h1><div id="box"></div></main></body></html>`, bg)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			dir := t.TempDir()
+			loads.Store(0)
+			sweep := func(repeat int) PageResult {
+				t.Helper()
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+				defer cancel()
+				rep, err := Run(ctx, Config{URLs: []string{srv.URL}, Browser: browser, Viewports: []Viewport{Desktop},
+					Schemes: []string{Light}, Headless: true, VisualDir: dir, Repeat: repeat})
+				if err != nil {
+					t.Fatal(err)
+				}
+				return rep.Results[0]
+			}
+			if r := sweep(2); r.Visual == nil || !r.Visual.First || r.VisualError != "" {
+				t.Fatalf("repeated sweep: %+v, error %q", r.Visual, r.VisualError)
+			}
+			if n := loads.Load(); n != 2 {
+				t.Fatalf("the page loaded %d times in two repeats", n)
+			}
+			if r := sweep(1); r.Visual == nil || r.Visual.Change == nil || r.Visual.Changed != 0 {
+				t.Errorf("next sweep, the first repeat's colour: %+v, error %q", r.Visual, r.VisualError)
+			}
+		})
+	}
+}
