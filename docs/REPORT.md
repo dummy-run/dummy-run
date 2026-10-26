@@ -195,14 +195,14 @@ Layout rules appear in the same section when the sweep ran with `--layout`, or w
 
 ## EN 301 549 and the law
 
-Each WCAG criterion in a report also names its clause in
+Where EN 301 549 V3.2.1 has a clause for a WCAG criterion, a report names it too. The standard is
 [EN 301 549 V3.2.1](https://www.etsi.org/deliver/etsi_en/301500_301599/301549/03.02.01_60/en_301549v030201p.pdf),
-the European standard for accessible ICT. Clause 9 covers web pages and numbers each WCAG 2.1 criterion with a 9 in
+the European standard for accessible ICT. Its clause 9 covers web pages and numbers each WCAG 2.1 criterion with a 9 in
 front, so WCAG 1.4.3 is clause 9.1.4.3. The JSON has them in `en_301_549` on each finding and axe rule. Version 3.2.1
 follows WCAG 2.1, so the six criteria WCAG 2.2 added at A and AA have no clause: 2.4.11, 2.5.7, 2.5.8, 3.2.6, 3.3.7 and
 3.3.8. The report still lists them under WCAG 2.2.
 
-Where these come up:
+The standard and WCAG come up in these laws and rules:
 
 - **UK public sector.** The [Public Sector Bodies Accessibility Regulations 2018](https://www.legislation.gov.uk/uksi/2018/952/contents/made)
   cover websites and apps. [GOV.UK guidance](https://www.gov.uk/guidance/accessibility-requirements-for-public-sector-websites-and-apps)
@@ -213,8 +213,9 @@ Where these come up:
 - **EU public sector.** The [Web Accessibility Directive](https://eur-lex.europa.eu/eli/dir/2016/2102/oj) uses
   EN 301 549.
 - **EU businesses.** The [European Accessibility Act](https://eur-lex.europa.eu/eli/dir/2019/882/oj) covers
-  products and services such as online shops, banking and e-books, from 28 June 2025. EN 301 549 is the standard
-  it points to for websites.
+  products and services such as online shops, banking and e-books, from 28 June 2025. The Act sets requirements
+  and leaves the technical detail to harmonised standards. EN 301 549 is the usual technical reference for websites
+  while those are settled.
 
 A report is evidence for this work, never a verdict on it. Automated checks and personas find only some barriers,
 so a report can't show that a site meets EN 301 549 or the law. An accessibility statement or an audit for one of
