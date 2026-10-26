@@ -290,7 +290,7 @@ type Summary struct {
 	UnusedAllowed int `json:"unused_allow_entries"`
 	// Advice counts the elements that failed a best-practice rule. They never fail the sweep.
 	Advice int `json:"advice_nodes,omitempty"`
-	// Candidates counts the elements one other engine reports alone. They never fail the sweep.
+	// Candidates counts the elements another engine or Lighthouse failed where axe didn't. They never fail the sweep.
 	Candidates int `json:"candidate_nodes,omitempty"`
 }
 

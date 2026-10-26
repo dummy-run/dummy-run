@@ -93,7 +93,7 @@ func (r *Report) WriteSummary(w io.Writer) {
 		_, _ = fmt.Fprintf(w, ", %d elements with best-practice advice (not failures)", s.Advice)
 	}
 	if s.Candidates > 0 {
-		_, _ = fmt.Fprintf(w, ", %d candidates only one engine reports (not failures)", s.Candidates)
+		_, _ = fmt.Fprintf(w, ", %d candidates axe did not report (not failures)", s.Candidates)
 	}
 	if n := engineErrorRuns(r); n > 0 {
 		_, _ = fmt.Fprintf(w, ", rule engines failed on %d runs (listed above)", n)

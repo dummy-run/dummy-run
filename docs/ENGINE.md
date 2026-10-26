@@ -1221,7 +1221,8 @@ three ways:
   `lighthouse_agreed` counts these nodes. The two can differ when the page changes between loads, or because
   Lighthouse ships a newer axe-core.
 - An accessibility audit that fails where our axe found nothing goes to `candidates`, with the rule ID
-  `dummyrun-lighthouse-` and the audit, such as `dummyrun-lighthouse-image-alt`. It never fails the sweep.
+  `dummyrun-lighthouse-` and the audit, such as `dummyrun-lighthouse-image-alt`. It counts in `candidate_nodes` and never
+  fails the sweep.
 - A best-practice audit that fails, such as `paste-preventing-inputs` or `charset`, goes to `advice` with the same
   kind of rule ID.
 
