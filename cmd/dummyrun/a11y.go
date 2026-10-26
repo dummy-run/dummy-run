@@ -89,6 +89,9 @@ Flags:
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
+                    gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
+                    summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
@@ -106,6 +109,9 @@ Flags:
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
 tested, 2 for a usage error, 3 when robots.txt disallows every page. Pages skipped for robots.txt do not fail the sweep.`
+
+// maxRepeat bounds --repeat, since each repeat loads every page again in every setting.
+const maxRepeat = 10
 
 // a11yRun runs the sweep. Tests replace it to see the configuration the flags make.
 var a11yRun = a11y.Run
@@ -134,6 +140,7 @@ func a11yCmd(args []string) int {
 	failuresOn := fs.Bool("failures", false, "load each page with its data requests failing")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
+	repeat := fs.Int("repeat", 1, "how many times to sweep every page and setting, up to 10")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
 	sessionPath := fs.String("session", "", "saved session file to load before the sweep")
@@ -190,6 +197,10 @@ func a11yCmd(args []string) int {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return 2
 	}
+	if *repeat < 1 || *repeat > maxRepeat {
+		fmt.Fprintf(os.Stderr, "dummyrun a11y: --repeat must be from 1 to %d\n", maxRepeat)
+		return 2
+	}
 	if *sitemap == "" && len(urls) == 0 {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y: give at least one URL or --sitemap")
 		fmt.Fprintln(os.Stderr, a11yUsage)
@@ -243,7 +254,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, Failures: *failuresOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, Failures: *failuresOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
