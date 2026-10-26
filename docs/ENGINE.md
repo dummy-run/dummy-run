@@ -1295,14 +1295,20 @@ Nothing is ever sent. Before each try the sweep stops every form on the page fro
 pressed in a form, and a journey never starts from a submit button. The journeys run in a tab of their own, once
 for each URL, at the first window size, after the page's other checks and the cookie banner.
 
-Schema.org data the page publishes can find a journey too: a `SearchAction` marks the search, and a
-`ReserveAction` marks the booking. So can what the page is built with (see [What the site is built
-with](#what-the-site-is-built-with)): Shopify suggests a basket, Calendly a booking. A journey a technology suggests
-that the page shows no way into is listed as `not found`, which says where to look.
+Schema.org data the page publishes marks where a journey came from, but doesn't add one: when the page has a search
+field and a `SearchAction`, or a booking link and a `ReserveAction`, that journey's `source` is `schema.org`. What the
+page is built with (see [What the site is built with](#what-the-site-is-built-with)) can suggest a journey the page
+has no element for: Shopify suggests a basket, Calendly a booking. A journey a technology suggests that the page
+shows no way into is listed as `not found`, which says where to look.
+
+A basket journey never starts from an "add to basket" link, or from a link whose address adds to the basket, since
+following it would change the basket. With `--respect-robots`, a journey whose link leads to a page robots.txt
+disallows isn't tried and is `skipped`. A sweep that is signed in, with a session or preview access, tries no
+journeys, for the same reason it tries no controls: a click could change the account or sign it out.
 
 Each result lists its `journeys`. A journey names its `kind`, its `selector`, `label` and `href`, and its `source`.
-It has a `mouse` and a `keyboard` verdict, each one of `pass`, `fail`, `unreachable`, `already`, `not found` or
-`error`, with a `detail`. `error` means the browser couldn't load the page or carry out the action, or the journeys
+It has a `mouse` and a `keyboard` verdict, each one of `pass`, `fail`, `unreachable`, `already`, `not found`,
+`skipped` or `error`, with a `detail`. `error` means the browser couldn't load the page or carry out the action, or the journeys
 ran out of time, so the page wasn't tested that way. A journey that passes by mouse, and fails or is unreachable by
 keyboard, is a violation, `dummyrun-journey-keyboard` (WCAG 2.1.1, serious). One that fails both ways is recorded and
 isn't reported: the page may simply not work the way the journey expects.

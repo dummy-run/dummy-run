@@ -7,6 +7,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -32,6 +33,7 @@ const (
 	Already     = "already"     // the success test was true before anything was done, so the journey proves nothing
 	NotFound    = "not found"   // a technology suggested the journey, but the page shows no way in
 	Errored     = "error"       // the browser couldn't load the page or carry out an action, so the page wasn't tested
+	Skipped     = "skipped"     // robots.txt disallows the page the journey leads to, so it wasn't tried
 )
 
 // Verdict is how one way of trying went.
@@ -197,8 +199,9 @@ func (d *Driver) try(ctx context.Context, url string, j Journey, keyboard bool) 
 			var at struct {
 				X, Y float64
 			}
-			_ = d.call(ctx, "locate", spec{Sel: j.Selector}, &at)
-			err = d.Conn.Click(ctx, d.CX, at.X, at.Y)
+			if err = d.call(ctx, "locate", spec{Sel: j.Selector}, &at); err == nil {
+				err = d.Conn.Click(ctx, d.CX, at.X, at.Y)
+			}
 		}
 		if err != nil {
 			return &Verdict{Outcome: Errored, Detail: err.Error()}
@@ -248,7 +251,10 @@ func (d *Driver) reach(ctx context.Context, j Journey, keyboard bool) *Verdict {
 		Hittable bool `json:"hittable"`
 		X, Y     float64
 	}
-	if err := d.call(ctx, "locate", spec{Sel: j.Selector}, &at); err != nil || !at.Found {
+	if err := d.call(ctx, "locate", spec{Sel: j.Selector}, &at); err != nil {
+		return errored(err)
+	}
+	if !at.Found {
 		return &Verdict{Outcome: Unreachable, Detail: "the start of the journey wasn't on the page"}
 	}
 	if !at.Hittable {
@@ -266,7 +272,10 @@ func (d *Driver) reach(ctx context.Context, j Journey, keyboard bool) *Verdict {
 // first: Chrome starts Tab from where the page was last scrolled to, so a scroll would skip what's above it.
 func (d *Driver) tabTo(ctx context.Context, j Journey) *Verdict {
 	var present bool
-	if err := d.call(ctx, "present", spec{Sel: j.Selector}, &present); err != nil || !present {
+	if err := d.call(ctx, "present", spec{Sel: j.Selector}, &present); err != nil {
+		return errored(err)
+	}
+	if !present {
 		return &Verdict{Outcome: Unreachable, Detail: "the start of the journey wasn't on the page"}
 	}
 	for i := 0; i < maxTabs; i++ {
@@ -285,16 +294,22 @@ func (d *Driver) tabTo(ctx context.Context, j Journey) *Verdict {
 // form is never sent.
 func (d *Driver) fill(ctx context.Context, keyboard bool) *Verdict {
 	var fields []string
-	if err := d.call(ctx, "fields", struct{}{}, &fields); err != nil || len(fields) == 0 {
+	if err := d.call(ctx, "fields", struct{}{}, &fields); err != nil {
+		return errored(err)
+	}
+	if len(fields) == 0 {
 		return &Verdict{Outcome: Pass, Detail: "reached the form; it has no text fields to fill"}
 	}
 	filled := 0
 	for i, sel := range fields {
+		if ctx.Err() != nil {
+			return errored(ctx.Err())
+		}
 		if keyboard {
 			reached := false
 			for t := 0; t < 40 && !reached; t++ {
 				if err := d.Conn.PressKey(ctx, d.CX, bidi.KeyTab); err != nil {
-					break
+					return errored(err)
 				}
 				_ = d.call(ctx, "focused", spec{Sel: sel}, &reached)
 			}
@@ -307,16 +322,19 @@ func (d *Driver) fill(ctx context.Context, keyboard bool) *Verdict {
 				Hittable bool `json:"hittable"`
 				X, Y     float64
 			}
-			if err := d.call(ctx, "locate", spec{Sel: sel}, &at); err != nil || !at.Found || !at.Hittable {
+			if err := d.call(ctx, "locate", spec{Sel: sel}, &at); err != nil {
+				return errored(err)
+			}
+			if !at.Found || !at.Hittable {
 				continue
 			}
 			if err := d.Conn.Click(ctx, d.CX, at.X, at.Y); err != nil {
-				continue
+				return errored(err)
 			}
 		}
 		text := fmt.Sprintf("Dummy Run %d", i+1)
 		if err := d.Conn.TypeText(ctx, d.CX, text); err != nil {
-			continue
+			return errored(err)
 		}
 		var v string
 		if err := d.call(ctx, "value", spec{Sel: sel}, &v); err == nil && v != "" {
@@ -328,6 +346,14 @@ func (d *Driver) fill(ctx context.Context, keyboard bool) *Verdict {
 		return &Verdict{Outcome: Fail, Detail: detail}
 	}
 	return &Verdict{Outcome: Pass, Detail: detail}
+}
+
+// errored is the verdict when the browser failed, or the journeys ran out of time, so the page wasn't tested.
+func errored(err error) *Verdict {
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+		return &Verdict{Outcome: Errored, Detail: "the journeys ran out of time: " + err.Error()}
+	}
+	return &Verdict{Outcome: Errored, Detail: err.Error()}
 }
 
 func failed(kind string) string {

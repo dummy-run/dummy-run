@@ -251,5 +251,10 @@ func TestTasksAreTriedOnlyWhenNotSignedIn(t *testing.T) {
 		if got := triesTasks(c.cfg); got != c.want {
 			t.Errorf("%s: triesTasks %v, want %v", c.name, got, c.want)
 		}
+		j := c.cfg
+		j.Keyboard, j.Journeys = false, c.cfg.Keyboard
+		if got := triesJourneys(j); got != c.want {
+			t.Errorf("%s: triesJourneys %v, want %v", c.name, got, c.want)
+		}
 	}
 }

@@ -18,18 +18,19 @@ import (
 // The home page offers six ways in, each with a known answer:
 //   - search works by mouse and keyboard;
 //   - the menu opens on mousedown only, so the keyboard fails;
-//   - sign-up and basket are plain links that work both ways;
+//   - sign-up and basket are plain links that work both ways, and the basket journey passes over the link that adds
+//     to the basket;
 //   - the contact link swallows Enter, so the keyboard fails, and its form takes text by mouse;
-//   - a Calendly script suggests a booking journey the page shows no way into.
+//   - a Calendly script, served from the test server, suggests a booking journey the page shows no way into.
 //
 // The page is long, so a driver that scrolls before tabbing would start Tab past the menu.
 const home = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title>
-<script>window.Shopify = { shop: "x" };</script><script src="https://assets.calendly.com/assets/external/widget.js" async></script></head>
+<script>window.Shopify = { shop: "x" };</script><script src="/assets.calendly.com/widget.js" async></script></head>
 <body><header><button id="menu" aria-expanded="false" aria-controls="navlist" onmousedown="this.setAttribute('aria-expanded','true');document.getElementById('navlist').hidden=false">Menu</button>
 <ul id="navlist" hidden><li><a href="/a">A</a></li></ul>
 <form role="search" action="/search"><label for="q">Search</label><input id="q" name="q" type="search"></form></header>
 <main><h1>Shop</h1>
-<a href="/signup">Sign up</a> <a href="/basket">Basket</a>
+<a href="/signup">Sign up</a> <a href="/basket?add-to-cart=7">Add to basket</a> <a href="/basket">Basket</a>
 <a href="/contact" onkeydown="if (event.key === 'Enter') event.preventDefault()">Contact us</a>
 <form action="/order" method="post"><button type="submit">Buy</button></form>
 <div style="height:3000px"></div><a href="/a">Far down</a>
@@ -47,10 +48,13 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	var posts atomic.Int32
+	var posts, adds atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			posts.Add(1)
+		}
+		if r.URL.Query().Has("add-to-cart") {
+			adds.Add(1)
 		}
 		body, ok := pages[r.URL.Path]
 		if !ok {
@@ -64,6 +68,7 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
 			posts.Store(0)
+			adds.Store(0)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
@@ -122,6 +127,23 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 			}
 			if n := posts.Load(); n != 0 {
 				t.Errorf("%d requests that were not GET or HEAD: a journey submitted something", n)
+			}
+			if j := got["basket"]; j != nil && !strings.HasSuffix(j.Href, "/basket") {
+				t.Errorf("basket journey starts from %q, want the link to the basket", j.Href)
+			}
+			if n := adds.Load(); n != 0 {
+				t.Errorf("%d requests added to the basket", n)
+			}
+			// When the journeys run out of time, or the browser fails, the contact form's fields aren't judged.
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/contact"); err != nil {
+				t.Fatal(err)
+			}
+			done, stop := context.WithCancel(ctx)
+			stop()
+			for _, keyboard := range []bool{false, true} {
+				if v := d.fill(done, keyboard); v.Outcome != Errored || !strings.Contains(v.Detail, "ran out of time") {
+					t.Errorf("fill with the time gone (keyboard %v): %+v", keyboard, *v)
+				}
 			}
 		})
 	}

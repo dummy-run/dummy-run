@@ -19,8 +19,9 @@ const RuleJourneyKeyboard = "dummyrun-journey-keyboard"
 const journeysTimeout = 4 * time.Minute
 
 // journeyCheck finds the page's journeys and tries each by mouse and by keyboard, in a tab of its own so the sweep's
-// tab is left as it was. A journey that works by mouse but not by keyboard is a violation of 2.1.1.
-func journeyCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp Viewport, res *PageResult) {
+// tab is left as it was. A journey that works by mouse but not by keyboard is a violation of 2.1.1. A journey whose
+// link robots.txt disallows isn't tried: allowed says whether it may be loaded, and if not, why.
+func journeyCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp Viewport, res *PageResult, allowed func(string) (bool, string)) {
 	jctx, cancel := context.WithTimeout(ctx, journeysTimeout)
 	defer cancel()
 	cx, err := conn.CreateContext(jctx)
@@ -64,6 +65,13 @@ func journeyCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp
 		HelpURL: "https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html", Nodes: []Node{}}
 	path := pagePath(u)
 	for i := range js {
+		if js[i].Href != "" && js[i].Mouse == nil {
+			if ok, why := allowed(js[i].Href); !ok {
+				js[i].Mouse = &journey.Verdict{Outcome: journey.Skipped, Detail: why}
+				js[i].Keyboard = &journey.Verdict{Outcome: journey.Skipped, Detail: why}
+				continue
+			}
+		}
 		d.Try(jctx, u, &js[i])
 		j := js[i]
 		if !j.KeyboardShortfall() {

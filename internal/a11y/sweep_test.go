@@ -14,6 +14,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/dummy-run/dummy-run/internal/robots"
 )
 
 //nolint:misspell // the axe rule ID
@@ -209,7 +211,7 @@ func TestRobotsSiteWideDisallowStartsNoBrowser(t *testing.T) {
 
 func TestFilterRobotsSkipsOnlyDisallowedPages(t *testing.T) {
 	srv := robotsServer(t, "User-agent: *\nDisallow: /private\n")
-	ok, skipped, err := filterRobots(context.Background(), Config{URLs: []string{srv.URL + "/", srv.URL + "/private/x", srv.URL + "/blog"}, Identify: true})
+	ok, skipped, err := filterRobots(context.Background(), Config{URLs: []string{srv.URL + "/", srv.URL + "/private/x", srv.URL + "/blog"}, Identify: true}, map[string]*robots.Result{})
 	if err != nil {
 		t.Fatal(err)
 	}

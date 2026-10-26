@@ -158,6 +158,7 @@ func Detect(ctx context.Context, conn *bidi.Conn, cx string, prints []Fingerprin
 	if err := conn.CallFunctionJSON(ctx, cx, detectJS, &out, string(arg)); err != nil {
 		return nil, fmt.Errorf("tech: %w", err)
 	}
+	out = trusted(out, prints)
 	// One entry per name: our own fingerprint first, then webappanalyzer's.
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Source == "dummyrun" && out[j].Source != "dummyrun" })
 	var uniq []Found
@@ -168,4 +169,32 @@ func Detect(ctx context.Context, conn *bidi.Conn, cx string, prints []Fingerprin
 	}
 	sort.SliceStable(uniq, func(i, j int) bool { return uniq[i].Name < uniq[j].Name })
 	return uniq, nil
+}
+
+// trusted keeps only the results that name a fingerprint given, since the page's realm could return anything. Each
+// takes its category and source from that fingerprint, and its evidence is cut to 120 characters.
+func trusted(out []Found, prints []Fingerprint) []Found {
+	var kept []Found
+	for _, f := range out {
+		i := slices.IndexFunc(prints, func(p Fingerprint) bool {
+			src := p.Source
+			if src == "" {
+				src = "dummyrun"
+			}
+			return p.Name == f.Name && src == f.Source
+		})
+		if i < 0 {
+			continue
+		}
+		p := prints[i]
+		f.Category, f.Source = p.Category, p.Source
+		if f.Source == "" {
+			f.Source = "dummyrun"
+		}
+		if r := []rune(f.Evidence); len(r) > 120 {
+			f.Evidence = string(r[:120])
+		}
+		kept = append(kept, f)
+	}
+	return kept
 }

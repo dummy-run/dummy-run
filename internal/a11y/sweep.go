@@ -286,6 +286,8 @@ type Report struct {
 	debugger       string
 	// journeysDone holds the URLs whose journeys were tried, so each is tried once.
 	journeysDone map[string]bool
+	// robots holds each origin's robots.txt rules, with --respect-robots.
+	robots map[string]*robots.Result
 }
 
 // Summary totals a report.
@@ -391,7 +393,8 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	var skipped []PageResult
 	if cfg.RespectRobots {
 		var err error
-		if cfg.URLs, skipped, err = filterRobots(ctx, cfg); err != nil {
+		rep.robots = map[string]*robots.Result{}
+		if cfg.URLs, skipped, err = filterRobots(ctx, cfg, rep.robots); err != nil {
 			return rep, err
 		}
 		if len(cfg.URLs) == 0 {
@@ -412,26 +415,17 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	return rep, nil
 }
 
-// filterRobots fetches robots.txt once for each origin and splits the URLs into those that may be tested and
-// results for those that may not.
-func filterRobots(ctx context.Context, cfg Config) (allowed []string, skipped []PageResult, err error) {
-	ua := telemetry.RequestUserAgent(cfg.Identify)
-	byOrigin := map[string]*robots.Result{}
+// filterRobots fetches robots.txt once for each origin, keeping it in byOrigin, and splits the URLs into those that
+// may be tested and results for those that may not.
+func filterRobots(ctx context.Context, cfg Config, byOrigin map[string]*robots.Result) (allowed []string, skipped []PageResult, err error) {
 	for _, raw := range cfg.URLs {
-		origin, oerr := robots.Origin(raw)
-		if oerr != nil {
+		if _, oerr := robots.Origin(raw); oerr != nil {
 			allowed = append(allowed, raw) // the page load reports a bad URL
 			continue
 		}
-		res := byOrigin[origin]
-		if res == nil {
-			if res, err = robots.Fetch(ctx, cfg.HTTPClient, raw, telemetry.RobotsToken, ua); err != nil {
-				return nil, nil, err
-			}
-			byOrigin[origin] = res
-			if cfg.Log != nil {
-				_, _ = fmt.Fprintf(cfg.Log, "robots: %s: %s\n", origin, res.Status)
-			}
+		res, err := robotsFor(ctx, cfg, byOrigin, raw)
+		if err != nil {
+			return nil, nil, err
 		}
 		u, _ := url.Parse(raw)
 		if u != nil && !res.Rules.Allowed(u.RequestURI()) {
@@ -442,6 +436,46 @@ func filterRobots(ctx context.Context, cfg Config) (allowed []string, skipped []
 		allowed = append(allowed, raw)
 	}
 	return allowed, skipped, nil
+}
+
+// robotsFor returns the robots.txt rules for raw's origin, fetching them the first time the origin is seen.
+func robotsFor(ctx context.Context, cfg Config, byOrigin map[string]*robots.Result, raw string) (*robots.Result, error) {
+	origin, err := robots.Origin(raw)
+	if err != nil {
+		return nil, err
+	}
+	if res := byOrigin[origin]; res != nil {
+		return res, nil
+	}
+	res, err := robots.Fetch(ctx, cfg.HTTPClient, raw, telemetry.RobotsToken, telemetry.RequestUserAgent(cfg.Identify))
+	if err != nil {
+		return nil, err
+	}
+	byOrigin[origin] = res
+	if cfg.Log != nil {
+		_, _ = fmt.Fprintf(cfg.Log, "robots: %s: %s\n", origin, res.Status)
+	}
+	return res, nil
+}
+
+// robotsAllows says whether robots.txt lets Dummy Run load raw, and if not, why. Without --respect-robots, or for a
+// link that isn't a web address, everything is allowed.
+func (r *Report) robotsAllows(ctx context.Context, cfg Config, raw string) (bool, string) {
+	if !cfg.RespectRobots || r.robots == nil {
+		return true, ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return true, ""
+	}
+	res, err := robotsFor(ctx, cfg, r.robots, raw)
+	if err != nil {
+		return false, err.Error()
+	}
+	if !res.Rules.Allowed(u.RequestURI()) {
+		return false, "robots.txt disallows DummyRun from " + u.RequestURI() + " (" + res.Status + ")"
+	}
+	return true, ""
 }
 
 func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, rep *Report) error {
@@ -731,13 +765,13 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	}
 	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size. They run
 	// last, with their own time limit, so they can't take time from the checks above, and the cookie banner has
-	// already been answered.
-	if cfg.Journeys && !rep.journeysDone[u] {
+	// already been answered. Signed in, like the tasks, they aren't tried at all.
+	if triesJourneys(cfg) && !rep.journeysDone[u] {
 		if rep.journeysDone == nil {
 			rep.journeysDone = map[string]bool{}
 		}
 		rep.journeysDone[u] = true
-		journeyCheck(ctx, conn, cfg, u, vp, &res)
+		journeyCheck(ctx, conn, cfg, u, vp, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
 	}
 	return res
 }
@@ -747,6 +781,12 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 // account or signs it out, so nothing is tried.
 func triesTasks(cfg Config) bool {
 	return cfg.Keyboard && cfg.Session == nil && cfg.Access == nil
+}
+
+// triesJourneys says whether the sweep tries the journeys. Signed in, a click could change the account, as for the
+// tasks.
+func triesJourneys(cfg Config) bool {
+	return cfg.Journeys && cfg.Session == nil && cfg.Access == nil
 }
 
 // tryTasks runs the keyboard and mouse comparison in a tab of its own, set up like the sweep's tab, and closes it.

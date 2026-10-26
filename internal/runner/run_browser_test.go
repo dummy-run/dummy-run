@@ -86,6 +86,8 @@ func TestRunEndToEnd(t *testing.T) {
 	if browsers == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the end-to-end test")
 	}
+	// A copy of webappanalyzer in the environment could add technologies and journeys.
+	t.Setenv("DUMMYRUN_WEBAPPANALYZER", "")
 	for _, browser := range strings.Split(browsers, ",") {
 		t.Run(browser, func(t *testing.T) {
 			var mu sync.Mutex

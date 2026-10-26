@@ -7,8 +7,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/dummy-run/dummy-run/internal/journey"
 )
 
 func TestJourneysInTheSweep(t *testing.T) {
@@ -16,26 +19,46 @@ func TestJourneysInTheSweep(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	// A copy of webappanalyzer in the environment could suggest more journeys.
+	t.Setenv("DUMMYRUN_WEBAPPANALYZER", "")
+	var basket atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /basket\n")
+			return
+		case "/basket":
+			basket.Add(1)
+		}
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><title>J</title><header>
 <button id="menu" aria-expanded="false" aria-controls="nav" onmousedown="this.setAttribute('aria-expanded','true');document.getElementById('nav').hidden=false">Menu</button>
 <ul id="nav" hidden><li><a href="/a">A</a></li></ul></header><main><h1>J</h1>
-<label for="q">Search</label><input id="q" type="search" name="q"></main></html>`)
+<label for="q">Search</label><input id="q" type="search" name="q"> <a href="/basket">Basket</a></main></html>`)
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
+			basket.Store(0)
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
 			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop, Phone},
-				Schemes: []string{Light}, Headless: true, Journeys: true})
+				Schemes: []string{Light}, Headless: true, Journeys: true, RespectRobots: true})
 			if err != nil {
 				t.Fatal(err)
 			}
 			first, second := rep.Results[0], rep.Results[1]
-			if first.JourneysError != "" || len(first.Journeys) != 2 || len(second.Journeys) != 0 {
+			if first.JourneysError != "" || len(first.Journeys) != 3 || len(second.Journeys) != 0 {
 				t.Fatalf("journeys %+v (error %q), then %d at the second size", first.Journeys, first.JourneysError, len(second.Journeys))
+			}
+			// robots.txt disallows the basket, so its journey is skipped and the basket is never loaded.
+			for _, j := range first.Journeys {
+				if j.Kind == "basket" && (j.Mouse.Outcome != journey.Skipped || !strings.Contains(j.Mouse.Detail, "robots.txt")) {
+					t.Errorf("basket journey %+v, want skipped for robots.txt", *j.Mouse)
+				}
+			}
+			if n := basket.Load(); n != 0 {
+				t.Errorf("the basket was loaded %d times", n)
 			}
 			var nodes []Node
 			for _, f := range first.Violations {

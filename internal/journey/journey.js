@@ -107,7 +107,9 @@
       searchFromSchema ? "schema.org" : "dom", "");
     first("menu", all('header button[aria-expanded=false], nav button[aria-expanded=false], button[aria-expanded=false][aria-controls]').filter((b) => /menu|navigation|nav\b/i.test(name(b) + " " + (b.getAttribute("aria-controls") || ""))), "dom", "");
     first("signup", byText("a[href], button", /^(sign up|sign-up|register|create (an |your )?account|join( now| us)?)\b/i), "dom");
-    first("basket", [...byText("a[href]", /\b(basket|cart|bag|trolley)\b/i), ...all('a[href*="/cart"], a[href*="/basket"], a[href*="/bag"]')], "dom");
+    // A link that adds to the basket changes it when followed, so only a link to the basket itself starts the journey.
+    const adds = (a) => /\badd\b/i.test(name(a)) || /[?&](add|add-to-cart|add_to_cart|add-to-basket)=|\/(cart|basket)\/add\b/i.test(a.getAttribute("href") || "");
+    first("basket", [...byText("a[href]", /\b(basket|cart|bag|trolley)\b/i), ...all('a[href*="/cart"], a[href*="/basket"], a[href*="/bag"]')].filter((a) => !adds(a)), "dom");
     const reserve = objects.find((o) => [].concat(o.potentialAction || []).some((a) => types(a).some((t) => /ReserveAction|ReservationAction|ScheduleAction/.test(t))));
     first("booking", byText("a[href], button", /\b(book( now| a| an| online| your)?|reserve|reservation|appointment)\b/i), reserve ? "schema.org" : "dom");
     first("contact", [...byText("a[href]", /^(contact( us)?|get in touch)\b/i), ...all('a[href*="/contact"]')], "dom");

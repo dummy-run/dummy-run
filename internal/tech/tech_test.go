@@ -182,3 +182,24 @@ func techHandler() http.Handler {
 		_, _ = io.WriteString(w, techPage)
 	})
 }
+
+// What the page's realm returns is checked against the fingerprints given, so a page can't add a name, change a
+// category or source, or write a long evidence string into the run record.
+func TestDetectKeepsOnlyGivenFingerprints(t *testing.T) {
+	prints := []Fingerprint{{Name: "Shopify", Category: "Ecommerce"}, {Name: "Calendly", Category: "Scheduling", Source: "webappanalyzer"}}
+	got := trusted([]Found{
+		{Name: "Shopify", Category: "Made up", Source: "dummyrun", Evidence: strings.Repeat("é", 500)},
+		{Name: "Calendly", Category: "Ecommerce", Source: "webappanalyzer", Evidence: "script x"},
+		{Name: "Calendly", Source: "dummyrun"},
+		{Name: "Invented", Category: "Ecommerce", Source: "dummyrun"},
+	}, prints)
+	if len(got) != 2 {
+		t.Fatalf("got %+v, want Shopify and Calendly only", got)
+	}
+	if got[0].Category != "Ecommerce" || got[0].Source != "dummyrun" || len([]rune(got[0].Evidence)) != 120 {
+		t.Errorf("Shopify: %+v", got[0])
+	}
+	if got[1].Category != "Scheduling" || got[1].Source != "webappanalyzer" {
+		t.Errorf("Calendly: %+v", got[1])
+	}
+}
