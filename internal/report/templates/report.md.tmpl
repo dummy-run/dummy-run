@@ -165,19 +165,7 @@ For each pair of colours that failed, the nearest text colour that meets the rat
 ### How to fix what failed
 
 Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the elements listed above.
-{{range fixRules .Axe.Rules}}
-#### `{{inline .Rule}}`
-
-{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.
-
-{{range $n, $s := .Fix.Steps}}{{$n | inc}}. {{$s}}
-{{end}}{{with .Fix.Example}}
-Before: `{{inline .Before}}`
-
-After: `{{inline .After}}`
-{{end}}{{if .Fix.Sources}}
-Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}[{{$u}}]({{$u}}){{end}}
-{{end}}{{end}}
+{{range fixRules .Axe.Rules}}{{template "fix" .}}{{end}}
 {{- end}}
 
 {{else -}}
@@ -203,6 +191,13 @@ These are axe's best-practice rules that are not WCAG A or AA rules (a few are W
 |---|---|---|---|
 {{- range .Axe.Advice}}
 | `{{cell .Rule}}` | {{cell .Help}}{{if .HelpURL}} ({{cell .HelpURL}}){{end}} | {{cell .Elements}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{cell $p.URL}}{{end}} |
+{{- end}}
+{{- if fixRules .Axe.Advice}}
+
+### How to act on the advice
+
+Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the pages listed above.
+{{range fixRules .Axe.Advice}}{{template "fix" .}}{{end}}
 {{- end}}
 
 {{end -}}
@@ -309,3 +304,16 @@ Coverage was not computed. {{.Coverage.Unavailable}}
 
 {{range .Limits}}- {{.}}
 {{end}}
+{{- define "fix"}}
+#### `{{inline .Rule}}`
+
+{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.
+
+{{range $n, $s := .Fix.Steps}}{{$n | inc}}. {{$s}}
+{{end}}{{with .Fix.Example}}
+Before: `{{inline .Before}}`
+
+After: `{{inline .After}}`
+{{end}}{{if .Fix.Sources}}
+Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}[{{$u}}]({{$u}}){{end}}
+{{end}}{{end}}

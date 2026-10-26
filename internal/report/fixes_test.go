@@ -2,6 +2,7 @@ package report
 
 import (
 	"encoding/json"
+	"html"
 	"strings"
 	"testing"
 
@@ -132,4 +133,81 @@ func TestAxeRuleFindingKeepsItsDequeLink(t *testing.T) {
 		}
 	}
 	t.Fatal("no frame-title finding")
+}
+
+// A fix with no help link is linked from the rule table, and its example and sources are shown. Advice from Dummy
+// Run's own checks gets its fix too.
+func TestFixesForRulesAndAdvice(t *testing.T) {
+	opts := fixtureOptions(t)
+	p := &opts.A11y[0].Results[0]
+	p.Violations = append(p.Violations, a11y.Finding{Rule: "dummyrun-reflow", Impact: "serious", WCAG: []string{"1.4.10"},
+		Help: "The page scrolls sideways", Nodes: []a11y.Node{{Target: "#wide"}}})
+	p.Advice = append(p.Advice, a11y.Finding{Rule: "dummyrun-plain-latin", Help: "Latin abbreviations", Nodes: []a11y.Node{{Target: "main"}}})
+	rep, err := Build(loadFixture(t), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := render(t, rep, "html")
+	for _, want := range []string{
+		`<a href="#fix-dummyrun-reflow">How to fix dummyrun-reflow</a>, below`,
+		`<h4 id="fix-dummyrun-reflow">`,
+		"<pre><code>.panel { width: 960px; }</code></pre>",
+		`<a href="https://www.w3.org/WAI/WCAG22/Understanding/reflow.html">`,
+		"How to act on the advice",
+		`<h4 id="fix-dummyrun-plain-latin">`,
+		`(<a href="#fix-dummyrun-plain-latin">how to fix</a>, below)`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("html lacks %q", want)
+		}
+	}
+	md := render(t, rep, "md")
+	for _, want := range []string{"Before: `.panel { width: 960px; }`", "### How to act on the advice", "#### `dummyrun-plain-latin`"} {
+		if !strings.Contains(md, want) {
+			t.Errorf("md lacks %q", want)
+		}
+	}
+}
+
+// A persona finding's fix shows in the HTML report too.
+func TestOwnRuleFindingFixInHTML(t *testing.T) {
+	runs := loadFixture(t)
+	for _, r := range runs {
+		for i := range r.Rec.Findings {
+			if r.Rec.Findings[i].Symptom == "a11y:color-contrast" { //nolint:misspell // an axe rule ID
+				r.Rec.Findings[i].Symptom = "a11y:dummyrun-reflow"
+			}
+		}
+	}
+	rep, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var f *Finding
+	for i := range rep.Findings {
+		if rep.Findings[i].Symptom == "a11y:dummyrun-reflow" {
+			f = &rep.Findings[i]
+		}
+	}
+	if f == nil || f.Fix == nil {
+		t.Fatal("no dummyrun-reflow finding with a fix")
+	}
+	// The finding's own article, from its heading to the end of the article.
+	out := render(t, rep, "html")
+	start := strings.Index(out, `-t">`+html.EscapeString(f.Title)+"</h4>")
+	if start < 0 {
+		t.Fatalf("html: no article for %q", f.Title)
+	}
+	section := out[start:]
+	if end := strings.Index(section, "</article>"); end >= 0 {
+		section = section[:end]
+	}
+	if !strings.Contains(section, f.Fix.Summary) {
+		t.Errorf("html: the finding's fix summary is missing from its section")
+	}
+	for _, step := range f.Fix.Steps {
+		if !strings.Contains(section, step) {
+			t.Errorf("html: step %q is missing from the finding's section", step)
+		}
+	}
 }
