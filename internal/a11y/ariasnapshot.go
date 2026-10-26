@@ -68,7 +68,7 @@ func snapshotCheck(ctx context.Context, conn *bidi.Conn, cx, dir string, res *Pa
 		res.ARIASnapshotError = firstLine(err.Error())
 		return
 	}
-	if err := os.WriteFile(path, []byte(snap.Text()), 0o600); err != nil {
+	if err := replaceFile(dir, path, []byte(snap.Text())); err != nil {
 		res.ARIASnapshotError = firstLine(err.Error())
 		return
 	}
@@ -125,3 +125,24 @@ func diffLines(a, b []string) *ARIAChanges {
 
 // snapshotItem is a snapshot line without its indent and list marker, for the terminal, where - and + mark the change.
 func snapshotItem(line string) string { return strings.TrimPrefix(strings.TrimSpace(line), "- ") }
+
+// replaceFile writes data to a new file in dir and renames it over path, so a write that fails part way leaves the
+// earlier snapshot whole for the next sweep to compare with.
+func replaceFile(dir, path string, data []byte) error {
+	f, err := os.CreateTemp(dir, ".snapshot-*")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	_, werr := f.Write(data)
+	cerr := f.Close()
+	if err := errors.Join(werr, cerr); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
+}

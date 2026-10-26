@@ -1084,10 +1084,8 @@ These findings fail the sweep like axe rules, and you can accept one with the al
 ### ARIA snapshots
 
 A site you check again and again needs to show what changed. Add `--aria-snapshots DIR` and the sweep writes an
-outline of each page in each setting to DIR, in the style of
-[Playwright's ARIA snapshots](https://playwright.dev/docs/aria-snapshots). It lists landmarks, headings and
-controls in page order, as YAML, each with its role, its accessible name and its states. A landmark's contents sit
-under it:
+ARIA snapshot of each page in each setting to DIR. It lists landmarks, headings and controls in page order, as
+YAML. Each line gives a role, an accessible name and any states. A landmark's contents sit under it:
 
 ```yaml
 - banner:
@@ -1098,8 +1096,9 @@ under it:
   - checkbox "Gift wrap" [checked]
 ```
 
-Words that aren't headings or names are left out, and so are hidden elements. So the outline changes when the
-page's structure or controls change, and stays the same when only its words do. Names come from the spec
+Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
+landmark. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
+button or a new link changes it. Names come from the spec
 computation alone, so a snapshot doesn't depend on whether axe loaded. A page keeps up to 2,000 lines, and
 `aria_snapshot_omitted` counts any more.
 

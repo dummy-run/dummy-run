@@ -54,7 +54,7 @@ func TestARIASnapshotsShowWhatChanged(t *testing.T) {
 		}
 		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body>
 <header><a href="/">Home</a> %s</header><main><h1>Shop</h1><p>Words that change: %d</p>%s
-<input type="checkbox" aria-label="Gift wrap" checked><div hidden><button>Hidden</button></div></main></body></html>`, extra, time.Now().UnixNano(), buy)
+<input type="checkbox" aria-label="Gift wrap" checked><button aria-label="Bell&#7;">Ring</button><div hidden><button>Hidden</button></div></main></body></html>`, extra, time.Now().UnixNano(), buy)
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
@@ -80,7 +80,7 @@ func TestARIASnapshotsShowWhatChanged(t *testing.T) {
 				t.Errorf("a first snapshot has changes: %+v", first.ARIAChanges)
 			}
 			text, _ := os.ReadFile(first.ARIASnapshot)
-			for _, want := range []string{"- banner:\n  - link \"Home\"\n", "- main:\n  - heading \"Shop\" [level=1]\n  - button \"Buy\"\n", "  - checkbox \"Gift wrap\" [checked]\n"} {
+			for _, want := range []string{"- banner:\n  - link \"Home\"\n", "- main:\n  - heading \"Shop\" [level=1]\n  - button \"Buy\"\n", "  - checkbox \"Gift wrap\" [checked]\n", "  - button \"Bell\\x07\"\n"} {
 				if !strings.Contains(string(text), want) {
 					t.Errorf("snapshot lacks %q:\n%s", want, text)
 				}
@@ -118,5 +118,23 @@ func TestSummaryListsSnapshotChanges(t *testing.T) {
 	}
 	if strings.Contains(out, "CHANGED https://example.com/same") {
 		t.Errorf("an unchanged page is listed:\n%s", out)
+	}
+}
+
+func TestReplaceFileKeepsTheOldOneOnFailure(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/page.yaml"
+	if err := replaceFile(dir, path, []byte("- main:\n")); err != nil {
+		t.Fatal(err)
+	}
+	// A directory that can't take the new file leaves the old one as it was.
+	if err := replaceFile(dir+"/missing", path, []byte("- banner:\n")); err == nil {
+		t.Fatal("want an error")
+	}
+	if b, _ := os.ReadFile(path); string(b) != "- main:\n" {
+		t.Errorf("the old snapshot changed: %q", b)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("left %d files, want 1", len(entries))
 	}
 }

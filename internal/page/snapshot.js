@@ -25,8 +25,9 @@
       for (let p = el.parentElement; p; p = p.parentElement) if (landmarks.has(p)) d++;
       return Math.min(d, 6);
     };
-    // A name goes in double quotes, so quotes and backslashes in it are escaped, as YAML does.
-    const quoted = (s) => '"' + drClip(s, 100).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+    // A name goes in double quotes, so quotes, backslashes and control characters in it are escaped, as YAML asks.
+    const quoted = (s) => '"' + drClip(s, 100).replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+      .replace(/[\u0000-\u001f\u007f-\u009f]/g, (c) => "\\x" + c.charCodeAt(0).toString(16).padStart(2, "0")) + '"';
     const lines = [];
     let omitted = 0;
     for (const el of all) {
