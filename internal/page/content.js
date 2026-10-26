@@ -67,7 +67,13 @@
     // An image or icon a screen reader skips, because it or a parent is aria-hidden or CSS hides it, adds nothing.
     const heard = (el) => !el.closest("[aria-hidden=true]") && (!el.checkVisibility || el.checkVisibility({ visibilityProperty: true }));
     const bits = [a.innerText];
-    for (const img of a.querySelectorAll("img[alt]")) if (heard(img)) bits.push(img.getAttribute("alt"));
+    // An image's own aria-labelledby or aria-label comes before its alt, as it does in its accessible name.
+    const imgName = (img) => {
+      const by = img.getAttribute("aria-labelledby");
+      const t = by ? squash(by.split(/\s+/).map((id) => document.getElementById(id)).filter(Boolean).map((n) => n.textContent).join(" ")) : "";
+      return t || squash(img.getAttribute("aria-label")) || img.getAttribute("alt") || "";
+    };
+    for (const img of a.querySelectorAll("img")) if (heard(img)) bits.push(imgName(img));
     for (const icon of a.querySelectorAll("svg[aria-label], [role=img][aria-label]")) if (heard(icon)) bits.push(icon.getAttribute("aria-label"));
     return squash(bits.join(" "));
   };

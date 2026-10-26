@@ -1103,7 +1103,7 @@ run in the browser with no model call, and only on what a visitor can see.
 Each of these usually makes a page harder to use, but each can be right in context. A "read more" link inside a
 sentence about the story it opens can meet WCAG 2.4.4, for example. So every result is advice, never fails the
 sweep, and the allow-list can accept it. A link's name is its `aria-labelledby` or `aria-label`, or else its text and
-the `alt` of its images and the `aria-label` of its icons, leaving out any a screen reader skips, so a link that adds words for screen readers isn't reported. A `title` doesn't count, since few people see it and few screen readers read it. The checks that match
+the `alt` of its images and the `aria-label` of its icons, leaving out anything a screen reader skips, so a link that adds words for screen readers isn't reported. A `title` doesn't count, since few people see it and few screen readers read it. The checks that match
 English phrases run only on a page whose language is English or isn't set. The checks on file names, addresses,
 length, bold, capitals and underlines run on every page. When the checks finish on a page, its JSON result has
 `content_checked: true`.

@@ -35,6 +35,8 @@ const contentPage = `<!doctype html><html lang="en-GB"><head><meta charset="utf-
 <p><a id="bad-new4" href="/x4" target="_blank">Makers <svg aria-hidden="true"><g aria-label="opens in a new window"></g></svg><svg role="img" aria-label="opens in a new tab" aria-hidden="true" width="8" height="8"></svg></a></p>
 <p><a id="bad-doc4" href="/files/plan3.pdf">The plan (Word)</a></p>
 <p><a id="ok-doc3" href="/files/plan4.xlsx">The figures (spreadsheet)</a></p>
+<p><a id="bad-doc5" href="/files/plan5.pdf"><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="10" height="10" alt="PDF" aria-label="Report"></a></p>
+<p><a id="ok-doc4" href="/files/plan6.pdf"><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="10" height="10" aria-label="Report, PDF"></a></p>
 <img id="bad-file" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="IMG_20240101.jpg">
 <img id="bad-file2" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="hero-banner.png">
 <img id="ok-file" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="The pier at sunset">
@@ -82,7 +84,7 @@ func TestContentChecksFindOnlyPlantedProblems(t *testing.T) {
 		RuleVagueLink:    {"#bad-vague", "#bad-vague2"},
 		RuleURLLink:      {"#bad-url"},
 		RuleNewWindow:    {"#bad-new", "#bad-new2", "#bad-new3", "#bad-new4"},
-		RuleDocumentLink: {"#bad-doc", "#bad-doc2", "#bad-doc3", "#bad-doc4"},
+		RuleDocumentLink: {"#bad-doc", "#bad-doc2", "#bad-doc3", "#bad-doc4", "#bad-doc5"},
 		RuleAltFileName:  {"#bad-file", "#bad-file2", "#bad-file3"},
 		RuleAltRedundant: {"#bad-redundant"},
 		RuleAltLong:      {"#bad-long"},
