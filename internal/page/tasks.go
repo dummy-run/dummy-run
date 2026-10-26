@@ -197,6 +197,7 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab,
 		t.Skipped = "something else is on top of it, so a mouse cannot press it"
 		return nil
 	}
+	markINP(ctx, conn, cx)
 	if err := conn.Click(ctx, cx, float64(st.X), float64(st.Y)); err != nil {
 		return fmt.Errorf("tasks: click: %w", err)
 	}
@@ -250,6 +251,7 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab,
 		return nil
 	}
 	for i, key := range []string{enter, space} {
+		markINP(ctx, conn, cx)
 		if err := conn.PressKey(ctx, cx, key); err != nil {
 			return fmt.Errorf("tasks: %w", err)
 		}

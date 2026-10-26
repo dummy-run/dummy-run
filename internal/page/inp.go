@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"math"
+	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
@@ -16,9 +17,10 @@ var webVitalsJS string
 
 const inpSandbox = "dummyrun-inp"
 
-// inpJS starts web-vitals' INP measure on the page with op "start", and with op "read" returns the slowest
-// response to an interaction since then, with its attribution, or null when there has been none. web-vitals runs
-// in a sandbox of its own, so the page can't see it or change it.
+// inpJS starts web-vitals' INP measure on the page with op "start". With op "mark" it notes the time just before the
+// sweep acts, and with op "read" returns web-vitals' INP since the start, with its attribution and whether the
+// interaction it describes came after the mark, or null when there has been none. web-vitals runs in a sandbox of
+// its own, so the page can't see it or change it.
 var inpJS = `(op) => {
   if (op === "start") {
     if (globalThis.__drVitals) return true;
@@ -29,17 +31,25 @@ var inpJS = `(op) => {
     webVitals.onINP((m) => { globalThis.__drINP = m; }, { reportAllChanges: true });
     return true;
   }
+  if (op === "mark") {
+    globalThis.__drMark = performance.now();
+    return true;
+  }
   // The browser hands web-vitals an interaction's timing after the frame that shows its result, so the read waits
-  // for a frame and a moment after it.
-  return new Promise((r) => requestAnimationFrame(() => setTimeout(r, 100))).then(() => {
+  // for a frame and a moment after it. A hidden tab draws no frames, so the wait ends after a second regardless.
+  const frame = new Promise((r) => requestAnimationFrame(() => setTimeout(r, 100)));
+  return Promise.race([frame, new Promise((r) => setTimeout(r, 1000))]).then(() => {
   const m = globalThis.__drINP;
   if (!m) return null;
   const a = m.attribution || {};
   return { duration: m.value, rating: m.rating, target: a.interactionTarget || "", type: a.interactionType || "",
     input_delay: a.inputDelay || 0, processing: a.processingDuration || 0, presentation: a.presentationDelay || 0,
-    load_state: a.loadState || "" };
+    load_state: a.loadState || "", earlier: (a.interactionTime || 0) < (globalThis.__drMark || 0) };
   });
 }`
+
+// inpReadLimit bounds a read, so a page that stops answering can't take the comparison's time.
+const inpReadLimit = 3 * time.Second
 
 // Response is how long a page took to show the next frame after an interaction, as web-vitals measures INP, with
 // where the time went. All times are in milliseconds.
@@ -47,8 +57,11 @@ type Response struct {
 	// Action is what the sweep did: "click", "enter" or "space". Selector is the control it did it to.
 	Action   string `json:"action"`
 	Selector string `json:"selector"`
-	// Duration is the INP value: the longest of the page's interactions so far, which can be an earlier Tab press.
+	// Duration is web-vitals' INP value for the page's interactions so far: the slowest, or close to it once there
+	// have been 50 or more, since web-vitals then leaves out the slowest of each 50. It can describe an earlier
+	// interaction, such as a Tab press, and then Earlier is true.
 	Duration float64 `json:"duration"`
+	Earlier  bool    `json:"earlier,omitempty"`
 	// Rating is web-vitals' own: good up to 200 ms, needs-improvement up to 500 ms, poor beyond.
 	Rating string `json:"rating"`
 	// Target is web-vitals' selector for the element the slowest interaction was on, and Type is pointer or keyboard.
@@ -70,8 +83,16 @@ func startINP(ctx context.Context, conn *bidi.Conn, cx string) {
 	_ = conn.CallFunctionJSONIn(ctx, cx, inpSandbox, inpJS, &ok, "start")
 }
 
-// readINP returns the slowest response since startINP, or nil when there is none yet.
+// markINP notes the time just before the sweep acts, so readINP can tell a response to this action from an earlier one.
+func markINP(ctx context.Context, conn *bidi.Conn, cx string) {
+	var ok bool
+	_ = conn.CallFunctionJSONIn(ctx, cx, inpSandbox, inpJS, &ok, "mark")
+}
+
+// readINP returns web-vitals' INP since startINP, or nil when there is none yet or the read took too long.
 func readINP(ctx context.Context, conn *bidi.Conn, cx, action, selector string) *Response {
+	ctx, cancel := context.WithTimeout(ctx, inpReadLimit)
+	defer cancel()
 	var r *Response
 	if err := conn.CallFunctionJSONIn(ctx, cx, inpSandbox, inpJS, &r, "read"); err != nil || r == nil {
 		return nil

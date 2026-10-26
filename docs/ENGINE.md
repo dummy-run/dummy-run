@@ -1059,11 +1059,14 @@ or send a request when it's clicked. A page that never takes keyboard focus show
 
 While it tries each control, the sweep also measures how long the page takes to respond, with Google's
 [web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click
-or a key press to the next frame that shows the result. After each click, Enter and Space, the page's result lists
+or a key press to the next frame that shows the result, and stands for Interaction to Next Paint. After each click, Enter and Space, the page's result lists
 the response in `tasks.responses`. It gives the time in milliseconds, web-vitals' rating, and where the time went:
 `input_delay` before the page's handlers start, `processing` in them, and `presentation` drawing the result. INP is
-the slowest response on the page so far, which can be an earlier Tab press on the same load. A control whose slowest
-response is over 500 ms, which web-vitals rates poor, is advice, `dummyrun-slow-response`. No WCAG criterion sets a
+the slowest response on the page so far. Past 50 interactions, web-vitals leaves out one of the slowest for every
+50, so it is then close to the slowest. It can describe an earlier interaction on the same load, such as a Tab
+press on the way to the control, and the response then has `earlier: true`. A control whose slowest response to
+the sweep's own click, Enter or Space is over 500 ms, which web-vitals rates poor, is advice,
+`dummyrun-slow-response`. No WCAG criterion sets a
 time, but a slow response leaves people unsure whether anything happened, and they may press again. The sweep
 reports the measurements and leaves any judgement of how steady they are across runs to you.
 

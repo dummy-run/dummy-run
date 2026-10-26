@@ -15,6 +15,7 @@ const RuleSlowResponse = "dummyrun-slow-response"
 const slowResponse = 500
 
 // slowResponseAdvice reports each control whose slowest measured response was poor, once, with where the time went.
+// A response that describes an earlier interaction, such as a Tab press on the way, isn't the control's.
 func slowResponseAdvice(t *page.Tasks, path string, allow *AllowList) []Finding {
 	if t == nil {
 		return nil
@@ -22,7 +23,7 @@ func slowResponseAdvice(t *page.Tasks, path string, allow *AllowList) []Finding 
 	worst := map[string]page.Response{}
 	var order []string
 	for _, r := range t.Responses {
-		if r.Duration <= slowResponse {
+		if r.Duration <= slowResponse || r.Earlier {
 			continue
 		}
 		w, seen := worst[r.Selector]
