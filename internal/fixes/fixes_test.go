@@ -21,6 +21,7 @@ var ownRules = []string{
 	"dummyrun-lighthouse-paste-preventing-inputs",
 	"dummyrun-journey-keyboard",
 	"dummyrun-broken-link",
+	"dummyrun-failure-silent",
 	"dummyrun-content-vague-link", "dummyrun-content-url-link", "dummyrun-content-new-window",
 	"dummyrun-content-document-link", "dummyrun-content-alt-file-name", "dummyrun-content-alt-redundant",
 	"dummyrun-content-alt-long", "dummyrun-content-fake-heading", "dummyrun-content-all-caps", "dummyrun-content-underline",

@@ -89,6 +89,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if p.JourneysError != "" {
 			_, _ = fmt.Fprintf(w, "JOURNEYS %s (%s): %s\n", p.URL, p.Setting(), printable(p.JourneysError))
 		}
+		if p.FailureProbeError != "" {
+			_, _ = fmt.Fprintf(w, "FAILURES %s (%s): %s\n", p.URL, p.Setting(), printable(p.FailureProbeError))
+		}
 		if p.LinksError != "" {
 			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
 		}
