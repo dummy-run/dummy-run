@@ -67,7 +67,8 @@ The trademark policy stops them calling it Dummy Run.
 
 ### HTML checking: vnu or html-validate
 
-`--html` runs the Nu HTML Checker (vnu), which needs Java. We compared it with
+`--html` runs the Nu HTML Checker (vnu), which needs Java. The comparison below is from `PR #139`, which
+gives the corpus, the commands and the counts. We compared vnu with
 [html-validate](https://gitlab.com/html-validate/html-validate) 11.16.2 (MIT). That has a browser build, so it could run
 inside the page like the rule engines. The corpus was 167 pages: the 150 AccessGuru cases, the three benchmark pages
 and 14 pages we wrote, two for each kind of error `--html` keeps and two with none. html-validate used its
@@ -91,10 +92,10 @@ case and 2 `presentation-role-conflict` cases. axe-core already checks those on 
 html-validate flags are mostly elements in places the content model doesn't allow, plus empty headings and
 references to missing IDs.
 
-Recommendation: move `--html` to html-validate in the page, and keep vnu as an option for anyone who wants the
+The recommendation is to move `--html` to html-validate in the page, and to keep vnu as an option for anyone who wants the
 reading of the HTML as sent. The image would get about 150 MB smaller and the check would work outside the
 container with no Java. The cost is the HTML-as-sent check, which html-validate can do only on a string the sweep
-fetches. That switch isn't made yet, because it changes what `--html` reports.
+fetches. That switch isn't made yet because it changes what `--html` reports.
 
 ## Coverage and reports
 
