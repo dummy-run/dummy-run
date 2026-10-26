@@ -10,11 +10,14 @@ import (
 // MainHTMLMax is the most characters of main content one page gives the plain language check.
 const MainHTMLMax = 200_000
 
-// mainHTMLJS returns the page's main content as HTML: the main landmark, or the body without its header, navigation,
+// mainHTMLJS returns the page's main content as HTML: the first main landmark that is displayed, or the body without its header, navigation,
 // footer and asides. Scripts, styles, hidden elements and inline images are dropped, so only words a visitor reads
 // are left. An element the page's CSS hides with display, visibility or opacity is dropped too. Called with (max).
 const mainHTMLJS = `(max) => {
-  const root = document.querySelector("main, [role=main]") || document.body;
+  // A page can keep more than one main element and hide all but one, so the first one with a box is used.
+  const mains = [...document.querySelectorAll("main, [role=main]")];
+  const shown = (el) => !el.checkVisibility || el.checkVisibility() || getComputedStyle(el).display === "contents";
+  const root = mains.find(shown) || mains[0] || document.body;
   if (!root) return { html: "", selector: "", truncated: false };
   const copy = root.cloneNode(true);
   // The copy has no styles, so what CSS hides is found on the page and removed from the copy, which has the same
