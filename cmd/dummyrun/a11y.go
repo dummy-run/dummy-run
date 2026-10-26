@@ -85,6 +85,10 @@ Flags:
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
+  --aria-snapshots DIR
+                    write an ARIA snapshot of each page and setting into DIR: its landmarks, headings and controls
+                    with their roles, names and states, as YAML. A snapshot an earlier sweep left there is compared
+                    first, and the lines added and removed are listed, so a regular sweep shows what changed
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
   --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
@@ -137,6 +141,7 @@ func a11yCmd(args []string) int {
 	linksOn := fs.Bool("links", false, "check the links on each page with lychee")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
+	snapDir := fs.String("aria-snapshots", "", "directory for ARIA snapshots, compared with the ones already there")
 	repeat := fs.Int("repeat", 1, "how many times to sweep every page and setting, up to 10")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
@@ -251,7 +256,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

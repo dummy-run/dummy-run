@@ -1097,6 +1097,39 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
+### ARIA snapshots
+
+A site you check again and again needs to show what changed. Add `--aria-snapshots DIR` and the sweep writes an
+ARIA snapshot of each page in each setting to DIR. It lists landmarks, headings and controls in page order, as
+YAML. Each line gives a role, an accessible name and any states. A landmark's contents sit under it:
+
+```yaml
+- banner:
+  - link "Home"
+- main:
+  - heading "Shop" [level=1]
+  - button "Buy" [disabled]
+  - checkbox "Gift wrap" [checked]
+```
+
+Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
+landmark. The snapshot also leaves out the focused element and the persona's @numbers. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
+button or a new link changes it. Names come from the spec
+computation alone. The snapshot is still taken after axe and the page's other checks, so a page where axe or
+an earlier check fails has no snapshot. A page keeps up to 2,000 lines, and
+`aria_snapshot_omitted` counts any more.
+
+If DIR already holds a snapshot for the page and setting, the sweep compares the two first. The result's
+`aria_changes` lists up to 50 lines added and 50 removed, and counts them all. The terminal shows a `CHANGED`
+line for each page with the lines that changed. Then the new snapshot replaces the old one. Each file name comes
+from the page's address and setting, with a short hash, such as `example.com_shop--chrome_desktop_light-1a2b3c4d.yaml`.
+With `--repeat`, only the first repeat compares and writes the snapshots, so the comparison is always with the
+sweep before and never with an earlier repeat. A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
+changes and decide.
+
+```sh
+dummyrun a11y --aria-snapshots snapshots https://example.com/
+```
 The markup checks also list the roles and `aria-*` attributes the page's shown elements use, and look each one up
 in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C community group that tests how JAWS,
 NVDA and VoiceOver handle each ARIA pattern. When one screen reader and browser pair passes

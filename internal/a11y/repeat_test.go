@@ -113,6 +113,11 @@ func TestMergeRepeatsKeepsTheResultThatRan(t *testing.T) {
 	if !got.MarkupChecked || got.Error != "load: timed out" || *got.ErrorRuns != 1 || len(got.Violations) != 1 || got.Violations[0].Nodes[0].Runs != 1 {
 		t.Errorf("%+v", got)
 	}
+	// Only the first repeat takes the ARIA snapshot, so the merged result has it even when a later result is kept.
+	failed.ARIASnapshot, failed.ARIAChanges = "shop.yaml", &ARIAChanges{AddedCount: 1}
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.ARIASnapshot != "shop.yaml" || got.ARIAChanges == nil || got.ARIAChanges.AddedCount != 1 {
+		t.Errorf("snapshot %q, changes %+v", got.ARIASnapshot, got.ARIAChanges)
+	}
 }
 
 func TestSummaryShowsRepeatCounts(t *testing.T) {

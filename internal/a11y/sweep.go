@@ -77,6 +77,9 @@ type Config struct {
 	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
 	Markup bool
+	// ARIASnapshots is a directory for the ARIA snapshots of each page and setting. A snapshot left there by an
+	// earlier sweep is compared with the new one, and the new one takes its place.
+	ARIASnapshots string
 	// Content adds the content checks to each run: link names, alt text, fake headings, capitals and underlines,
 	// on the words and images the page's authors wrote. The results are advice.
 	Content bool
@@ -175,6 +178,14 @@ type PageResult struct {
 	TextScale int `json:"text_scale,omitempty"`
 	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
 	MarkupChecked bool `json:"markup_checked,omitempty"`
+	// ARIASnapshot is the file the page's ARIA snapshot was written to, and ARIASnapshotOmitted counts the elements
+	// past its 2,000 lines.
+	ARIASnapshot        string `json:"aria_snapshot,omitempty"`
+	ARIASnapshotOmitted int    `json:"aria_snapshot_omitted,omitempty"`
+	// ARIAChanges are the lines that differ from the snapshot an earlier sweep left, when there was one.
+	ARIAChanges *ARIAChanges `json:"aria_changes,omitempty"`
+	// ARIASnapshotError says why the snapshot couldn't be taken, read or written.
+	ARIASnapshotError string `json:"aria_snapshot_error,omitempty"`
 	// ContentChecked says the content checks ran, so a result with none of their rules means they found nothing.
 	ContentChecked bool `json:"content_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
@@ -313,6 +324,8 @@ type Report struct {
 	Repeats int          `json:"repeats,omitempty"`
 	Results []PageResult `json:"results"`
 	Summary Summary      `json:"summary"`
+	// repeat is the repeat the sweep is on, counting from 0.
+	repeat int
 	// htmlChecked holds the URLs whose HTML was checked, so each is checked once.
 	htmlChecked map[string]bool
 	// lighthouseDone holds the URLs Lighthouse audited, so each is audited once. debugger is the Chrome DevTools
@@ -452,6 +465,7 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 			_, _ = fmt.Fprintf(cfg.Log, "repeat %d of %d\n", r+1, repeats)
 		}
 		start := len(rep.Results)
+		rep.repeat = r
 		for _, scale := range cfg.TextScales {
 			for _, scheme := range cfg.Schemes {
 				if err := sweepScheme(ctx, cfg, scheme, scale, rep); err != nil {
@@ -858,6 +872,11 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Tasks = t
 		res.Violations = append(res.Violations, taskFindings(t, path, cfg.Allow)...)
 	}()
+	// With --repeat, only the first repeat compares and writes the snapshots, so the comparison is always with the
+	// sweep before and never with an earlier repeat.
+	if cfg.ARIASnapshots != "" && rep.repeat == 0 {
+		snapshotCheck(pctx, conn, cx, cfg.ARIASnapshots, &res)
+	}
 	if cfg.Markup {
 		m, err := page.RunMarkupChecks(pctx, conn, cx)
 		if err != nil {

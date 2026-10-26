@@ -103,6 +103,15 @@ func (r *Report) WriteSummary(w io.Writer) {
 		for _, c := range checkErrors(p) {
 			_, _ = fmt.Fprintf(w, "%s %s (%s): %s\n", c.check, p.URL, p.Setting(), printable(c.err))
 		}
+		if c := p.ARIAChanges; c != nil && c.AddedCount+c.RemovedCount > 0 {
+			_, _ = fmt.Fprintf(w, "CHANGED %s (%s): %d lines added and %d removed in the ARIA snapshot\n", p.URL, p.Setting(), c.AddedCount, c.RemovedCount)
+			for _, l := range c.Removed {
+				_, _ = fmt.Fprintf(w, "     - %s\n", printable(snapshotItem(l)))
+			}
+			for _, l := range c.Added {
+				_, _ = fmt.Fprintf(w, "     + %s\n", printable(snapshotItem(l)))
+			}
+		}
 	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
@@ -152,6 +161,7 @@ func checkErrors(p PageResult) []checkError {
 	add("HTML", p.HTMLError)
 	add("LIGHTHOUSE", p.LighthouseError)
 	add("LIGHTHOUSE MATCH", p.LighthouseMatchError)
+	add("SNAPSHOT", p.ARIASnapshotError)
 	if p.Consent != nil {
 		add("CONSENT", p.Consent.Error)
 	}
