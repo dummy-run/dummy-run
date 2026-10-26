@@ -241,9 +241,10 @@ type PageResult struct {
 	EngineGroupsOmitted int    `json:"engine_groups_omitted,omitempty"`
 	Error               string `json:"error,omitempty"`
 	// Repeats is how many times the sweep tested the page in this setting, with --repeat, and ErrorRuns in how
-	// many of them it could not. Error is the first reason.
-	Repeats   int `json:"repeats,omitempty"`
-	ErrorRuns int `json:"error_runs,omitempty"`
+	// many of them it could not. Error is the first reason. ErrorRuns is set only with --repeat, so a repeated
+	// result that never failed still says 0.
+	Repeats   int  `json:"repeats,omitempty"`
+	ErrorRuns *int `json:"error_runs,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
 	Skipped     string    `json:"skipped,omitempty"`
 	Violations  []Finding `json:"violations"`

@@ -3,6 +3,7 @@ package a11y
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -52,11 +53,18 @@ func TestMergeRepeatsCountsRuns(t *testing.T) {
 	if len(runs) != len(want) || len(p.Violations) != 3 {
 		t.Errorf("violations %+v", p.Violations)
 	}
-	if p.Repeats != 3 || p.ErrorRuns != 1 || p.Error != "timed out" {
-		t.Errorf("repeats %d, error runs %d, error %q", p.Repeats, p.ErrorRuns, p.Error)
+	if p.Repeats != 3 || *p.ErrorRuns != 1 || p.Error != "timed out" {
+		t.Errorf("repeats %d, error runs %d, error %q", p.Repeats, *p.ErrorRuns, p.Error)
 	}
-	if got[1].Repeats != 3 || got[1].ErrorRuns != 0 || got[1].Violations == nil {
+	if got[1].Repeats != 3 || *got[1].ErrorRuns != 0 || got[1].Violations == nil {
 		t.Errorf("other setting: %+v", got[1])
+	}
+	// A repeated result that never failed still says so in the JSON, and a single sweep's result leaves it out.
+	if b, _ := json.Marshal(got[1]); !strings.Contains(string(b), `"error_runs":0`) {
+		t.Errorf("repeated result JSON has no error_runs: %s", b)
+	}
+	if b, _ := json.Marshal(PageResult{}); strings.Contains(string(b), "error_runs") {
+		t.Errorf("single result JSON has error_runs: %s", b)
 	}
 	if mergeRepeats(nil) != nil {
 		t.Error("no runs should merge to nothing")
@@ -102,7 +110,7 @@ func TestMergeRepeatsKeepsTheResultThatRan(t *testing.T) {
 	ok := repeatResult("", "dummyrun-label-in-name@#q")
 	ok.MarkupChecked = true
 	got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]
-	if !got.MarkupChecked || got.Error != "load: timed out" || got.ErrorRuns != 1 || len(got.Violations) != 1 || got.Violations[0].Nodes[0].Runs != 1 {
+	if !got.MarkupChecked || got.Error != "load: timed out" || *got.ErrorRuns != 1 || len(got.Violations) != 1 || got.Violations[0].Nodes[0].Runs != 1 {
 		t.Errorf("%+v", got)
 	}
 }

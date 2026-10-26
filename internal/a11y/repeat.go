@@ -46,7 +46,8 @@ func mergeGroup(ps []PageResult, repeats int) PageResult {
 	}
 	m := ps[pick]
 	m.Violations, m.NeedsReview, m.Advice, m.Candidates = []Finding{}, []Finding{}, nil, nil
-	m.Repeats, m.ErrorRuns, m.Error = repeats, 0, ""
+	errorRuns := 0
+	m.Repeats, m.ErrorRuns, m.Error = repeats, &errorRuns, ""
 	// The kept result's elements come first, then any that only the others found.
 	for _, i := range append([]int{pick}, others(len(ps), pick)...) {
 		p := ps[i]
@@ -57,7 +58,7 @@ func mergeGroup(ps []PageResult, repeats int) PageResult {
 	}
 	for _, p := range ps {
 		if p.Error != "" {
-			m.ErrorRuns++
+			errorRuns++
 			if m.Error == "" {
 				m.Error = p.Error
 			}

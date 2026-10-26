@@ -86,7 +86,7 @@ func (r *Report) WriteSummary(w io.Writer) {
 		}
 		if p.Error != "" {
 			if p.Repeats > 1 {
-				_, _ = fmt.Fprintf(w, "ERROR %s (%s, %d of %d runs): %s\n", p.URL, p.Setting(), p.ErrorRuns, p.Repeats, p.Error)
+				_, _ = fmt.Fprintf(w, "ERROR %s (%s, %d of %d runs): %s\n", p.URL, p.Setting(), *p.ErrorRuns, p.Repeats, p.Error)
 			} else {
 				_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
 			}
