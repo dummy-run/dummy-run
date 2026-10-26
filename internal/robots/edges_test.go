@@ -66,7 +66,7 @@ func TestNormaliseEdges(t *testing.T) {
 
 // TestFetchStopsWhenCancelled checks a fetch the caller cancelled returns the error, not rules that close the site.
 func TestFetchStopsWhenCancelled(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {}))
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	defer srv.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
