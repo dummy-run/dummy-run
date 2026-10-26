@@ -173,8 +173,14 @@ func TestMaskLeavesNothingBehind(t *testing.T) {
 			if err := os.WriteFile(shot, []byte("not a png"), 0o600); err != nil {
 				t.Fatal(err)
 			}
+			if err := os.WriteFile(diff, []byte("old"), 0o600); err != nil {
+				t.Fatal(err)
+			}
 			if err := compareScreen(ctx, conn, cx, dir, nil, &res); err != nil || !res.Visual.First {
 				t.Fatalf("unreadable earlier picture: error %v, %+v", err, res.Visual)
+			}
+			if _, err := os.Stat(diff); !os.IsNotExist(err) {
+				t.Errorf("the diff from the unreadable picture is still there: %v", err)
 			}
 			if err := compareScreen(ctx, conn, cx, dir, nil, &res); err != nil || res.Visual.Change == nil {
 				t.Fatalf("after replacing it: error %v, %+v", err, res.Visual)

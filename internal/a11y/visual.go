@@ -80,9 +80,14 @@ func compareScreen(ctx context.Context, conn *bidi.Conn, cx, dir string, masks [
 	path := screenName(dir, res)
 	v := &Visual{Screen: path, Masked: masked}
 	if _, err := os.Stat(path); err == nil {
-		// An earlier picture that can't be read is replaced, so one bad file doesn't stop every later sweep.
-		switch c, err := visual.Compare(path, img, strings.TrimSuffix(path, ".png")+".diff.png"); {
+		// An earlier picture that can't be read is replaced, with any diff made from it, so one bad file doesn't stop
+		// every later sweep.
+		diff := strings.TrimSuffix(path, ".png") + ".diff.png"
+		switch c, err := visual.Compare(path, img, diff); {
 		case errors.Is(err, visual.ErrUnreadable):
+			if err := os.Remove(diff); err != nil && !os.IsNotExist(err) {
+				return err
+			}
 			v.First = true
 		case err != nil:
 			return err
