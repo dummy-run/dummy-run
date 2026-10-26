@@ -175,7 +175,7 @@ type PageResult struct {
 	// as the server sent it, where parse errors are. HTMLPartial says a copy was too long and only its start was
 	// read. HTMLStopped says vnu hit a fatal error in a copy and checked none of it after that. HTMLIgnored counts the
 	// errors vnu reported that don't change what assistive technology gets, such as an obsolete element. HTMLError
-	// says why the check could not run. Only the first result for each URL has these.
+	// says why the check could not run. Only the first result for each URL that axe could check has these.
 	HTMLChecked       bool   `json:"html_checked,omitempty"`
 	HTMLSourceChecked bool   `json:"html_source_checked,omitempty"`
 	HTMLPartial       bool   `json:"html_partial,omitempty"`
@@ -569,6 +569,15 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.NeedsReview = append(res.NeedsReview, finding(r, path, nil))
 	}
+	// The HTML is the same at every window size and colour scheme, so it is checked once for each URL. It runs
+	// before the checks that can end the page early, so the first result axe could check has it.
+	if cfg.HTML && !rep.htmlChecked[u] {
+		if rep.htmlChecked == nil {
+			rep.htmlChecked = map[string]bool{}
+		}
+		rep.htmlChecked[u] = true
+		htmlCheck(pctx, conn, cx, &res, path, cfg.Allow)
+	}
 	if cfg.Engines {
 		r, err := page.RunEngines(pctx, conn, cx, axeNodes(res.Violations), CriteriaAA())
 		if err != nil {
@@ -589,14 +598,6 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	}
 	if cfg.PlainLanguage {
 		plainCheck(pctx, conn, cx, &res, path, cfg.Allow)
-	}
-	// The HTML is the same at every window size and colour scheme, so it is checked once for each URL.
-	if cfg.HTML && !rep.htmlChecked[u] {
-		if rep.htmlChecked == nil {
-			rep.htmlChecked = map[string]bool{}
-		}
-		rep.htmlChecked[u] = true
-		htmlCheck(pctx, conn, cx, &res, path, cfg.Allow)
 	}
 	if cfg.Consent {
 		c, err := page.AnswerConsent(pctx, conn, cx, page.ConsentWait)
