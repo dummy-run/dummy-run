@@ -56,7 +56,7 @@ func TestGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for format, file := range map[string]string{"html": "report.html", "md": "report.md", "json": "report.json", "sarif": "report.sarif", "junit": "report.junit.xml"} {
+	for format, file := range map[string]string{"html": "report.html", "md": "report.md", "json": "report.json", "sarif": "report.sarif", "junit": "report.junit.xml", "ctrf": "report.ctrf.json"} {
 		got := render(t, rep, format)
 		if format == "html" {
 			got = shortenAssets(got)
@@ -451,6 +451,8 @@ func TestHTMLEscapesUserText(t *testing.T) {
 
 // The report never says the target passed or is compliant. The words are checked in the template
 // sources and in every format rendered from the fixtures and from the examples.
+var ctrfPassedCount = regexp.MustCompile(`"passed": 0,`)
+
 var forbidden = regexp.MustCompile(`(?i)\b(pass|passes|passed|passing|compliant)\b`)
 
 func TestNoPassOrCompliantWording(t *testing.T) {
@@ -492,7 +494,13 @@ func TestNoPassOrCompliantWording(t *testing.T) {
 			continue // the empty case: no records match
 		}
 		for _, f := range Formats {
-			if m := forbidden.FindString(render(t, rep, f)); m != "" {
+			out := render(t, rep, f)
+			// CTRF requires a count of passed tests in its summary. It is always 0, and it says nothing about the
+			// target, so that one key is left out of the check.
+			if f == "ctrf" {
+				out = ctrfPassedCount.ReplaceAllString(out, "")
+			}
+			if m := forbidden.FindString(out); m != "" {
 				t.Errorf("%s as %s says %q", name, f, m)
 			}
 		}

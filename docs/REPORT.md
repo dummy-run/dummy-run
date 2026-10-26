@@ -23,7 +23,7 @@ piece where it fits. Browsers that print page margins put the title and page num
 | `--runs DIR` | A directory or a file of run records. Repeat the flag to read several. Paths can also follow the flags |
 | `--a11y FILE` | A file from `dummyrun a11y --json`. Repeat the flag for several sweeps |
 | `--title`, `--client` | The title, and free text naming who the report is for |
-| `--format` | `html` (the default), `md`, `json`, `sarif`, `junit`, `badge` or `shields`. [BADGES.md](BADGES.md) covers the last two |
+| `--format` | `html` (the default), `md`, `json`, `sarif`, `junit`, `ctrf`, `badge` or `shields`. [BADGES.md](BADGES.md) covers the last two |
 | `--include pending` | Also include findings no reviewer has confirmed. Without it, you only see confirmed findings |
 | `--baseline FILE` | An earlier report in JSON, so each finding is marked new or still present |
 | `--build SHA` | Report on one commit or build hash, at least 7 characters long |
@@ -251,6 +251,7 @@ A sample can miss a problem that's still there, so check a fixed problem before 
 | `json` | The full data, described by [schema/report.schema.json](../schema/report.schema.json). It's what `--baseline` reads |
 | `sarif` | SARIF 2.1.0 for tools that read it. Each problem and each failing axe element is a result. The location is a page address rather than a file in your repository, so GitHub code scanning can't place a result on a source file |
 | `junit` | JUnit XML for a CI job. Blocker, major and minor problems and failing axe rules are failures. Info problems are skipped |
+| `ctrf` | The same tests in the [Common Test Report Format](https://ctrf.io) JSON, spec version 0.2.0, for CI tools that read it. Each test's `extra` holds the raw counts behind it, such as `runs_found` out of `runs_total` for a problem and `elements` and `pages` for a rule. The report rates no test as flaky, and leaves that to the tool reading the counts. Durations are 0, since the report doesn't time tests. The summary's start and stop are the runs' times, or the sweep's for a report of a sweep alone |
 
 ## The limits
 
