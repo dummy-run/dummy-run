@@ -84,10 +84,22 @@
     return [...el.querySelectorAll("a[href]")].some(goes) || [...el.querySelectorAll("button, input")].some(sends);
   };
 
+  // A text field or a combobox is never tried: Enter in a field sends its form, and a combobox opens with the arrow
+  // keys, not Enter or Space, so the keyboard would look as if it failed.
+  const entry = (el) => el.matches("[role=combobox], [role=textbox], [role=searchbox], textarea, select, [contenteditable=true]") ||
+    (el.tagName === "INPUT" && /^(text|search|email|tel|url|password|number)$/.test(el.type));
+  // A tab that is out of the Tab order while another tab in its list is in it follows the roving pattern: the arrow
+  // keys reach it, so Tab never will.
+  const roving = (el) => {
+    if (el.getAttribute("role") !== "tab" || el.tabIndex >= 0) return false;
+    const list = el.closest("[role=tablist]") || el.parentElement;
+    return !!list && [...list.querySelectorAll("[role=tab]")].some((t) => t !== el && t.tabIndex >= 0);
+  };
+
   if (op === "find") {
     const out = [], used = new Set(), limit = Number(arg);
     const add = (el, kind, target) => {
-      if (out.length >= limit || used.has(el) || !shown(el) || el.disabled || el.getAttribute("aria-disabled") === "true" || leaves(el)) return;
+      if (out.length >= limit || used.has(el) || !shown(el) || el.disabled || el.getAttribute("aria-disabled") === "true" || leaves(el) || entry(el) || roving(el)) return;
       const sel = selector(el);
       if (one(sel) !== el) return;
       used.add(el);
@@ -147,7 +159,10 @@
       t = null;
     }
     if (!t || !shown(t)) return null; // a missing or hidden target is the Tab walk's finding
-    return { link: selector(a), target: selector(t), label: label(a) };
+    // Each selector has to name one element, or the next load could test something else.
+    const link = selector(a), target = selector(t);
+    if (one(link) !== a || one(target) !== t) return null;
+    return { link, target, label: label(a) };
   }
   if (op === "past") {
     const t = one(arg);

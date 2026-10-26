@@ -54,6 +54,16 @@ ok.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") 
 document.getElementById("mouse").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-expanded", "true"));
 document.getElementById("both").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-expanded", "true"));
 </script></main></body></html>`,
+	// A combobox opens with the arrow keys and a roving tab is reached by them, so Enter and Tab would look as if
+	// they failed. Neither is tried.
+	"/entry": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Entry</title></head><body><main>
+<h1>Entry</h1>
+<label for="town">Town</label><input id="town" role="combobox" aria-expanded="false" aria-controls="towns"><ul id="towns" hidden><li>Leeds</li></ul>
+<div role="tablist"><button id="t1" role="tab" aria-selected="true" tabindex="0">Day</button><button id="t2" role="tab" aria-selected="false" tabindex="-1">Week</button></div>
+<script>
+document.getElementById("town").addEventListener("click", (e) => { e.currentTarget.setAttribute("aria-expanded", "true"); document.getElementById("towns").hidden = false; });
+document.getElementById("t2").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-selected", "true"));
+</script></main></body></html>`,
 	"/skip-good": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Skip</title></head><body>
 <a id="skip" href="#main">Skip to content</a><nav><a href="/a">Home</a> <a href="/b">About</a></nav>
 <main id="main"><h1>Main</h1><a id="first" href="/c">First in main</a></main></body></html>`,
@@ -103,7 +113,7 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/skip-next", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/long"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/skip-next", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/entry", srv.URL + "/long"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
@@ -139,6 +149,9 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 			}
 			if n := len(by["/cards"].Tasks.Tasks); n != 0 {
 				t.Errorf("a javascript: link, or a card holding a link or a submit button, was tried: %+v", by["/cards"].Tasks.Tasks)
+			}
+			if n := len(by["/entry"].Tasks.Tasks); n != 0 || layoutFinding(by["/entry"], RuleMouseOnly) != nil {
+				t.Errorf("a combobox or a roving tab was tried: %+v", by["/entry"].Tasks.Tasks)
 			}
 			rec := map[string]page.Task{}
 			for _, task := range by["/recover"].Tasks.Tasks {
