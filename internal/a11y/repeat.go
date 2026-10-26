@@ -77,8 +77,11 @@ func others(n, skip int) []int {
 }
 
 // countNodes adds one repeat's findings to the ones so far: an element already there counts one more run, and a
-// new one joins its rule, or a new copy of the rule, with one run.
+// new one joins its rule, or a new copy of the rule, with one run. A check can report one element more than once in
+// a run, such as clipped text in two places inside one control, so the n-th report of an element in this repeat
+// is matched with its n-th report so far, and no element counts twice in one repeat.
 func countNodes(into, more []Finding) []Finding {
+	seen := map[string]int{}
 	for _, f := range more {
 		fi := -1
 		for i := range into {
@@ -94,13 +97,19 @@ func countNodes(into, more []Finding) []Finding {
 			fi = len(into) - 1
 		}
 		for _, node := range f.Nodes {
+			nth := seen[f.Rule+"\x00"+node.Target]
+			seen[f.Rule+"\x00"+node.Target]++
 			found := false
 			for j := range into[fi].Nodes {
-				if into[fi].Nodes[j].Target == node.Target {
+				if into[fi].Nodes[j].Target != node.Target {
+					continue
+				}
+				if nth == 0 {
 					into[fi].Nodes[j].Runs++
 					found = true
 					break
 				}
+				nth--
 			}
 			if !found {
 				node.Runs = 1

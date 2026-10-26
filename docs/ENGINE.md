@@ -1448,7 +1448,8 @@ as in `chrome/desktop/light (2 of 3 runs)`.
 
 The counts are there for you to judge. The sweep doesn't decide which findings are stable, and an element that
 failed in any repeat fails the sweep, as it would have if that repeat had been the only one. The checks that run
-once for each URL, such as the HTML check, Lighthouse, journeys and links, run in the first repeat only.
+once for each URL, such as the HTML check, Lighthouse, journeys and links, run in the first repeat only, so their
+findings count 1 run and say nothing about whether a problem comes and goes.
 
 ```sh
 dummyrun a11y --repeat 3 https://example.com/

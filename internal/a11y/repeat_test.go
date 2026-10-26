@@ -78,6 +78,23 @@ func TestMergeRepeatsKeepsDuplicateURLsApart(t *testing.T) {
 	}
 }
 
+// TestMergeRepeatsCountsAnElementOncePerRepeat checks an element a check reports twice in one run counts each
+// report once per repeat, never twice.
+func TestMergeRepeatsCountsAnElementOncePerRepeat(t *testing.T) {
+	twice := repeatResult("", "dummyrun-clipped-text@#buy", "dummyrun-clipped-text@#buy")
+	once := repeatResult("", "dummyrun-clipped-text@#buy")
+	got := mergeRepeats([][]PageResult{{twice}, {once}, {twice}})[0]
+	var runs []int
+	for _, f := range got.Violations {
+		for _, n := range f.Nodes {
+			runs = append(runs, n.Runs)
+		}
+	}
+	if len(runs) != 2 || runs[0] != 3 || runs[1] != 2 {
+		t.Errorf("runs %v, want [3 2]", runs)
+	}
+}
+
 // TestMergeRepeatsKeepsTheResultThatRan checks a page that failed to load in the first repeat and loaded in the
 // second keeps the second's checks, with the first's error beside them.
 func TestMergeRepeatsKeepsTheResultThatRan(t *testing.T) {
