@@ -1085,8 +1085,8 @@ These findings fail the sweep like axe rules, and you can accept one with the al
 
 The markup checks also list the roles and `aria-*` attributes the page's shown elements use, and look each one up
 in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C community group that tests how JAWS,
-NVDA and VoiceOver handle each ARIA pattern. A role or attribute that one screen reader and browser pair passed
-fewer than 60 percent of the tests for is advice, `dummyrun-aria-support`. The advice names the first element that
+NVDA and VoiceOver handle each ARIA pattern. When one screen reader and browser pair passes
+under 60 percent of the tests for a role or attribute, the sweep reports advice, `dummyrun-aria-support`. The advice names the first element that
 uses it, how many use it, and each pair's share, such as "NVDA with Chrome 18% (9 of 50)". For a role
 attribute that lists fallbacks, the first role ARIA defines counts, since that's the one the browser uses.
 
