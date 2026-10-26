@@ -92,6 +92,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if p.LinksError != "" {
 			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
 		}
+		if p.PDFError != "" {
+			_, _ = fmt.Fprintf(w, "PDF %s (%s): links not read: %s\n", p.URL, p.Setting(), printable(p.PDFError))
+		}
 	}
 	if r.PDFError != "" {
 		_, _ = fmt.Fprintf(w, "PDF %s\n", printable(r.PDFError))

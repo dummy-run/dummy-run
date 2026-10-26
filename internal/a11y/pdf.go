@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
+	"github.com/dummy-run/dummy-run/internal/links"
 	"github.com/dummy-run/dummy-run/internal/pdfua"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
@@ -130,6 +131,9 @@ func pdfCheck(ctx context.Context, cfg Config, rep *Report) {
 		got, err := pdfua.Check(cctx, bin, files...)
 		if err != nil {
 			rep.PDFError = firstLine(err.Error())
+			for _, i := range which {
+				rep.pdfs[i].Error = "veraPDF didn't finish, so the file wasn't checked"
+			}
 		} else {
 			for k, i := range which {
 				rep.pdfs[i].Compliant, rep.pdfs[i].Rules, rep.pdfs[i].Error = got[k].Compliant, got[k].Rules, got[k].Error
@@ -168,8 +172,27 @@ func pdfFinding(p PDFCheck, path string, allow *AllowList) Finding {
 		HelpURL: "https://docs.verapdf.org/validation/", Nodes: []Node{n}}
 }
 
-// download fetches a PDF with a plain GET and nothing else, up to maxPDFBytes, refusing a redirect to a private
-// address as robots.txt does, and keeps it only when it starts like a PDF.
+// pdfClient follows a redirect only to the PDF's own host or to a public address. Unlike robots.txt, even a private
+// origin, such as a site on localhost, can't send the download on to another private address.
+func pdfClient(base *http.Client, host string) *http.Client {
+	c := http.Client{Timeout: 30 * time.Second}
+	if base != nil {
+		c = *base
+	}
+	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		if !strings.EqualFold(req.URL.Host, host) && links.PrivateHost(req.Context(), req.URL.Host) {
+			return fmt.Errorf("redirects to a private address, %s", req.URL.Host)
+		}
+		return nil
+	}
+	return &c
+}
+
+// download fetches a PDF with a plain GET and nothing else, up to maxPDFBytes, and keeps it only when it starts like
+// a PDF.
 func download(ctx context.Context, cfg Config, raw, name string) error {
 	u, err := url.Parse(raw)
 	if err != nil {
@@ -182,7 +205,7 @@ func download(ctx context.Context, cfg Config, raw, name string) error {
 		return err
 	}
 	req.Header.Set("User-Agent", telemetry.RequestUserAgent(cfg.Identify))
-	resp, err := robotsClient(ctx, cfg.HTTPClient, u.Scheme+"://"+u.Host).Do(req)
+	resp, err := pdfClient(cfg.HTTPClient, u.Host).Do(req)
 	if err != nil {
 		return err
 	}

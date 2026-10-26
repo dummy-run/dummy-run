@@ -1333,8 +1333,8 @@ sweep, and checks each one against PDF/UA-1 (ISO 14289-1), the standard for acce
 [veraPDF](https://verapdf.org/), which runs as its own program, once for all the files, after the last page.
 
 - Only shown links count, and only to the same host as a URL you swept. A PDF on another site is left out.
-- Each PDF is fetched once with a plain GET, sent with the sweep's user agent, up to 25 MB. A redirect to a private
-  address is refused, and with `--respect-robots` a PDF robots.txt disallows is skipped.
+- Each PDF is fetched once with a plain GET, sent with the sweep's user agent, up to 25 MB. A redirect is followed
+  only on the same host or to a public address, even from a site on localhost, and with `--respect-robots` a PDF robots.txt disallows is skipped.
 - A file that isn't a PDF, is too big or can't be read gets an `error` and no verdict.
 - Signed in, or behind preview access, PDFs aren't checked, since the download would carry neither.
 
