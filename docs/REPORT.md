@@ -213,7 +213,7 @@ The standard and WCAG come up in these laws and rules:
 - **EU public sector.** The [Web Accessibility Directive](https://eur-lex.europa.eu/eli/dir/2016/2102/oj) uses
   EN 301 549.
 - **EU businesses providing covered products or services.** The [European Accessibility Act](https://eur-lex.europa.eu/eli/dir/2019/882/oj) covers
-  set products and services, such as online shops, banking and e-books, from 28 June 2025, with some exemptions. The Act sets requirements
+  certain products and services, such as online shops, banking and e-books, from 28 June 2025, with some exemptions. The Act sets requirements
   and leaves the technical detail to harmonised standards. EN 301 549 is the usual technical reference for websites
   while those are settled.
 
