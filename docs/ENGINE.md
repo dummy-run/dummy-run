@@ -943,7 +943,9 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   result is listed as "needs review" in the JSON and doesn't fail the run.
 - Output. A short summary on standard output lists each failure once, with the browser, size and scheme where
   it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the
-  impact. It also has the WCAG criteria, the element selector and the help link.
+  impact. It also has the WCAG criteria, the element selector and the help link. For a CI job, `--junit FILE` and `--ctrf FILE`
+  write each failing rule as a failed test, in JUnit XML or the Common Test Report Format. Each output needs
+  its own file. When robots.txt keeps every page out, they are still written, with no tests. The JSON report also records when the sweep started and ended, in `started_at` and `ended_at`.
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 

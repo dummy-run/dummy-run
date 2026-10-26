@@ -303,7 +303,10 @@ type Report struct {
 	// triedTasks marks each page and window the keyboard and mouse comparison has run on.
 	triedTasks map[string]bool
 
-	Tool           string `json:"tool"`
+	Tool string `json:"tool"`
+	// StartedAt and EndedAt are when the sweep began and finished, in RFC 3339.
+	StartedAt      string `json:"started_at,omitempty"`
+	EndedAt        string `json:"ended_at,omitempty"`
 	Browser        string `json:"browser"`
 	BrowserVersion string `json:"browser_version,omitempty"`
 	AxeVersion     string `json:"axe_version,omitempty"`
@@ -439,7 +442,9 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	if cfg.Settle == 0 {
 		cfg.Settle = 300 * time.Millisecond
 	}
-	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, AdviceTags: AdviceTags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
+	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, AdviceTags: AdviceTags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots,
+		StartedAt: time.Now().UTC().Format(time.RFC3339)}
+	defer func() { rep.EndedAt = time.Now().UTC().Format(time.RFC3339) }()
 	if cfg.Engines {
 		rep.Engines = page.EngineVersions
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -15,7 +16,9 @@ import (
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/plain"
+	"github.com/dummy-run/dummy-run/internal/report"
 	"github.com/dummy-run/dummy-run/internal/signin"
+	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
 const a11yUsage = `Usage:
@@ -100,6 +103,8 @@ Flags:
                     summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --junit FILE      write the failing rules as JUnit XML for a CI job, one test case for each rule
+  --ctrf FILE       write the failing rules in the Common Test Report Format (CTRF) JSON, one test for each rule
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
   --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
@@ -150,6 +155,8 @@ func a11yCmd(args []string) int {
 	repeat := fs.Int("repeat", 1, "how many times to sweep every page and setting, up to 10")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
+	junitPath := fs.String("junit", "", "JUnit XML file of the failing rules")
+	ctrfPath := fs.String("ctrf", "", "CTRF JSON file of the failing rules")
 	sessionPath := fs.String("session", "", "saved session file to load before the sweep")
 	headful := fs.Bool("headful", false, "show the browser window")
 	identify := fs.Bool("identify", false, "name the scanner page in the user agent")
@@ -200,6 +207,10 @@ func a11yCmd(args []string) int {
 		return 2
 	}
 	viewports, scales = layoutSettings(*layout, flagsSet(fs), viewports, scales)
+	if err := checkOutputs(*jsonPath, *junitPath, *ctrfPath); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
+		return 2
+	}
 	if err := checkScreenshotFlags(*shotDir, *layout, scales); err != nil {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return 2
@@ -271,6 +282,10 @@ func a11yCmd(args []string) int {
 				return fail(werr)
 			}
 		}
+		// A CI job that asked for a test report gets one, with no tests in it.
+		if werr := writeTestReports(rep, *junitPath, *ctrfPath); werr != nil {
+			return fail(werr)
+		}
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return exitRobots
 	}
@@ -290,10 +305,26 @@ func a11yCmd(args []string) int {
 			return fail(err)
 		}
 	}
+	if err := writeTestReports(rep, *junitPath, *ctrfPath); err != nil {
+		return fail(err)
+	}
 	if rep.Failed() {
 		return 1
 	}
 	return 0
+}
+
+// writeTestReports writes the JUnit and CTRF reports asked for. An empty path means that one wasn't asked for.
+func writeTestReports(rep *a11y.Report, junitPath, ctrfPath string) error {
+	for format, path := range map[string]string{"junit": junitPath, "ctrf": ctrfPath} {
+		if path == "" {
+			continue
+		}
+		if err := writeTestReport(rep, format, path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // flagsSet names the flags given on the command line.
@@ -351,6 +382,44 @@ func parseTextScales(v string) ([]int, error) {
 func pick[T any](name string, options map[string][]T) ([]T, bool) {
 	v, ok := options[strings.ToLower(name)]
 	return v, ok
+}
+
+// checkOutputs refuses two outputs that would write the same file, since the later one would replace the earlier.
+// --json - goes to standard output, so it shares nothing.
+func checkOutputs(jsonPath, junitPath, ctrfPath string) error {
+	seen := map[string]string{}
+	for _, o := range []struct{ flag, path string }{{"--json", jsonPath}, {"--junit", junitPath}, {"--ctrf", ctrfPath}} {
+		if o.path == "" || (o.flag == "--json" && o.path == "-") {
+			continue
+		}
+		key := filepath.Clean(o.path)
+		if abs, err := filepath.Abs(key); err == nil {
+			key = abs
+		}
+		if other, ok := seen[key]; ok {
+			return fmt.Errorf("%s and %s both write %s; give each its own file", other, o.flag, o.path)
+		}
+		seen[key] = o.flag
+	}
+	return nil
+}
+
+// writeTestReport writes the sweep as a test report for CI, by the same rules as dummyrun report: each failing
+// rule is a failed test.
+func writeTestReport(rep *a11y.Report, format, path string) error {
+	r, err := report.Build(nil, report.Options{A11y: []*a11y.Report{rep}, ToolVersion: telemetry.Version})
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(path) //nolint:gosec // the path comes from the command line on purpose
+	if err != nil {
+		return err
+	}
+	if err := report.Render(f, r, format); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 func writeReport(rep *a11y.Report, path string) error {

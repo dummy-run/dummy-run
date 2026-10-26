@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -83,6 +85,55 @@ func TestLayoutAddsTheReflowSettings(t *testing.T) {
 	}
 	if a11yCmd([]string{"https://example.com/"}); names(got) != "desktop,phone" || len(got.TextScales) != 0 {
 		t.Errorf("without --layout: viewports %s, scales %v", names(got), got.TextScales)
+	}
+}
+
+// TestA11yWritesTestReports checks --junit and --ctrf write each failing rule as a failed test.
+func TestA11yWritesTestReports(t *testing.T) {
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		return &a11y.Report{Browser: "chrome", AxeVersion: "4.13.0", StartedAt: "2026-10-26T10:00:00Z", EndedAt: "2026-10-26T10:01:30Z", Summary: a11y.Summary{Failing: 1}, Results: []a11y.PageResult{{URL: cfg.URLs[0], Viewport: "desktop", Scheme: "light",
+			Violations: []a11y.Finding{{Rule: "image-alt", Impact: "critical", WCAG: []string{"1.1.1"}, Help: "Images must have alternative text", Nodes: []a11y.Node{{Target: "#logo"}}}}}}}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	dir := t.TempDir()
+	junit, ctrf := filepath.Join(dir, "a11y.xml"), filepath.Join(dir, "a11y.ctrf.json")
+	if code := a11yCmd([]string{"--junit", junit, "--ctrf", ctrf, "https://example.com/"}); code != 1 {
+		t.Fatalf("exit %d, want 1 for a failing rule", code)
+	}
+	x, err := os.ReadFile(junit)
+	if err != nil || !strings.Contains(string(x), `classname="axe.image-alt"`) || !strings.Contains(string(x), "<failure") {
+		t.Errorf("junit: %v\n%s", err, x)
+	}
+	var doc struct {
+		ReportFormat string `json:"reportFormat"`
+		Results      struct {
+			Summary struct {
+				Tests, Failed int
+				Start, Stop   int64
+			} `json:"summary"`
+		} `json:"results"`
+	}
+	b, err := os.ReadFile(ctrf)
+	if err != nil || json.Unmarshal(b, &doc) != nil || doc.ReportFormat != "CTRF" || doc.Results.Summary.Tests != 1 || doc.Results.Summary.Failed != 1 ||
+		doc.Results.Summary.Start != 1793008800000 || doc.Results.Summary.Stop != 1793008890000 {
+		t.Errorf("ctrf: %v %+v\n%s", err, doc, b)
+	}
+}
+
+// TestA11yRefusesSharedOutputs checks two outputs can't write the same file.
+func TestA11yRefusesSharedOutputs(t *testing.T) {
+	ran := false
+	a11yRun = func(context.Context, a11y.Config) (*a11y.Report, error) { ran = true; return &a11y.Report{}, nil }
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	f := filepath.Join(t.TempDir(), "out")
+	for _, args := range [][]string{{"--junit", f, "--ctrf", f}, {"--json", f, "--ctrf", filepath.Dir(f) + "/./out"}} {
+		ran = false
+		if code := a11yCmd(append(args, "https://example.com/")); code != 2 || ran {
+			t.Errorf("%v: exit %d, sweep ran %v", args, code, ran)
+		}
+	}
+	if code := a11yCmd([]string{"--json", "-", "--ctrf", f, "https://example.com/"}); code != 0 {
+		t.Errorf("--json - with a file: exit %d", code)
 	}
 }
 

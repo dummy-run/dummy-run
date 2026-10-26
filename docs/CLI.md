@@ -151,7 +151,7 @@ Turn run records and accessibility sweep results into an audit report. See [REPO
 
 ```text
 Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--title TEXT] [--client TEXT]
-    [--format html|md|json|sarif|junit|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+    [--format html|md|json|sarif|junit|ctrf|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
 
 Turns run records and accessibility sweep results into an audit report. The default is one self-contained
 HTML file. It shows only the findings a reviewer has confirmed. Add --include pending to show the rest,
@@ -170,7 +170,7 @@ Both say how many findings are open and the date of the newest run.
   -date string
     	report date as YYYY-MM-DD (default today)
   -format string
-    	html, md, json, sarif, junit, badge (SVG) or shields (shields.io endpoint JSON) (default "html")
+    	html, md, json, sarif, junit, ctrf, badge (SVG) or shields (shields.io endpoint JSON) (default "html")
   -include string
     	"pending" also includes findings no reviewer has confirmed, marked not reviewed (default: confirmed only)
   -out string
@@ -321,6 +321,8 @@ Flags:
                     summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --junit FILE      write the failing rules as JUnit XML for a CI job, one test case for each rule
+  --ctrf FILE       write the failing rules in the Common Test Report Format (CTRF) JSON, one test for each rule
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
   --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are

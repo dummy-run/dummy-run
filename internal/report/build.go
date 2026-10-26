@@ -98,6 +98,10 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 		rep.Basis = "confirmed findings and findings not reviewed"
 	}
 	rep.Scope = buildScope(runs)
+	// A report from a sweep alone takes its times from the sweep.
+	if rep.Scope.StartedAt == "" {
+		rep.Scope.StartedAt, rep.Scope.EndedAt = sweepTimes(opt.A11y)
+	}
 	rep.Axe = buildAxe(opt.A11y, routesVisited(runs))
 	var axeRules map[string]AxeRule
 	if rep.Axe != nil {
@@ -1011,6 +1015,23 @@ func summarise(rep *Report) {
 	}
 	s.Fixed = len(rep.Fixed)
 	s.Text = summaryText(rep)
+}
+
+// sweepTimes is the earliest start and the latest end of the sweeps, or empty when they don't say. The times are
+// compared as instants, so sweeps written with different time zone offsets order correctly. A time that isn't RFC
+// 3339 is left out.
+func sweepTimes(reps []*a11y.Report) (string, string) {
+	var start, end string
+	var first, last time.Time
+	for _, r := range reps {
+		if t, err := time.Parse(time.RFC3339Nano, r.StartedAt); err == nil && (start == "" || t.Before(first)) {
+			start, first = r.StartedAt, t
+		}
+		if t, err := time.Parse(time.RFC3339Nano, r.EndedAt); err == nil && (end == "" || t.After(last)) {
+			end, last = r.EndedAt, t
+		}
+	}
+	return start, end
 }
 
 // addEN301549 fills in the EN 301 549 clauses from the WCAG criteria of every finding and axe rule.
