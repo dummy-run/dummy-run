@@ -1429,6 +1429,23 @@ sweep's browser, so later settings for the same site may show no banner.
 dummyrun a11y --consent --layout https://example.com/
 ```
 
+### Did the rules see the same page
+
+Two sweeps of one page can disagree because the page changed between them: an A/B test, a banner, or content
+that loads late. Each result has `state`, which identifies the page the rules saw. Just before the rules run, the
+sweep describes the page: each element's tag, role and ARIA attributes, the attributes and states that change what
+assistive technology gets, such as `alt`, `hidden`, `disabled` and `checked`, and the text, in order, including
+open shadow roots. `state.hash` is the SHA-256 of that description and `state.elements` counts the elements.
+
+The description leaves out what changes on every load without changing the page: ids and the attributes that
+point at them, such as `aria-labelledby` and `for`, link addresses, form values, scripts and styles. So a fresh
+session token or a generated id doesn't change the hash, but different text or a menu that starts open does.
+
+Equal hashes mean the rules saw the same page. Different hashes mean the page itself changed, and a finding that
+differs between the two results may come from that change. The sweep only records the hash. Comparing
+hashes across runs is for you or your pipeline to do. A description over 8 MB is hashed from its start, and
+`state.partial` says so. `state_error` says why the state couldn't be read.
+
 ### Check the sweep against known problems
 
 The benchmark in `internal/benchmark` measures how many known problems the sweep finds. It plants known barriers in
