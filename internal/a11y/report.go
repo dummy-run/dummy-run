@@ -92,6 +92,18 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if p.LinksError != "" {
 			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
 		}
+		if p.ARIASnapshotError != "" {
+			_, _ = fmt.Fprintf(w, "SNAPSHOT %s (%s): %s\n", p.URL, p.Setting(), printable(p.ARIASnapshotError))
+		}
+		if c := p.ARIAChanges; c != nil && c.AddedCount+c.RemovedCount > 0 {
+			_, _ = fmt.Fprintf(w, "CHANGED %s (%s): %d lines added and %d removed in the ARIA snapshot\n", p.URL, p.Setting(), c.AddedCount, c.RemovedCount)
+			for _, l := range c.Removed {
+				_, _ = fmt.Fprintf(w, "     - %s\n", printable(snapshotItem(l)))
+			}
+			for _, l := range c.Added {
+				_, _ = fmt.Fprintf(w, "     + %s\n", printable(snapshotItem(l)))
+			}
+		}
 	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",

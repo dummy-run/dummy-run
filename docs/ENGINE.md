@@ -1081,6 +1081,39 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
+### ARIA snapshots
+
+A site you check again and again needs to show what changed. Add `--aria-snapshots DIR` and the sweep writes an
+outline of each page in each setting to DIR, in the style of
+[Playwright's ARIA snapshots](https://playwright.dev/docs/aria-snapshots). It lists landmarks, headings and
+controls in page order, as YAML, each with its role, its accessible name and its states. A landmark's contents sit
+under it:
+
+```yaml
+- banner:
+  - link "Home"
+- main:
+  - heading "Shop" [level=1]
+  - button "Buy" [disabled]
+  - checkbox "Gift wrap" [checked]
+```
+
+Words that aren't headings or names are left out, and so are hidden elements. So the outline changes when the
+page's structure or controls change, and stays the same when only its words do. Names come from the spec
+computation alone, so a snapshot doesn't depend on whether axe loaded. A page keeps up to 2,000 lines, and
+`aria_snapshot_omitted` counts any more.
+
+If DIR already holds a snapshot for the page and setting, the sweep compares the two first. The result's
+`aria_changes` lists up to 50 lines added and 50 removed, and counts them all. The terminal shows a `CHANGED`
+line for each page with the lines that changed. Then the new snapshot replaces the old one. Each file name comes
+from the page's address and setting, with a short hash, such as `example.com_shop--chrome_desktop_light-1a2b3c4d.yaml`.
+A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
+changes and decide.
+
+```sh
+dummyrun a11y --aria-snapshots snapshots https://example.com/
+```
+
 ### Other rule engines
 
 Each rule engine catches things the others miss, and each has its own false alarms. Add `--engines` to run four

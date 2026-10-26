@@ -77,6 +77,9 @@ type Config struct {
 	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
 	Markup bool
+	// ARIASnapshots is a directory for the ARIA snapshots of each page and setting. A snapshot left there by an
+	// earlier sweep is compared with the new one, and the new one takes its place.
+	ARIASnapshots string
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
@@ -164,6 +167,14 @@ type PageResult struct {
 	TextScale int `json:"text_scale,omitempty"`
 	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
 	MarkupChecked bool `json:"markup_checked,omitempty"`
+	// ARIASnapshot is the file the page's ARIA snapshot was written to, and ARIASnapshotOmitted counts the elements
+	// past its 2,000 lines.
+	ARIASnapshot        string `json:"aria_snapshot,omitempty"`
+	ARIASnapshotOmitted int    `json:"aria_snapshot_omitted,omitempty"`
+	// ARIAChanges are the lines that differ from the snapshot an earlier sweep left, when there was one.
+	ARIAChanges *ARIAChanges `json:"aria_changes,omitempty"`
+	// ARIASnapshotError says why the snapshot couldn't be taken, read or written.
+	ARIASnapshotError string `json:"aria_snapshot_error,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
 	// KeyboardChecked says the Tab walk ran, so a result with none of its rules means it found nothing.
@@ -815,6 +826,9 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Tasks = t
 		res.Violations = append(res.Violations, taskFindings(t, path, cfg.Allow)...)
 	}()
+	if cfg.ARIASnapshots != "" {
+		snapshotCheck(pctx, conn, cx, cfg.ARIASnapshots, &res)
+	}
 	if cfg.Markup {
 		m, err := page.RunMarkupChecks(pctx, conn, cx)
 		if err != nil {
