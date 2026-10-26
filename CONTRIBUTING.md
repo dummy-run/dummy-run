@@ -85,6 +85,23 @@ go test -run='^$' -fuzz=FuzzWrite -fuzztime=30s ./internal/record/
 go test -run='^$' -fuzz=FuzzDecodeResponses -fuzztime=30s ./internal/provider/
 ```
 
+Every Monday the `Mutation` workflow checks how well the unit tests catch changes to the code, with
+[gremlins](https://github.com/go-gremlins/gremlins). It makes one small change at a time, such as `>` to `>=`
+or `+` to `-`, and runs the package's tests. A change the tests catch is killed. One they still pass has lived,
+and is a gap in the tests. A change on a line no test runs is not covered. The workflow splits the packages
+between four jobs and writes a summary: the counts, each package's test efficacy (killed over killed and lived)
+and the files with the most changes that lived. It never fails, since the counts are for you to read. The
+benchmark and the confidence table are left out, since their tests check measured numbers. Browser tests skip
+there, so a change only they would catch counts as lived or not covered.
+
+To run it yourself, install gremlins 0.6.0 and pass an output directory, and optionally a part and how many parts:
+
+```sh
+go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+bin/mutation mutation 0 4
+bin/mutation-summary mutation
+```
+
 The OpenAI-compatible chat fixtures were recorded from a local Ollama, and the other providers' fixtures
 follow each vendor's documented format. To test against a local model, set `DUMMYRUN_OLLAMA_MODEL`. The
 test is skipped when the variable is unset.

@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Write a Markdown summary of gremlins JSON reports. Usage: bin/mutation-summary DIR_OR_FILE...
+
+It adds up the counts of every report, then lists the packages by test efficacy and the files with the most
+mutants the tests let live, so you know where to add a test first.
+"""
+import collections
+import json
+import pathlib
+import sys
+
+
+def reports(args):
+    for a in args:
+        p = pathlib.Path(a)
+        for f in sorted(p.rglob("*.json")) if p.is_dir() else [p]:
+            try:
+                yield f, json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as e:
+                print(f"Skipped {f}: {e}", file=sys.stderr)
+
+
+def main(args):
+    total = collections.Counter()
+    per = []
+    lived = collections.Counter()
+    for f, d in reports(args):
+        k, l, nc = d.get("mutants_killed", 0), d.get("mutants_lived", 0), d.get("mutants_not_covered", 0)
+        total.update(killed=k, lived=l, not_covered=nc)
+        pkg = f.stem.replace("_", "/")
+        per.append((pkg, k, l, nc))
+        for fl in d.get("files", []):
+            for m in fl.get("mutations", []):
+                if m.get("status") == "LIVED":
+                    lived[pkg + "/" + fl.get("file_name", "?")] += 1
+    if not per:
+        print("No mutation reports.")
+        return 0
+    k, l, nc = total["killed"], total["lived"], total["not_covered"]
+    eff = 100 * k / (k + l) if k + l else 0
+    cov = 100 * (k + l) / (k + l + nc) if k + l + nc else 0
+    print("## Mutation testing\n")
+    print("| Killed | Lived | Not covered | Test efficacy | Mutant coverage |")
+    print("|---|---|---|---|---|")
+    print(f"| {k} | {l} | {nc} | {eff:.1f}% | {cov:.1f}% |")
+    print("\nTest efficacy is killed over killed and lived. Mutant coverage is killed and lived over all mutants.\n")
+    print("| Package | Killed | Lived | Not covered | Test efficacy |")
+    print("|---|---|---|---|---|")
+    for name, k, l, nc in sorted(per, key=lambda r: (r[1] / (r[1] + r[2]) if r[1] + r[2] else 1, r[0])):
+        e = f"{100 * k / (k + l):.1f}%" if k + l else "none run"
+        print(f"| `{name}` | {k} | {l} | {nc} | {e} |")
+    if lived:
+        print("\nFiles with the most mutants the tests let live:\n")
+        for name, n in lived.most_common(15):
+            print(f"- `{name}`: {n}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:] or ["mutation"]))
