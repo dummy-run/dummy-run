@@ -986,15 +986,18 @@ func summarise(rep *Report) {
 	s.Text = summaryText(rep)
 }
 
-// sweepTimes is the earliest start and the latest end of the sweeps, or empty when they don't say.
+// sweepTimes is the earliest start and the latest end of the sweeps, or empty when they don't say. The times are
+// compared as instants, so sweeps written with different time zone offsets order correctly. A time that isn't RFC
+// 3339 is left out.
 func sweepTimes(reps []*a11y.Report) (string, string) {
-	start, end := "", ""
+	var start, end string
+	var first, last time.Time
 	for _, r := range reps {
-		if r.StartedAt != "" && (start == "" || r.StartedAt < start) {
-			start = r.StartedAt
+		if t, err := time.Parse(time.RFC3339Nano, r.StartedAt); err == nil && (start == "" || t.Before(first)) {
+			start, first = r.StartedAt, t
 		}
-		if r.EndedAt > end {
-			end = r.EndedAt
+		if t, err := time.Parse(time.RFC3339Nano, r.EndedAt); err == nil && (end == "" || t.After(last)) {
+			end, last = r.EndedAt, t
 		}
 	}
 	return start, end
