@@ -1438,7 +1438,9 @@ page in every setting N times, each time in a fresh browser.
 The report still has one result for each page and setting. Each failing element gets `runs`, the number of repeats
 it failed in, so an element in 3 of 3 runs is there every time and one in 1 of 3 comes and goes. An element that
 failed only in a later repeat is still listed. Each result gets `repeats`, how many times its page was tested, and
-`error_runs`, how many of those couldn't test it, with the first reason in `error`. The summary shows the counts,
+`error_runs`, how many of those couldn't test it, with the first reason in `error`. The rest of the result, such as
+which checks ran, comes from the first repeat that could test the page. A URL you give twice, say in the sitemap
+and on the command line, keeps its two results, and each counts once per repeat. The summary shows the counts,
 as in `chrome/desktop/light (2 of 3 runs)`.
 
 The counts are there for you to judge. The sweep doesn't decide which findings are stable, and an element that

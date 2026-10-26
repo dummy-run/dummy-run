@@ -63,6 +63,33 @@ func TestMergeRepeatsCountsRuns(t *testing.T) {
 	}
 }
 
+// TestMergeRepeatsKeepsDuplicateURLsApart checks a URL given twice in one sweep, such as from the sitemap and the
+// command line, keeps two results that each count once per repeat.
+func TestMergeRepeatsKeepsDuplicateURLsApart(t *testing.T) {
+	run := []PageResult{repeatResult("", "image-alt@img"), repeatResult("", "image-alt@img")}
+	got := mergeRepeats([][]PageResult{run, run})
+	if len(got) != 2 {
+		t.Fatalf("%d results, want 2", len(got))
+	}
+	for _, p := range got {
+		if n := p.Violations[0].Nodes[0].Runs; n != 2 || p.Repeats != 2 {
+			t.Errorf("runs %d of %d, want 2 of 2", n, p.Repeats)
+		}
+	}
+}
+
+// TestMergeRepeatsKeepsTheResultThatRan checks a page that failed to load in the first repeat and loaded in the
+// second keeps the second's checks, with the first's error beside them.
+func TestMergeRepeatsKeepsTheResultThatRan(t *testing.T) {
+	failed := repeatResult("load: timed out")
+	ok := repeatResult("", "dummyrun-label-in-name@#q")
+	ok.MarkupChecked = true
+	got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]
+	if !got.MarkupChecked || got.Error != "load: timed out" || got.ErrorRuns != 1 || len(got.Violations) != 1 || got.Violations[0].Nodes[0].Runs != 1 {
+		t.Errorf("%+v", got)
+	}
+}
+
 func TestSummaryShowsRepeatCounts(t *testing.T) {
 	r := &Report{Repeats: 2, Results: mergeRepeats([][]PageResult{
 		{repeatResult("", "image-alt@img")},
