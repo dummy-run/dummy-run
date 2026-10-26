@@ -62,6 +62,13 @@ copyright lines:
 | [Vale](https://github.com/vale-cli/vale) by Joseph Kato | 3.24.0 in the container image | Checks the main content of each page with `--plain-language`. It runs as its own program | MIT |
 | [Vale Readability style](https://github.com/vale-cli/Readability) | as published | The Flesch reading ease and Flesch-Kincaid grade rules, used unchanged | MIT |
 
+## HTML checking
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [Nu HTML Checker](https://github.com/validator/validator) (vnu) | 26.10.12 in the container image | Checks each page's HTML with `--html`. It runs as its own program | MIT |
+| [OpenJDK](https://openjdk.org/) from Debian | 21, cut down with jlink, in the container image | The Java runtime vnu runs on | GPL-2.0 with the Classpath Exception |
+
 The long sentence, words to avoid and Latin abbreviation rules are our own, written from the public
 [GOV.UK A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/).
 

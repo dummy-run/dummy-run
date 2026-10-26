@@ -240,6 +240,82 @@
   sources:
     - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#eg-etc-and-ie
 
+- rule: dummyrun-html-broken-reference
+  owner: development
+  summary: Point each ID reference at an element that exists and can take it.
+  steps:
+    - Find the attribute named in the finding, such as aria-labelledby, aria-describedby, aria-controls or a label's for.
+    - Give it the ID of an element on the page, or add that ID to the element it is meant to name.
+    - For a label, point for at the form field itself, not at a wrapper or a hidden field.
+  example:
+    before: '<label for="email-field">Email</label> <input id="email">'
+    after: '<label for="email">Email</label> <input id="email">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html
+
+- rule: dummyrun-html-duplicate-id
+  owner: development
+  summary: Give every element its own ID.
+  steps:
+    - Find the ID named in the finding and rename all but one of the elements that use it.
+    - Update any label, aria attribute or link that points at the renamed elements.
+    - If a script or template adds the element more than once, have it make a new ID each time.
+  example:
+    before: '<input id="name"> ... <input id="name">'
+    after: '<input id="first-name"> ... <input id="last-name">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html
+
+- rule: dummyrun-html-nested-interactive
+  owner: development
+  summary: Keep each control separate, never inside another control.
+  steps:
+    - Take the inner link or button out of the outer one named in the finding.
+    - If the whole area should be clickable, make one control and style it, rather than nesting two.
+  example:
+    before: '<button><a href="/basket">Basket</a></button>'
+    after: '<a class="button" href="/basket">Basket</a>'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html
+
+- rule: dummyrun-html-aria
+  owner: development
+  summary: Use only roles and ARIA attributes the element can have, with values they can take.
+  steps:
+    - Check the spelling of the role or attribute named in the finding.
+    - Check the value is one the attribute allows, such as true or false for aria-checked.
+    - Where a native element does the job, such as a button or a checkbox, use it and remove the role.
+  example:
+    before: '<div role="btn-primary">Save</div>'
+    after: '<button type="button">Save</button>'
+  sources:
+    - https://www.w3.org/TR/html-aria/
+
+- rule: dummyrun-html-structure
+  owner: development
+  summary: Write lists, tables and nested tags so the browser builds the structure you meant.
+  steps:
+    - Put only li elements directly inside ul and ol, and only rows and cells inside a table.
+    - Close tags in the order you opened them.
+    - Check the page again, so the structure screen readers report matches the one you wrote.
+  example:
+    before: "<ul><div>Item</div></ul>"
+    after: "<ul><li>Item</li></ul>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html
+
+- rule: dummyrun-html-img-alt
+  owner: content
+  summary: Give every image an alt attribute.
+  steps:
+    - Describe what the image tells the reader in its alt text.
+    - If the image is only decoration, give it an empty alt attribute.
+  example:
+    before: '<img src="chart.png">'
+    after: '<img src="chart.png" alt="Sales rose by a third in 2025">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html
+
 - rule: dummyrun-engines-
   owner: development
   summary: Fix the problem two or more rule engines agree on.

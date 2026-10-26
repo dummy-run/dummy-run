@@ -40,6 +40,10 @@ Flags:
                     Each failing element says which engines agree, and its confidence is rated with them. A failure
                     axe misses and two others agree on is a violation (rule dummyrun-engines-<criterion>); one that
                     only one engine reports is a candidate, kept in the JSON and never failing the sweep
+  --html            also check each page's HTML with the Nu HTML Checker (vnu), as the server sent it and as the
+                    browser built it. Only errors that change what assistive technology gets are kept, such as
+                    duplicate IDs, a link inside a button, a bad role or a list with stray children. The results are
+                    advice. Needs vnu on the PATH or DUMMYRUN_VNU
   --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
                     hide the text, take a picture of what is behind it and compare the text colour with every pixel.
                     Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
@@ -97,6 +101,7 @@ func a11yCmd(args []string) int {
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
 	plainLang := fs.Bool("plain-language", false, "check the main content with Vale")
+	htmlCheck := fs.Bool("html", false, "check the HTML with the Nu HTML Checker")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
@@ -141,7 +146,7 @@ func a11yCmd(args []string) int {
 	}
 	if *all {
 		// One switch for every check. A check added later joins this list.
-		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, imageContrast} {
+		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, htmlCheck, imageContrast} {
 			*on = true
 		}
 	}
@@ -206,7 +211,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

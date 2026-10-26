@@ -262,6 +262,10 @@ Flags:
                     Each failing element says which engines agree, and its confidence is rated with them. A failure
                     axe misses and two others agree on is a violation (rule dummyrun-engines-<criterion>); one that
                     only one engine reports is a candidate, kept in the JSON and never failing the sweep
+  --html            also check each page's HTML with the Nu HTML Checker (vnu), as the server sent it and as the
+                    browser built it. Only errors that change what assistive technology gets are kept, such as
+                    duplicate IDs, a link inside a button, a bad role or a list with stray children. The results are
+                    advice. Needs vnu on the PATH or DUMMYRUN_VNU
   --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
                     hide the text, take a picture of what is behind it and compare the text colour with every pixel.
                     Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)

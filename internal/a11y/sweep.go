@@ -21,6 +21,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
+	"github.com/dummy-run/dummy-run/internal/validate"
 )
 
 // ErrRobotsDisallow is returned when robots.txt disallows Dummy Run from every page given. No browser is started.
@@ -81,6 +82,9 @@ type Config struct {
 	// PlainLanguage checks the main content of each page with Vale: readability scores, long sentences, words the
 	// GOV.UK style guide asks you to avoid and Latin abbreviations. The results are advice.
 	PlainLanguage bool
+	// HTML checks each page's HTML with the Nu HTML Checker (vnu), once for each URL, and keeps the errors that
+	// change what assistive technology gets. The results are advice.
+	HTML bool
 	// Engines runs IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
@@ -167,6 +171,17 @@ type PageResult struct {
 	PlainLanguageChecked bool   `json:"plain_language_checked,omitempty"`
 	PlainLanguagePartial bool   `json:"plain_language_partial,omitempty"`
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
+	// HTMLChecked says vnu checked the page as the browser built it. HTMLSourceChecked says it also checked the HTML
+	// as the server sent it, where parse errors are. HTMLPartial says a copy was too long and only its start was
+	// read. HTMLStopped says vnu hit a fatal error in a copy and checked none of it after that. HTMLIgnored counts the
+	// errors vnu reported that don't change what assistive technology gets, such as an obsolete element. HTMLError
+	// says why the check could not run. Only the first result for each URL that axe could check has these.
+	HTMLChecked       bool   `json:"html_checked,omitempty"`
+	HTMLSourceChecked bool   `json:"html_source_checked,omitempty"`
+	HTMLPartial       bool   `json:"html_partial,omitempty"`
+	HTMLStopped       bool   `json:"html_stopped,omitempty"`
+	HTMLIgnored       int    `json:"html_ignored,omitempty"`
+	HTMLError         string `json:"html_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// EnginesRan names the other rule engines that finished on the page. EngineErrors says why any others did not.
@@ -180,7 +195,9 @@ type PageResult struct {
 	Skipped     string    `json:"skipped,omitempty"`
 	Violations  []Finding `json:"violations"`
 	NeedsReview []Finding `json:"needs_review"`
-	// Advice holds the best-practice rules that failed and have no WCAG criterion. They never fail the sweep.
+	// Advice holds results that never fail the sweep: axe's best-practice rules, plain language, a cookie banner
+	// with no reject button and the HTML check's errors. Some of these name the WCAG criterion they most often
+	// break.
 	Advice []Finding `json:"advice,omitempty"`
 	// Candidates are failures one other engine reports and axe does not. They are kept for review and never fail
 	// the sweep.
@@ -223,8 +240,10 @@ type Report struct {
 	// Engines are the versions of the other rule engines, when the sweep ran them.
 	Engines map[string]string `json:"engines,omitempty"`
 	// Autoconsent is the version of DuckDuckGo autoconsent, when the sweep answered cookie banners.
-	Autoconsent string   `json:"autoconsent,omitempty"`
-	Tags        []string `json:"tags"`
+	Autoconsent string `json:"autoconsent,omitempty"`
+	// Vnu is the version of the Nu HTML Checker the sweep's HTML check is written for, when it ran.
+	Vnu  string   `json:"vnu,omitempty"`
+	Tags []string `json:"tags"`
 	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
 	AdviceTags    []string `json:"advice_tags,omitempty"`
 	Identify      bool     `json:"identify,omitempty"`
@@ -233,6 +252,8 @@ type Report struct {
 	PreviewAccess *access.Summary `json:"preview_access,omitempty"`
 	Results       []PageResult    `json:"results"`
 	Summary       Summary         `json:"summary"`
+	// htmlChecked holds the URLs whose HTML was checked, so each is checked once.
+	htmlChecked map[string]bool
 }
 
 // Summary totals a report.
@@ -326,6 +347,9 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	}
 	if cfg.Consent {
 		rep.Autoconsent = page.AutoconsentVersion
+	}
+	if cfg.HTML {
+		rep.Vnu = validate.VnuVersion
 	}
 	if cfg.Access.Active() {
 		sum := cfg.Access.Summary()
@@ -544,6 +568,18 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			continue
 		}
 		res.NeedsReview = append(res.NeedsReview, finding(r, path, nil))
+	}
+	// The HTML is checked once for each URL, at the first window size and colour scheme axe could check. It runs
+	// before the checks that can end the page early, so the first result axe could check has it.
+	if cfg.HTML && !rep.htmlChecked[u] {
+		if rep.htmlChecked == nil {
+			rep.htmlChecked = map[string]bool{}
+		}
+		rep.htmlChecked[u] = true
+		// vnu gets a limit of its own, so a slow run leaves the page's later checks their time.
+		hctx, hcancel := context.WithTimeout(pctx, htmlTimeout)
+		htmlCheck(hctx, conn, cx, &res, path, cfg.Allow)
+		hcancel()
 	}
 	if cfg.Engines {
 		r, err := page.RunEngines(pctx, conn, cx, axeNodes(res.Violations), CriteriaAA())

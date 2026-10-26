@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Smoke test a Dummy Run image: it runs as a non-root user, prints its version and Vale's, and the accessibility
-# sweep passes on a local page in Chrome and in Firefox.
+# Smoke test a Dummy Run image: it runs as a non-root user, prints its version, Vale's and the Nu HTML Checker's,
+# and the accessibility sweep, with the HTML check, passes on a local page in Chrome and in Firefox.
 # Usage: scripts/smoke-image.sh IMAGE
 # The page is served from docker/smoke on the host and the container shares the host network.
 # Set SMOKE_URL to test another page instead, for example http://host.docker.internal:8099/ on Docker Desktop.
@@ -43,9 +43,15 @@ echo "smoke: user id $uid"
 
 docker run --rm "$image" version
 docker run --rm --entrypoint /opt/vale/vale "$image" --version
+docker run --rm --entrypoint /opt/vnu/bin/vnu "$image" --version
 
 for browser in chrome firefox; do
   echo "smoke: a11y on $browser"
-  docker run --rm ${network[@]+"${network[@]}"} "$image" a11y --browser "$browser" "$url"
+  out=$(docker run --rm ${network[@]+"${network[@]}"} "$image" a11y --browser "$browser" --html --json - "$url")
+  if ! printf '%s' "$out" | grep -Eq '"html_checked": *true'; then
+    echo "smoke: the HTML check did not run on $browser" >&2
+    printf '%s\n' "$out" | grep -E '"html_error"' >&2 || true
+    exit 1
+  fi
 done
 echo "smoke: passed"
