@@ -1303,7 +1303,7 @@ as "deliver" for post. Every result goes to `advice`, because plain language at 
 requirement, so it never fails the sweep. A page that reaches the check has `plain_language_checked`, or
 `plain_language_error` when the check couldn't complete, such as when Vale won't run. A page that fails earlier,
 such as when it won't load, has neither. A main landmark the page hides completely has nothing to check. That includes one with `display: contents`
-inside an element the page hides. Vale reads
+inside an element with `display: none` or opacity 0. Vale reads
 the first 200,000 characters of the main content's HTML. When there's more, `plain_language_partial` is true.
 
 The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names. The container image includes Vale
