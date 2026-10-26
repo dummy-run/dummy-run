@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Write a Markdown summary of gremlins JSON reports. Usage: bin/mutation-summary [--shards N] DIR_OR_FILE...
+
+It adds up the counts of every report, then lists the packages by test efficacy and the files with the most
+mutants the tests let live, so you know where to add a test first. A package with a .pkg file and no report is
+listed as not finished, and with --shards, so is a shard that left no .done file, so a short total doesn't pass
+for a whole one.
+"""
+import collections
+import json
+import pathlib
+import sys
+
+
+def reports(args):
+    for a in args:
+        p = pathlib.Path(a)
+        for f in sorted(p.rglob("*.json")) if p.is_dir() else [p]:
+            try:
+                yield f, json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as e:
+                print(f"Skipped {f}: {e}", file=sys.stderr)
+
+
+def readable(f):
+    """Say whether a report exists and holds JSON, so a broken one counts as not finished."""
+    try:
+        json.loads(f.read_text(encoding="utf-8"))
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def packages(args):
+    """Map each report file's stem to the import path bin/mutation recorded for it."""
+    names = {}
+    for a in args:
+        p = pathlib.Path(a)
+        for f in sorted(p.rglob("*.pkg")) if p.is_dir() else []:
+            names[f.stem] = (f.read_text(encoding="utf-8").strip(), readable(f.with_suffix(".json")))
+    return names
+
+
+def missing_shards(args, shards):
+    """List the shards out of shards that left no .done file."""
+    if not shards:
+        return []
+    done = set()
+    for a in args:
+        p = pathlib.Path(a)
+        for f in p.rglob("shard-*-of-*.done") if p.is_dir() else []:
+            parts = f.name[: -len(".done")].split("-")
+            # A marker from a run split another way doesn't vouch for this one.
+            if len(parts) == 4 and parts[3] == str(shards):
+                done.add(parts[1])
+    return [str(i) for i in range(shards) if str(i) not in done]
+
+
+def main(args):
+    shards = 0
+    if len(args) >= 2 and args[0] == "--shards":
+        shards, args = int(args[1]), args[2:]
+    args = args or ["mutation"]
+    names = packages(args)
+    total = collections.Counter()
+    per = []
+    lived = collections.Counter()
+    for f, d in reports(args):
+        k, l, nc = d.get("mutants_killed", 0), d.get("mutants_lived", 0), d.get("mutants_not_covered", 0)
+        total.update(killed=k, lived=l, not_covered=nc)
+        pkg = names.get(f.stem, (f.stem.replace("_", "/"), True))[0]
+        per.append((pkg, k, l, nc))
+        for fl in d.get("files", []):
+            for m in fl.get("mutations", []):
+                if m.get("status") == "LIVED":
+                    lived[pkg + "/" + fl.get("file_name", "?")] += 1
+    unfinished = sorted(pkg for pkg, reported in names.values() if not reported)
+    missing = missing_shards(args, shards)
+    if not per:
+        print("No mutation reports.")
+    else:
+        k, l, nc = total["killed"], total["lived"], total["not_covered"]
+        eff = f"{100 * k / (k + l):.1f}%" if k + l else "none run"
+        cov = f"{100 * (k + l) / (k + l + nc):.1f}%" if k + l + nc else "none run"
+        print("## Mutation testing\n")
+        print("| Killed | Lived | Not covered | Test efficacy | Mutant coverage |")
+        print("|---|---|---|---|---|")
+        print(f"| {k} | {l} | {nc} | {eff} | {cov} |")
+        print("\nTest efficacy is killed over killed and lived. Mutant coverage is killed and lived over all mutants.\n")
+        print("| Package | Killed | Lived | Not covered | Test efficacy |")
+        print("|---|---|---|---|---|")
+        for name, k, l, nc in sorted(per, key=lambda r: (r[1] / (r[1] + r[2]) if r[1] + r[2] else 1, r[0])):
+            e = f"{100 * k / (k + l):.1f}%" if k + l else "none run"
+            print(f"| `{name}` | {k} | {l} | {nc} | {e} |")
+    if missing:
+        print(f"\nShards that didn't finish, so the totals leave out their packages: {', '.join(missing)} of {shards}.")
+    if unfinished:
+        print("\nPackages that didn't finish, so the totals leave them out:\n")
+        for name in unfinished:
+            print(f"- `{name}`")
+    if lived:
+        print("\nFiles with the most mutants the tests let live:\n")
+        for name, n in lived.most_common(15):
+            print(f"- `{name}`: {n}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
