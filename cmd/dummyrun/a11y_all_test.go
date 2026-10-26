@@ -2,15 +2,18 @@ package main
 
 import (
 	"context"
+	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/dummy-run/dummy-run/internal/a11y"
+	"github.com/dummy-run/dummy-run/internal/plain"
 )
 
 // TestAllNamesEveryCheck keeps --all honest: every check flag in the help is one --all turns on.
 func TestAllNamesEveryCheck(t *testing.T) {
-	for _, flag := range []string{"--consent", "--engines", "--html", "--image-contrast", "--journeys", "--keyboard", "--layout", "--lighthouse", "--links", "--markup", "--plain-language"} {
+	for _, flag := range []string{"--consent", "--engines", "--html", "--image-contrast", "--journeys", "--keyboard", "--layout", "--lighthouse", "--links", "--markup", "--content", "--plain-language"} {
 		i := strings.Index(a11yUsage, "\n  "+flag+" ")
 		if i < 0 {
 			t.Fatalf("%s is not in the help", flag)
@@ -33,7 +36,7 @@ func TestAllTurnsOnEveryCheck(t *testing.T) {
 	}
 	t.Cleanup(func() { a11yRun = a11y.Run })
 	checks := func(c a11y.Config) []bool {
-		return []bool{c.Layout, c.Keyboard, c.Markup, c.Engines, c.Consent, c.PlainLanguage, c.HTML, c.Lighthouse, c.Journeys, c.Links, c.ImageContrast}
+		return []bool{c.Layout, c.Keyboard, c.Markup, c.Content, c.Engines, c.Consent, c.PlainLanguage, c.HTML, c.Lighthouse, c.Journeys, c.Links, c.ImageContrast}
 	}
 	if code := a11yCmd([]string{"https://example.com/"}); code != 0 {
 		t.Fatalf("exit %d", code)
@@ -97,5 +100,36 @@ func TestARIASnapshotsFlagReachesTheSweep(t *testing.T) {
 	}
 	if a11yCmd([]string{"https://example.com/"}); got.ARIASnapshots != "" {
 		t.Errorf("without the flag, ARIASnapshots = %q", got.ARIASnapshots)
+	}
+}
+
+// TestA11yRemovesTheValeRules checks the command removes the plain language rules it wrote, whether the sweep
+// succeeds or fails.
+func TestA11yRemovesTheValeRules(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		tmp := t.TempDir()
+		// os.TempDir reads TMPDIR on Unix and TMP or TEMP on Windows.
+		for _, v := range []string{"TMPDIR", "TMP", "TEMP"} {
+			t.Setenv(v, tmp)
+		}
+		wrote := false
+		a11yRun = func(ctx context.Context, _ a11y.Config) (*a11y.Report, error) {
+			// Check writes the rules before it looks for Vale, so a missing Vale still leaves them behind.
+			_, _ = plain.Check(ctx, filepath.Join(tmp, "no-vale"), "<p>Words.</p>")
+			m, _ := filepath.Glob(filepath.Join(tmp, "dummyrun-vale-*"))
+			wrote = len(m) == 1
+			if fail {
+				return nil, errors.New("the sweep failed")
+			}
+			return &a11y.Report{}, nil
+		}
+		a11yCmd([]string{"--plain-language", "https://example.com/"})
+		a11yRun = a11y.Run
+		if !wrote {
+			t.Fatalf("fail %v: the stand-in sweep wrote no rules", fail)
+		}
+		if m, _ := filepath.Glob(filepath.Join(tmp, "dummyrun-vale-*")); len(m) != 0 {
+			t.Errorf("fail %v: the rules are still there: %v", fail, m)
+		}
 	}
 }

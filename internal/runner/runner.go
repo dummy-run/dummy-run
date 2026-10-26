@@ -292,7 +292,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	}
 	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: disp.CSSWidth, Height: disp.CSSHeight,
 		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Access: r.access, Launch: cfg.Launch,
-		ScreenReader: cfg.Persona.AT() == "screen-reader-view"})
+		ScreenReader: readsAloud(cfg.Persona)})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open browser: %w", err)
 	}
@@ -1034,4 +1034,11 @@ func CountRepeats(dir, batch, persona, scenario, model, self string) int {
 		}
 	}
 	return n
+}
+
+// readsAloud says whether each look carries what a screen reader says: for a persona that gets no screenshots,
+// whatever else it may not do. AT names one modality, so a persona that can neither click nor see the screen is
+// keyboard-only there, but it still works without seeing the page.
+func readsAloud(p *cast.Persona) bool {
+	return !p.Allows("screenshot")
 }

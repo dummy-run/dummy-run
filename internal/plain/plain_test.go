@@ -70,3 +70,52 @@ func TestValeVersionMatchesDockerfile(t *testing.T) {
 		t.Errorf("docker/Dockerfile does not pin Vale %s", ValeVersion)
 	}
 }
+
+// TestCheckFindsHardText runs the real Vale on text that is hard to read, and checks both readability rules fire and
+// say which way to go.
+func TestCheckFindsHardText(t *testing.T) {
+	vale, err := Find()
+	if err != nil {
+		t.Skip("vale is not installed; set DUMMYRUN_VALE to run this test")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	html := `<html lang="en"><body><h1>Terms</h1><p>Notwithstanding contractual obligations, organisational ` +
+		`representatives systematically communicate preliminary documentation. Administrative considerations ` +
+		`necessitate comprehensive interdepartmental consultation. Implementation responsibilities accompany ` +
+		`institutional accountability requirements.</p></body></html>`
+	got, err := Check(ctx, vale, html)
+	if err != nil {
+		t.Fatal(err)
+	}
+	msgs := map[string]string{}
+	for _, a := range got {
+		msgs[a.Check] = a.Message
+	}
+	if m := msgs["Readability.FleschReadingEase"]; !strings.Contains(m, "at 70 or above") {
+		t.Errorf("reading ease: %q in %+v", m, got)
+	}
+	if m := msgs["Readability.FleschKincaid"]; !strings.Contains(m, "at 8 or below") {
+		t.Errorf("grade: %q in %+v", m, got)
+	}
+}
+
+// Cleanup removes the rules, and the next check writes them again.
+func TestCleanupRemovesTheRules(t *testing.T) {
+	cfg, err := configPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	Cleanup()
+	if _, err := os.Stat(cfg); !os.IsNotExist(err) {
+		t.Errorf("the rules are still there: %v", err)
+	}
+	again, err := configPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(again); err != nil {
+		t.Errorf("the rules weren't written again: %v", err)
+	}
+	Cleanup()
+}
