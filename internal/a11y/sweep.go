@@ -1008,7 +1008,7 @@ const axeRunJS = `(tagsJSON) => {
     return d ? { fg: String(d.fgColor), bg: String(d.bgColor), ratio: Number(d.contrastRatio) || 0, need: parseFloat(d.expectedContrastRatio) || 0 } : null;
   };
   const rules = (rs) => rs.map((v) => ({ id: v.id, impact: v.impact || "", help: v.help, helpUrl: v.helpUrl, tags: v.tags, nodes: v.nodes.map((n) => flat(n.target)),
-    colours: v.id === "color-contrast" || v.id === "color-contrast-enhanced" ? v.nodes.map(colours) : undefined }));
+    colours: v.id === "color-contrast" ? v.nodes.map(colours) : undefined }));
   return window.axe.run(document, { runOnly: { type: "tag", values: JSON.parse(tagsJSON) }, resultTypes: ["violations", "incomplete"] }).then((r) => ({
     version: window.axe.version,
     scheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",

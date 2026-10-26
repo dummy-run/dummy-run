@@ -1128,7 +1128,7 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 ### Colours that meet the ratio
 
-When axe fails text on `color-contrast` or `color-contrast-enhanced`, it records the text colour, the background
+When axe fails text on `color-contrast`, it records the text colour, the background
 colour, the ratio between them and the ratio the text needs. The sweep keeps those in the element's `colours` and
 works out two colours that would meet the ratio:
 
