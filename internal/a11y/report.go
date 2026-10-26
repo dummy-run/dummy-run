@@ -47,7 +47,11 @@ func (r *Report) WriteSummary(w io.Writer) {
 					rows[k] = &row{f: f, target: n.Target, detail: n.Detail, shot: n.Screenshot}
 					order = append(order, k)
 				}
-				rows[k].combos = append(rows[k].combos, combo)
+				if p.Repeats > 1 {
+					rows[k].combos = append(rows[k].combos, fmt.Sprintf("%s (%d of %d runs)", combo, n.Runs, p.Repeats))
+				} else {
+					rows[k].combos = append(rows[k].combos, combo)
+				}
 			}
 		}
 	}
@@ -81,7 +85,11 @@ func (r *Report) WriteSummary(w io.Writer) {
 			_, _ = fmt.Fprintf(w, "SKIPPED %s: %s\n", p.URL, p.Skipped)
 		}
 		if p.Error != "" {
-			_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
+			if p.Repeats > 1 {
+				_, _ = fmt.Fprintf(w, "ERROR %s (%s, %d of %d runs): %s\n", p.URL, p.Setting(), *p.ErrorRuns, p.Repeats, p.Error)
+			} else {
+				_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
+			}
 		}
 		for _, e := range sortedKeys(p.EngineErrors) {
 			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", confidence.EngineName(e), p.URL, p.Setting(), printable(p.EngineErrors[e]))
@@ -95,10 +103,36 @@ func (r *Report) WriteSummary(w io.Writer) {
 		for _, c := range checkErrors(p) {
 			_, _ = fmt.Fprintf(w, "%s %s (%s): %s\n", c.check, p.URL, p.Setting(), printable(c.err))
 		}
+		if p.PDFError != "" {
+			_, _ = fmt.Fprintf(w, "PDF %s (%s): links not read: %s\n", p.URL, p.Setting(), printable(p.PDFError))
+		}
+		if c := p.ARIAChanges; c != nil && c.AddedCount+c.RemovedCount > 0 {
+			_, _ = fmt.Fprintf(w, "CHANGED %s (%s): %d lines added and %d removed in the ARIA snapshot\n", p.URL, p.Setting(), c.AddedCount, c.RemovedCount)
+			for _, l := range c.Removed {
+				_, _ = fmt.Fprintf(w, "     - %s\n", printable(snapshotItem(l)))
+			}
+			for _, l := range c.Added {
+				_, _ = fmt.Fprintf(w, "     + %s\n", printable(snapshotItem(l)))
+			}
+		}
+	}
+	if r.PDFError != "" {
+		_, _ = fmt.Fprintf(w, "PDF %s\n", printable(r.PDFError))
+	}
+	for _, p := range r.PDFs {
+		switch {
+		case p.Error != "":
+			_, _ = fmt.Fprintf(w, "PDF %s: not checked: %s\n", p.URL, printable(p.Error))
+		case !p.Compliant:
+			_, _ = fmt.Fprintf(w, "PDF %s: fails %d PDF/UA-1 requirements (advice)\n", p.URL, len(p.Rules))
+		}
 	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
 		r.Browser, r.BrowserVersion, r.AxeVersion, s.Pages, s.Runs, s.Failing, s.Allowed, s.NeedsReview, s.PageErrors)
+	if r.Repeats > 1 {
+		_, _ = fmt.Fprintf(w, ", each run %d times", r.Repeats)
+	}
 	if s.Advice > 0 {
 		_, _ = fmt.Fprintf(w, ", %d elements with best-practice advice (not failures)", s.Advice)
 	}
@@ -141,6 +175,7 @@ func checkErrors(p PageResult) []checkError {
 	add("HTML", p.HTMLError)
 	add("LIGHTHOUSE", p.LighthouseError)
 	add("LIGHTHOUSE MATCH", p.LighthouseMatchError)
+	add("SNAPSHOT", p.ARIASnapshotError)
 	if p.Consent != nil {
 		add("CONSENT", p.Consent.Error)
 	}
