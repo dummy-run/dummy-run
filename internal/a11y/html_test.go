@@ -24,7 +24,10 @@ func TestHTMLFindingsKeepEachErrorOnce(t *testing.T) {
 		{Type: "error", Message: "Duplicate ID “a”."},
 		{Type: "error", Message: "Duplicate ID “late”."},
 	}
-	got, ignored := htmlFindings(served, built, "/", nil)
+	got, ignored, stopped := htmlFindings(served, built, "/", nil)
+	if stopped {
+		t.Error("no fatal error, yet the check says it stopped")
+	}
 	if ignored != 1 {
 		t.Errorf("ignored %d, want the obsolete element only", ignored)
 	}
@@ -36,6 +39,20 @@ func TestHTMLFindingsKeepEachErrorOnce(t *testing.T) {
 	}
 	if d := got[0].Nodes[0].Detail; d != `line 3 of the source: Duplicate ID “a”. In: <p id="a"> 2</p>` {
 		t.Errorf("detail %q", d)
+	}
+}
+
+func TestHTMLFindingsKeepRepeatsAndSayWhenVnuStopped(t *testing.T) {
+	alt := validate.Message{Type: "error", Message: "An “img” element must have an “alt” attribute, except under certain conditions."}
+	// Two images without alt text in the source, and the same two plus a third a script added in the built page.
+	served := []validate.Message{alt, alt}
+	built := []validate.Message{alt, alt, alt, {Type: "error", SubType: "fatal", Message: "Malformed byte sequence."}}
+	got, _, stopped := htmlFindings(served, built, "/", nil)
+	if len(got) != 1 || len(got[0].Nodes) != 3 {
+		t.Fatalf("want one finding with each of the three images, got %+v", got)
+	}
+	if !stopped {
+		t.Error("vnu stopped at a fatal error, but the check doesn't say so")
 	}
 }
 

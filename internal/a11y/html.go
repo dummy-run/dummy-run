@@ -28,13 +28,20 @@ const htmlDocsJS = `async (max) => {
   return { served: served.slice(0, max), built: built.slice(0, max), cut: served.length > max || built.length > max };
 }`
 
-// htmlFindings turns vnu's accessibility-relevant errors into advice, one finding per rule, with each error once
-// even when both copies of the page have it.
-func htmlFindings(served, built []validate.Message, path string, allow *AllowList) (out []Finding, ignored int) {
+// htmlFindings turns vnu's accessibility-relevant errors into advice, one finding per rule. An error both copies of
+// the page have counts once, and an error a copy has twice, such as two images without alt text, counts twice.
+// stopped says vnu hit a fatal error in a copy and read no further.
+func htmlFindings(served, built []validate.Message, path string, allow *AllowList) (
+	out []Finding, ignored int, stopped bool,
+) {
 	by := map[string]*Finding{}
-	seen := map[string]bool{}
+	inServed := map[string]int{}
+	inBuilt := map[string]int{}
 	add := func(ms []validate.Message, from string) {
 		for _, m := range ms {
+			if m.SubType == "fatal" {
+				stopped = true
+			}
 			r, ok := validate.Relevant(m)
 			if !ok {
 				if m.Type == "error" && m.SubType != "fatal" {
@@ -43,10 +50,11 @@ func htmlFindings(served, built []validate.Message, path string, allow *AllowLis
 				continue
 			}
 			key := r.ID + "\x00" + m.Message
-			if seen[key] {
+			if from == "served" {
+				inServed[key]++
+			} else if inBuilt[key]++; inBuilt[key] <= inServed[key] {
 				continue
 			}
-			seen[key] = true
 			f, ok := by[r.ID]
 			if !ok {
 				f = &Finding{Rule: r.ID, Help: r.Help, WCAG: []string{r.WCAG}, HelpURL: "https://validator.w3.org/nu/about.html", Nodes: []Node{}}
@@ -73,7 +81,7 @@ func htmlFindings(served, built []validate.Message, path string, allow *AllowLis
 			out = append(out, *f)
 		}
 	}
-	return out, ignored
+	return out, ignored, stopped
 }
 
 func squashSpace(s string) string { return strings.Join(strings.Fields(s), " ") }
@@ -108,7 +116,8 @@ func htmlCheck(ctx context.Context, conn *bidi.Conn, cx string, res *PageResult,
 	if len(got) > 1 {
 		served = got[1]
 	}
-	found, ignored := htmlFindings(served, got[0], path, allow)
+	found, ignored, stopped := htmlFindings(served, got[0], path, allow)
 	res.HTMLChecked, res.HTMLSourceChecked, res.HTMLPartial, res.HTMLIgnored = true, docs.Served != "", docs.Cut, ignored
+	res.HTMLStopped = stopped
 	res.Advice = append(res.Advice, found...)
 }

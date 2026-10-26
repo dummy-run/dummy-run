@@ -1186,8 +1186,10 @@ the other engines report many of the same problems as WCAG failures when they do
 
 The HTML is the same at every window size and colour scheme, so it's checked once for each URL. The first result
 for the URL has `html_checked`, `html_source_checked` when the source could be fetched again, and `html_error` when
-vnu couldn't run. vnu reads the first 2 MB of each copy, and `html_partial` is true when there was more. A source
-line number in a finding counts lines of the HTML as the server sent it.
+vnu couldn't run. vnu reads the first 2 MB of each copy, and `html_partial` is true when there was more. When vnu
+hits a fatal error, such as bytes that aren't valid in the page's encoding, it stops reading that copy, and
+`html_stopped` is true. An error found in both copies is listed once, and the same error twice in one copy is listed
+twice. A source line number in a finding counts lines of the HTML as the server sent it.
 
 The sweep looks for `vnu` on your `PATH`, or the program `DUMMYRUN_VNU` names. The container image includes the
 Nu HTML Checker 26.10.12, on a Java runtime cut down to the modules it needs. Without vnu, the rest of the sweep

@@ -173,11 +173,13 @@ type PageResult struct {
 	PlainLanguageError   string `json:"plain_language_error,omitempty"`
 	// HTMLChecked says vnu checked the page as the browser built it. HTMLSourceChecked says it also checked the HTML
 	// as the server sent it, where parse errors are. HTMLPartial says a copy was too long and only its start was
-	// read. HTMLIgnored counts the errors vnu reported that don't change what assistive technology gets, such as
-	// an obsolete element. HTMLError says why the check could not run. Only the first result for each URL has these.
+	// read. HTMLStopped says vnu hit a fatal error in a copy and checked none of it after that. HTMLIgnored counts the
+	// errors vnu reported that don't change what assistive technology gets, such as an obsolete element. HTMLError
+	// says why the check could not run. Only the first result for each URL has these.
 	HTMLChecked       bool   `json:"html_checked,omitempty"`
 	HTMLSourceChecked bool   `json:"html_source_checked,omitempty"`
 	HTMLPartial       bool   `json:"html_partial,omitempty"`
+	HTMLStopped       bool   `json:"html_stopped,omitempty"`
 	HTMLIgnored       int    `json:"html_ignored,omitempty"`
 	HTMLError         string `json:"html_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
