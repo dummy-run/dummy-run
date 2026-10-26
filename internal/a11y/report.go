@@ -89,6 +89,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if p.JourneysError != "" {
 			_, _ = fmt.Fprintf(w, "JOURNEYS %s (%s): %s\n", p.URL, p.Setting(), printable(p.JourneysError))
 		}
+		if p.LinksError != "" {
+			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
+		}
 		for _, c := range checkErrors(p) {
 			_, _ = fmt.Fprintf(w, "%s %s (%s): %s\n", c.check, p.URL, p.Setting(), printable(c.err))
 		}
@@ -107,6 +110,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 	}
 	if n := journeyErrorPages(r); n > 0 {
 		_, _ = fmt.Fprintf(w, ", journeys not tried on %d pages (listed above)", n)
+	}
+	if n := linkErrorPages(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", links not checked on %d pages (listed above)", n)
 	}
 	if n := checkErrorRuns(r); n > 0 {
 		_, _ = fmt.Fprintf(w, ", other checks failed on %d runs (listed above)", n)
@@ -164,6 +170,17 @@ func journeyErrorPages(r *Report) int {
 	n := 0
 	for _, p := range r.Results {
 		if p.JourneysError != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// linkErrorPages counts the pages whose links couldn't be checked.
+func linkErrorPages(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if p.LinksError != "" {
 			n++
 		}
 	}

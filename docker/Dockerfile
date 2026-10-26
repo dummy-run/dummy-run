@@ -25,6 +25,10 @@ ARG VALE_SHA256_ARM64=104cbd349279e50c4cb40adb70adf345d93cc4a3a0191f9e68bdccb970
 # is the same on both architectures, and it runs on a Java runtime cut down with jlink to the modules it needs.
 ARG VNU_VERSION=26.10.12
 ARG VNU_SHA256=3925f07364f5e5a111cef54a7baefa575b22d05c70f8ced048f0616d4579b7ab
+# lychee checks links with --links. The version matches links.LycheeVersion in internal/links.
+ARG LYCHEE_VERSION=0.24.2
+ARG LYCHEE_SHA256_AMD64=1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
+ARG LYCHEE_SHA256_ARM64=91a7bd65685da41b90ccb9bc867a3d649a7818042dae04ff405e55a25bddee4c
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 RUN apt-get update \
@@ -33,8 +37,8 @@ RUN apt-get update \
 
 # Each download is checked against a hash kept in this file, so a changed file upstream fails the build.
 RUN case "${TARGETARCH}" in \
-      amd64) cft=linux64;     cft_zip=linux64;     ff=linux-x86_64;  vale=Linux_64-bit; chrome_sha="${CHROME_SHA256_AMD64}"; driver_sha="${CHROMEDRIVER_SHA256_AMD64}"; ff_sha="${FIREFOX_SHA256_AMD64}"; vale_sha="${VALE_SHA256_AMD64}" ;; \
-      arm64) cft=linux-arm64; cft_zip=linux-arm64; ff=linux-aarch64; vale=Linux_arm64;  chrome_sha="${CHROME_SHA256_ARM64}"; driver_sha="${CHROMEDRIVER_SHA256_ARM64}"; ff_sha="${FIREFOX_SHA256_ARM64}"; vale_sha="${VALE_SHA256_ARM64}" ;; \
+      amd64) cft=linux64;     cft_zip=linux64;     ff=linux-x86_64;  vale=Linux_64-bit; lychee=x86_64;  chrome_sha="${CHROME_SHA256_AMD64}"; driver_sha="${CHROMEDRIVER_SHA256_AMD64}"; ff_sha="${FIREFOX_SHA256_AMD64}"; vale_sha="${VALE_SHA256_AMD64}"; lychee_sha="${LYCHEE_SHA256_AMD64}" ;; \
+      arm64) cft=linux-arm64; cft_zip=linux-arm64; ff=linux-aarch64; vale=Linux_arm64;  lychee=aarch64; chrome_sha="${CHROME_SHA256_ARM64}"; driver_sha="${CHROMEDRIVER_SHA256_ARM64}"; ff_sha="${FIREFOX_SHA256_ARM64}"; vale_sha="${VALE_SHA256_ARM64}"; lychee_sha="${LYCHEE_SHA256_ARM64}" ;; \
       *) echo "unsupported architecture ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
     base="https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING}/${cft}"; \
@@ -46,8 +50,11 @@ RUN case "${TARGETARCH}" in \
     curl -fsSL -o vale.tar.gz "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_${vale}.tar.gz"; \
     echo "${ff_sha}  firefox.tar.xz" | sha256sum -c -; \
     echo "${vale_sha}  vale.tar.gz" | sha256sum -c -; \
-    mkdir -p /opt/chrome /opt/chromedriver /opt/firefox /opt/vale; \
+    curl -fsSL -o lychee.tar.gz "https://github.com/lycheeverse/lychee/releases/download/lychee-v${LYCHEE_VERSION}/lychee-${lychee}-unknown-linux-gnu.tar.gz"; \
+    echo "${lychee_sha}  lychee.tar.gz" | sha256sum -c -; \
+    mkdir -p /opt/chrome /opt/chromedriver /opt/firefox /opt/vale /opt/lychee; \
     tar -xzf vale.tar.gz -C /opt/vale vale; \
+    tar -xzf lychee.tar.gz -C /opt/lychee --strip-components=1 "lychee-${lychee}-unknown-linux-gnu/lychee"; \
     unzip -q chrome.zip -d /tmp/chrome; \
     mv /tmp/chrome/chrome-*/* /opt/chrome/; \
     unzip -q chromedriver.zip -d /tmp/chromedriver; \
@@ -90,6 +97,7 @@ COPY --from=browsers /opt/chromedriver /opt/chromedriver
 COPY --from=browsers /opt/firefox /opt/firefox
 COPY --from=browsers /opt/vale /opt/vale
 COPY --from=browsers /opt/vnu /opt/vnu
+COPY --from=browsers /opt/lychee /opt/lychee
 ARG TARGETOS
 ARG TARGETARCH
 COPY --chmod=0755 ${TARGETOS}/${TARGETARCH}/dummyrun /usr/local/bin/dummyrun
@@ -100,6 +108,7 @@ ENV DUMMYRUN_CHROME=/opt/chrome/chrome \
     DUMMYRUN_FIREFOX=/opt/firefox/firefox \
     DUMMYRUN_VALE=/opt/vale/vale \
     DUMMYRUN_VNU=/opt/vnu/bin/vnu \
+    DUMMYRUN_LYCHEE=/opt/lychee/lychee \
     DUMMYRUN_NO_SANDBOX=1 \
     HOME=/home/dummyrun
 
