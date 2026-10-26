@@ -216,3 +216,50 @@ func TestIsDataRequest(t *testing.T) {
 		}
 	}
 }
+
+// TestFailureProbeRunsWhenALaterCheckFails sweeps a page whose layout can't be measured, at two window sizes. The
+// layout check ends each page early, and the first result still has the probe.
+func TestFailureProbeRunsWhenALaterCheckFails(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	defer func(d time.Duration) { failureSettle = d }(failureSettle)
+	failureSettle = 1500 * time.Millisecond
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/items" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = fmt.Fprint(w, `["Tea"]`)
+			return
+		}
+		// The layout check reads the boxes the browser lays out, so a page that breaks that read ends the check.
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, strings.Replace(failurePage(true), "<script>",
+			`<script>Element.prototype.getBoundingClientRect = Element.prototype.getClientRects = () => { throw new Error("no boxes"); };`, 1))
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop, Phone},
+				Schemes: []string{Light}, Headless: true, Layout: true, Failures: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(rep.Results) != 2 {
+				t.Fatalf("%d results", len(rep.Results))
+			}
+			first := rep.Results[0]
+			if !strings.Contains(first.Error, "layout") {
+				t.Fatalf("the layout check didn't end the page: error %q", first.Error)
+			}
+			if first.FailureProbe == nil || first.FailureProbe.Failed == 0 {
+				t.Errorf("the first result has no probe: %+v, error %q", first.FailureProbe, first.FailureProbeError)
+			}
+			if rep.Results[1].FailureProbe != nil {
+				t.Error("the probe ran again at the second window size")
+			}
+		})
+	}
+}

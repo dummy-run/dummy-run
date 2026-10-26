@@ -742,6 +742,22 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		htmlCheck(hctx, conn, cx, &res, path, cfg.Allow)
 		hcancel()
 	}
+	// The failure probe loads the page twice in a tab of its own, so each URL is probed once, at the first window
+	// size axe could check. Like the HTML check, it runs before the checks that can end the page early, so the first
+	// result axe could check has it. With preview access it isn't run, since that answers requests in every tab and
+	// the two would both decide the same requests.
+	if cfg.Failures && !rep.failuresDone[u] {
+		if rep.failuresDone == nil {
+			rep.failuresDone = map[string]bool{}
+		}
+		rep.failuresDone[u] = true
+		if cfg.Access.Active() {
+			res.FailureProbeSkipped = "not run with preview access, which answers the same requests"
+		} else {
+			failureCheck(ctx, conn, u, vp, cfg.Identify, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+			res.Advice = append(res.Advice, failureFindings(res.FailureProbe, path, cfg.Allow)...)
+		}
+	}
 	if cfg.Engines {
 		r, err := page.RunEngines(pctx, conn, cx, axeNodes(res.Violations), CriteriaAA())
 		if err != nil {
@@ -870,21 +886,6 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		rep.journeysDone[u] = true
 		journeyCheck(ctx, conn, cfg, u, vp, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
-	}
-	// The failure probe loads the page twice in a tab of its own, so each URL is probed once, at the first window
-	// size. With preview access it isn't run, since that answers requests in every tab and the two would both decide
-	// the same requests.
-	if cfg.Failures && !rep.failuresDone[u] {
-		if rep.failuresDone == nil {
-			rep.failuresDone = map[string]bool{}
-		}
-		rep.failuresDone[u] = true
-		if cfg.Access.Active() {
-			res.FailureProbeSkipped = "not run with preview access, which answers the same requests"
-		} else {
-			failureCheck(ctx, conn, u, vp, cfg.Identify, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
-			res.Advice = append(res.Advice, failureFindings(res.FailureProbe, path, cfg.Allow)...)
-		}
 	}
 	// The links are the same at every window size and colour scheme, so each URL's are checked once. Like the
 	// journeys, they come last, with their own time limit, so they can't take time from the checks above.
