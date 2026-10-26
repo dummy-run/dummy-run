@@ -1429,6 +1429,26 @@ sweep's browser, so later settings for the same site may show no banner.
 dummyrun a11y --consent --layout https://example.com/
 ```
 
+### Run it more than once
+
+Pages don't always come out the same. An advert loads late, an A/B test picks another version, or a carousel has
+moved on. A finding you see once may not be there next time. Add `--repeat N`, up to 10, and the sweep tests every
+page in every setting N times, each time in a fresh browser.
+
+The report still has one result for each page and setting. Each failing element gets `runs`, the number of repeats
+it failed in, so an element in 3 of 3 runs is there every time and one in 1 of 3 comes and goes. An element that
+failed only in a later repeat is still listed. Each result gets `repeats`, how many times its page was tested, and
+`error_runs`, how many of those couldn't test it, with the first reason in `error`. The summary shows the counts,
+as in `chrome/desktop/light (2 of 3 runs)`.
+
+The counts are there for you to judge. The sweep doesn't decide which findings are stable, and an element that
+failed in any repeat fails the sweep, as it would have if that repeat had been the only one. The checks that run
+once for each URL, such as the HTML check, Lighthouse, journeys and links, run in the first repeat only.
+
+```sh
+dummyrun a11y --repeat 3 https://example.com/
+```
+
 ### Check the sweep against known problems
 
 The benchmark in `internal/benchmark` measures how many known problems the sweep finds. It plants known barriers in

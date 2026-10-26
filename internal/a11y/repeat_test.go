@@ -1,0 +1,131 @@
+package a11y
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+func repeatResult(err string, rules ...string) PageResult {
+	p := PageResult{URL: "https://example.com/", Browser: "chrome", Viewport: "desktop", Scheme: Light, Error: err,
+		Violations: []Finding{}, NeedsReview: []Finding{}}
+	for _, r := range rules {
+		rule, target, _ := strings.Cut(r, "@")
+		p.Violations = append(p.Violations, Finding{Rule: rule, Help: rule, Nodes: []Node{{Target: target}}})
+	}
+	return p
+}
+
+// TestMergeRepeatsCountsRuns checks each element counts the repeats it failed in, including ones that turn up only
+// in a later repeat, and each page counts the repeats that could not test it.
+func TestMergeRepeatsCountsRuns(t *testing.T) {
+	other := repeatResult("")
+	other.Viewport = "phone"
+	got := mergeRepeats([][]PageResult{
+		{repeatResult("", "image-alt@img", "label@#q"), other},
+		{repeatResult("", "image-alt@img"), other},
+		{repeatResult("timed out", "image-alt@img", "image-alt@#logo", "color-contrast@p"), other},
+	})
+	if len(got) != 2 {
+		t.Fatalf("%d results, want one for each setting", len(got))
+	}
+	p := got[0]
+	runs := map[string]int{}
+	for _, f := range p.Violations {
+		for _, n := range f.Nodes {
+			runs[f.Rule+"@"+n.Target] = n.Runs
+		}
+	}
+	want := map[string]int{"image-alt@img": 3, "label@#q": 1, "image-alt@#logo": 1, "color-contrast@p": 1}
+	for k, n := range want {
+		if runs[k] != n {
+			t.Errorf("%s: %d runs, want %d", k, runs[k], n)
+		}
+	}
+	if len(runs) != len(want) || len(p.Violations) != 3 {
+		t.Errorf("violations %+v", p.Violations)
+	}
+	if p.Repeats != 3 || p.ErrorRuns != 1 || p.Error != "timed out" {
+		t.Errorf("repeats %d, error runs %d, error %q", p.Repeats, p.ErrorRuns, p.Error)
+	}
+	if got[1].Repeats != 3 || got[1].ErrorRuns != 0 || got[1].Violations == nil {
+		t.Errorf("other setting: %+v", got[1])
+	}
+	if mergeRepeats(nil) != nil {
+		t.Error("no runs should merge to nothing")
+	}
+}
+
+func TestSummaryShowsRepeatCounts(t *testing.T) {
+	r := &Report{Repeats: 2, Results: mergeRepeats([][]PageResult{
+		{repeatResult("", "image-alt@img")},
+		{repeatResult("timed out")},
+	})}
+	r.summarise(Config{})
+	var b bytes.Buffer
+	r.WriteSummary(&b)
+	for _, want := range []string{"in chrome/desktop/light (1 of 2 runs)", "ERROR https://example.com/ (chrome/desktop/light, 1 of 2 runs): timed out", ", each run 2 times"} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("summary lacks %q:\n%s", want, b.String())
+		}
+	}
+	if r.Summary.Failing != 1 {
+		t.Errorf("failing %d, want the element once", r.Summary.Failing)
+	}
+}
+
+// TestRepeatCountsAFlakyElement sweeps a page twice that leaves one image's alt text out only on its first load.
+func TestRepeatCountsAFlakyElement(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var loads atomic.Int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		alt := ` alt="Logo"`
+		if loads.Add(1)%2 == 1 {
+			alt = ""
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Repeat</title></head>
+<body><main><h1>Repeat</h1><img id="always" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="><img id="flaky"%s src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></main></body></html>`, alt)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			loads.Store(0)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, Repeat: 2})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rep.Repeats != 2 || len(rep.Results) != 1 || rep.Results[0].Repeats != 2 {
+				t.Fatalf("repeats %d, %d results", rep.Repeats, len(rep.Results))
+			}
+			runs := map[string]int{}
+			for _, f := range rep.Results[0].Violations {
+				if f.Rule == "image-alt" {
+					for _, n := range f.Nodes {
+						runs[n.Target] = n.Runs
+					}
+				}
+			}
+			if runs["#always"] != 2 || runs["#flaky"] != 1 {
+				t.Errorf("runs %v, want #always in 2 and #flaky in 1", runs)
+			}
+		})
+	}
+}

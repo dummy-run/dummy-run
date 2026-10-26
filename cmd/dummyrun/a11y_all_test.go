@@ -79,3 +79,19 @@ func TestLayoutAddsTheReflowSettings(t *testing.T) {
 		t.Errorf("without --layout: viewports %s, scales %v", names(got), got.TextScales)
 	}
 }
+
+// TestRepeatReachesTheSweep checks --repeat reaches the sweep, and that it sweeps once without it.
+func TestRepeatReachesTheSweep(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	if code := a11yCmd([]string{"https://example.com/"}); code != 0 || got.Repeat != 1 {
+		t.Errorf("without --repeat: exit %d, repeat %d", code, got.Repeat)
+	}
+	if code := a11yCmd([]string{"https://example.com/", "--repeat", "3"}); code != 0 || got.Repeat != 3 {
+		t.Errorf("--repeat 3: exit %d, repeat %d", code, got.Repeat)
+	}
+}

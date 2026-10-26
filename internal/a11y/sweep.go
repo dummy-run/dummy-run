@@ -118,6 +118,10 @@ type Config struct {
 	// Session, when set, is loaded into each browser before the first page, so the sweep sees the
 	// pages as a signed-in user does. Cookies for hosts that none of the URLs use are skipped.
 	Session *signin.Session
+	// Repeat sweeps every page and setting this many times, each in a fresh browser, and counts in how many
+	// repeats each element failed. The checks that run once for each URL run in the first repeat only. 0 or 1
+	// sweeps once.
+	Repeat int
 	// Access gets the browser past Basic auth or header protection on a preview site. Its secrets go only to
 	// the origins its scope names. Nil means none.
 	Access *access.Resolved
@@ -140,6 +144,8 @@ type Node struct {
 	// Lighthouse is true when Lighthouse's own run of the same axe rule failed the same element. It confirms the
 	// result, but Lighthouse uses axe-core too, so it never counts as another engine.
 	Lighthouse bool `json:"lighthouse,omitempty"`
+	// Runs counts the repeats of the sweep in which the element failed, when it ran --repeat.
+	Runs int `json:"runs,omitempty"`
 }
 
 // Finding is one axe rule that failed, or needs review, on one page.
@@ -232,6 +238,10 @@ type PageResult struct {
 	// engines agree on are kept first.
 	EngineGroupsOmitted int    `json:"engine_groups_omitted,omitempty"`
 	Error               string `json:"error,omitempty"`
+	// Repeats is how many times the sweep tested the page in this setting, with --repeat, and ErrorRuns in how
+	// many of them it could not. Error is the first reason.
+	Repeats   int `json:"repeats,omitempty"`
+	ErrorRuns int `json:"error_runs,omitempty"`
 	// Skipped says why a page was not tested, such as robots.txt disallowing it. A skipped page is not an error.
 	Skipped     string    `json:"skipped,omitempty"`
 	Violations  []Finding `json:"violations"`
@@ -296,8 +306,10 @@ type Report struct {
 	RespectRobots bool     `json:"respect_robots,omitempty"`
 	// PreviewAccess names the protection the sweep answered. Names only, never a value.
 	PreviewAccess *access.Summary `json:"preview_access,omitempty"`
-	Results       []PageResult    `json:"results"`
-	Summary       Summary         `json:"summary"`
+	// Repeats is how many times the sweep ran, with --repeat.
+	Repeats int          `json:"repeats,omitempty"`
+	Results []PageResult `json:"results"`
+	Summary Summary      `json:"summary"`
 	// htmlChecked holds the URLs whose HTML was checked, so each is checked once.
 	htmlChecked map[string]bool
 	// lighthouseDone holds the URLs Lighthouse audited, so each is audited once. debugger is the Chrome DevTools
@@ -430,12 +442,25 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 			return rep, ErrRobotsDisallow
 		}
 	}
-	for _, scale := range cfg.TextScales {
-		for _, scheme := range cfg.Schemes {
-			if err := sweepScheme(ctx, cfg, scheme, scale, rep); err != nil {
-				return rep, err
+	repeats := max(cfg.Repeat, 1)
+	runs := make([][]PageResult, 0, repeats)
+	for r := range repeats {
+		if repeats > 1 && cfg.Log != nil {
+			_, _ = fmt.Fprintf(cfg.Log, "repeat %d of %d\n", r+1, repeats)
+		}
+		start := len(rep.Results)
+		for _, scale := range cfg.TextScales {
+			for _, scheme := range cfg.Schemes {
+				if err := sweepScheme(ctx, cfg, scheme, scale, rep); err != nil {
+					return rep, err
+				}
 			}
 		}
+		runs = append(runs, rep.Results[start:])
+	}
+	if repeats > 1 {
+		rep.Repeats = repeats
+		rep.Results = mergeRepeats(runs)
 	}
 	rep.Results = append(rep.Results, skipped...)
 	rep.summarise(cfg)
