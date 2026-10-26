@@ -114,4 +114,4 @@ These run only in the project's own tests. None of them is part of the program y
 
 | Tool | Version | What it does for Dummy Run | Licence |
 |---|---|---|---|
-| [rapid](https://github.com/flyingmutant/rapid) | 1.2.0 | Property-based tests: it makes thousands of random inputs, such as robots.txt rules and allow-list entries, checks a rule holds for each and shrinks a failure to its smallest case | MPL-2.0 |
+| [rapid](https://github.com/flyingmutant/rapid) | 1.2.0 | Makes random inputs, such as robots.txt rules and allow-list entries, checks that a rule holds for each one and shrinks a failure to its smallest case. The unit tests run 100 cases of each, and `-rapid.checks` runs more | MPL-2.0 |
