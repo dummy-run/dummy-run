@@ -96,10 +96,17 @@ in a way that should move the answer only one way, or not at all, and checks it 
 - adding entries to an allow-list never stops it accepting a violation, and anything new it accepts, an
   added entry accepts.
 
-They run with the unit tests, 100 cases each. To run more, or to replay a failure from the seed it prints:
+They run with the unit tests, 100 cases each. To run more:
 
 ```sh
 go test -run 'Property|Metamorphic' -rapid.checks=10000 ./internal/robots/ ./internal/a11y/
+```
+
+A failure prints the smallest input it found and the arguments that replay it. Pass its seed back with the failing
+test's name to run that case again, for example:
+
+```sh
+go test -run TestMetamorphicRuleOrderDoesNotMatter -rapid.seed=1234567890 ./internal/robots/
 ```
 
 The OpenAI-compatible chat fixtures were recorded from a local Ollama, and the other providers' fixtures
