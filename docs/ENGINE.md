@@ -1378,6 +1378,8 @@ dummyrun a11y --journeys https://example.com/
 
 A PDF linked from a page needs to be accessible too. Its tags, reading order and fonts aren't something a page
 check can see. Add `--pdf` and the sweep collects the links to PDFs on the swept sites, up to 10 across the sweep.
+Only links whose path ends in `.pdf`, in any case, count, so a link such as `/download?id=7` that serves a PDF
+isn't checked.
 It checks each one against PDF/UA-1 (ISO 14289-1), the standard for accessible PDF. The check uses
 [veraPDF](https://verapdf.org/), which runs as its own program. It runs once for all the files, after the last
 page.
