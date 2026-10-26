@@ -65,3 +65,44 @@ func TestQualWebRunnersFailApart(t *testing.T) {
 		})
 	}
 }
+
+// TestAHungEngineTimesOut swaps in an Alfa that never finishes. It is an error for Alfa alone, after its time, and
+// the other engines still report.
+func TestAHungEngineTimesOut(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Hung</title><main><h1>Hung</h1><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></main></html>`)
+	}))
+	t.Cleanup(srv.Close)
+	alfa, limit := alfaJS, engineTimeout
+	t.Cleanup(func() { alfaJS, engineTimeout = alfa, limit })
+	alfaJS, engineTimeout = `globalThis.dummyrunAlfa = () => new Promise(() => {});`, 2*time.Second
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			p, err := Open(ctx, Options{Browser: browser, Headless: true, Width: 1200, Height: 800, Hosts: []string{"127.0.0.1"}})
+			if err != nil {
+				t.Fatalf("open %s: %v", browser, err)
+			}
+			defer p.Close()
+			if o := p.Visit(ctx, srv.URL+"/"); o.Error != "" {
+				t.Fatalf("visit: %s", o.Error)
+			}
+			r, err := RunEngines(ctx, p.Conn(), p.Context(), nil, []string{"1.1.1"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if slices.Contains(r.Ran, "alfa") || !strings.Contains(r.Errors["alfa"], "took more than 2 seconds") {
+				t.Errorf("ran %v errors %v", r.Ran, r.Errors)
+			}
+			if !slices.Contains(r.Ran, "ibm") || !slices.Contains(r.Ran, "htmlcs") || !slices.Contains(r.Ran, "qualweb") {
+				t.Errorf("the other engines didn't report: ran %v", r.Ran)
+			}
+		})
+	}
+}
