@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/validate"
@@ -84,6 +85,17 @@ func htmlFindings(served, built []validate.Message, path string, allow *AllowLis
 	return out, ignored, stopped
 }
 
+// cutBytes keeps at most n bytes of s, ending on a whole character, and says whether it cut any.
+func cutBytes(s string, n int) (string, bool) {
+	if len(s) <= n {
+		return s, false
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n], true
+}
+
 func squashSpace(s string) string { return strings.Join(strings.Fields(s), " ") }
 
 // htmlCheck runs vnu on the page. A missing vnu or a failed check is recorded on the result and does not stop the
@@ -103,6 +115,11 @@ func htmlCheck(ctx context.Context, conn *bidi.Conn, cx string, res *PageResult,
 		res.HTMLError = firstLine(err.Error())
 		return
 	}
+	// The page cuts each copy by characters, and vnu reads bytes, so each is cut again here to htmlMaxDoc bytes.
+	var cutBuilt, cutServed bool
+	docs.Built, cutBuilt = cutBytes(docs.Built, htmlMaxDoc)
+	docs.Served, cutServed = cutBytes(docs.Served, htmlMaxDoc)
+	docs.Cut = docs.Cut || cutBuilt || cutServed
 	in := []string{docs.Built}
 	if docs.Served != "" {
 		in = append(in, docs.Served)

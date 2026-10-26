@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/dummy-run/dummy-run/internal/validate"
 )
@@ -53,6 +54,21 @@ func TestHTMLFindingsKeepRepeatsAndSayWhenVnuStopped(t *testing.T) {
 	}
 	if !stopped {
 		t.Error("vnu stopped at a fatal error, but the check doesn't say so")
+	}
+}
+
+func TestCutBytesStopsOnAWholeCharacter(t *testing.T) {
+	// "é" is two bytes, so 3 of "éé" bytes would split the second one.
+	if got, cut := cutBytes("éé", 3); got != "é" || !cut {
+		t.Errorf(`cutBytes("éé", 3) = %q, %v`, got, cut)
+	}
+	if got, cut := cutBytes("éé", 4); got != "éé" || cut {
+		t.Errorf(`cutBytes("éé", 4) = %q, %v`, got, cut)
+	}
+	// A page of 1.5 million "é" is 1.5 million characters, under the page's own cut, and 3 MB.
+	got, cut := cutBytes(strings.Repeat("é", 1_500_000), htmlMaxDoc)
+	if len(got) > htmlMaxDoc || !cut || !utf8.ValidString(got) {
+		t.Errorf("a 3 MB page kept %d bytes, cut %v", len(got), cut)
 	}
 }
 
