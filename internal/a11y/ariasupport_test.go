@@ -24,7 +24,7 @@ func TestARIASupportFiguresLoad(t *testing.T) {
 
 func TestARIASupportAdvice(t *testing.T) {
 	// In the figures fetched on 2026-10-26, grid is below 60 percent for two pairs and button is at 90 or more for
-	// all three.
+	// all three. Update the expected figures when the data is fetched again.
 	got := ariaSupportAdvice([]page.ARIAFeature{
 		{Name: "grid", Selector: "#g", Count: 2}, {Name: "button", Selector: "#b", Count: 9}, {Name: "made-up", Selector: "#m", Count: 1},
 	}, "/", nil)
@@ -32,7 +32,7 @@ func TestARIASupportAdvice(t *testing.T) {
 		t.Fatalf("got %+v", got)
 	}
 	n := got[0].Nodes[0]
-	if n.Target != "#g" || !strings.Contains(n.Detail, "role grid: 2 elements use it") || !strings.Contains(n.Detail, "NVDA with Chrome") || !strings.Contains(n.Detail, " of ") {
+	if n.Target != "#g" || !strings.Contains(n.Detail, "role grid: 2 elements use it") || !strings.Contains(n.Detail, "NVDA with Chrome 18% (2 of 11)") {
 		t.Errorf("node %+v", n)
 	}
 	if ariaSupportAdvice([]page.ARIAFeature{{Name: "button", Selector: "#b", Count: 1}}, "/", nil) != nil {

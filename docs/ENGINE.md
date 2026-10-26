@@ -1088,8 +1088,8 @@ fewer than 60 percent of the tests for is advice, `dummyrun-aria-support`. The a
 uses it, how many use it, and each pair's share, such as "NVDA with Chrome 18% (9 of 50)". For a role
 attribute that lists fallbacks, the first role ARIA defines counts, since that's the one the browser uses.
 
-ARIA-AT tests whole patterns, such as a tab list or a grid. A low figure means screen readers often mishandle
-the pattern. Your page may still be right. Most roles and attributes have a pair below 90 percent. The line is drawn
+ARIA-AT tests whole patterns, such as a tab list or a grid. A low figure means that screen reader and browser
+passed few of ARIA-AT's tests of the patterns that use the role or attribute. Your page may still be right. Most roles and attributes have a pair below 90 percent. The line is drawn
 at 60 so the advice is about clearly weak support. The figures were fetched on 2026-10-26 and ship with the engine.
 `internal/a11y/ariaat/fetch.sh` fetches them again.
 

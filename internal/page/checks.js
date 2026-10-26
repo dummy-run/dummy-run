@@ -121,7 +121,7 @@
     "region row rowgroup rowheader scrollbar search searchbox separator slider spinbutton status strong subscript " +
     "superscript switch tab table tablist tabpanel term textbox time timer toolbar tooltip tree treegrid treeitem").split(" "));
   const features = new Map();
-  for (const el of document.body ? document.body.querySelectorAll("*") : []) {
+  for (const el of document.body ? [document.body, ...document.body.querySelectorAll("*")] : []) {
     const names = [...el.attributes].map((a) => a.name).filter((n) => n.startsWith("aria-"));
     const role = squash(el.getAttribute("role")).toLowerCase().split(" ").find((r) => ariaRoles.has(r));
     if (role) names.push(role);
