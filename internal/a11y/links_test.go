@@ -3,6 +3,7 @@ package a11y
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -40,17 +41,17 @@ func TestLinkCheckReportsBrokenLinks(t *testing.T) {
 	mux.HandleFunc("/gone", http.NotFound)
 	mux.HandleFunc("/broken", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
 	mux.HandleFunc("/wall", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusForbidden) })
-	var gone int
+	var gone atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/gone" {
-			gone++
+			gone.Add(1)
 		}
 		mux.ServeHTTP(w, r)
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
-			gone = 0
+			gone.Store(0)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/", srv.URL + "/second"}, Browser: browser,
@@ -98,8 +99,8 @@ func TestLinkCheckReportsBrokenLinks(t *testing.T) {
 				t.Errorf("broken %v", broken)
 			}
 			// The second page's link to /gone was already checked from the first page.
-			if gone != 1 {
-				t.Errorf("/gone was requested %d times, want once", gone)
+			if n := gone.Load(); n != 1 {
+				t.Errorf("/gone was requested %d times, want once", n)
 			}
 		})
 	}
@@ -245,5 +246,62 @@ func TestSummaryListsLinkErrors(t *testing.T) {
 		if !strings.Contains(b.String(), want) {
 			t.Errorf("summary lacks %q:\n%s", want, b.String())
 		}
+	}
+}
+
+// A link's href goes into the finding's selector as a CSS string: & and < stay as they are, and quotes, backslashes
+// and control characters are escaped.
+func TestCSSString(t *testing.T) {
+	for in, want := range map[string]string{
+		"/search?q=a&b=<c>": `"/search?q=a&b=<c>"`,
+		`/a"b\c`:            `"/a\"b\\c"`,
+		"/a\nb":             `"/a\a b"`,
+	} {
+		if got := cssString(in); got != want {
+			t.Errorf("cssString(%q) = %s, want %s", in, got, want)
+		}
+	}
+}
+
+// A public origin's robots.txt can't send the sweep to a private address by a redirect. A private origin, one you
+// chose to sweep, keeps its redirects.
+func TestRobotsRedirectStaysPublic(t *testing.T) {
+	var internal atomic.Int32
+	inside := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		internal.Add(1)
+		_, _ = fmt.Fprint(w, "User-agent: *\nAllow: /\n")
+	}))
+	defer inside.Close()
+	front := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, inside.URL+"/robots.txt", http.StatusFound)
+	}))
+	defer front.Close()
+	// public.example doesn't exist, so it counts as public. Every request is dialled to the front server.
+	dial := func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, strings.TrimPrefix(front.URL, "http://"))
+	}
+	base := &http.Client{Transport: &http.Transport{DialContext: dial}}
+	ctx := context.Background()
+	c := robotsClient(ctx, base, "http://public.example")
+	resp, err := c.Get("http://public.example/robots.txt")
+	if err == nil {
+		_ = resp.Body.Close()
+	}
+	if err == nil || !strings.Contains(err.Error(), "private address") {
+		t.Errorf("redirect to a private address: %v", err)
+	}
+	if n := internal.Load(); n != 0 {
+		t.Errorf("the private address was requested %d times", n)
+	}
+	if base.CheckRedirect != nil {
+		t.Error("the sweep's own client was changed")
+	}
+	resp, err = robotsClient(ctx, nil, front.URL).Get(front.URL + "/robots.txt")
+	if err != nil {
+		t.Fatalf("a private origin's redirect: %v", err)
+	}
+	_ = resp.Body.Close()
+	if internal.Load() != 1 {
+		t.Error("a private origin lost its redirect")
 	}
 }

@@ -469,7 +469,7 @@ func robotsFor(ctx context.Context, cfg Config, byOrigin map[string]*robots.Resu
 	if res := byOrigin[origin]; res != nil {
 		return res, nil
 	}
-	res, err := robots.Fetch(ctx, cfg.HTTPClient, raw, telemetry.RobotsToken, telemetry.RequestUserAgent(cfg.Identify))
+	res, err := robots.Fetch(ctx, robotsClient(ctx, cfg.HTTPClient, origin), raw, telemetry.RobotsToken, telemetry.RequestUserAgent(cfg.Identify))
 	if err != nil {
 		return nil, err
 	}
@@ -478,6 +478,35 @@ func robotsFor(ctx context.Context, cfg Config, byOrigin map[string]*robots.Resu
 		_, _ = fmt.Fprintf(cfg.Log, "robots: %s: %s\n", origin, res.Status)
 	}
 	return res, nil
+}
+
+// robotsClient is the client that fetches one origin's robots.txt. A page decides which origins the link check and
+// the journeys ask about, so a public origin's robots.txt may not redirect to localhost or a private address: the
+// redirect fails, and robots.txt then counts as unreachable. A private origin, one you chose to sweep, keeps its
+// redirects.
+func robotsClient(ctx context.Context, base *http.Client, origin string) *http.Client {
+	c := http.Client{Timeout: 15 * time.Second}
+	if base != nil {
+		c = *base
+	}
+	u, err := url.Parse(origin)
+	if err != nil || links.PrivateHost(ctx, u.Host) {
+		return &c
+	}
+	prev := c.CheckRedirect
+	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if links.PrivateHost(req.Context(), req.URL.Host) {
+			return fmt.Errorf("robots.txt redirects to a private address, %s", req.URL.Host)
+		}
+		if prev != nil {
+			return prev(req, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		return nil
+	}
+	return &c
 }
 
 // robotsCache holds each origin's robots.txt rules. mu guards it, since the journeys' tab asks from the browser's

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -195,10 +196,24 @@ func linkCheck(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res 
 	}
 }
 
-// cssString quotes s as a CSS string.
+// cssString quotes s as a CSS string. Backslashes and double quotes are escaped, and so is any control character,
+// as a hex escape with a space after it. Everything else, & and < included, stays as it is.
 func cssString(s string) string {
-	b, _ := json.Marshal(s)
-	return string(b)
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch {
+		case r == '"' || r == '\\':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case r < 0x20 || r == 0x7f:
+			fmt.Fprintf(&b, "\\%x ", r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
 }
 
 // linkPlan says where each link is checked.

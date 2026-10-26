@@ -65,11 +65,17 @@ func TestPrivateHost(t *testing.T) {
 	for host, want := range map[string]bool{
 		"localhost": true, "app.localhost:3000": true, "127.0.0.1:8080": true, "[::1]:9": true, "10.1.2.3": true,
 		"192.168.0.1": true, "169.254.169.254": true, "0.0.0.0": true, "8.8.8.8": false, "[2001:4860::8888]": false,
-		"nohost.invalid": false,
+		"nohost.invalid": false, "100.100.100.200": true, "100.63.255.255": false, "100.128.0.1": false,
 	} {
 		if got := PrivateHost(ctx, host); got != want {
 			t.Errorf("%s: private %v, want %v", host, got, want)
 		}
+	}
+	// A name the sweep can't look up, here because the lookup was cancelled, is treated as private.
+	ended, stop := context.WithCancel(ctx)
+	stop()
+	if !PrivateHost(ended, "example.com") {
+		t.Error("a failed lookup counted as public")
 	}
 }
 
@@ -92,6 +98,34 @@ func TestCheckExcludesPrivateAddresses(t *testing.T) {
 		}
 		if got := strings.Contains(string(b), "--exclude-all-private"); got == allow {
 			t.Errorf("allow private %v: lychee args %q", allow, b)
+		}
+	}
+}
+
+// lychee exits 2 when it found broken links, which is a result: Check reads its report. Any other failure is an error
+// that names lychee's first line of complaint.
+func TestCheckReadsExitCodes(t *testing.T) {
+	dir := t.TempDir()
+	report := `{"error_map":{"stdin":[{"url":"https://example.test/gone","status":{"text":"Not Found","code":404}}]}}`
+	for _, tc := range []struct {
+		name, script, err string
+	}{
+		{"broken", "#!/bin/sh\ncat > /dev/null\necho '" + report + "'\nexit 2\n", ""},
+		{"failed", "#!/bin/sh\ncat > /dev/null\necho 'bad config: no such option' >&2\necho 'more' >&2\nexit 1\n", "bad config: no such option"},
+	} {
+		fake := filepath.Join(dir, tc.name)
+		if err := os.WriteFile(fake, []byte(tc.script), 0o700); err != nil { //nolint:gosec // a test program must be executable
+			t.Fatal(err)
+		}
+		got, err := Check(context.Background(), fake, []string{"https://example.test/gone", "https://example.test/fine"}, "ua", false)
+		if tc.err != "" {
+			if err == nil || !strings.Contains(err.Error(), tc.err) || strings.Contains(err.Error(), "more") {
+				t.Errorf("%s: error %v, want one naming %q", tc.name, err, tc.err)
+			}
+			continue
+		}
+		if err != nil || len(got) != 2 || got[0].Outcome != Broken || got[0].Code != 404 || got[1].Outcome != OK {
+			t.Errorf("%s: %v %+v", tc.name, err, got)
 		}
 	}
 }

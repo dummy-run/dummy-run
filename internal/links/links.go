@@ -161,8 +161,13 @@ func firstLine(s string) string {
 	return s
 }
 
-// PrivateHost reports whether host is localhost, or an address on a loopback, private or link-local network, or a
-// name that resolves to one. A name that doesn't resolve isn't private: lychee reports it as broken.
+// cgnat is the shared address space carriers and some clouds use inside their networks (RFC 6598), which IsPrivate
+// doesn't cover.
+var cgnat = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
+
+// PrivateHost reports whether host is localhost, or an address on a loopback, private, shared or link-local network,
+// or a name that resolves to one. A name that doesn't exist isn't private: lychee reports it as broken. A lookup
+// that fails for any other reason counts as private, so a name the sweep can't check is never fetched.
 func PrivateHost(ctx context.Context, host string) bool {
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
@@ -175,7 +180,8 @@ func PrivateHost(ctx context.Context, host string) bool {
 	if ips[0] == nil {
 		addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
 		if err != nil {
-			return false
+			var dns *net.DNSError
+			return !errors.As(err, &dns) || !dns.IsNotFound
 		}
 		ips = ips[:0]
 		for _, a := range addrs {
@@ -183,7 +189,7 @@ func PrivateHost(ctx context.Context, host string) bool {
 		}
 	}
 	for _, ip := range ips {
-		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || cgnat.Contains(ip) {
 			return true
 		}
 	}
