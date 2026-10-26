@@ -138,3 +138,11 @@ has the notice. No ARIA-AT code is used.
 The test fixtures for checking the sweep against real markup come from the
 [AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) (MIT). The fixtures use the rule names and the markup of
 the elements it lists, and none of its code.
+
+## Testing
+
+These run only in the project's own tests. None of them is part of the program you install.
+
+| Tool | Version | What it does for Dummy Run | Licence |
+|---|---|---|---|
+| [rapid](https://github.com/flyingmutant/rapid) | 1.2.0 | Makes random inputs, such as robots.txt rules and allow-list entries, checks that a rule holds for each one and shrinks a failure to its smallest case. The unit tests run 100 cases of each, and `-rapid.checks` runs more | MPL-2.0 |

@@ -17,6 +17,7 @@ require (
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.60.0
 	google.golang.org/genai v1.72.0
+	pgregory.net/rapid v1.2.0
 )
 
 require (
