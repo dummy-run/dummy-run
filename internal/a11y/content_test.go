@@ -23,6 +23,7 @@ const contentPage = `<!doctype html><html lang="en-GB"><head><meta charset="utf-
 <p><a id="bad-url" href="https://example.com/a/very/long/path/to/a/page">https://example.com/a/very/long/path/to/a/page</a></p>
 <p><a id="ok-url" href="https://example.com/">example.com</a></p>
 <p><a id="bad-new" href="/x" target="_blank">Our partners</a></p>
+<p><a id="bad-new5" href="/x5" target="_BLANK">Shouty partners</a></p>
 <p><a id="ok-new" href="/y" target="_blank">Our partners (opens in a new tab)</a></p>
 <p><a id="bad-doc" href="/files/report.pdf">Annual report</a></p>
 <p><a id="ok-doc" href="/files/report2.pdf">Annual report (PDF, 2 MB)</a></p>
@@ -83,7 +84,7 @@ func TestContentChecksFindOnlyPlantedProblems(t *testing.T) {
 	want := map[string][]string{
 		RuleVagueLink:    {"#bad-vague", "#bad-vague2"},
 		RuleURLLink:      {"#bad-url"},
-		RuleNewWindow:    {"#bad-new", "#bad-new2", "#bad-new3", "#bad-new4"},
+		RuleNewWindow:    {"#bad-new", "#bad-new2", "#bad-new3", "#bad-new4", "#bad-new5"},
 		RuleDocumentLink: {"#bad-doc", "#bad-doc2", "#bad-doc3", "#bad-doc4", "#bad-doc5"},
 		RuleAltFileName:  {"#bad-file", "#bad-file2", "#bad-file3"},
 		RuleAltRedundant: {"#bad-redundant"},
@@ -100,6 +101,9 @@ func TestContentChecksFindOnlyPlantedProblems(t *testing.T) {
 				Schemes: []string{Light}, Headless: true, Content: true})
 			if err != nil {
 				t.Fatal(err)
+			}
+			if len(rep.Results) != 2 || rep.Results[0].URL == rep.Results[1].URL {
+				t.Fatalf("want one result for each of the 2 pages, got %d", len(rep.Results))
 			}
 			for _, r := range rep.Results {
 				if r.Error != "" || !r.ContentChecked {

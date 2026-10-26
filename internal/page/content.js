@@ -94,7 +94,7 @@
     const plain = name.toLowerCase().replace(/[.:!?…»›→>\s]+$/u, "").replace(/^[«‹←<\s]+/u, "");
     if (english && vague.test(plain)) push(out.vagueLink, a, "the link's name is " + quote(name, 60) + ", which says nothing about where it goes when heard on its own");
     if (/^(https?:\/\/|www\.)\S{30,}$/i.test(name)) push(out.urlLink, a, "the link's name is the address " + quote(name, 80));
-    if (a.target === "_blank" && english && !warns.test(name)) {
+    if (a.target.toLowerCase() === "_blank" && english && !warns.test(name)) {
       push(out.newWindow, a, "the link " + quote(name, 60) + " opens a new tab and doesn't say so");
     }
     let path = "";
