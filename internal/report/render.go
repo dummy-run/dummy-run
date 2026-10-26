@@ -140,6 +140,7 @@ func commonFuncs() map[string]any {
 		"inline":         mdInline,
 		"inc":            func(i int) int { return i + 1 },
 		"fixRules":       fixRules,
+		"colourRules":    colourRules,
 		"symptomText":    symptomText,
 		"placeText":      placeText,
 		"whoText":        whoText,
@@ -220,6 +221,17 @@ func mdCell(v any) string {
 func mdInline(v any) string {
 	s := fmt.Sprint(v)
 	return strings.NewReplacer("`", "'", "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
+}
+
+// colourRules keeps the failed rules that have colour suggestions, in report order.
+func colourRules(rules []AxeRule) []AxeRule {
+	var out []AxeRule
+	for _, r := range rules {
+		if len(r.Colours) > 0 {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 // fixRules keeps the failed rules the fix library has an entry for, in report order.

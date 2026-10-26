@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/colour"
 	"github.com/dummy-run/dummy-run/internal/robots"
 )
 
@@ -151,6 +152,9 @@ func TestConformanceSweepFixture(t *testing.T) {
 					if !strings.Contains(f.Nodes[0].Target, "nameless") {
 						t.Errorf("button-name target %q does not name the button", f.Nodes[0].Target)
 					}
+				}
+				if f, ok := got[ruleContrast]; ok {
+					checkContrastColours(t, r.Viewport+"/"+r.Scheme, f)
 				}
 				if r.Failing() != 2 {
 					t.Errorf("%s/%s: want 2 failing nodes (button-name, contrast), got %d", r.Viewport, r.Scheme, r.Failing())
@@ -293,5 +297,25 @@ func TestBestPracticeRulesAreAdviceNotFailures(t *testing.T) {
 	r.summarise(Config{})
 	if r.Summary.Advice != 2 || r.Summary.Failing != 0 || r.Failed() {
 		t.Errorf("advice must not fail the sweep: %+v", r.Summary)
+	}
+}
+
+// checkContrastColours checks a contrast failure records the colours axe measured, with a text colour that meets
+// the ratio on the same background.
+func checkContrastColours(t *testing.T, where string, f Finding) {
+	t.Helper()
+	c := f.Nodes[0].Colours
+	if c == nil {
+		t.Errorf("%s: contrast failure has no colours", where)
+		return
+	}
+	if c.Ratio >= c.Need || c.TextFix == "" || !strings.Contains(f.Nodes[0].Detail, c.TextFix) {
+		t.Errorf("%s: colours %+v, detail %q", where, c, f.Nodes[0].Detail)
+		return
+	}
+	fg, err1 := colour.Parse(c.TextFix)
+	bg, err2 := colour.Parse(c.Background)
+	if err1 != nil || err2 != nil || colour.Ratio(fg, bg) < c.Need {
+		t.Errorf("%s: %s on %s does not meet %g:1", where, c.TextFix, c.Background, c.Need)
 	}
 }
