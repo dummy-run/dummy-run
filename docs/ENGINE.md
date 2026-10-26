@@ -1337,8 +1337,14 @@ turn automated checkers away with 401, 403, 429 or 999 while the page works in a
 
 lychee sends the sweep's user agent, `DummyRun/<version> (+https://dummyrun.dev/scanner/)` with `--identify`. It
 never gets your preview credentials. With [preview access](#protected-previews) on, links on the sites you're
-sweeping are checked from inside the browser instead, which already holds them, and lychee only gets links to
-other sites. The sweep looks for `lychee` on your `PATH`, or the program `DUMMYRUN_LYCHEE` names. The container
+sweeping, the same scheme and host, are checked from inside the browser instead, which already holds them, and
+lychee only gets the rest.
+
+A page decides where its links point, so a link to `localhost`, to `169.254.169.254` or to another address on a
+private network would have the checker visit the machine it runs on or the network around it. Those links are
+skipped, both by the sweep, which looks up each host first, and by lychee with `--exclude-all-private`. They're
+checked only when every URL you sweep is itself on `localhost` or a private address, as when you sweep a site on
+your own machine. The sweep looks for `lychee` on your `PATH`, or the program `DUMMYRUN_LYCHEE` names. The container
 image includes lychee 0.24.2. Without it, the rest of the sweep still runs and each page says why its links weren't
 checked.
 

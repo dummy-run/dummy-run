@@ -65,9 +65,11 @@ Flags:
                     lighthouse true. Its other accessibility failures are candidates and its best-practice failures
                     advice (rules dummyrun-lighthouse-<audit>). Chrome only; needs lighthouse on the PATH or
                     DUMMYRUN_LIGHTHOUSE
-  --links           also check the links on each page with lychee, each link once across the sweep. A link that
-                    answers with an error status or can't be reached is advice (dummyrun-broken-link), with the
-                    URL and status code. Needs lychee on the PATH or DUMMYRUN_LYCHEE
+  --links           also check the links on each page with lychee, each link once across the sweep: up to 300 http
+                    and https links on a page, without their #fragment, and links_omitted counts the rest. A link
+                    that answers with an error status or can't be reached is advice (dummyrun-broken-link), with
+                    the URL and status code. Links to private addresses are skipped unless every URL you sweep is
+                    on one. Needs lychee on the PATH or DUMMYRUN_LYCHEE
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences

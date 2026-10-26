@@ -155,3 +155,48 @@ func TestLinkCheckBehindPreviewAccess(t *testing.T) {
 		})
 	}
 }
+
+// planLinks sends only same-origin links through the browser, and keeps a page's links to private addresses away
+// from lychee unless every swept URL is private too.
+func TestPlanLinks(t *testing.T) {
+	private := func(host string) bool { return strings.HasPrefix(host, "10.") || strings.HasPrefix(host, "127.") }
+	links := []string{"https://shop.test/a", "http://shop.test/b", "https://other.test/c", "http://10.0.0.5/admin", "http://127.0.0.1:8080/"}
+
+	p := planLinks([]string{"https://shop.test/"}, true, links, private)
+	if strings.Join(p.browser, " ") != "https://shop.test/a" {
+		t.Errorf("browser %v: only the swept origin goes through the browser, not http on the same host", p.browser)
+	}
+	if strings.Join(p.lychee, " ") != "http://shop.test/b https://other.test/c" || p.allowPrivate {
+		t.Errorf("lychee %v, allow private %v", p.lychee, p.allowPrivate)
+	}
+	if strings.Join(p.skipped, " ") != "http://10.0.0.5/admin http://127.0.0.1:8080/" {
+		t.Errorf("skipped %v: a public sweep must not check private addresses", p.skipped)
+	}
+
+	// A sweep of a local site checks its private links too, and without preview access nothing uses the browser.
+	p = planLinks([]string{"http://127.0.0.1:8080/"}, false, links, private)
+	if len(p.browser) != 0 || len(p.skipped) != 0 || len(p.lychee) != 5 || !p.allowPrivate {
+		t.Errorf("local sweep: %+v", p)
+	}
+
+	// One public URL among local ones keeps the filter on.
+	p = planLinks([]string{"http://127.0.0.1:8080/", "https://shop.test/"}, false, links, private)
+	if p.allowPrivate || len(p.skipped) != 2 {
+		t.Errorf("mixed sweep: %+v", p)
+	}
+}
+
+// A page whose links couldn't be checked says so in the terminal summary.
+func TestSummaryListsLinkErrors(t *testing.T) {
+	rep := &Report{Browser: "chrome", Results: []PageResult{
+		{URL: "https://example.com/a", Browser: "chrome", Viewport: "desktop", Scheme: "light", LinksError: "links: lychee not found"},
+	}}
+	rep.summarise(Config{Allow: &AllowList{}})
+	var b strings.Builder
+	rep.WriteSummary(&b)
+	for _, want := range []string{"LINKS https://example.com/a (chrome/desktop/light): links: lychee not found", "links not checked on 1 pages"} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("summary lacks %q:\n%s", want, b.String())
+		}
+	}
+}

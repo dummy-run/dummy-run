@@ -87,33 +87,35 @@ func linkCheck(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res 
 	if rep.linkResults == nil {
 		rep.linkResults = map[string]links.Result{}
 	}
-	swept := map[string]bool{}
-	for _, u := range cfg.URLs {
-		if p, err := url.Parse(u); err == nil {
-			swept[p.Host] = true
-		}
-	}
-	var viaLychee, viaBrowser []string
-	for _, l := range found.Links {
-		if _, done := rep.linkResults[l.URL]; done {
-			continue
-		}
-		p, err := url.Parse(l.URL)
-		if cfg.Access.Active() && err == nil && swept[p.Host] {
-			viaBrowser = append(viaBrowser, l.URL)
-		} else {
-			viaLychee = append(viaLychee, l.URL)
-		}
-	}
 	lctx, cancel := context.WithTimeout(ctx, linksTimeout)
 	defer cancel()
+	var todo []string
+	for _, l := range found.Links {
+		if _, done := rep.linkResults[l.URL]; !done {
+			todo = append(todo, l.URL)
+		}
+	}
+	seen := map[string]bool{}
+	private := func(host string) bool {
+		v, ok := seen[host]
+		if !ok {
+			v = links.PrivateHost(lctx, host)
+			seen[host] = v
+		}
+		return v
+	}
+	plan := planLinks(cfg.URLs, cfg.Access.Active(), todo, private)
+	for _, u := range plan.skipped {
+		rep.linkResults[u] = links.Result{URL: u, Outcome: links.Skipped}
+	}
+	viaLychee, viaBrowser, allowPrivate := plan.lychee, plan.browser, plan.allowPrivate
 	if len(viaLychee) > 0 {
 		bin, err := links.Find()
 		if err != nil {
 			res.LinksError = err.Error()
 			return
 		}
-		got, err := links.Check(lctx, bin, viaLychee, telemetry.RequestUserAgent(cfg.Identify))
+		got, err := links.Check(lctx, bin, viaLychee, telemetry.RequestUserAgent(cfg.Identify), allowPrivate)
 		if err != nil {
 			res.LinksError = firstLine(err.Error())
 			return
@@ -183,4 +185,42 @@ func linkCheck(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res 
 func cssString(s string) string {
 	b, _ := json.Marshal(s)
 	return string(b)
+}
+
+// linkPlan says where each link is checked.
+type linkPlan struct {
+	lychee, browser, skipped []string
+	allowPrivate             bool
+}
+
+// planLinks sorts the links to check. The browser can read the answer only for a link on the page's own origin, so
+// with preview access on, only links on a swept URL's origin, its scheme and host, go through it. A sweep of local
+// or private sites may check links on private addresses. Any other sweep skips them, so a page can't send the
+// checker to the machine it runs on or the network around it. The rest go to lychee.
+func planLinks(sweptURLs []string, access bool, urls []string, private func(host string) bool) linkPlan {
+	swept := map[string]bool{}
+	plan := linkPlan{allowPrivate: len(sweptURLs) > 0}
+	for _, u := range sweptURLs {
+		p, err := url.Parse(u)
+		if err != nil {
+			plan.allowPrivate = false
+			continue
+		}
+		swept[p.Scheme+"://"+p.Host] = true
+		if !private(p.Host) {
+			plan.allowPrivate = false
+		}
+	}
+	for _, u := range urls {
+		p, err := url.Parse(u)
+		switch {
+		case err == nil && access && swept[p.Scheme+"://"+p.Host]:
+			plan.browser = append(plan.browser, u)
+		case err != nil || (!plan.allowPrivate && private(p.Host)):
+			plan.skipped = append(plan.skipped, u)
+		default:
+			plan.lychee = append(plan.lychee, u)
+		}
+	}
+	return plan
 }

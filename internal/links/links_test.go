@@ -1,7 +1,9 @@
 package links
 
 import (
+	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -55,5 +57,41 @@ func TestLycheeVersionMatchesDockerfile(t *testing.T) {
 	}
 	if !strings.Contains(string(b), "\nARG LYCHEE_VERSION="+LycheeVersion+"\n") {
 		t.Errorf("docker/Dockerfile does not pin lychee %s", LycheeVersion)
+	}
+}
+
+func TestPrivateHost(t *testing.T) {
+	ctx := context.Background()
+	for host, want := range map[string]bool{
+		"localhost": true, "app.localhost:3000": true, "127.0.0.1:8080": true, "[::1]:9": true, "10.1.2.3": true,
+		"192.168.0.1": true, "169.254.169.254": true, "0.0.0.0": true, "8.8.8.8": false, "[2001:4860::8888]": false,
+		"nohost.invalid": false,
+	} {
+		if got := PrivateHost(ctx, host); got != want {
+			t.Errorf("%s: private %v, want %v", host, got, want)
+		}
+	}
+}
+
+// Check asks lychee to skip private addresses, unless the sweep allows them.
+func TestCheckExcludesPrivateAddresses(t *testing.T) {
+	dir := t.TempDir()
+	fake := filepath.Join(dir, "lychee")
+	args := filepath.Join(dir, "args")
+	script := "#!/bin/sh\necho \"$@\" > " + args + "\ncat > /dev/null\necho '{}'\n"
+	if err := os.WriteFile(fake, []byte(script), 0o700); err != nil { //nolint:gosec // a test program must be executable
+		t.Fatal(err)
+	}
+	for _, allow := range []bool{false, true} {
+		if _, err := Check(context.Background(), fake, []string{"https://example.test/"}, "ua", allow); err != nil {
+			t.Fatal(err)
+		}
+		b, err := os.ReadFile(args)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Contains(string(b), "--exclude-all-private"); got == allow {
+			t.Errorf("allow private %v: lychee args %q", allow, b)
+		}
 	}
 }

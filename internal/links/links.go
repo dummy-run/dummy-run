@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -72,14 +73,21 @@ func Classify(code int, timedOut bool) string {
 }
 
 // Check runs lychee once on the URLs and returns a result for each. The user agent is the one the sweep sends.
-// lychee gets no credentials: links that need them are checked from the browser instead.
-func Check(ctx context.Context, bin string, urls []string, userAgent string) ([]Result, error) {
+// lychee gets no credentials: links that need them are checked from the browser instead. Unless allowPrivate is
+// set, lychee skips loopback, private and link-local addresses, so a page can't use the checker to reach the
+// machine it runs on or the network around it.
+func Check(ctx context.Context, bin string, urls []string, userAgent string, allowPrivate bool) ([]Result, error) {
 	if len(urls) == 0 {
 		return nil, nil
 	}
+	args := []string{"--format", "json", "--no-progress", "--max-concurrency", "8",
+		"--timeout", "20", "--max-retries", "1", "--user-agent", userAgent}
+	if !allowPrivate {
+		args = append(args, "--exclude-all-private")
+	}
+	args = append(args, "-")
 	var out, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, bin, "--format", "json", "--no-progress", "--max-concurrency", "8", //nolint:gosec // lychee is the program the user chose // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- the path comes from DUMMYRUN_LYCHEE or PATH, never from a page
-		"--timeout", "20", "--max-retries", "1", "--user-agent", userAgent, "-")
+	cmd := exec.CommandContext(ctx, bin, args...) //nolint:gosec // lychee is the program the user chose // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command -- the path comes from DUMMYRUN_LYCHEE or PATH, never from a page
 	cmd.Stdin = strings.NewReader(strings.Join(urls, "\n") + "\n")
 	cmd.Stdout, cmd.Stderr = &out, &stderr
 	// lychee exits 2 when it found broken links, which is a result, not a failure.
@@ -151,4 +159,33 @@ func firstLine(s string) string {
 		return s[:i]
 	}
 	return s
+}
+
+// PrivateHost reports whether host is localhost, or an address on a loopback, private or link-local network, or a
+// name that resolves to one. A name that doesn't resolve isn't private: lychee reports it as broken.
+func PrivateHost(ctx context.Context, host string) bool {
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") || strings.HasSuffix(strings.ToLower(host), ".localhost") {
+		return true
+	}
+	ips := []net.IP{net.ParseIP(host)}
+	if ips[0] == nil {
+		addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		if err != nil {
+			return false
+		}
+		ips = ips[:0]
+		for _, a := range addrs {
+			ips = append(ips, a.IP)
+		}
+	}
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+			return true
+		}
+	}
+	return false
 }
