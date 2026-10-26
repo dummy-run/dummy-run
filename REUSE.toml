@@ -67,6 +67,12 @@ SPDX-FileCopyrightText = "2024 FCUL"
 SPDX-License-Identifier = "ISC"
 
 [[annotations]]
+path = "internal/visual/pixelmatch.go"
+precedence = "override"
+SPDX-FileCopyrightText = ["2025 Mapbox", "2026 Joel Merrick and the Dummy Run contributors"]
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
 path = "internal/page/engines/qualweb/act.bundle.js"
 precedence = "override"
 SPDX-FileCopyrightText = ["2024 FCUL", "JS Foundation and other contributors", "2021 Lea Verou and Chris Lilley"]
@@ -89,6 +95,12 @@ path = ["internal/page/consent/autoconsent.playwright.js", "internal/page/consen
 precedence = "override"
 SPDX-FileCopyrightText = "DuckDuckGo, Inc. and the autoconsent contributors"
 SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+path = ["internal/page/webvitals/web-vitals.attribution.iife.js", "internal/page/webvitals/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2020 Google LLC"
+SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = "internal/page/screenreader/vsr.min.js"

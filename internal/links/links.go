@@ -202,9 +202,14 @@ func private(ctx context.Context, host string, onError bool) bool {
 		}
 	}
 	for _, ip := range ips {
-		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || cgnat.Contains(ip) {
+		if PrivateIP(ip) {
 			return true
 		}
 	}
 	return false
+}
+
+// PrivateIP reports whether ip is on a loopback, private, shared or link-local network, or unspecified.
+func PrivateIP(ip net.IP) bool {
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || cgnat.Contains(ip)
 }
