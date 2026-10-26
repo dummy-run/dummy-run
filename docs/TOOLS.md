@@ -106,3 +106,11 @@ criteria data in Siteimprove Alfa (MIT).
 The test fixtures for checking the sweep against real markup come from the
 [AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) (MIT). The fixtures use the rule names and the markup of
 the elements it lists, and none of its code.
+
+## Testing
+
+These run only in the project's own tests. None of them is part of the program you install.
+
+| Tool | Version | What it does for Dummy Run | Licence |
+|---|---|---|---|
+| [rapid](https://github.com/flyingmutant/rapid) | 1.2.0 | Property-based tests: it makes thousands of random inputs, such as robots.txt rules and allow-list entries, checks a rule holds for each and shrinks a failure to its smallest case | MPL-2.0 |

@@ -85,6 +85,23 @@ go test -run='^$' -fuzz=FuzzWrite -fuzztime=30s ./internal/record/
 go test -run='^$' -fuzz=FuzzDecodeResponses -fuzztime=30s ./internal/provider/
 ```
 
+Some tests check a rule over many random inputs with rapid, rather than a few examples. Their names start
+`TestProperty` or `TestMetamorphic`. A property test compares the code with an independent reading of the
+same rule, such as robots.txt patterns against a regular expression. A metamorphic test changes the input
+in a way that should move the answer only one way, or not at all, and checks it does:
+
+- adding a Disallow rule to robots.txt never lets in a path that was kept out, and adding an Allow rule
+  never keeps one out that was let in;
+- the order of the rules in a robots.txt group never changes an answer;
+- adding entries to an allow-list never stops it accepting a violation, and anything new it accepts, an
+  added entry accepts.
+
+They run with the unit tests, 100 cases each. To run more, or to replay a failure from the seed it prints:
+
+```sh
+go test -run 'Property|Metamorphic' -rapid.checks=10000 ./internal/robots/ ./internal/a11y/
+```
+
 The OpenAI-compatible chat fixtures were recorded from a local Ollama, and the other providers' fixtures
 follow each vendor's documented format. To test against a local model, set `DUMMYRUN_OLLAMA_MODEL`. The
 test is skipped when the variable is unset.
