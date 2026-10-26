@@ -16,7 +16,7 @@ import (
 
 // statePage is a page whose ids, link addresses and form token change on every load, as many sites' do. The query
 // sets what changes the page itself: its text, a button's state, the text in a shadow root or whether the search
-// field is required or read-only.
+// field is required or read-only, or whether the list lets you pick more than one.
 func statePage(r *http.Request) string {
 	q := r.URL.Query()
 	text, expanded, shadow := "Opening times", "false", "Inside"
@@ -50,10 +50,15 @@ func statePage(r *http.Request) string {
 			page = strings.Replace(page, `type="search">`, `type="search" `+a+`>`, 1)
 		}
 	}
+	if q.Has("multiple") {
+		page = strings.Replace(page, `<div id="host">`, `<select multiple aria-label="Sizes"><option>S</option></select><div id="host">`, 1)
+	} else {
+		page = strings.Replace(page, `<div id="host">`, `<select aria-label="Sizes"><option>S</option></select><div id="host">`, 1)
+	}
 	return page
 }
 
-// TestStateHashSeesThePageNotItsTokens sweeps the same page twice, with fresh ids and tokens each time, and five
+// TestStateHashSeesThePageNotItsTokens sweeps the same page twice, with fresh ids and tokens each time, and six
 // changed versions, and checks only the changed ones hash differently.
 func TestStateHashSeesThePageNotItsTokens(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
@@ -66,7 +71,7 @@ func TestStateHashSeesThePageNotItsTokens(t *testing.T) {
 	}))
 	defer srv.Close()
 	urls := []string{srv.URL + "/?a", srv.URL + "/?b", srv.URL + "/?text", srv.URL + "/?expanded", srv.URL + "/?shadow",
-		srv.URL + "/?attrs-joined", srv.URL + "/?attrs-split", srv.URL + "/?required", srv.URL + "/?readonly"}
+		srv.URL + "/?attrs-joined", srv.URL + "/?attrs-split", srv.URL + "/?required", srv.URL + "/?readonly", srv.URL + "/?multiple"}
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -91,7 +96,7 @@ func TestStateHashSeesThePageNotItsTokens(t *testing.T) {
 			if hash["attrs-joined"] == hash["attrs-split"] {
 				t.Error(`aria-label="x role=y" hashed the same as aria-label="x" role="y"`)
 			}
-			for _, k := range []string{"text", "expanded", "shadow", "required", "readonly"} {
+			for _, k := range []string{"text", "expanded", "shadow", "required", "readonly", "multiple"} {
 				if hash[k] == hash["a"] {
 					t.Errorf("a page with a changed %s hashed the same", k)
 				}
