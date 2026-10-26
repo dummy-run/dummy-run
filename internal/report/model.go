@@ -310,6 +310,21 @@ type AxeRule struct {
 	Confidence       string                `json:"confidence,omitempty"`
 	ConfidenceReason string                `json:"confidence_reason,omitempty"`
 	Pages            []AxePage             `json:"pages"`
+	// Colours, for a colour contrast rule, are each pair of colours that failed, with the nearest colours that
+	// would meet the ratio.
+	Colours []ColourPair `json:"colours,omitempty"`
+}
+
+// ColourPair is one text and background colour pair that fails a contrast rule, and the nearest colours that meet it.
+// TextFix keeps the background and changes the lightness of the text, in OKLCH. BackgroundFix keeps the text.
+type ColourPair struct {
+	Text          string  `json:"text"`
+	Background    string  `json:"background"`
+	Ratio         float64 `json:"ratio"`
+	Need          float64 `json:"need"`
+	TextFix       string  `json:"text_fix,omitempty"`
+	BackgroundFix string  `json:"background_fix,omitempty"`
+	Elements      int     `json:"elements"`
 }
 
 // AxePage lists the elements of one page that failed a rule.
