@@ -1305,7 +1305,7 @@ A basket journey never starts from an "add to basket" link, or from a link whose
 following it would change the basket. The journeys' tab sends nothing but GET and HEAD requests: the browser fails
 any other request before it leaves, whatever the page's scripts try. With `--respect-robots`, a journey whose link
 leads to a page robots.txt disallows isn't tried and is `skipped`, and the tab loads no page robots.txt disallows,
-even by a redirect. A sweep that is signed in, with a session or preview access, tries no
+in a frame or by a redirect either. A sweep that is signed in, with a session or preview access, tries no
 journeys, for the same reason it tries no controls: a click could change the account or sign it out.
 
 Each result lists its `journeys`. A journey names its `kind`, its `selector`, `label` and `href`, and its `source`.

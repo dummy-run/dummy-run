@@ -74,8 +74,9 @@ type Driver struct {
 }
 
 // Guard makes the tab read-only, whatever the page's scripts do: a request other than GET or HEAD fails before it
-// leaves the browser. allowed, when not nil, is asked about each page load in the tab, redirects included, and one
-// it refuses fails too, so robots.txt holds however the tab got there. The returned function removes the guard.
+// leaves the browser. allowed, when not nil, is asked about each page load in the tab and its frames, redirects
+// included, and one it refuses fails too, so robots.txt holds however the tab got there. The returned function
+// removes the guard.
 func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func(), error) {
 	var id atomic.Value
 	id.Store("")
@@ -89,7 +90,7 @@ func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func
 			defer cancel()
 			m := strings.ToUpper(e.Request.Method)
 			ok := m == "GET" || m == "HEAD"
-			if ok && allowed != nil && e.Navigation != "" && e.Context == d.CX {
+			if ok && allowed != nil && e.Navigation != "" {
 				ok = allowed(e.Request.URL)
 			}
 			if !ok {

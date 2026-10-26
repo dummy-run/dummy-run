@@ -12,6 +12,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/access"
@@ -287,7 +288,7 @@ type Report struct {
 	// journeysDone holds the URLs whose journeys were tried, so each is tried once.
 	journeysDone map[string]bool
 	// robots holds each origin's robots.txt rules, with --respect-robots.
-	robots map[string]*robots.Result
+	robots *robotsCache
 }
 
 // Summary totals a report.
@@ -393,8 +394,8 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	var skipped []PageResult
 	if cfg.RespectRobots {
 		var err error
-		rep.robots = map[string]*robots.Result{}
-		if cfg.URLs, skipped, err = filterRobots(ctx, cfg, rep.robots); err != nil {
+		rep.robots = &robotsCache{byOrigin: map[string]*robots.Result{}}
+		if cfg.URLs, skipped, err = filterRobots(ctx, cfg, rep.robots.byOrigin); err != nil {
 			return rep, err
 		}
 		if len(cfg.URLs) == 0 {
@@ -458,6 +459,13 @@ func robotsFor(ctx context.Context, cfg Config, byOrigin map[string]*robots.Resu
 	return res, nil
 }
 
+// robotsCache holds each origin's robots.txt rules. mu guards it, since the journeys' tab asks from the browser's
+// event handlers.
+type robotsCache struct {
+	mu       sync.Mutex
+	byOrigin map[string]*robots.Result
+}
+
 // robotsAllows says whether robots.txt lets Dummy Run load raw, and if not, why. Without --respect-robots, or for a
 // link that isn't a web address, everything is allowed.
 func (r *Report) robotsAllows(ctx context.Context, cfg Config, raw string) (bool, string) {
@@ -468,7 +476,9 @@ func (r *Report) robotsAllows(ctx context.Context, cfg Config, raw string) (bool
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
 		return true, ""
 	}
-	res, err := robotsFor(ctx, cfg, r.robots, raw)
+	r.robots.mu.Lock()
+	res, err := robotsFor(ctx, cfg, r.robots.byOrigin, raw)
+	r.robots.mu.Unlock()
 	if err != nil {
 		return false, err.Error()
 	}
