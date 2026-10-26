@@ -55,6 +55,12 @@ func TestMainHTMLFindsTheMainContent(t *testing.T) {
 		{head + `<main style="visibility:hidden">Hidden root words.<p style="visibility:visible">Root child words.</p></main></body></html>`, "main", "Root child words."},
 		{head + `<main style="opacity:0"><p>Faded root words.</p></main></body></html>`, "main", ""},
 		{head + `<main style="display:contents"><div style="display:contents"><p>Boxless words.</p></div></main></body></html>`, "main", "Boxless words."},
+		{head + `<main hidden><p>Old words.</p></main><main><p>New words.</p></main></body></html>`, "body > main:nth-of-type(2)", "New words."},
+		{head + `<main style="opacity:0"><p>Old words.</p></main><main id="now"><p>New words.</p></main></body></html>`, "#now", "New words."},
+		{head + `<div style="display:none"><main><p>Old words.</p></main></div><main><p>New words.</p></main></body></html>`, "body > main", "New words."},
+		{head + `<main style="display:contents">Bare words.</main><main><p>Old words.</p></main></body></html>`, "body > main:nth-of-type(1)", "Bare words."},
+		{head + `<div style="display:none"><main style="display:contents">Old words.</main></div><main><p>New words.</p></main></body></html>`, "body > main", "New words."},
+		{head + `<div style="visibility:hidden"><main style="display:contents;visibility:visible">Seen words.</main></div><main><p>Old words.</p></main></body></html>`, "body > div > main", "Seen words."},
 		{head + `<nav>Menu words.</nav><div role="main"><p>Role words.</p></div></body></html>`, "[role=main]", "Role words."},
 		{head + `<header>Top words.</header><nav>Menu words.</nav><p>Body words.</p><aside>Side words.</aside><footer>Foot words.</footer></body></html>`,
 			"body", "Body words."},
@@ -82,7 +88,7 @@ func TestMainHTMLFindsTheMainContent(t *testing.T) {
 				if m.Selector != c.selector || !strings.Contains(m.HTML, c.kept) || !strings.Contains(m.HTML, `lang="cy"`) {
 					t.Errorf("selector %q, want %q, with %q and the page's language: %s", m.Selector, c.selector, c.kept, m.HTML)
 				}
-				for _, gone := range []string{"Menu words.", "Top words.", "Side words.", "Foot words.", "Hidden root words."} {
+				for _, gone := range []string{"Menu words.", "Top words.", "Side words.", "Foot words.", "Hidden root words.", "Old words."} {
 					if strings.Contains(m.HTML, gone) {
 						t.Errorf("%s: %q kept: %s", c.selector, gone, m.HTML)
 					}
