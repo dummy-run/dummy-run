@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
@@ -42,6 +43,10 @@ const enginesSandbox = "dummyrun-engines"
 
 // EnginesMaxGroups is the most failure groups one page returns.
 const EnginesMaxGroups = 200
+
+// engineTimeout is how long each engine that waits, IBM, HTML_CodeSniffer or Alfa, may take on one page. One that
+// takes longer is that engine's error, and the others still report.
+var engineTimeout = 25 * time.Second
 
 // AxeNode is one element axe-core flagged, with the WCAG criteria of its rule.
 type AxeNode struct {
@@ -107,7 +112,7 @@ func RunEngines(ctx context.Context, conn *bidi.Conn, cx string, axe []AxeNode, 
 	axeArg, _ := json.Marshal(axe)
 	keepArg, _ := json.Marshal(keep)
 	var out EngineResults
-	if err := conn.CallFunctionJSONIn(ctx, cx, enginesSandbox, enginesJS, &out, string(axeArg), string(keepArg), EnginesMaxGroups); err != nil {
+	if err := conn.CallFunctionJSONIn(ctx, cx, enginesSandbox, enginesJS, &out, string(axeArg), string(keepArg), EnginesMaxGroups, int(engineTimeout.Milliseconds())); err != nil {
 		return nil, fmt.Errorf("engines: %w", err)
 	}
 	for k, v := range loadErrs {
