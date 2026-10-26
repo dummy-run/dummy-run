@@ -1083,6 +1083,17 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
+The markup checks also list the roles and `aria-*` attributes the page's shown elements use, and look each one up
+in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C community group that tests how JAWS,
+NVDA and VoiceOver handle each ARIA pattern. When one screen reader and browser pair passes
+under 60 percent of the tests for a role or attribute, the sweep reports advice, `dummyrun-aria-support`. The advice names the first element that
+uses it, how many use it, and each pair's share, such as "NVDA with Chrome 18% (9 of 50)". For a role
+attribute that lists fallbacks, the first role ARIA defines counts, since that's the one the browser uses.
+
+ARIA-AT tests whole patterns, such as a tab list or a grid. A low figure means that screen reader and browser
+passed few of ARIA-AT's tests of the patterns that use the role or attribute. Your page may still be right. Most roles and attributes have a pair below 90 percent. The line is drawn
+at 60 so the advice is about clearly weak support. The figures were fetched on 2026-10-26 and ship with the engine.
+`internal/a11y/ariaat/fetch.sh` fetches them again.
 ### Content checks
 
 Some barriers are in the words and images a page's authors write: a link called "read more", alt text that is a
