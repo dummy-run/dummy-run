@@ -26,7 +26,7 @@ var readPageState = readState
 const stateJS = `(max) => {
   const skip = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
   const idRefs = new Set(["aria-activedescendant", "aria-controls", "aria-describedby", "aria-details", "aria-errormessage", "aria-flowto", "aria-labelledby", "aria-owns", "for", "headers"]);
-  const keep = ["alt", "title", "type", "lang", "hidden", "inert", "tabindex", "scope", "colspan", "rowspan", "autocomplete", "placeholder"];
+  const keep = ["alt", "title", "type", "lang", "hidden", "inert", "tabindex", "scope", "colspan", "rowspan", "autocomplete", "placeholder", "required", "readonly", "multiple"];
   const out = [];
   let size = 0, elements = 0, partial = false;
   const push = (s) => {
@@ -63,8 +63,8 @@ const stateJS = `(max) => {
   return {text: out.join("\n"), elements, partial};
 }`
 
-// PageState identifies the page's structure and text just before the rules run. Two results with the same Hash saw
-// the same elements, roles, ARIA, states and text, whatever else differed, such as an id or a token in a form. It
+// PageState identifies the page's structure and text just before the rules run. Two results with the same Hash,
+// neither of them Partial, saw the same elements, roles, ARIA, states and text, whatever else differed, such as an id or a token in a form. It
 // doesn't cover styles, classes, ids or link addresses, so a change to those alone keeps the hash.
 type PageState struct {
 	// Hash is the SHA-256 of the page's description, in hex.
