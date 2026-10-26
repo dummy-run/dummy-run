@@ -405,6 +405,9 @@ footer p { margin: 0 0 0.4rem; }
 {{- if $f.WCAG}}
 <dt>WCAG 2.2</dt><dd>{{join $f.WCAG}}</dd>
 {{- end}}
+{{- if $f.EN301549}}
+<dt>EN 301 549</dt><dd>{{join $f.EN301549}}</dd>
+{{- end}}
 <dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
 <dt>How sure</dt><dd>{{confidenceText $f.Confidence}} {{$f.ConfidenceReason}}</dd>
 {{- if $f.HelpURL}}
@@ -457,14 +460,14 @@ footer p { margin: 0 0 0.4rem; }
 <div class="table-wrap" role="region" tabindex="0" aria-label="Rules that failed">
 <table>
 <caption>Rules that failed</caption>
-<thead><tr><th scope="col">Rule</th><th scope="col">Severity</th><th scope="col">Impact</th><th scope="col">WCAG 2.2</th><th scope="col" class="num">Elements</th><th scope="col">How sure</th><th scope="col">Fix guidance</th></tr></thead>
+<thead><tr><th scope="col">Rule</th><th scope="col">Severity</th><th scope="col">Impact</th><th scope="col">WCAG 2.2 and EN 301 549</th><th scope="col" class="num">Elements</th><th scope="col">How sure</th><th scope="col">Fix guidance</th></tr></thead>
 <tbody>
 {{- range .Axe.Rules}}
 <tr>
 <th scope="row"><code>{{.Rule}}</code><br><span class="muted help">{{.Help}}</span>{{if .Baseline}}<br><span class="badge bl-{{.Baseline}}">{{baselineText .Baseline}}</span>{{end}}</th>
 <td><span class="badge b-{{.Severity}}">{{cap .Severity}}</span></td>
 <td>{{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}</td>
-<td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td>
+<td>{{if .WCAG}}{{join .WCAG}}{{if .EN301549}}<br><span class="muted help">EN 301 549 {{join .EN301549}}</span>{{end}}{{else}}Not recorded{{end}}</td>
 <td class="num">{{.Elements}}</td>
 <td>{{cap .Confidence}}<br><span class="muted help">{{.ConfidenceReason}}</span></td>
 <td>{{if .HelpURL}}<a href="{{.HelpURL}}">How to fix {{.Rule}}</a>{{else if .Fix}}<a href="#fix-{{.Rule}}">How to fix {{.Rule}}</a>, below{{else}}None recorded{{end}}</td>

@@ -47,7 +47,11 @@ func (r *Report) WriteSummary(w io.Writer) {
 					rows[k] = &row{f: f, target: n.Target, detail: n.Detail, shot: n.Screenshot}
 					order = append(order, k)
 				}
-				rows[k].combos = append(rows[k].combos, combo)
+				if p.Repeats > 1 {
+					rows[k].combos = append(rows[k].combos, fmt.Sprintf("%s (%d of %d runs)", combo, n.Runs, p.Repeats))
+				} else {
+					rows[k].combos = append(rows[k].combos, combo)
+				}
 			}
 		}
 	}
@@ -81,7 +85,11 @@ func (r *Report) WriteSummary(w io.Writer) {
 			_, _ = fmt.Fprintf(w, "SKIPPED %s: %s\n", p.URL, p.Skipped)
 		}
 		if p.Error != "" {
-			_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
+			if p.Repeats > 1 {
+				_, _ = fmt.Fprintf(w, "ERROR %s (%s, %d of %d runs): %s\n", p.URL, p.Setting(), *p.ErrorRuns, p.Repeats, p.Error)
+			} else {
+				_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
+			}
 		}
 		for _, e := range sortedKeys(p.EngineErrors) {
 			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", confidence.EngineName(e), p.URL, p.Setting(), printable(p.EngineErrors[e]))
@@ -108,6 +116,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
 		r.Browser, r.BrowserVersion, r.AxeVersion, s.Pages, s.Runs, s.Failing, s.Allowed, s.NeedsReview, s.PageErrors)
+	if r.Repeats > 1 {
+		_, _ = fmt.Fprintf(w, ", each run %d times", r.Repeats)
+	}
 	if s.Advice > 0 {
 		_, _ = fmt.Fprintf(w, ", %d elements with best-practice advice (not failures)", s.Advice)
 	}

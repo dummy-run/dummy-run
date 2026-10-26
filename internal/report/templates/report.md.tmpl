@@ -99,6 +99,9 @@ The findings are sorted by severity, then by the number of runs that found them.
 {{- if $f.WCAG}}
 | WCAG 2.2 | {{cell (join $f.WCAG)}} |
 {{- end}}
+{{- if $f.EN301549}}
+| EN 301 549 | {{cell (join $f.EN301549)}} |
+{{- end}}
 | Review | {{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{cell (join $f.Reviewers)}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{cell $f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding{{end}} |
 | How sure | {{confidenceText $f.Confidence}} {{cell $f.ConfidenceReason}} |
 {{- if $f.HelpURL}}
@@ -138,7 +141,7 @@ The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} 
 | Rule | What it checks | Severity | Impact | WCAG 2.2 | Elements | How sure | Fix guidance |
 |---|---|---|---|---|---:|---|---|
 {{- range .Axe.Rules}}
-| `{{cell .Rule}}` | {{cell .Help}}{{if .Baseline}} ({{cell (baselineText .Baseline)}}){{end}} | {{cap .Severity}} | {{if .Impact}}{{cell (cap .Impact)}}{{else}}No impact given{{end}} | {{if .WCAG}}{{cell (join .WCAG)}}{{else}}Not recorded{{end}} | {{cell .Elements}} | {{cap .Confidence}}. {{cell .ConfidenceReason}} | {{if .HelpURL}}{{cell .HelpURL}}{{else}}None recorded{{end}} |
+| `{{cell .Rule}}` | {{cell .Help}}{{if .Baseline}} ({{cell (baselineText .Baseline)}}){{end}} | {{cap .Severity}} | {{if .Impact}}{{cell (cap .Impact)}}{{else}}No impact given{{end}} | {{if .WCAG}}{{cell (join .WCAG)}}{{if .EN301549}} (EN 301 549 {{cell (join .EN301549)}}){{end}}{{else}}Not recorded{{end}} | {{cell .Elements}} | {{cap .Confidence}}. {{cell .ConfidenceReason}} | {{if .HelpURL}}{{cell .HelpURL}}{{else}}None recorded{{end}} |
 {{- end}}
 
 ### Where each rule failed
