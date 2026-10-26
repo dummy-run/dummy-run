@@ -257,6 +257,10 @@ func a11yCmd(args []string) int {
 				return fail(werr)
 			}
 		}
+		// A CI job that asked for a test report gets one, with no tests in it.
+		if werr := writeTestReports(rep, *junitPath, *ctrfPath); werr != nil {
+			return fail(werr)
+		}
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return exitRobots
 	}
@@ -276,18 +280,26 @@ func a11yCmd(args []string) int {
 			return fail(err)
 		}
 	}
-	for format, path := range map[string]string{"junit": *junitPath, "ctrf": *ctrfPath} {
-		if path == "" {
-			continue
-		}
-		if err := writeTestReport(rep, format, path); err != nil {
-			return fail(err)
-		}
+	if err := writeTestReports(rep, *junitPath, *ctrfPath); err != nil {
+		return fail(err)
 	}
 	if rep.Failed() {
 		return 1
 	}
 	return 0
+}
+
+// writeTestReports writes the JUnit and CTRF reports asked for. An empty path means that one wasn't asked for.
+func writeTestReports(rep *a11y.Report, junitPath, ctrfPath string) error {
+	for format, path := range map[string]string{"junit": junitPath, "ctrf": ctrfPath} {
+		if path == "" {
+			continue
+		}
+		if err := writeTestReport(rep, format, path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // flagsSet names the flags given on the command line.

@@ -207,6 +207,12 @@ func TestRobotsSiteWideDisallowStartsNoBrowser(t *testing.T) {
 	if !strings.Contains(rep.Results[0].Skipped, "robots.txt") {
 		t.Errorf("skipped %q", rep.Results[0].Skipped)
 	}
+	// A sweep that stops here still says when it ran, for the test reports.
+	start, err1 := time.Parse(time.RFC3339, rep.StartedAt)
+	end, err2 := time.Parse(time.RFC3339, rep.EndedAt)
+	if err1 != nil || err2 != nil || end.Before(start) {
+		t.Errorf("started %q, ended %q", rep.StartedAt, rep.EndedAt)
+	}
 }
 
 func TestFilterRobotsSkipsOnlyDisallowedPages(t *testing.T) {
