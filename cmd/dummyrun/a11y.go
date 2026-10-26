@@ -79,7 +79,9 @@ Flags:
                     looks like a heading, text in capitals and underlined text that isn't a link. The results are
                     advice
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
-                    your own details with no purpose-specific autocomplete value
+                    your own details with no purpose-specific autocomplete value. When a screen reader and browser
+                    pair passes under 60 percent of the ARIA-AT tests for a role or ARIA attribute, the sweep
+                    reports advice (dummyrun-aria-support)
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
