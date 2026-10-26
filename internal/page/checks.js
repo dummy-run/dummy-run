@@ -113,13 +113,19 @@
   }
 
   // The roles and ARIA attributes in use, so they can be looked up in the screen reader support figures. A role
-  // attribute can list fallbacks, and the browser uses the first one, so only that one counts.
+  // attribute can list fallbacks, and the browser uses the first one it knows, so that one counts.
+  const ariaRoles = new Set(("alert alertdialog application article banner blockquote button caption cell checkbox code " +
+    "columnheader combobox complementary contentinfo definition deletion dialog document emphasis feed figure form generic " +
+    "grid gridcell group heading img insertion link list listbox listitem log main mark marquee math menu menubar menuitem " +
+    "menuitemcheckbox menuitemradio meter navigation none note option paragraph presentation progressbar radio radiogroup " +
+    "region row rowgroup rowheader scrollbar search searchbox separator slider spinbutton status strong subscript " +
+    "superscript switch tab table tablist tabpanel term textbox time timer toolbar tooltip tree treegrid treeitem").split(" "));
   const features = new Map();
-  for (const el of document.querySelectorAll("[role], [aria-label], [aria-labelledby], [aria-describedby], [aria-expanded], [aria-controls], [aria-haspopup], [aria-pressed], [aria-checked], [aria-selected], [aria-current], [aria-live], [aria-modal], [aria-valuenow], [aria-activedescendant], [aria-autocomplete], [aria-orientation], [aria-hidden]")) {
-    if (!shown(el)) continue;
+  for (const el of document.body ? document.body.querySelectorAll("*") : []) {
     const names = [...el.attributes].map((a) => a.name).filter((n) => n.startsWith("aria-"));
-    const role = squash(el.getAttribute("role")).split(" ")[0];
+    const role = squash(el.getAttribute("role")).toLowerCase().split(" ").find((r) => ariaRoles.has(r));
     if (role) names.push(role);
+    if (!names.length || !shown(el)) continue;
     for (const n of names) {
       const f = features.get(n);
       if (f) f.count++;

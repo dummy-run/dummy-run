@@ -1086,7 +1086,7 @@ in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C comm
 NVDA and VoiceOver handle each ARIA pattern. A role or attribute that one screen reader and browser pair passed
 fewer than 60 percent of the tests for is advice, `dummyrun-aria-support`. The advice names the first element that
 uses it, how many use it, and each pair's share, such as "NVDA with Chrome 18% (9 of 50)". For a role
-attribute that lists fallbacks, only the first role counts, since that's the one the browser uses.
+attribute that lists fallbacks, the first role ARIA defines counts, since that's the one the browser uses.
 
 ARIA-AT tests whole patterns, such as a tab list or a grid. A low figure means screen readers often mishandle
 the pattern. Your page may still be right. Most roles and attributes have a pair below 90 percent. The line is drawn

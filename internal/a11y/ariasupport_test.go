@@ -46,10 +46,10 @@ func TestARIASupportInTheBrowser(t *testing.T) {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
 	const body = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>ARIA</title></head><body><main><h1>ARIA</h1>
-<div id="g" role="grid gridcell" aria-label="Prices"><div role="row"><span role="gridcell">1</span></div></div>
+<div id="g" role="future-role grid" aria-label="Prices"><div role="row"><span role="gridcell">1</span></div></div>
 <div role="grid" aria-label="More prices"><div role="row"><span role="gridcell">2</span></div></div>
 <div hidden><div id="t" role="tablist"><button role="tab">One</button></div></div>
-<button id="b">Plain</button><span role="button" tabindex="0">Fake</span>
+<input id="o" aria-orientation="vertical" type="range"><button id="b">Plain</button><span role="button" tabindex="0">Fake</span>
 </main></body></html>`
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
@@ -88,6 +88,13 @@ func TestARIASupportInTheBrowser(t *testing.T) {
 				if strings.Contains(n.Detail, "tablist") || strings.Contains(n.Detail, "role button") || strings.Contains(n.Detail, "role gridcell:") && n.Target == "#g" {
 					t.Errorf("reported %s: %s", n.Target, n.Detail)
 				}
+			}
+			var orientation bool
+			for _, n := range nodes {
+				orientation = orientation || (n.Target == "#o" && strings.Contains(n.Detail, "aria-orientation:"))
+			}
+			if !orientation {
+				t.Errorf("an element with only aria-orientation isn't reported: %+v", nodes)
 			}
 			if !grid {
 				t.Errorf("no grid advice on #g counting 2: %+v", nodes)
