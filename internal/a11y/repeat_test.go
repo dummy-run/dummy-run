@@ -224,3 +224,19 @@ func TestMergeRepeatsKeepsTheFailureProbe(t *testing.T) {
 		t.Errorf("a later repeat's probe: %+v", got.FailureProbe)
 	}
 }
+
+// TestMergeRepeatsKeepsErrorsFromTheFirstRepeat checks a check that failed in the first repeat keeps its error in the
+// merged result, and so does a failure probe that couldn't run or wasn't tried.
+func TestMergeRepeatsKeepsErrorsFromTheFirstRepeat(t *testing.T) {
+	failed := repeatResult("layout checks: no boxes")
+	failed.HTMLError, failed.LighthouseError, failed.FailureProbeError = "vnu: no Java", "lighthouse: timed out", "probe: no tab"
+	got := mergeRepeats([][]PageResult{{failed}, {repeatResult("")}})[0]
+	if got.HTMLError != "vnu: no Java" || got.LighthouseError != "lighthouse: timed out" || got.FailureProbeError != "probe: no tab" {
+		t.Errorf("html %q, lighthouse %q, probe %q", got.HTMLError, got.LighthouseError, got.FailureProbeError)
+	}
+	skipped := repeatResult("layout checks: no boxes")
+	skipped.FailureProbeSkipped = "not run with preview access"
+	if got := mergeRepeats([][]PageResult{{skipped}, {repeatResult("")}})[0]; got.FailureProbeSkipped != "not run with preview access" {
+		t.Errorf("probe skipped %q", got.FailureProbeSkipped)
+	}
+}
