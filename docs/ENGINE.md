@@ -1423,7 +1423,7 @@ it didn't, the visible text is the same as when the data loaded. A page that fet
 fails the sweep. `failure_probe_error` says why the probe couldn't run.
 
 Each URL is probed once, at the first window size. With preview access the probe doesn't run, since preview
-access answers requests in every tab, and the two could disagree about a request. `failure_probe_error` says so.
+access answers requests in every tab, and the two could disagree about a request. `failure_probe_skipped` says so.
 
 ```sh
 dummyrun a11y --failures https://example.com/

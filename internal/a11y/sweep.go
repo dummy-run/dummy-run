@@ -217,10 +217,12 @@ type PageResult struct {
 	LinksTimedOut int    `json:"links_timed_out,omitempty"`
 	LinksOmitted  int    `json:"links_omitted,omitempty"`
 	LinksError    string `json:"links_error,omitempty"`
-	// FailureProbe is what happened when the page's data requests failed, with --failures, and FailureProbeError
-	// says why the probe couldn't run. Only the first result for each URL has these.
-	FailureProbe      *FailureProbe `json:"failure_probe,omitempty"`
-	FailureProbeError string        `json:"failure_probe_error,omitempty"`
+	// FailureProbe is what happened when the page's data requests failed, with --failures. FailureProbeError says
+	// why the probe couldn't run, and FailureProbeSkipped why it wasn't tried. Only the first result for each URL
+	// has these.
+	FailureProbe        *FailureProbe `json:"failure_probe,omitempty"`
+	FailureProbeError   string        `json:"failure_probe_error,omitempty"`
+	FailureProbeSkipped string        `json:"failure_probe_skipped,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
@@ -866,7 +868,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		rep.failuresDone[u] = true
 		if cfg.Access.Active() {
-			res.FailureProbeError = "not run with preview access, which answers the same requests"
+			res.FailureProbeSkipped = "not run with preview access, which answers the same requests"
 		} else {
 			failureCheck(ctx, conn, u, vp, cfg.Identify, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
 			res.Advice = append(res.Advice, failureFindings(res.FailureProbe, path, cfg.Allow)...)

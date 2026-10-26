@@ -89,9 +89,6 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if p.JourneysError != "" {
 			_, _ = fmt.Fprintf(w, "JOURNEYS %s (%s): %s\n", p.URL, p.Setting(), printable(p.JourneysError))
 		}
-		if p.FailureProbeError != "" {
-			_, _ = fmt.Fprintf(w, "FAILURES %s (%s): %s\n", p.URL, p.Setting(), printable(p.FailureProbeError))
-		}
 		if p.LinksError != "" {
 			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
 		}
@@ -144,6 +141,7 @@ func checkErrors(p PageResult) []checkError {
 	add("HTML", p.HTMLError)
 	add("LIGHTHOUSE", p.LighthouseError)
 	add("LIGHTHOUSE MATCH", p.LighthouseMatchError)
+	add("FAILURES", p.FailureProbeError)
 	if p.Consent != nil {
 		add("CONSENT", p.Consent.Error)
 	}
