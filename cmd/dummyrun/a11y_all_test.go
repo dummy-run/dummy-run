@@ -88,7 +88,10 @@ func TestLayoutAddsTheReflowSettings(t *testing.T) {
 func TestA11yRemovesTheValeRules(t *testing.T) {
 	for _, fail := range []bool{false, true} {
 		tmp := t.TempDir()
-		t.Setenv("TMPDIR", tmp)
+		// os.TempDir reads TMPDIR on Unix and TMP or TEMP on Windows.
+		for _, v := range []string{"TMPDIR", "TMP", "TEMP"} {
+			t.Setenv(v, tmp)
+		}
 		wrote := false
 		a11yRun = func(ctx context.Context, _ a11y.Config) (*a11y.Report, error) {
 			// Check writes the rules before it looks for Vale, so a missing Vale still leaves them behind.

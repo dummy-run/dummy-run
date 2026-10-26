@@ -20,10 +20,17 @@ const mainHTMLJS = `(max) => {
   const mains = [...document.querySelectorAll("main, [role=main]")];
   const boxless = (el) => getComputedStyle(el).display === "contents";
   const displayed = (el) => !el.checkVisibility || el.checkVisibility() || boxless(el);
-  // A boxless element still draws its own text, so text directly inside it counts as showing.
+  // A boxless element still draws its own text, so text directly inside it counts as showing when the text is
+  // visible and the nearest ancestor with a box shows. checkVisibility says no to every boxless element, so it is
+  // asked of that ancestor instead.
   const ownText = (el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== "");
+  const boxed = (el) => {
+    let a = el.parentElement;
+    while (a && boxless(a)) a = a.parentElement;
+    return !a || a.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+  };
   const shows = (el) => !el.checkVisibility ||
-    (boxless(el) ? (ownText(el) && getComputedStyle(el).visibility === "visible") || [...el.children].some(shows) :
+    (boxless(el) ? (ownText(el) && getComputedStyle(el).visibility === "visible" && boxed(el)) || [...el.children].some(shows) :
       el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
   const root = mains.find(shows) || mains.find(displayed) || mains[0] || document.body;
   if (!root) return { html: "", selector: "", truncated: false };
