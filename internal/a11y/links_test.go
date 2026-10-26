@@ -276,14 +276,15 @@ func TestRobotsRedirectStaysPublic(t *testing.T) {
 		http.Redirect(w, r, inside.URL+"/robots.txt", http.StatusFound)
 	}))
 	defer front.Close()
-	// public.example doesn't exist, so it counts as public. Every request is dialled to the front server.
+	// 203.0.113.7 is a public address set aside for documentation, so no DNS is involved. Every request is dialled
+	// to the front server.
 	dial := func(ctx context.Context, network, _ string) (net.Conn, error) {
 		return (&net.Dialer{}).DialContext(ctx, network, strings.TrimPrefix(front.URL, "http://"))
 	}
 	base := &http.Client{Transport: &http.Transport{DialContext: dial}}
 	ctx := context.Background()
-	c := robotsClient(ctx, base, "http://public.example")
-	resp, err := c.Get("http://public.example/robots.txt")
+	c := robotsClient(ctx, base, "http://203.0.113.7")
+	resp, err := c.Get("http://203.0.113.7/robots.txt")
 	if err == nil {
 		_ = resp.Body.Close()
 	}

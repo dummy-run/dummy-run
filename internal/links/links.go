@@ -165,10 +165,23 @@ func firstLine(s string) string {
 // doesn't cover.
 var cgnat = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
 
+// lookup resolves a host name. Tests replace it so they don't depend on the machine's DNS.
+var lookup = net.DefaultResolver.LookupIPAddr
+
 // PrivateHost reports whether host is localhost, or an address on a loopback, private, shared or link-local network,
 // or a name that resolves to one. A name that doesn't exist isn't private: lychee reports it as broken. A lookup
 // that fails for any other reason counts as private, so a name the sweep can't check is never fetched.
 func PrivateHost(ctx context.Context, host string) bool {
+	return private(ctx, host, true)
+}
+
+// ConfirmedPrivate is PrivateHost, except that a name whose lookup fails isn't private. It is for deciding to trust a
+// host, where an unknown one mustn't count.
+func ConfirmedPrivate(ctx context.Context, host string) bool {
+	return private(ctx, host, false)
+}
+
+func private(ctx context.Context, host string, onError bool) bool {
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
@@ -178,10 +191,10 @@ func PrivateHost(ctx context.Context, host string) bool {
 	}
 	ips := []net.IP{net.ParseIP(host)}
 	if ips[0] == nil {
-		addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		addrs, err := lookup(ctx, host)
 		if err != nil {
 			var dns *net.DNSError
-			return !errors.As(err, &dns) || !dns.IsNotFound
+			return onError && (!errors.As(err, &dns) || !dns.IsNotFound)
 		}
 		ips = ips[:0]
 		for _, a := range addrs {

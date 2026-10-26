@@ -490,7 +490,8 @@ func robotsClient(ctx context.Context, base *http.Client, origin string) *http.C
 		c = *base
 	}
 	u, err := url.Parse(origin)
-	if err != nil || links.PrivateHost(ctx, u.Host) {
+	// Only an origin known to be private keeps its redirects: one whose name can't be looked up gets the guard.
+	if err != nil || links.ConfirmedPrivate(ctx, u.Host) {
 		return &c
 	}
 	prev := c.CheckRedirect

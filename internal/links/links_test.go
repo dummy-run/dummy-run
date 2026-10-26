@@ -2,6 +2,7 @@ package links
 
 import (
 	"context"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +63,19 @@ func TestLycheeVersionMatchesDockerfile(t *testing.T) {
 
 func TestPrivateHost(t *testing.T) {
 	ctx := context.Background()
+	saved := lookup
+	t.Cleanup(func() { lookup = saved })
+	// A controlled resolver: nohost.invalid doesn't exist, inside.test is on a private network, and anything else
+	// fails the way an unreachable DNS server does.
+	lookup = func(_ context.Context, host string) ([]net.IPAddr, error) {
+		switch host {
+		case "nohost.invalid":
+			return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+		case "inside.test":
+			return []net.IPAddr{{IP: net.ParseIP("10.9.8.7")}}, nil
+		}
+		return nil, &net.DNSError{Err: "server misbehaving", Name: host, IsTemporary: true}
+	}
 	for host, want := range map[string]bool{
 		"localhost": true, "app.localhost:3000": true, "127.0.0.1:8080": true, "[::1]:9": true, "10.1.2.3": true,
 		"192.168.0.1": true, "169.254.169.254": true, "0.0.0.0": true, "8.8.8.8": false, "[2001:4860::8888]": false,
@@ -71,11 +85,12 @@ func TestPrivateHost(t *testing.T) {
 			t.Errorf("%s: private %v, want %v", host, got, want)
 		}
 	}
-	// A name the sweep can't look up, here because the lookup was cancelled, is treated as private.
-	ended, stop := context.WithCancel(ctx)
-	stop()
-	if !PrivateHost(ended, "example.com") {
-		t.Error("a failed lookup counted as public")
+	// A name the sweep can't look up is private, so it is never fetched, but it is never trusted as private either.
+	if !PrivateHost(ctx, "example.com") || ConfirmedPrivate(ctx, "example.com") {
+		t.Error("a failed lookup: fetched, or trusted")
+	}
+	if !PrivateHost(ctx, "inside.test") || !ConfirmedPrivate(ctx, "inside.test") || ConfirmedPrivate(ctx, "nohost.invalid") {
+		t.Error("a name on a private network, or one that doesn't exist")
 	}
 }
 
