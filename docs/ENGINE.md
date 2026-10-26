@@ -1097,7 +1097,7 @@ YAML. Each line gives a role, an accessible name and any states. A landmark's co
 ```
 
 Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
-landmark. So are which element has focus and the @numbers a persona uses to act on controls. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
+landmark. The snapshot also leaves out the focused element and the persona's @numbers. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
 button or a new link changes it. Names come from the spec
 computation alone, so a snapshot doesn't depend on whether axe loaded. A page keeps up to 2,000 lines, and
 `aria_snapshot_omitted` counts any more.
