@@ -423,8 +423,7 @@ func waitHTTP(ctx context.Context, url string) error {
 }
 
 // chromePrefs adds the preloading switch to the caller's Chrome preferences. Chrome fetches pages ahead of a click
-// when a page asks with speculation rules, or when it adds rules of its own, as it does for sites it knows, such as
-// Shopify ones. Those requests skip the request interception, so they would carry no run headers and pass no request
+// when a page asks with speculation rules, or when it adds rules of its own. Those requests skip the request interception, so they would carry no run headers and pass no request
 // policy. Preloading is off, and it is applied last, so no caller preference turns it back on.
 func chromePrefs(user map[string]any) map[string]any {
 	return mergePrefs(user, map[string]any{"net": map[string]any{"network_prediction_options": 2}})
