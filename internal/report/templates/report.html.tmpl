@@ -68,6 +68,8 @@ h4 { font-size: 1.15rem; }
 h5 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 0.4rem; }
 p, ul, ol, dl, table, figure { margin: 0 0 1rem; }
 p, li { max-width: 68ch; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+pre code { display: block; padding: 0.5em 0.75em; }
 code { font-family: var(--font-mono); font-size: 0.88em; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
 .muted { color: var(--muted); }
 section { padding: 3rem 0 0.5rem; }
@@ -465,7 +467,7 @@ footer p { margin: 0 0 0.4rem; }
 <td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td>
 <td class="num">{{.Elements}}</td>
 <td>{{cap .Confidence}}<br><span class="muted help">{{.ConfidenceReason}}</span></td>
-<td>{{if .HelpURL}}<a href="{{.HelpURL}}">How to fix {{.Rule}}</a>{{else}}None recorded{{end}}</td>
+<td>{{if .HelpURL}}<a href="{{.HelpURL}}">How to fix {{.Rule}}</a>{{else if .Fix}}<a href="#fix-{{.Rule}}">How to fix {{.Rule}}</a>, below{{else}}None recorded{{end}}</td>
 </tr>
 {{- end}}
 </tbody>
@@ -486,18 +488,7 @@ footer p { margin: 0 0 0.4rem; }
 {{if fixRules .Axe.Rules}}
 <h3 class="sub">How to fix what failed</h3>
 <p>Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the elements listed above.</p>
-{{- range fixRules .Axe.Rules}}
-<h4><code>{{.Rule}}</code></h4>
-<p>{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.</p>
-<ol>{{range .Fix.Steps}}<li>{{.}}</li>{{end}}</ol>
-{{- with .Fix.Example}}
-<p>Before:</p><pre><code>{{.Before}}</code></pre>
-<p>After:</p><pre><code>{{.After}}</code></pre>
-{{- end}}
-{{- if .Fix.Sources}}
-<p>Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}<a href="{{$u}}">{{$u}}</a>{{end}}</p>
-{{- end}}
-{{- end}}
+{{- range fixRules .Axe.Rules}}{{template "fix" .}}{{end}}
 {{end}}{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
 {{if .Axe.NeedsReview}}
 <h3 class="sub">Needs a person to check</h3>
@@ -523,11 +514,16 @@ footer p { margin: 0 0 0.4rem; }
 <thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col" class="num">Elements</th><th scope="col">Pages</th></tr></thead>
 <tbody>
 {{- range .Axe.Advice}}
-<tr><th scope="row"><code>{{.Rule}}</code></th><td>{{.Help}}{{if .HelpURL}} (<a href="{{.HelpURL}}">how to fix</a>){{end}}</td><td class="num">{{.Elements}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
+<tr><th scope="row"><code>{{.Rule}}</code></th><td>{{.Help}}{{if .HelpURL}} (<a href="{{.HelpURL}}">how to fix</a>){{else if .Fix}} (<a href="#fix-{{.Rule}}">how to fix</a>, below){{end}}</td><td class="num">{{.Elements}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
 {{- end}}
 </tbody>
 </table>
 </div>
+{{if fixRules .Axe.Advice}}
+<h3 class="sub">How to act on the advice</h3>
+<p>Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the pages listed above.</p>
+{{- range fixRules .Axe.Advice}}{{template "fix" .}}{{end}}
+{{end}}
 {{end}}
 {{if .Axe.Errors}}
 <h3 class="sub">Pages that could not be tested</h3>
@@ -692,3 +688,15 @@ footer p { margin: 0 0 0.4rem; }
 </div>
 </body>
 </html>
+{{define "fix"}}
+<h4 id="fix-{{.Rule}}"><code>{{.Rule}}</code></h4>
+<p>{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.</p>
+<ol>{{range .Fix.Steps}}<li>{{.}}</li>{{end}}</ol>
+{{- with .Fix.Example}}
+<p>Before:</p><pre><code>{{.Before}}</code></pre>
+<p>After:</p><pre><code>{{.After}}</code></pre>
+{{- end}}
+{{- if .Fix.Sources}}
+<p>Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}<a href="{{$u}}">{{$u}}</a>{{end}}</p>
+{{- end}}
+{{- end}}

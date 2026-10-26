@@ -293,6 +293,11 @@ Flags:
                     that answers with an error status or can't be reached is advice (dummyrun-broken-link), with
                     the URL and status code. Links to private addresses are skipped unless every URL you sweep is
                     on one. Needs lychee on the PATH or DUMMYRUN_LYCHEE
+  --content         also run the content checks on the words and images your authors wrote: vague link names
+                    such as "read more", links that are web addresses, new tabs and document links that don't say
+                    so, alt text that is a file name, starts "image of" or runs past 150 characters, bold text that
+                    looks like a heading, text in capitals and underlined text that isn't a link. The results are
+                    advice
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
