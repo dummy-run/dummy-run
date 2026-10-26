@@ -5,6 +5,7 @@
 //   "blur"   take focus off the element that has it, so it can be photographed without focus
 //   "focus"  put focus back on the element with the id in arg
 //   "skip"   describe the skip link at the first stop: does its target exist and can it be seen
+//   "settle" wait, up to half a second, for the page's running animations and transitions to end
 (op, arg) => {
   const S = (globalThis.__drTab = globalThis.__drTab || { ids: new WeakMap(), els: [], look: new WeakMap() });
   const idOf = (el) => {
@@ -80,9 +81,22 @@
     return true;
   }
   if (op === "focus") {
+    // In Firefox, Tab past the last element moves focus out to the browser's own toolbar. The document then has
+    // no focus and draws no focus styles, so it takes focus back first.
+    if (!document.hasFocus()) window.focus();
     const el = S.els[arg] && S.els[arg].deref();
     if (el) el.focus({ preventScroll: true });
     return !!el;
+  }
+  if (op === "settle") {
+    // The browser paints a change of focus at its next frame, and a focus style that fades in would be photographed
+    // half way, so the pictures wait two frames and then for running animations, up to half a second in all.
+    const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    const ends = () => {
+      const running = document.getAnimations ? document.getAnimations().filter((a) => a.playState === "running") : [];
+      return Promise.all(running.filter((a) => a.effect && Number.isFinite(a.effect.getComputedTiming().endTime)).map((a) => a.finished.catch(() => null)));
+    };
+    return Promise.race([frames().then(ends).then(frames), new Promise((r) => setTimeout(r, 500))]).then(() => true);
   }
   if (op === "skip") {
     const el = activeElement();

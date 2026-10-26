@@ -51,9 +51,11 @@ Flags:
   --journeys        also find the journeys each page offers (search, menu, sign-up, basket, booking, contact form)
                     and try each by mouse and by keyboard, never submitting anything. One that works by mouse but
                     not by keyboard is a violation (dummyrun-journey-keyboard, WCAG 2.1.1)
-  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
-                    skip link that goes nowhere or doesn't move focus. It also tries up to 5 controls on each page
-                    by mouse and by keyboard, and reports each one that works only by mouse
+  --keyboard        also press Tab through each page and report focus you cannot see, a focus indicator of at
+                    least 6 changed screenshot pixels with none of them changing by 3:1, focus that gets stuck
+                    and a skip link that goes nowhere or doesn't move focus. An indicator with 3:1 contrast but
+                    smaller than a 2 px line round the control is advice. It also tries up to 5
+                    controls on each page by mouse and by keyboard, and reports each one that works only by mouse
   --layout          also run the layout checks, measured from what the browser lays out and paints: sideways
                     scrolling, text cut off by its box, a control covered by another, targets under 24 by 24 CSS
                     px and a control hidden behind other content when it has focus. Rules dummyrun-reflow,
@@ -87,8 +89,15 @@ Flags:
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
+  --aria-snapshots DIR
+                    write an ARIA snapshot of each page and setting into DIR: its landmarks, headings and controls
+                    with their roles, names and states, as YAML. A snapshot an earlier sweep left there is compared
+                    first, and the lines added and removed are listed, so a regular sweep shows what changed
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
+                    gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
+                    summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
@@ -106,6 +115,9 @@ Flags:
 
 Exit status: 0 when nothing fails, 1 when a violation is not in the allow-list or a page cannot be
 tested, 2 for a usage error, 3 when robots.txt disallows every page. Pages skipped for robots.txt do not fail the sweep.`
+
+// maxRepeat bounds --repeat, since each repeat loads every page again in every setting.
+const maxRepeat = 10
 
 // a11yRun runs the sweep. Tests replace it to see the configuration the flags make.
 var a11yRun = a11y.Run
@@ -134,6 +146,8 @@ func a11yCmd(args []string) int {
 	linksOn := fs.Bool("links", false, "check the links on each page with lychee")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
+	snapDir := fs.String("aria-snapshots", "", "directory for ARIA snapshots, compared with the ones already there")
+	repeat := fs.Int("repeat", 1, "how many times to sweep every page and setting, up to 10")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
 	sessionPath := fs.String("session", "", "saved session file to load before the sweep")
@@ -190,6 +204,10 @@ func a11yCmd(args []string) int {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return 2
 	}
+	if *repeat < 1 || *repeat > maxRepeat {
+		fmt.Fprintf(os.Stderr, "dummyrun a11y: --repeat must be from 1 to %d\n", maxRepeat)
+		return 2
+	}
 	if *sitemap == "" && len(urls) == 0 {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y: give at least one URL or --sitemap")
 		fmt.Fprintln(os.Stderr, a11yUsage)
@@ -243,7 +261,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

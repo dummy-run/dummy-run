@@ -101,6 +101,7 @@ Some checks follow a method another project worked out, written again in our own
 | Project | What we took | Licence of the project |
 |---|---|---|
 | [contrastcap](https://github.com/ICJIA/contrastcap-mcp) by ICJIA | Measuring text contrast over an image by hiding the text, taking a picture of what is behind it and comparing every pixel, for `--image-contrast` | MIT |
+| [Playwright](https://github.com/microsoft/playwright) by Microsoft | The YAML layout of its ARIA snapshots, one list item for each role and name with its states in square brackets, for `--aria-snapshots`. The outline is our own and no Playwright code is used | Apache-2.0 |
 | [Leonardo](https://github.com/adobe/leonardo) by Adobe | Suggesting a colour that meets a contrast ratio by changing its lightness, so the hue stays, for the colour suggestions on contrast failures. When the new lightness at that chroma is a colour the screen can't show, the chroma comes down too. The colour maths is OKLab, written again from the formulas in [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#ok-lab) | Apache-2.0 |
 | [Sa11y](https://github.com/ryersondmp/sa11y) from Toronto Metropolitan University and [Editoria11y](https://github.com/itmaybejj/editoria11y), which is developed with it | The idea of checking what authors write, such as vague link names, file names as alt text and bold text standing in for a heading, for `--content`. The checks, thresholds and wording are our own, written from the public descriptions of the problems. No code from either is used | GPL-2.0 |
 | [LayoutLens](https://github.com/gojiplus/layoutlens) by goji+ | Measuring layout from the browser's rectangles and what is painted on top at a point: outermost elements past the window, clipped text, controls under other controls, focus hidden behind opaque content, and the measurable target size exceptions. Used by `--layout` | MIT |
@@ -108,7 +109,9 @@ Some checks follow a method another project worked out, written again in our own
 ## Data
 
 The list of WCAG 2.2 success criteria at levels A and AA, with their titles and links, was generated from the
-criteria data in Siteimprove Alfa (MIT).
+criteria data in Siteimprove Alfa (MIT). The EN 301 549 clause numbers follow clause 9 of
+[ETSI EN 301 549 V3.2.1](https://www.etsi.org/deliver/etsi_en/301500_301599/301549/03.02.01_60/en_301549v030201p.pdf),
+which numbers each WCAG 2.1 criterion the same way. No text of the standard is copied.
 
 The screen reader support figures for `dummyrun-aria-support` are the
 [ARIA-AT reports](https://aria-at.w3.org/reports) of the W3C ARIA and Assistive Technologies Community Group,

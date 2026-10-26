@@ -622,6 +622,9 @@
         "wcag": [
           "4.1.2"
         ],
+        "en_301_549": [
+          "9.4.1.2"
+        ],
         "help": "Buttons must have discernible text",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/button-name",
         "elements": 1,
@@ -654,6 +657,9 @@
         "impact": "serious",
         "wcag": [
           "1.4.3"
+        ],
+        "en_301_549": [
+          "9.1.4.3"
         ],
         "help": "Elements must meet minimum color contrast ratio thresholds",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
@@ -690,6 +696,9 @@
         "impact": "serious",
         "wcag": [
           "1.4.3"
+        ],
+        "en_301_549": [
+          "9.1.4.3"
         ],
         "help": "Elements must meet minimum color contrast ratio thresholds",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",

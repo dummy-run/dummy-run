@@ -1036,11 +1036,25 @@ The pixel comparison covers no more than the first 30 stops that need it. The wa
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
 | `dummyrun-focus-not-visible` | An element that takes focus looks the same, in the pixels around it, with and without focus. An element whose outline or style changes is never checked, so a focus ring drawn another way passes only if it changes the picture | 2.4.7 | serious |
+| `dummyrun-focus-low-contrast` | Pixels change when an element gets focus, but no pixel's colour with focus has a contrast ratio of 3:1 with its colour without focus, as with a pale grey outline or a faint change of background | 1.4.11 | serious |
 | `dummyrun-focus-hidden` | Focus lands on an element with no size, hidden, or outside the window | 2.4.7 | serious |
 | `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
 | `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
 | `dummyrun-skip-link-no-focus` | The skip link's target is there, but after Enter on the link the next Tab lands before the target, so focus never moved | 2.4.1 | serious |
 | `dummyrun-mouse-only` | A click on a control does what it's for, but from the keyboard Tab never reaches it, or Enter and Space do nothing | 2.1.1 | serious |
+
+For the focus rules, the sweep takes two pictures of each element and the 6 pixels round it, one with focus and
+one without. It waits for the page to draw and for any transition to end, up to half a second, before each picture.
+The pictures cover the first 30 stops with no focus style the walk can read, and another 30 with one. From them it
+measures the indicator the way WCAG 2.4.13 does. It counts the pixels that change and how much their contrast
+changes. It also works out the area of a line 2 CSS pixels thick round the element. Fewer than 6 changed screenshot pixels
+don't count as an indicator, since a blinking caret can change that many. Each stop's `appearance` in the JSON
+gives `changed` and `area`, the pixels that change by 3:1 or more, in square CSS pixels. It also gives `need`, the
+area of that 2 pixel line, and `contrast`, the biggest change.
+
+An indicator with enough contrast but less area than that line is advice, `dummyrun-focus-appearance` (WCAG
+2.4.13). Level AAA asks for that area, and AA doesn't, so it never fails the sweep. A one pixel outline is a common
+example. The picture shows only 6 pixels round the element, so an outline set further out than that isn't seen. A control wider than 588 or taller than 288 CSS pixels doesn't fit in the picture, so its indicator isn't measured.
 
 The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
 sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden
@@ -1083,6 +1097,39 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
+### ARIA snapshots
+
+A site you check again and again needs to show what changed. Add `--aria-snapshots DIR` and the sweep writes an
+ARIA snapshot of each page in each setting to DIR. It lists landmarks, headings and controls in page order, as
+YAML. Each line gives a role, an accessible name and any states. A landmark's contents sit under it:
+
+```yaml
+- banner:
+  - link "Home"
+- main:
+  - heading "Shop" [level=1]
+  - button "Buy" [disabled]
+  - checkbox "Gift wrap" [checked]
+```
+
+Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
+landmark. The snapshot also leaves out the focused element and the persona's @numbers. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
+button or a new link changes it. Names come from the spec
+computation alone. The snapshot is still taken after axe and the page's other checks, so a page where axe or
+an earlier check fails has no snapshot. A page keeps up to 2,000 lines, and
+`aria_snapshot_omitted` counts any more.
+
+If DIR already holds a snapshot for the page and setting, the sweep compares the two first. The result's
+`aria_changes` lists up to 50 lines added and 50 removed, and counts them all. The terminal shows a `CHANGED`
+line for each page with the lines that changed. Then the new snapshot replaces the old one. Each file name comes
+from the page's address and setting, with a short hash, such as `example.com_shop--chrome_desktop_light-1a2b3c4d.yaml`.
+With `--repeat`, only the first repeat compares and writes the snapshots, so the comparison is always with the
+sweep before and never with an earlier repeat. A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
+changes and decide.
+
+```sh
+dummyrun a11y --aria-snapshots snapshots https://example.com/
+```
 The markup checks also list the roles and `aria-*` attributes the page's shown elements use, and look each one up
 in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C community group that tests how JAWS,
 NVDA and VoiceOver handle each ARIA pattern. When one screen reader and browser pair passes
@@ -1491,6 +1538,29 @@ sweep's browser, so later settings for the same site may show no banner.
 
 ```sh
 dummyrun a11y --consent --layout https://example.com/
+```
+
+### Run it more than once
+
+Pages don't always come out the same. An advert loads late, an A/B test picks another version, or a carousel has
+moved on. A finding you see once may not be there next time. Add `--repeat N`, up to 10, and the sweep tests every
+page in every setting N times, each time in a fresh browser.
+
+The report still has one result for each page and setting. Each failing element gets `runs`, the number of repeats
+it failed in, so an element in 3 of 3 runs is there every time and one in 1 of 3 comes and goes. An element that
+failed only in a later repeat is still listed. Each result gets `repeats`, how many times its page was tested, and
+`error_runs`, how many of those couldn't test it, with the first reason in `error`. The rest of the result, such as
+which checks ran, comes from the first repeat that could test the page. A URL you give twice, say in the sitemap
+and on the command line, keeps its two results, and each counts once per repeat. The summary shows the counts,
+as in `chrome/desktop/light (2 of 3 runs)`.
+
+The counts are there for you to judge. The sweep doesn't decide which findings are stable, and an element that
+failed in any repeat fails the sweep, as it would have if that repeat had been the only one. The checks that run
+once for each URL, such as the HTML check, Lighthouse, journeys and links, run in the first repeat only, so their
+findings count 1 run and say nothing about whether a problem comes and goes.
+
+```sh
+dummyrun a11y --repeat 3 https://example.com/
 ```
 
 ### Check the sweep against known problems

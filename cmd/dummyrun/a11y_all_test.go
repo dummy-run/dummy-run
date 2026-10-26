@@ -86,6 +86,42 @@ func TestLayoutAddsTheReflowSettings(t *testing.T) {
 	}
 }
 
+// TestARIASnapshotsFlagReachesTheSweep checks --aria-snapshots passes its directory to the sweep unchanged.
+func TestARIASnapshotsFlagReachesTheSweep(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	dir := t.TempDir()
+	if code := a11yCmd([]string{"--aria-snapshots", dir, "https://example.com/"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if got.ARIASnapshots != dir {
+		t.Errorf("ARIASnapshots = %q, want %q", got.ARIASnapshots, dir)
+	}
+	if a11yCmd([]string{"https://example.com/"}); got.ARIASnapshots != "" {
+		t.Errorf("without the flag, ARIASnapshots = %q", got.ARIASnapshots)
+	}
+}
+
+// TestRepeatReachesTheSweep checks --repeat reaches the sweep, and that it sweeps once without it.
+func TestRepeatReachesTheSweep(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	if code := a11yCmd([]string{"https://example.com/"}); code != 0 || got.Repeat != 1 {
+		t.Errorf("without --repeat: exit %d, repeat %d", code, got.Repeat)
+	}
+	if code := a11yCmd([]string{"https://example.com/", "--repeat", "3"}); code != 0 || got.Repeat != 3 {
+		t.Errorf("--repeat 3: exit %d, repeat %d", code, got.Repeat)
+	}
+}
+
 // TestA11yRemovesTheValeRules checks the command removes the plain language rules it wrote, whether the sweep
 // succeeds or fails.
 func TestA11yRemovesTheValeRules(t *testing.T) {
