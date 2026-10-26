@@ -104,6 +104,12 @@ Some checks follow a method another project worked out, written again in our own
 The list of WCAG 2.2 success criteria at levels A and AA, with their titles and links, was generated from the
 criteria data in Siteimprove Alfa (MIT).
 
+The screen reader support figures for `dummyrun-aria-support` are the
+[ARIA-AT reports](https://aria-at.w3.org/reports) of the W3C ARIA and Assistive Technologies Community Group,
+fetched from its public API and kept unchanged. They are under the
+[W3C Document License](https://www.w3.org/copyright/document-license-2023/), and `internal/a11y/ariaat/LICENSE`
+has the notice. No ARIA-AT code is used.
+
 The test fixtures for checking the sweep against real markup come from the
 [AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) (MIT). The fixtures use the rule names and the markup of
 the elements it lists, and none of its code.
