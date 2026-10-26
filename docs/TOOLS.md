@@ -82,6 +82,12 @@ ansi-styles and dequal.
 The long sentence, words to avoid and Latin abbreviation rules are our own, written from the public
 [GOV.UK A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/).
 
+## PDF checking
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [veraPDF](https://verapdf.org/) | 1.30.3, which you install | Checks linked PDFs against PDF/UA-1 with `--pdf`. It runs as its own program and isn't bundled | GPL-3.0-or-later or MPL-2.0, your choice |
+
 ## Technology detection
 
 | Tool | Version | What it does in Dummy Run | Licence |

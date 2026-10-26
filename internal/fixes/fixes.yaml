@@ -340,6 +340,17 @@
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
 
+- rule: dummyrun-pdf-ua
+  owner: content
+  summary: Make the PDF accessible, or publish the content as a web page.
+  steps:
+    - Ask whether the PDF needs to be a PDF. A web page is easier to read on a phone and with assistive technology.
+    - If it does, export it from the source document with tags turned on, and set the document title and language.
+    - Check the reading order, headings, alt text and table headers in a PDF editor, then check the file again.
+  sources:
+    - https://www.gov.uk/guidance/how-to-publish-on-gov-uk/accessible-pdfs
+    - https://docs.verapdf.org/validation/
+
 - rule: dummyrun-broken-link
   owner: content
   summary: Fix or remove links that go nowhere.

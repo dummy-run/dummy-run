@@ -93,6 +93,17 @@ func (r *Report) WriteSummary(w io.Writer) {
 			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
 		}
 	}
+	if r.PDFError != "" {
+		_, _ = fmt.Fprintf(w, "PDF %s\n", printable(r.PDFError))
+	}
+	for _, p := range r.PDFs {
+		switch {
+		case p.Error != "":
+			_, _ = fmt.Fprintf(w, "PDF %s: not checked: %s\n", p.URL, printable(p.Error))
+		case !p.Compliant:
+			_, _ = fmt.Fprintf(w, "PDF %s: fails %d PDF/UA-1 requirements (advice)\n", p.URL, len(p.Rules))
+		}
+	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
 		r.Browser, r.BrowserVersion, r.AxeVersion, s.Pages, s.Runs, s.Failing, s.Allowed, s.NeedsReview, s.PageErrors)
