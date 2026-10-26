@@ -22,13 +22,22 @@ def reports(args):
                 print(f"Skipped {f}: {e}", file=sys.stderr)
 
 
+def readable(f):
+    """Say whether a report exists and holds JSON, so a broken one counts as not finished."""
+    try:
+        json.loads(f.read_text(encoding="utf-8"))
+        return True
+    except (OSError, ValueError):
+        return False
+
+
 def packages(args):
     """Map each report file's stem to the import path bin/mutation recorded for it."""
     names = {}
     for a in args:
         p = pathlib.Path(a)
         for f in sorted(p.rglob("*.pkg")) if p.is_dir() else []:
-            names[f.stem] = (f.read_text(encoding="utf-8").strip(), f.with_suffix(".json").exists())
+            names[f.stem] = (f.read_text(encoding="utf-8").strip(), readable(f.with_suffix(".json")))
     return names
 
 
@@ -40,7 +49,10 @@ def missing_shards(args, shards):
     for a in args:
         p = pathlib.Path(a)
         for f in p.rglob("shard-*-of-*.done") if p.is_dir() else []:
-            done.add(f.name.split("-")[1])
+            parts = f.name[: -len(".done")].split("-")
+            # A marker from a run split another way doesn't vouch for this one.
+            if len(parts) == 4 and parts[3] == str(shards):
+                done.add(parts[1])
     return [str(i) for i in range(shards) if str(i) not in done]
 
 

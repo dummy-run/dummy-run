@@ -25,6 +25,8 @@ root=$(pwd)
 pkgs=$(mktemp)
 trap 'rm -f "$pkgs"' EXIT
 go list -f '{{.Dir}}' ./... >"$pkgs"
+# A shard run again into the same OUTDIR starts unfinished, so an earlier run's marker can't vouch for this one.
+rm -f "$out/shard-$shard-of-$count.done"
 last=
 sed "s|^$root/||" "$pkgs" | sort | while read -r pkg; do
   case $pkg in internal/confidence* | internal/benchmark*) continue ;; esac
@@ -35,6 +37,7 @@ sed "s|^$root/||" "$pkgs" | sort | while read -r pkg; do
   name=$(printf '%s' "$pkg" | tr '/.' '__')
   echo "gremlins: $pkg"
   printf '%s\n' "$pkg" >"$out/$name.pkg"
+  rm -f "$out/$name.json"
   if ! ${GREMLINS:-gremlins} unleash --workers 4 --timeout-coefficient 60 --output-statuses lt \
     --exclude-files '_test\.go$' --output "$out/$name.json" "./$pkg"; then
     echo "gremlins: $pkg did not finish"
