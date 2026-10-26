@@ -652,6 +652,9 @@ func buildAxe(reps []*a11y.Report, visited visits) *AxeSection {
 		evidence string
 		engines  []string
 		journey  bool
+		// colours are the failing colour pairs, and colourNodes the elements already counted for each.
+		colours     map[string]*ColourPair
+		colourNodes map[string]bool
 	}
 	collect := func(into map[string]*acc, f a11y.Finding, p a11y.PageResult, countAllowed bool) {
 		a := into[f.Rule]
@@ -683,6 +686,22 @@ func buildAxe(reps []*a11y.Report, visited visits) *AxeSection {
 			}
 			if !contains(pg.Settings, setting) {
 				pg.Settings = append(pg.Settings, setting)
+			}
+			// An element counts once for each pair of colours it has, so one in light and dark mode can count twice.
+			if c := n.Colours; c != nil {
+				key := fmt.Sprintf("%s|%s|%g", c.Text, c.Background, c.Need)
+				if a.colours == nil {
+					a.colours, a.colourNodes = map[string]*ColourPair{}, map[string]bool{}
+				}
+				cp := a.colours[key]
+				if cp == nil {
+					cp = &ColourPair{Text: c.Text, Background: c.Background, Ratio: c.Ratio, Need: c.Need, TextFix: c.TextFix, BackgroundFix: c.BackgroundFix}
+					a.colours[key] = cp
+				}
+				if node := key + "|" + p.URL + "|" + n.Target; !a.colourNodes[node] {
+					a.colourNodes[node] = true
+					cp.Elements++
+				}
 			}
 			a.nodes[p.URL+"|"+n.Target] = true
 		}
@@ -752,6 +771,17 @@ func buildAxe(reps []*a11y.Report, visited visits) *AxeSection {
 				a.rule.Pages = append(a.rule.Pages, *pg)
 			}
 			sort.Slice(a.rule.Pages, func(i, j int) bool { return a.rule.Pages[i].URL < a.rule.Pages[j].URL })
+			for _, cp := range a.colours {
+				a.rule.Colours = append(a.rule.Colours, *cp)
+			}
+			// The pairs on the most elements come first.
+			sort.Slice(a.rule.Colours, func(i, j int) bool {
+				ci, cj := a.rule.Colours[i], a.rule.Colours[j]
+				if ci.Elements != cj.Elements {
+					return ci.Elements > cj.Elements
+				}
+				return ci.Text+ci.Background < cj.Text+cj.Background
+			})
 			out = append(out, a.rule)
 		}
 		sort.Slice(out, func(i, j int) bool {

@@ -947,7 +947,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
-To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
+To run every check in one go, add `--all`. It turns on the keyboard, markup and content checks, the cookie banner, the other
 rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the layout checks and
 plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
 the links, and Lighthouse, which also needs Chrome. The container image has Vale, vnu and lychee but not Lighthouse.
@@ -1054,7 +1054,9 @@ Enter, then Space, and checks the test again. Tab stops once focus has come back
 stayed outside the page for three presses. A control counts only when the click worked and the keyboard didn't. A
 control whose test was already true, that something else covers, that a click didn't change, or that Tab didn't reach
 within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
-form's submit button are never picked, and nor is anything holding one. A control's own script can still navigate
+form's submit button are never picked, and nor is anything holding one. Nor are text fields and comboboxes, where
+Enter sends the form or the arrow keys do the work, or a tab that the arrow keys reach while another tab in its list
+takes Tab. A control's own script can still navigate
 or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
 
 The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
@@ -1092,6 +1094,32 @@ ARIA-AT tests whole patterns, such as a tab list or a grid. A low figure means t
 passed few of ARIA-AT's tests of the patterns that use the role or attribute. Your page may still be right. Most roles and attributes have a pair below 90 percent. The line is drawn
 at 60 so the advice is about clearly weak support. The figures were fetched on 2026-10-26 and ship with the engine.
 `internal/a11y/ariaat/fetch.sh` fetches them again.
+### Content checks
+
+Some barriers are in the words and images a page's authors write: a link called "read more", alt text that is a
+file name, or bold text standing in for a heading. Add `--content` for ten checks on them. They
+run in the browser with no model call, and only on what a visitor can see.
+
+| Rule ID | Reports | Related to |
+|---|---|---|
+| `dummyrun-content-alt-file-name` | An image whose alt text is a file name, such as `IMG_2041.jpg` or `hero-banner.png` | WCAG 1.1.1 |
+| `dummyrun-content-vague-link` | A link whose whole name is a phrase such as "click here", "read more" or "learn more" | WCAG 2.4.4 |
+| `dummyrun-content-fake-heading` | A short paragraph set entirely in bold, with no full stop, followed by a paragraph, list or table | WCAG 1.3.1 |
+| `dummyrun-content-document-link` | A link to a PDF, Word, Excel, PowerPoint, OpenDocument, RTF or CSV file whose name doesn't say that kind of file. "Download" isn't enough, and nor is the wrong kind | GOV.UK content design |
+| `dummyrun-content-new-window` | A link that opens a new tab and whose name doesn't say "new tab" or "new window" | WCAG 3.2.5 |
+| `dummyrun-content-url-link` | A link whose name is a web address of more than 30 characters | WCAG 2.4.4 |
+| `dummyrun-content-alt-redundant` | Alt text that starts "image of", "picture of" or "photo of" | W3C images tutorial |
+| `dummyrun-content-alt-long` | Alt text of more than 150 characters | W3C images tutorial |
+| `dummyrun-content-all-caps` | A block of text with more than 30 letters, all in capitals, typed or set by `text-transform` | GOV.UK style guide |
+| `dummyrun-content-underline` | Underlined text that isn't a link, a button, an abbreviation or inserted text | WCAG 1.4.1 |
+
+Each of these usually makes a page harder to use, but each can be right in context. A "read more" link inside a
+sentence about the story it opens can meet WCAG 2.4.4, for example. So every result is advice, never fails the
+sweep, and the allow-list can accept it. A link's name is its `aria-labelledby` or `aria-label`, or else its text and
+the `alt` of its images and the `aria-label` of its icons, leaving out anything a screen reader skips, so a link that adds words for screen readers isn't reported. A `title` doesn't count, since few people see it and few screen readers read it. The checks that match
+English phrases run only on a page whose language is English or isn't set. The checks on file names, addresses,
+length, bold, capitals and underlines run on every page. When the checks finish on a page, its JSON result has
+`content_checked: true`.
 
 ### Other rule engines
 
@@ -1126,8 +1154,9 @@ Every failing element in a sweep carries a `confidence` of `high`, `medium`, `lo
 `measurement` for the layout and keyboard checks and `ax-fact` for the markup checks. `dummyrun-mouse-only` is a
 `task-verdict`, because the sweep tried the control by keyboard and it did not work.
 
-Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
+Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`.
+The other engines still run, and the summary lists the error. IBM Equal Access, HTML_CodeSniffer and Alfa each have 25
+seconds on a page, and one that takes longer is an error in the same way. If none of them runs, the page has an `error` and the sweep
 fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
 `engines` field gives the version of each engine.
@@ -1137,6 +1166,25 @@ dummyrun a11y --engines --json report.json https://example.com/
 ```
 
 [Tools we build on](TOOLS.md) lists each engine with its licence.
+
+### Colours that meet the ratio
+
+When axe fails text on `color-contrast`, it records the text colour, the background
+colour, the ratio between them and the ratio the text needs. The sweep keeps those in the element's `colours` and
+works out two colours that would meet the ratio:
+
+- `text_fix`, the nearest text colour that meets it on the same background
+- `background_fix`, the nearest background that meets it with the same text
+
+Each one changes how light the colour is, in the OKLCH colour space, and keeps its hue and, where it can, its
+chroma. So a brand blue stays blue and only gets darker or lighter. The sweep tries darker and lighter and keeps the
+smaller change. If no lightness at that hue meets the ratio, that suggestion is left out. The element's `detail` says
+the same in words, for example "#777777 on #ffffff is 4.48:1, and needs 4.5:1. Text #767676 on the same background
+meets it, or the same text on #060606."
+
+A suggestion is a starting point. Check it against the rest of your design, and against the other colour scheme if
+your site has both. Axe measures only text on a flat colour, so text on an image or a gradient has no suggestion.
+Use `--image-contrast` for that.
 
 ### Contrast over images
 
@@ -1175,7 +1223,7 @@ dummyrun a11y --consent --image-contrast https://example.com/
 Long sentences and vague words make a page harder for everyone, and hardest for people who read slowly, read in a
 second language or listen to a screen reader. Add `--plain-language` and the sweep reads each page's main content
 with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark,
-the region a page marks as its main content. On a page without one, it's the body. The sweep then leaves out the
+the region a page marks as its main content, and the first one that is displayed when the page has more than one. On a page without one, it's the body. The sweep then leaves out the
 body's header, navigation, footer and asides. Code, scripts and hidden text are left out, including text the
 page's CSS hides with `display`, `visibility` or `opacity`.
 

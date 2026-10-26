@@ -65,6 +65,38 @@ The trademark policy stops them calling it Dummy Run.
 - `internal/page/tools_test.go` proves the read-only policy with a form whose POST never reaches the test
   server. `internal/runner/signin_browser_test.go` checks that credentials never leak into a run's output.
 
+### HTML checking: vnu or html-validate
+
+`--html` runs the Nu HTML Checker (vnu), which needs Java. `PR #139` gives the corpus, the commands and the
+counts for this comparison. We compared vnu with
+[html-validate](https://gitlab.com/html-validate/html-validate) 11.16.2 (MIT). That has a browser build, so it could run
+inside the page like the rule engines. The corpus was 167 pages: the 150 AccessGuru cases, the three benchmark pages
+and 14 pages we wrote, two for each kind of error `--html` keeps and two with none. html-validate used its
+recommended rules with `no-missing-references` on.
+
+| | vnu 26.10.12 | html-validate 11.16.2 |
+|---|---|---|
+| Added to the container image | about 150 MB (a jlink Java runtime and the 31 MB jar) | nothing, since it would be a 458 KB script (135 KB gzipped) in the binary |
+| Runs where | its own process, on the HTML as sent and as built | inside the page, on the HTML as built, or on a string |
+| Time for the 167 pages | 3.7 s | 1.9 s |
+| Duplicate IDs, controls inside controls, list and table structure, images with no alt | 7 of the 8 planted pages: an image with a `title` and no alt passes | all 8 planted pages |
+| A `label for` that names no element | found | found |
+| An `aria-labelledby` or `aria-describedby` that names no element | missed | found |
+| A misspelt role or an ARIA value that isn't allowed | found | missed |
+| AccessGuru and benchmark pages with a finding `--html` keeps | 94 | 106 |
+| Of those, found by both | 84 | 84 |
+
+The 10 pages only vnu flags are all ARIA roles and values: 7 `aria-allowed-role` cases, an `aria-required-parent`
+case and 2 `presentation-role-conflict` cases. axe-core already checks those on every page, with
+`aria-roles`, `aria-allowed-role` and `aria-valid-attr-value`. So they add little to a sweep. The 22 pages only
+html-validate flags are mostly elements in places the content model doesn't allow, plus empty headings and
+references to missing IDs.
+
+The recommendation is to move `--html` to html-validate in the page, and to keep vnu as an option for anyone who wants the
+reading of the HTML as sent. If vnu also left the image, the image would get about 150 MB smaller, and the default check would work outside the
+container with no Java. The cost is the HTML-as-sent check, which html-validate can do only on a string the sweep
+fetches. That switch isn't made yet because it changes what `--html` reports.
+
 ## Coverage and reports
 
 - `dummyrun coverage` answers its three questions separately, because one blended number would hide which
