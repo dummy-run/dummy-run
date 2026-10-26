@@ -21,13 +21,14 @@ const mainHTMLJS = `(max) => {
   const boxless = (el) => getComputedStyle(el).display === "contents";
   const displayed = (el) => !el.checkVisibility || el.checkVisibility() || boxless(el);
   // A boxless element still draws its own text, so text directly inside it counts as showing when the text is
-  // visible and the nearest ancestor with a box shows. checkVisibility says no to every boxless element, so it is
-  // asked of that ancestor instead.
+  // visible and the nearest ancestor with a box is displayed and not transparent. checkVisibility says no to every
+  // boxless element, so it is asked of that ancestor instead. The ancestor's visibility doesn't count, since a child
+  // can make itself visible again.
   const ownText = (el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== "");
   const boxed = (el) => {
     let a = el.parentElement;
     while (a && boxless(a)) a = a.parentElement;
-    return !a || a.checkVisibility({ opacityProperty: true, visibilityProperty: true });
+    return !a || a.checkVisibility({ opacityProperty: true });
   };
   const shows = (el) => !el.checkVisibility ||
     (boxless(el) ? (ownText(el) && getComputedStyle(el).visibility === "visible" && boxed(el)) || [...el.children].some(shows) :

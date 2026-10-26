@@ -60,6 +60,7 @@ func TestMainHTMLFindsTheMainContent(t *testing.T) {
 		{head + `<div style="display:none"><main><p>Old words.</p></main></div><main><p>New words.</p></main></body></html>`, "body > main", "New words."},
 		{head + `<main style="display:contents">Bare words.</main><main><p>Old words.</p></main></body></html>`, "body > main:nth-of-type(1)", "Bare words."},
 		{head + `<div style="display:none"><main style="display:contents">Old words.</main></div><main><p>New words.</p></main></body></html>`, "body > main", "New words."},
+		{head + `<div style="visibility:hidden"><main style="display:contents;visibility:visible">Seen words.</main></div><main><p>Old words.</p></main></body></html>`, "body > div > main", "Seen words."},
 		{head + `<nav>Menu words.</nav><div role="main"><p>Role words.</p></div></body></html>`, "[role=main]", "Role words."},
 		{head + `<header>Top words.</header><nav>Menu words.</nav><p>Body words.</p><aside>Side words.</aside><footer>Foot words.</footer></body></html>`,
 			"body", "Body words."},
