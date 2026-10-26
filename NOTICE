@@ -57,6 +57,11 @@ The test fixtures in testdata/benchmark/accessguru hold the rule names and eleme
 dataset, Copyright (c) 2025 Nadeen Fathallah, licensed under the MIT licence (see
 testdata/benchmark/accessguru/LICENSE). The source is at https://github.com/NadeenAhmad/AccessGuruLLM.
 
+internal/a11y/ariaat/features.json holds the ARIA-AT project's test results for each ARIA feature, by screen reader
+and browser, copied unchanged from https://aria-at.w3.org/reports. Copyright © 2026 World Wide Web Consortium,
+licensed under the W3C Document License (see internal/a11y/ariaat/LICENSE and
+https://www.w3.org/copyright/document-license-2023/).
+
 The container image includes the Nu HTML Checker 26.10.12 (/opt/vnu/vnu.jar), Copyright (c) 2007-2016 Mozilla
 Foundation and the validator contributors, licensed under the MIT licence (see /opt/vnu/LICENSE). The jar carries
 the licences of the libraries it includes. Its source is at https://github.com/validator/validator. vnu runs on a

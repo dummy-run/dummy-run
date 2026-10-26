@@ -182,6 +182,17 @@
     - https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html
     - https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill
 
+- rule: dummyrun-aria-support
+  owner: development
+  summary: Check the role or ARIA attribute with the screen readers your visitors use, or use a native element.
+  steps:
+    - Look up the role or attribute on the ARIA-AT reports to see which screen readers and browsers fall short and on which tests.
+    - Where a native HTML element does the same job, such as a button, a select or a details element, use it in place of the ARIA pattern.
+    - If you keep the pattern, follow the ARIA Authoring Practices example for it closely and test it with the screen readers named in the finding.
+  sources:
+    - https://aria-at.w3.org/reports
+    - https://www.w3.org/WAI/ARIA/apg/patterns/
+
 - rule: dummyrun-contrast-over-image
   owner: design
   summary: Make text over a picture readable against the whole picture behind it.
