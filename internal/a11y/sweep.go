@@ -576,7 +576,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			rep.htmlChecked = map[string]bool{}
 		}
 		rep.htmlChecked[u] = true
-		htmlCheck(pctx, conn, cx, &res, path, cfg.Allow)
+		// vnu gets a limit of its own, so a slow run leaves the page's later checks their time.
+		hctx, hcancel := context.WithTimeout(pctx, htmlTimeout)
+		htmlCheck(hctx, conn, cx, &res, path, cfg.Allow)
+		hcancel()
 	}
 	if cfg.Engines {
 		r, err := page.RunEngines(pctx, conn, cx, axeNodes(res.Violations), CriteriaAA())

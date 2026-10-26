@@ -4,11 +4,16 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/validate"
 )
+
+// htmlTimeout bounds one HTML check: reading both copies of the page and one vnu run. Java starts in a second or
+// two, and vnu reads a 2 MB page in a few more.
+const htmlTimeout = 30 * time.Second
 
 // htmlMaxDoc is the most of one document the HTML check reads. Past it the document is cut and the result says so.
 const htmlMaxDoc = 2 << 20
