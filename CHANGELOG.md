@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- `internal/robots` has tests for the edges of its wildcard and end-anchor matching, its percent-escape handling and a fetch the caller cancels. Of the mutants gremlins makes in it, the tests now catch 91 of the 95 they run, up from 70 of 94. The four left change nothing the package returns.
 - The `dummyrun-target-size` fix example sets a minimum width and height of 24 CSS pixels. The `dummyrun a11y --keyboard` help says it reports each control that works only by mouse.
 - Severity and confidence come from rules over recorded facts, never from the model. The persona's `finish` tool no longer asks for a severity. The engine sets it from the symptom's impact class and whether the finding is on a journey, and a report sets each failing axe rule's severity the same way, from the impact, the WCAG level, the pages affected and whether a persona's journey crossed the page. Only a critical impact makes a blocker. A reviewer can still change a severity.
 - `confidence` on a sweep's failing elements now means how often findings with the same inputs have turned out to be right: `high`, `medium`, `low` or `unknown`, looked up in a table that ships with the engine, instead of `high` or `single` from the engine count alone. Every failing element has one, with or without `--engines`. An engine with no measured record of its own is `unknown`, never `high`.
