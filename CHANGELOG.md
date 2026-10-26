@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- With `dummyrun a11y --repeat`, a page whose first repeat failed after the HTML check or Lighthouse keeps those checks' results, such as `html_checked` and `lighthouse_scores`, when a later repeat's result is the one kept. Before, the merged result lost them, though their findings were still counted.
 - `internal/identity` has tests for the edges of each character range it reads, such as the first and last hex digit and the characters a URL scheme may hold. Of the mutants gremlins makes in it, the tests now catch 82 of the 83 they run, up from 40 of 68. The one left changes nothing the function returns.
 - The `dummyrun-target-size` fix example sets a minimum width and height of 24 CSS pixels. The `dummyrun a11y --keyboard` help says it reports each control that works only by mouse.
 - Severity and confidence come from rules over recorded facts, never from the model. The persona's `finish` tool no longer asks for a severity. The engine sets it from the symptom's impact class and whether the finding is on a journey, and a report sets each failing axe rule's severity the same way, from the impact, the WCAG level, the pages affected and whether a persona's journey crossed the page. Only a critical impact makes a blocker. A reviewer can still change a severity.

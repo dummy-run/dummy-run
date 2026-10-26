@@ -1655,6 +1655,8 @@ different setting is a different file. `--all` doesn't include it, because it ne
 
 ```sh
 dummyrun a11y --visual screens --mask '.clock' --mask '#ad' https://example.com/
+```
+
 ### Run it more than once
 
 Pages don't always come out the same. An advert loads late, an A/B test picks another version, or a carousel has
@@ -1672,7 +1674,9 @@ as in `chrome/desktop/light (2 of 3 runs)`.
 The counts are there for you to judge. The sweep doesn't decide which findings are stable, and an element that
 failed in any repeat fails the sweep, as it would have if that repeat had been the only one. The checks that run
 once for each URL, such as the HTML check, Lighthouse, journeys and links, run in the first repeat only, so their
-findings count 1 run and say nothing about whether a problem comes and goes.
+findings count 1 run and say nothing about whether a problem comes and goes. When the first repeat
+has their results, such as `html_checked` and `lighthouse_scores`, the merged result keeps them, even when that
+page later failed and a later repeat's result is the one kept. When it doesn't, the kept result's own stay.
 
 ```sh
 dummyrun a11y --repeat 3 https://example.com/
