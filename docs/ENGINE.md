@@ -1053,7 +1053,9 @@ Enter, then Space, and checks the test again. Tab stops once focus has come back
 stayed outside the page for three presses. A control counts only when the click worked and the keyboard didn't. A
 control whose test was already true, that something else covers, that a click didn't change, or that Tab didn't reach
 within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
-form's submit button are never picked, and nor is anything holding one. A control's own script can still navigate
+form's submit button are never picked, and nor is anything holding one. Nor are text fields and comboboxes, where
+Enter sends the form or the arrow keys do the work, or a tab that the arrow keys reach while another tab in its list
+takes Tab. A control's own script can still navigate
 or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
 
 The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
@@ -1114,7 +1116,8 @@ Every failing element in a sweep carries a `confidence` of `high`, `medium`, `lo
 `task-verdict`, because the sweep tried the control by keyboard and it did not work.
 
 Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
+the other engines still run and the summary lists it. IBM Equal Access, HTML_CodeSniffer and Alfa each have 25
+seconds on a page, and one that takes longer is an error in the same way. If none of them runs, the page has an `error` and the sweep
 fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
 `engines` field gives the version of each engine.
@@ -1157,7 +1160,7 @@ dummyrun a11y --consent --image-contrast https://example.com/
 Long sentences and vague words make a page harder for everyone, and hardest for people who read slowly, read in a
 second language or listen to a screen reader. Add `--plain-language` and the sweep reads each page's main content
 with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark,
-the region a page marks as its main content. On a page without one, it's the body. The sweep then leaves out the
+the region a page marks as its main content, and the first one that is displayed when the page has more than one. On a page without one, it's the body. The sweep then leaves out the
 body's header, navigation, footer and asides. Code, scripts and hidden text are left out, including text the
 page's CSS hides with `display`, `visibility` or `opacity`.
 

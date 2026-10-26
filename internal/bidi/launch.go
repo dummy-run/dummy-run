@@ -359,9 +359,10 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	}
 	args = append(args, opts.Args...)
 	chromeOpts := map[string]any{"args": args}
-	if len(opts.ChromePrefs) > 0 {
-		chromeOpts["prefs"] = opts.ChromePrefs
-	}
+	// Chrome fetches pages ahead of a click when a page asks with speculation rules, or when it adds rules of its
+	// own, as it does for sites it knows, such as Shopify ones. Those requests skip the request interception, so they
+	// would carry no run headers and pass no request policy. Preloading is off.
+	chromeOpts["prefs"] = mergePrefs(map[string]any{"net": map[string]any{"network_prediction_options": 2}}, opts.ChromePrefs)
 	if chrome != "" {
 		chromeOpts["binary"] = chrome
 	}
