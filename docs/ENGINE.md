@@ -1047,7 +1047,7 @@ For the focus rules, the sweep takes two pictures of each element and the 6 pixe
 one without. It waits for the page to draw and for any transition to end, up to half a second, before each picture.
 The pictures cover the first 30 stops with no focus style the walk can read, and another 30 with one. From them it
 measures the indicator the way WCAG 2.4.13 does. It counts the pixels that change and how much their contrast
-changes. It also works out the area of a line 2 CSS pixels thick round the element. Fewer than 6 changed pixels
+changes. It also works out the area of a line 2 CSS pixels thick round the element. Fewer than 6 changed screenshot pixels
 don't count as an indicator, since a blinking caret can change that many. Each stop's `appearance` in the JSON
 gives `changed` and `area`, the pixels that change by 3:1 or more, in square CSS pixels. It also gives `need`, the
 area of that 2 pixel line, and `contrast`, the biggest change.
