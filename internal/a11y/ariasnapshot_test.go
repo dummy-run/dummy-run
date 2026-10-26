@@ -1,0 +1,192 @@
+package a11y
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"reflect"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+func TestDiffLines(t *testing.T) {
+	a := []string{"- banner:", "  - link \"Home\"", "- main:", "  - heading \"Shop\" [level=1]", "  - button \"Buy\""}
+	b := []string{"- banner:", "  - link \"Home\"", "  - link \"Basket\"", "- main:", "  - heading \"Shop\" [level=1]", "  - button \"Buy\" [disabled]"}
+	c := diffLines(a, b)
+	if !reflect.DeepEqual(c.Added, []string{"  - link \"Basket\"", "  - button \"Buy\" [disabled]"}) || !reflect.DeepEqual(c.Removed, []string{"  - button \"Buy\""}) {
+		t.Errorf("added %q removed %q", c.Added, c.Removed)
+	}
+	if same := diffLines(a, a); same.AddedCount+same.RemovedCount != 0 {
+		t.Errorf("no change: %+v", same)
+	}
+	var long []string
+	for i := range 80 {
+		long = append(long, fmt.Sprintf("- link \"%d\"", i))
+	}
+	if c := diffLines(nil, long); c.AddedCount != 80 || len(c.Added) != maxChangeLines {
+		t.Errorf("long: %d counted, %d listed", c.AddedCount, len(c.Added))
+	}
+}
+
+func TestSnapshotNames(t *testing.T) {
+	a := snapshotName("https://example.com/shop?a=1", "chrome/desktop/light")
+	if a != snapshotName("https://example.com/shop?a=1", "chrome/desktop/light") || a == snapshotName("https://example.com/shop?a=2", "chrome/desktop/light") ||
+		a == snapshotName("https://example.com/shop?a=1", "chrome/phone/light") || strings.ContainsAny(a, "/?:") || !strings.HasSuffix(a, ".yaml") {
+		t.Errorf("snapshot name %q", a)
+	}
+}
+
+func TestARIASnapshotsShowWhatChanged(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var second atomic.Bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		extra, buy := "", `<button>Buy</button>`
+		if second.Load() {
+			extra, buy = `<a href="/basket">Basket</a>`, `<button disabled>Buy</button>`
+		}
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body>
+<header><a href="/">Home</a> %s</header><main><h1>Shop</h1><p>Words that change: %d</p>%s
+<input type="checkbox" aria-label="Gift wrap" checked><button aria-label="Bell&#7;">Ring</button><div hidden><button>Hidden</button></div></main></body></html>`, extra, time.Now().UnixNano(), buy)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			second.Store(false)
+			dir := t.TempDir()
+			run := func() PageResult {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+				defer cancel()
+				rep, err := Run(ctx, Config{URLs: []string{srv.URL}, Browser: browser, Viewports: []Viewport{Desktop},
+					Schemes: []string{Light}, Headless: true, ARIASnapshots: dir})
+				if err != nil {
+					t.Fatal(err)
+				}
+				r := rep.Results[0]
+				if r.Error != "" || r.ARIASnapshotError != "" || r.ARIASnapshot == "" {
+					t.Fatalf("error %q, snapshot error %q, file %q", r.Error, r.ARIASnapshotError, r.ARIASnapshot)
+				}
+				return r
+			}
+			first := run()
+			if first.ARIAChanges != nil {
+				t.Errorf("a first snapshot has changes: %+v", first.ARIAChanges)
+			}
+			text, _ := os.ReadFile(first.ARIASnapshot)
+			for _, want := range []string{"- banner:\n  - link \"Home\"\n", "- main:\n  - heading \"Shop\" [level=1]\n  - button \"Buy\"\n", "  - checkbox \"Gift wrap\" [checked]\n", "  - button \"Bell\\x07\"\n"} {
+				if !strings.Contains(string(text), want) {
+					t.Errorf("snapshot lacks %q:\n%s", want, text)
+				}
+			}
+			if strings.Contains(string(text), "Hidden") || strings.Contains(string(text), "Words that change") {
+				t.Errorf("the snapshot has hidden controls or text:\n%s", text)
+			}
+			// The same page again, with different words, has no changes.
+			if again := run(); again.ARIAChanges == nil || again.ARIAChanges.AddedCount+again.ARIAChanges.RemovedCount != 0 {
+				t.Errorf("unchanged page: %+v", again.ARIAChanges)
+			}
+			second.Store(true)
+			c := run().ARIAChanges
+			if c == nil || !reflect.DeepEqual(c.Added, []string{`  - link "Basket"`, `  - button "Buy" [disabled]`}) || !reflect.DeepEqual(c.Removed, []string{`  - button "Buy"`}) {
+				t.Errorf("changes %+v", c)
+			}
+		})
+	}
+}
+
+func TestSummaryListsSnapshotChanges(t *testing.T) {
+	r := &Report{Results: []PageResult{
+		{URL: "https://example.com/", Viewport: "desktop", Scheme: "light", ARIAChanges: &ARIAChanges{
+			Added: []string{`  - link "Basket"`}, Removed: []string{`  - button "Buy"`}, AddedCount: 1, RemovedCount: 1}},
+		{URL: "https://example.com/same", Viewport: "desktop", Scheme: "light", ARIAChanges: &ARIAChanges{}},
+		{URL: "https://example.com/bad", Viewport: "desktop", Scheme: "light", ARIASnapshotError: "disk full"},
+	}}
+	var b strings.Builder
+	r.WriteSummary(&b)
+	out := b.String()
+	for _, want := range []string{"CHANGED https://example.com/ (", "1 lines added and 1 removed", `     - button "Buy"`, `     + link "Basket"`, "SNAPSHOT https://example.com/bad (", "disk full"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("summary lacks %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "CHANGED https://example.com/same") {
+		t.Errorf("an unchanged page is listed:\n%s", out)
+	}
+}
+
+func TestReplaceFileKeepsTheOldOneOnFailure(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/page.yaml"
+	if err := replaceFile(dir, path, []byte("- main:\n")); err != nil {
+		t.Fatal(err)
+	}
+	// A directory that can't take the new file leaves the old one as it was.
+	if err := replaceFile(dir+"/missing", path, []byte("- banner:\n")); err == nil {
+		t.Fatal("want an error")
+	}
+	if b, _ := os.ReadFile(path); string(b) != "- main:\n" {
+		t.Errorf("the old snapshot changed: %q", b)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("left %d files, want 1", len(entries))
+	}
+	// A write that fails after the new file exists leaves the old one too, and removes the new one.
+	writeSnapshot = func(f *os.File, data []byte) (int, error) {
+		n, _ := f.Write(data[:2])
+		return n, errors.New("disk full")
+	}
+	t.Cleanup(func() { writeSnapshot = func(f *os.File, data []byte) (int, error) { return f.Write(data) } })
+	if err := replaceFile(dir, path, []byte("- banner:\n")); err == nil || !strings.Contains(err.Error(), "disk full") {
+		t.Fatalf("want the write error, got %v", err)
+	}
+	if b, _ := os.ReadFile(path); string(b) != "- main:\n" {
+		t.Errorf("a partial write changed the old snapshot: %q", b)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("a partial write left %d files, want 1", len(entries))
+	}
+}
+
+// TestARIASnapshotsTakeTheFirstRepeat sweeps a page whose heading counts its loads, twice over with --repeat 2. Only
+// the first repeat writes the snapshot, so the file holds the first load and the result says it is the first.
+func TestARIASnapshotsTakeTheFirstRepeat(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var loads atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Load %d</h1></main></body></html>`, loads.Add(1))
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			loads.Store(0)
+			dir := t.TempDir()
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, ARIASnapshots: dir, Repeat: 2})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Results[0]
+			if r.ARIASnapshot == "" || r.ARIAChanges != nil {
+				t.Fatalf("file %q, changes %+v, error %q", r.ARIASnapshot, r.ARIAChanges, r.ARIASnapshotError)
+			}
+			text, _ := os.ReadFile(r.ARIASnapshot)
+			if !strings.Contains(string(text), `heading "Load 1"`) {
+				t.Errorf("the snapshot isn't the first load's:\n%s", text)
+			}
+		})
+	}
+}
