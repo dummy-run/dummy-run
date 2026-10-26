@@ -66,30 +66,32 @@
     if (squash(label)) return squash(label);
     const bits = [a.innerText];
     for (const img of a.querySelectorAll("img[alt]")) bits.push(img.getAttribute("alt"));
+    for (const icon of a.querySelectorAll("svg[aria-label], [role=img][aria-label]")) bits.push(icon.getAttribute("aria-label"));
     return squash(bits.join(" "));
   };
   const vague = /^(click here|click|here|tap here|read more|more|learn more|find out more|more info|more information|details|this link|link|this page|go|continue|see more|view more)$/;
   const documents = /\.(pdf|docx?|xlsx?|pptx?|odt|ods|odp|rtf|csv)$/i;
-  const kinds = /\b(pdf|word|excel|powerpoint|spreadsheet|document|docx?|xlsx?|pptx?|odt|ods|odp|rtf|csv|download)\b/i;
-  const warns = /\b(new (tab|window)|opens? in|external)\b/i;
+  // Only the link's name counts, since a title is shown to few people and read out by few screen readers.
+  const kinds = /\b(pdf|word|excel|powerpoint|spreadsheet|opendocument|docx?|xlsx?|pptx?|odt|ods|odp|rtf|csv)\b/i;
+  const warns = /\bnew (browser )?(tab|window)\b/i;
   for (const a of document.querySelectorAll("a[href]")) {
     if (!shown(a)) continue;
     const name = linkName(a);
     const plain = name.toLowerCase().replace(/[.:!?…»›→>\s]+$/u, "").replace(/^[«‹←<\s]+/u, "");
     if (english && vague.test(plain)) push(out.vagueLink, a, "the link's name is " + quote(name, 60) + ", which says nothing about where it goes when heard on its own");
     if (/^(https?:\/\/|www\.)\S{30,}$/i.test(name)) push(out.urlLink, a, "the link's name is the address " + quote(name, 80));
-    const title = a.getAttribute("title") || "";
-    if (a.target === "_blank" && english && !warns.test(name + " " + title) && !a.querySelector("[aria-label*=\"new\" i], [title*=\"new\" i]")) {
+    if (a.target === "_blank" && english && !warns.test(name)) {
       push(out.newWindow, a, "the link " + quote(name, 60) + " opens a new tab and doesn't say so");
     }
     let path = "";
     try { path = new URL(a.href, document.baseURI).pathname; } catch (e) { /* an address the browser can't read has no file type */ }
-    if (documents.test(path) && english && !kinds.test(name + " " + title)) {
+    if (documents.test(path) && english && !kinds.test(name)) {
       push(out.documentLink, a, "the link " + quote(name, 60) + " goes to a ." + path.split(".").pop().toLowerCase() + " file and doesn't say what kind of file");
     }
   }
 
-  const fileName = /^[\w ()-]+\.(jpe?g|png|gif|webp|avif|svg|bmp|tiff?)$|^(img|dsc|dscn|dcim|image|photo|screenshot|pxl)[-_ ]?\d{2,}/i;
+  // A name such as IMG_2041 counts only when it is the whole alt text, so "Photo 2024 of the team" is a description.
+  const fileName = /^[\w ()-]+\.(jpe?g|png|gif|webp|avif|svg|bmp|tiff?)$|^(img|dsc|dscn|dcim|image|photo|screenshot|pxl)[-_ ]?[\d_-]{2,}(\.(jpe?g|png|gif|webp|avif|heic))?$/i;
   const redundant = /^(an? )?(image|picture|photo|photograph|graphic|icon) (of|showing)\b/i;
   for (const img of document.querySelectorAll("img[alt], input[type=image][alt], area[alt]")) {
     if (img.tagName !== "AREA" && !shown(img)) continue;

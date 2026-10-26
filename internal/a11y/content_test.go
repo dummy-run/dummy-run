@@ -27,9 +27,16 @@ const contentPage = `<!doctype html><html lang="en-GB"><head><meta charset="utf-
 <p><a id="bad-doc" href="/files/report.pdf">Annual report</a></p>
 <p><a id="ok-doc" href="/files/report2.pdf">Annual report (PDF, 2 MB)</a></p>
 <p><a id="ok-doc2" href="/files/pdf-guide">How to read a PDF</a></p>
+<p><a id="bad-doc2" href="/files/plan.docx">Download the plan</a></p>
+<p><a id="bad-doc3" href="/files/plan2.pdf" title="PDF">The plan</a></p>
+<p><a id="bad-new2" href="/x2" target="_blank">Partners (external)</a></p>
+<p><a id="bad-new3" href="/x3" target="_blank" title="Opens in a new tab">Suppliers</a></p>
+<p><a id="ok-new2" href="/y2" target="_blank">Suppliers <svg aria-label="opens in a new window" width="8" height="8"></svg></a></p>
 <img id="bad-file" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="IMG_20240101.jpg">
 <img id="bad-file2" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="hero-banner.png">
 <img id="ok-file" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="The pier at sunset">
+<img id="ok-file2" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="Photo 2024 of the team">
+<img id="bad-file3" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="DSC_0042">
 <img id="bad-redundant" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="Image of a dog on a beach">
 <img id="ok-redundant" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="Imagery from the 1920s archive">
 <img id="bad-long" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20" alt="` + "A long description of a chart that goes on and on about every bar and every line and every label so that it runs past the limit of one hundred and fifty characters easily" + `">
@@ -71,9 +78,9 @@ func TestContentChecksFindOnlyPlantedProblems(t *testing.T) {
 	want := map[string][]string{
 		RuleVagueLink:    {"#bad-vague", "#bad-vague2"},
 		RuleURLLink:      {"#bad-url"},
-		RuleNewWindow:    {"#bad-new"},
-		RuleDocumentLink: {"#bad-doc"},
-		RuleAltFileName:  {"#bad-file", "#bad-file2"},
+		RuleNewWindow:    {"#bad-new", "#bad-new2", "#bad-new3"},
+		RuleDocumentLink: {"#bad-doc", "#bad-doc2", "#bad-doc3"},
+		RuleAltFileName:  {"#bad-file", "#bad-file2", "#bad-file3"},
 		RuleAltRedundant: {"#bad-redundant"},
 		RuleAltLong:      {"#bad-long"},
 		RuleFakeHeading:  {"#bad-fake"},

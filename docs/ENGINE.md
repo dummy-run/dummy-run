@@ -1083,8 +1083,8 @@ These findings fail the sweep like axe rules, and you can accept one with the al
 
 ### Content checks
 
-Some barriers come from the words and images a page's authors write, not from its code: a link called "read more",
-alt text that is a file name, or bold text standing in for a heading. Add `--content` for ten checks on them. They
+Some barriers are in the words and images a page's authors write: a link called "read more", alt text that is a
+file name, or bold text standing in for a heading. Add `--content` for ten checks on them. They
 run in the browser with no model call, and only on what a visitor can see.
 
 | Rule ID | Reports | Related to |
@@ -1092,8 +1092,8 @@ run in the browser with no model call, and only on what a visitor can see.
 | `dummyrun-content-alt-file-name` | An image whose alt text is a file name, such as `IMG_2041.jpg` or `hero-banner.png` | WCAG 1.1.1 |
 | `dummyrun-content-vague-link` | A link whose whole name is a phrase such as "click here", "read more" or "learn more" | WCAG 2.4.4 |
 | `dummyrun-content-fake-heading` | A short paragraph set entirely in bold, with no full stop, followed by a paragraph, list or table | WCAG 1.3.1 |
-| `dummyrun-content-document-link` | A link to a PDF, Word, Excel, PowerPoint, OpenDocument, RTF or CSV file that doesn't name the kind of file | GOV.UK content design |
-| `dummyrun-content-new-window` | A link that opens a new tab and doesn't say "new tab", "new window" or "opens in" | WCAG 3.2.5 |
+| `dummyrun-content-document-link` | A link to a PDF, Word, Excel, PowerPoint, OpenDocument, RTF or CSV file whose name doesn't say the kind of file. "Download" isn't enough | GOV.UK content design |
+| `dummyrun-content-new-window` | A link that opens a new tab and whose name doesn't say "new tab" or "new window" | WCAG 3.2.5 |
 | `dummyrun-content-url-link` | A link whose name is a web address of more than 30 characters | WCAG 2.4.4 |
 | `dummyrun-content-alt-redundant` | Alt text that starts "image of", "picture of" or "photo of" | W3C images tutorial |
 | `dummyrun-content-alt-long` | Alt text of more than 150 characters | W3C images tutorial |
@@ -1103,7 +1103,7 @@ run in the browser with no model call, and only on what a visitor can see.
 Each of these usually makes a page harder to use, but each can be right in context. A "read more" link inside a
 sentence about the story it opens can meet WCAG 2.4.4, for example. So every result is advice, never fails the
 sweep, and the allow-list can accept it. A link's name is its `aria-labelledby` or `aria-label`, or else its text and
-the alt text of its images, so a link that adds words for screen readers isn't reported. The checks that match
+the alt text of its images and icons, so a link that adds words for screen readers isn't reported. A `title` doesn't count, since few people see it and few screen readers read it. The checks that match
 English phrases run only on a page whose language is English or isn't set. The checks on file names, addresses,
 length, bold, capitals and underlines run on every page. When the checks finish on a page, its JSON result has
 `content_checked: true`.
