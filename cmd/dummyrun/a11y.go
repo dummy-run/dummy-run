@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -178,6 +179,10 @@ func a11yCmd(args []string) int {
 		return 2
 	}
 	viewports, scales = layoutSettings(*layout, flagsSet(fs), viewports, scales)
+	if err := checkOutputs(*jsonPath, *junitPath, *ctrfPath); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
+		return 2
+	}
 	if err := checkScreenshotFlags(*shotDir, *layout, scales); err != nil {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return 2
@@ -331,6 +336,26 @@ func parseTextScales(v string) ([]int, error) {
 func pick[T any](name string, options map[string][]T) ([]T, bool) {
 	v, ok := options[strings.ToLower(name)]
 	return v, ok
+}
+
+// checkOutputs refuses two outputs that would write the same file, since the later one would replace the earlier.
+// --json - goes to standard output, so it shares nothing.
+func checkOutputs(jsonPath, junitPath, ctrfPath string) error {
+	seen := map[string]string{}
+	for _, o := range []struct{ flag, path string }{{"--json", jsonPath}, {"--junit", junitPath}, {"--ctrf", ctrfPath}} {
+		if o.path == "" || (o.flag == "--json" && o.path == "-") {
+			continue
+		}
+		key := filepath.Clean(o.path)
+		if abs, err := filepath.Abs(key); err == nil {
+			key = abs
+		}
+		if other, ok := seen[key]; ok {
+			return fmt.Errorf("%s and %s both write %s; give each its own file", other, o.flag, o.path)
+		}
+		seen[key] = o.flag
+	}
+	return nil
 }
 
 // writeTestReport writes the sweep as a test report for CI, by the same rules as dummyrun report: each failing

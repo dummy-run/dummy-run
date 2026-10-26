@@ -98,6 +98,10 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 		rep.Basis = "confirmed findings and findings not reviewed"
 	}
 	rep.Scope = buildScope(runs)
+	// A report from a sweep alone takes its times from the sweep.
+	if rep.Scope.StartedAt == "" {
+		rep.Scope.StartedAt, rep.Scope.EndedAt = sweepTimes(opt.A11y)
+	}
 	rep.Axe = buildAxe(opt.A11y, routesVisited(runs))
 	var axeRules map[string]AxeRule
 	if rep.Axe != nil {
@@ -980,4 +984,18 @@ func summarise(rep *Report) {
 	}
 	s.Fixed = len(rep.Fixed)
 	s.Text = summaryText(rep)
+}
+
+// sweepTimes is the earliest start and the latest end of the sweeps, or empty when they don't say.
+func sweepTimes(reps []*a11y.Report) (string, string) {
+	start, end := "", ""
+	for _, r := range reps {
+		if r.StartedAt != "" && (start == "" || r.StartedAt < start) {
+			start = r.StartedAt
+		}
+		if r.EndedAt > end {
+			end = r.EndedAt
+		}
+	}
+	return start, end
 }

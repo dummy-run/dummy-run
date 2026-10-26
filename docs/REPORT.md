@@ -216,7 +216,7 @@ A sample can miss a problem that's still there, so check a fixed problem before 
 | `json` | The full data, described by [schema/report.schema.json](../schema/report.schema.json). It's what `--baseline` reads |
 | `sarif` | SARIF 2.1.0 for tools that read it. Each problem and each failing axe element is a result. The location is a page address rather than a file in your repository, so GitHub code scanning can't place a result on a source file |
 | `junit` | JUnit XML for a CI job. Blocker, major and minor problems and failing axe rules are failures. Info problems are skipped |
-| `ctrf` | The same tests in the [Common Test Report Format](https://ctrf.io) JSON, spec version 0.2.0, for CI tools that read it. Each test's `extra` holds the raw counts behind it, such as `runs_found` out of `runs_total` for a problem and `elements` and `pages` for a rule. The report rates no test as flaky, and leaves that to the tool reading the counts. Durations are 0, since the report doesn't time tests |
+| `ctrf` | The same tests in the [Common Test Report Format](https://ctrf.io) JSON, spec version 0.2.0, for CI tools that read it. Each test's `extra` holds the raw counts behind it, such as `runs_found` out of `runs_total` for a problem and `elements` and `pages` for a rule. The report rates no test as flaky, and leaves that to the tool reading the counts. Durations are 0, since the report doesn't time tests. The summary's start and stop are the runs' times, or the sweep's for a report of a sweep alone |
 
 ## The limits
 
