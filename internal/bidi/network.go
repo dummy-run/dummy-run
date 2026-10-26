@@ -32,6 +32,9 @@ type RequestData struct {
 	// Destination is the fetch destination, such as document, iframe, image, style or script, where the
 	// browser reports it. It is empty when it does not.
 	Destination string `json:"destination,omitempty"`
+	// InitiatorType says what started the request, such as fetch, xmlhttprequest, link, img or script, where the
+	// browser reports it. It is empty when it does not.
+	InitiatorType string `json:"initiatorType,omitempty"`
 }
 
 // BeforeRequestSent is a network.beforeRequestSent event.
@@ -167,9 +170,9 @@ func HeaderValue(headers []Header, name string) (string, bool) {
 	return "", false
 }
 
-// OnBeforeRequestSent calls f for every network.beforeRequestSent event.
-func (c *Conn) OnBeforeRequestSent(f func(BeforeRequestSent)) {
-	c.OnEvent("network.beforeRequestSent", func(_ string, params json.RawMessage) {
+// OnBeforeRequestSent calls f for every network.beforeRequestSent event. The returned function stops it.
+func (c *Conn) OnBeforeRequestSent(f func(BeforeRequestSent)) (remove func()) {
+	return c.OnEvent("network.beforeRequestSent", func(_ string, params json.RawMessage) {
 		var e BeforeRequestSent
 		if err := json.Unmarshal(params, &e); err != nil {
 			return

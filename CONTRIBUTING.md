@@ -85,6 +85,48 @@ go test -run='^$' -fuzz=FuzzWrite -fuzztime=30s ./internal/record/
 go test -run='^$' -fuzz=FuzzDecodeResponses -fuzztime=30s ./internal/provider/
 ```
 
+Every Monday the `Mutation` workflow checks how well the unit tests catch changes to the code, with
+[gremlins](https://github.com/go-gremlins/gremlins). It makes one small change at a time, such as `>` to `>=`
+or `+` to `-`, and runs the package's tests. A change the tests catch is killed. One they still pass has lived,
+and is a gap in the tests. A change on a line no test runs is not covered. The workflow splits the packages
+between four jobs and writes a summary: the counts, each package's test efficacy (killed over killed and lived)
+and the files with the most changes that lived. No count of surviving mutants fails it, since the counts are
+for you to read, though a job that can't set up or list the packages does fail. The benchmark and the
+confidence table are left out, since their tests check measured numbers. Browser tests skip there, so a
+change only they would catch counts as lived or not covered.
+
+To run it yourself, install gremlins 0.6.0 and pass an output directory, and optionally a part and how many parts:
+
+```sh
+go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+bin/mutation mutation 0 4
+bin/mutation-summary mutation
+```
+
+Some tests use rapid to check a rule over thousands of random inputs. Their names start with `TestProperty`
+or `TestMetamorphic`. A property test compares the code with an independent reading of the same rule, such
+as robots.txt patterns against a regular expression. A metamorphic test changes the input in a way that
+should move the answer in one direction only, or leave it as it was, and checks that the answer does:
+
+- adding a Disallow rule to robots.txt never lets in a path that was kept out, and adding an Allow rule
+  never keeps out a path that was let in;
+- the order of the rules in a robots.txt group never changes an answer;
+- adding entries to an allow-list never stops it accepting a violation, and every violation the longer
+  list accepts but the shorter list doesn't is accepted by an added entry.
+
+The unit tests run 100 cases of each. This command runs 10,000:
+
+```sh
+go test ./internal/robots/ ./internal/a11y/ -run 'Property|Metamorphic' -rapid.checks=10000
+```
+
+A failure prints the smallest input it found and the arguments that replay it. This command replays a case
+from the seed it printed and the failing test's name:
+
+```sh
+go test ./internal/robots/ -run TestMetamorphicRuleOrderDoesNotMatter -rapid.seed=1234567890
+```
+
 The OpenAI-compatible chat fixtures were recorded from a local Ollama, and the other providers' fixtures
 follow each vendor's documented format. To test against a local model, set `DUMMYRUN_OLLAMA_MODEL`. The
 test is skipped when the variable is unset.

@@ -39,12 +39,18 @@ func TestPreviewAccessInBrowser(t *testing.T) {
 				Headless:  true,
 				Log:       &log,
 				Access:    acc,
+				Failures:  true,
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
 			if rep.Summary.PageErrors != 0 {
 				t.Errorf("%d pages could not be tested:\n%s", rep.Summary.PageErrors, log.String())
+			}
+			for _, r := range rep.Results {
+				if r.FailureProbe != nil || r.FailureProbeError != "" || !strings.Contains(r.FailureProbeSkipped, "preview access") {
+					t.Errorf("%s: the failure probe ran with preview access: %+v, %q, %q", r.URL, r.FailureProbe, r.FailureProbeError, r.FailureProbeSkipped)
+				}
 			}
 			if rep.PreviewAccess == nil || strings.Join(rep.PreviewAccess.Methods, ",") != "basic,headers" {
 				t.Errorf("preview_access %+v", rep.PreviewAccess)
