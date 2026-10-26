@@ -1,5 +1,5 @@
 extends: metric
-message: "Try to keep the Flesch–Kincaid grade level (%s) below 8."
+message: "Try to keep the Flesch–Kincaid grade level (%s) at 8 or below."
 link: https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
 
 formula: |

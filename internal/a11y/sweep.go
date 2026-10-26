@@ -77,6 +77,9 @@ type Config struct {
 	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
 	Markup bool
+	// Content adds the content checks to each run: link names, alt text, fake headings, capitals and underlines,
+	// on the words and images the page's authors wrote. The results are advice.
+	Content bool
 	// PDF checks up to 10 linked PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages. Each is
 	// fetched once with a plain GET. The results are advice. --all leaves it out, since it downloads files.
 	PDF bool
@@ -167,6 +170,8 @@ type PageResult struct {
 	TextScale int `json:"text_scale,omitempty"`
 	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
 	MarkupChecked bool `json:"markup_checked,omitempty"`
+	// ContentChecked says the content checks ran, so a result with none of their rules means they found nothing.
+	ContentChecked bool `json:"content_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
 	// KeyboardChecked says the Tab walk ran, so a result with none of its rules means it found nothing.
@@ -842,6 +847,15 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.MarkupChecked = true
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
+	}
+	if cfg.Content {
+		c, err := page.RunContentChecks(pctx, conn, cx)
+		if err != nil {
+			res.Error = "content checks: " + firstLine(err.Error())
+			return res
+		}
+		res.ContentChecked = true
+		res.Advice = append(res.Advice, contentFindings(c, path, cfg.Allow)...)
 	}
 	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size. They run
 	// last, with their own time limit, so they can't take time from the checks above, and the cookie banner has

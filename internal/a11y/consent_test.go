@@ -32,6 +32,9 @@ func TestConsentRejectsAndReportsAMissingReject(t *testing.T) {
 		// The banner turns up after the first look, as one loaded by a slow consent script does.
 		"/late": strings.Replace(bannerPage(`<button>Accept all</button><button>Reject all</button>`), `id="banner"`, `id="banner" hidden`, 1) +
 			`<script>setTimeout(function () { document.getElementById("banner").hidden = false; }, 2000);</script>`,
+		// Fourteen other buttons come before the consent ones. autoconsent lists the consent buttons first, so the
+		// first 12 still hold the reject button.
+		"/many": bannerPage(strings.Repeat(`<button>Learn more</button>`, 14) + `<button>Accept all</button><button>Reject all</button>`),
 		"/none": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>None</title></head><body><main><h1>None</h1></main></body></html>`,
 	}
 	mux := http.NewServeMux()
@@ -47,13 +50,22 @@ func TestConsentRejectsAndReportsAMissingReject(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/fair", srv.URL + "/unfair", srv.URL + "/late", srv.URL + "/none"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/fair", srv.URL + "/unfair", srv.URL + "/late", srv.URL + "/many", srv.URL + "/none"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Consent: true})
 			if err != nil {
 				t.Fatal(err)
 			}
 			if rep.Autoconsent != page.AutoconsentVersion {
 				t.Errorf("report autoconsent %q", rep.Autoconsent)
+			}
+			got := map[string]int{}
+			for _, r := range rep.Results {
+				got[strings.TrimPrefix(r.URL, srv.URL)]++
+			}
+			for _, name := range []string{"/fair", "/unfair", "/late", "/many", "/none"} {
+				if got[name] != 1 {
+					t.Fatalf("%s: %d results, want 1: %v", name, got[name], got)
+				}
 			}
 			for _, r := range rep.Results {
 				name := strings.TrimPrefix(r.URL, srv.URL)
@@ -67,6 +79,10 @@ func TestConsentRejectsAndReportsAMissingReject(t *testing.T) {
 					}
 				}
 				switch name {
+				case "/many":
+					if len(r.Consent.Popups) != 1 || !r.Consent.Popups[0].HasKind("reject") || len(r.Consent.Popups[0].Buttons) > 12 || advice {
+						t.Errorf("many buttons: %+v", r.Consent)
+					}
 				case "/fair", "/late":
 					if !r.Consent.OptedOut || !r.Consent.Settled || !r.Consent.Cleared || advice {
 						t.Errorf("%s banner: cleared %v, opted out %v, advice %v, %+v", name, r.Consent.Cleared, r.Consent.OptedOut, advice, r.Consent)
