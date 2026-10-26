@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/page"
 )
 
@@ -80,6 +81,39 @@ func TestScreenReaderIgnoresAPageReader(t *testing.T) {
 				if strings.Contains(got, "planted phrase") || !strings.Contains(got, "Real heading") {
 					t.Errorf("read %q", got)
 				}
+			}
+		})
+	}
+}
+
+// TestScreenReaderGivesUpOnAFrozenPage checks that a page whose script never yields can't hold a reading past its
+// budget: the call ends with an error instead.
+func TestScreenReaderGivesUpOnAFrozenPage(t *testing.T) {
+	for _, browser := range browsers(t) {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			srv := outlineServer(t, `<!doctype html><html lang="en"><title>Frozen</title><main><h1>Frozen</h1></main>
+<script>setTimeout(() => { for (;;) {} }, 200)</script></html>`)
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer b.Close()
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+				t.Fatal(err)
+			}
+			time.Sleep(500 * time.Millisecond)
+			start := time.Now()
+			if _, err := page.ReadAloud(ctx, b.Conn, cx); err == nil {
+				t.Error("a frozen page was read")
+			}
+			if d := time.Since(start); d > page.SpokenBudget+10*time.Second {
+				t.Errorf("the reading took %s", d)
 			}
 		})
 	}
