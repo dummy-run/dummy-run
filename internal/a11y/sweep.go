@@ -273,6 +273,10 @@ type PageResult struct {
 	// engines agree on are kept first.
 	EngineGroupsOmitted int    `json:"engine_groups_omitted,omitempty"`
 	Error               string `json:"error,omitempty"`
+	// State identifies the page the rules saw, so you can tell whether two results saw the same page. StateError
+	// says why it couldn't be read.
+	State      *PageState `json:"state,omitempty"`
+	StateError string     `json:"state_error,omitempty"`
 	// Repeats is how many times the sweep tested the page in this setting, with --repeat, and ErrorRuns in how
 	// many of them it could not. Error is the first reason. ErrorRuns is set only with --repeat, so a repeated
 	// result that never failed still says 0.
@@ -768,6 +772,12 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	select {
 	case <-time.After(cfg.Settle):
 	case <-pctx.Done():
+	}
+	// The page's state is read before anything of ours goes into it.
+	if st, err := readPageState(pctx, conn, cx); err != nil {
+		res.StateError = firstLine(err.Error())
+	} else {
+		res.State = st
 	}
 	var loaded bool
 	if err := conn.CallFunctionJSON(pctx, cx, "function(){ if (!window.axe) { "+page.AxeSource()+"\n } return !!window.axe; }", &loaded); err != nil || !loaded {

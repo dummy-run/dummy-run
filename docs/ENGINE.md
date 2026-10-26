@@ -1598,6 +1598,27 @@ sweep's browser, so later settings for the same site may show no banner.
 dummyrun a11y --consent --layout https://example.com/
 ```
 
+### Did the page change between sweeps
+
+Two sweeps of one page can disagree because the page changed between them: an A/B test, a banner, or content
+that loads late. Each result whose page loaded has `state` when its state can be read: a fingerprint of the page's
+structure and text. Just
+before the rules run, the sweep describes the page: each element's tag, role and ARIA attributes, the attributes and states that change what
+assistive technology gets, such as `alt`, `hidden`, `required`, `readonly`, `disabled` and `checked`, and the text, in order, including
+open shadow roots. `state.hash` is the SHA-256 of that description and `state.elements` counts the elements.
+
+The description leaves out what changes on every load without changing the page: ids and the attributes that
+point at them, such as `aria-labelledby` and `for`, link addresses, form values including a textarea's text,
+scripts and styles. So a fresh
+session token or a generated id doesn't change the hash, but different text or a menu that starts open does.
+
+When neither description is partial, equal hashes mean the page had the same elements, roles, ARIA, states and text. They don't cover the styles,
+classes, ids or link addresses, so a stylesheet change that alters contrast keeps the hash. The state is read
+once, before the rules start, so a page that changes while they run is hashed as it was. Different hashes mean
+the structure or text changed, and a finding that differs between the two results may come from that change. The
+sweep only records the hash. Comparing hashes across runs is for you or your pipeline to do. A description over 8
+million characters is hashed from its start, and `state.partial` says so. Two partial results can then hash the same though the pages differ past the limit. `state_error` says why the state
+couldn't be read, and the rules still run.
 ### Has the page changed since last time
 
 When you sweep the same site again and again, such as on each deploy, add `--visual DIR` to see which pages look
