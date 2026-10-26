@@ -39,9 +39,9 @@ const linksJS = `(max) => {
     const key = u.href;
     if (seen.has(key)) continue;
     total++;
-    if (seen.size < max) seen.set(key, a.getAttribute("href"));
+    if (seen.size < max) seen.set(key, { href: a.getAttribute("href"), tag: a.tagName.toLowerCase() });
   }
-  return { links: [...seen].map(([url, href]) => ({ url, href })), omitted: Math.max(total - seen.size, 0) };
+  return { links: [...seen].map(([url, l]) => ({ url, href: l.href, tag: l.tag })), omitted: Math.max(total - seen.size, 0) };
 }`
 
 // linksFetchJS checks links from inside the page, with the page's cookies and the preview credentials the browser
@@ -80,6 +80,7 @@ func linkCheck(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res 
 		Links []struct {
 			URL  string `json:"url"`
 			Href string `json:"href"`
+			Tag  string `json:"tag"`
 		} `json:"links"`
 		Omitted int `json:"omitted"`
 	}
@@ -107,7 +108,9 @@ func linkCheck(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res 
 		}
 		return v
 	}
-	plan := planLinks(cfg.URLs, cfg.Access.Active(), todo, private)
+	// Trusting a swept URL as private needs its address known: one whose lookup fails doesn't let private links in.
+	trusted := func(host string) bool { return links.ConfirmedPrivate(lctx, host) }
+	plan := planLinks(cfg.URLs, cfg.Access.Active(), todo, private, trusted)
 	// With --respect-robots, a link robots.txt disallows isn't fetched. Private addresses are already out of the
 	// plan, so no robots.txt is fetched from them either.
 	robotsOK := func(us []string) []string {
@@ -185,7 +188,11 @@ func linkCheck(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res 
 					detail += " (" + r.Text + ")"
 				}
 			}
-			n := Node{Target: "a[href=" + cssString(l.Href) + "]", Detail: detail}
+			tag := l.Tag
+			if tag != "area" {
+				tag = "a"
+			}
+			n := Node{Target: tag + "[href=" + cssString(l.Href) + "]", Detail: detail}
 			if e := cfg.Allow.Match(RuleBrokenLink, path, n.Target); e != nil {
 				n.Allowed, n.Reason = true, e.Reason
 			}
@@ -228,7 +235,9 @@ type linkPlan struct {
 // with preview access on, only links on a swept URL's origin, its scheme and host, go through it. A sweep of local
 // or private sites may check links on private addresses. Any other sweep skips them, so a page can't send the
 // checker to the machine it runs on or the network around it. The rest go to lychee.
-func planLinks(sweptURLs []string, access bool, urls []string, private func(host string) bool) linkPlan {
+// private says whether a link's host is private, counting one that can't be looked up, and trusted whether a swept
+// URL's host is known to be private.
+func planLinks(sweptURLs []string, access bool, urls []string, private, trusted func(host string) bool) linkPlan {
 	swept := map[string]bool{}
 	plan := linkPlan{allowPrivate: len(sweptURLs) > 0}
 	for _, u := range sweptURLs {
@@ -238,7 +247,7 @@ func planLinks(sweptURLs []string, access bool, urls []string, private func(host
 			continue
 		}
 		swept[p.Scheme+"://"+p.Host] = true
-		if !private(p.Host) {
+		if !trusted(p.Host) {
 			plan.allowPrivate = false
 		}
 	}

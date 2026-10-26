@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -31,7 +32,8 @@ func TestLinkCheckReportsBrokenLinks(t *testing.T) {
 		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><title>Links</title><main><h1>Links</h1>
 <a href="/fine">Fine</a> <a href="/fine#part">Fine again</a> <a href="/gone">Gone</a> <a href="/broken">Broken</a>
 <a href="/wall">Wall</a> <a href="mailto:a@example.test">Mail</a> <a href="http://nohost.invalid/">Nowhere</a>
-<a href="/second">Second</a></main></html>`)
+<a href="/second">Second</a>
+<img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" usemap="#m" alt="Map"><map name="m"><area href="/gone-area" alt="Gone area" shape="rect" coords="0,0,1,1"></map></main></html>`)
 	})
 	mux.HandleFunc("/second", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
@@ -39,6 +41,7 @@ func TestLinkCheckReportsBrokenLinks(t *testing.T) {
 	})
 	mux.HandleFunc("/fine", func(w http.ResponseWriter, _ *http.Request) { _, _ = fmt.Fprint(w, "ok") })
 	mux.HandleFunc("/gone", http.NotFound)
+	mux.HandleFunc("/gone-area", http.NotFound)
 	mux.HandleFunc("/broken", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
 	mux.HandleFunc("/wall", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusForbidden) })
 	var gone atomic.Int32
@@ -83,19 +86,20 @@ func TestLinkCheckReportsBrokenLinks(t *testing.T) {
 				}
 			}
 			home := first[srv.URL+"/"]
-			if home.LinksChecked != 6 || home.LinksRefused != 1 {
-				t.Errorf("home checked %d refused %d, want 6 and 1 (the fragment link is the same page)", home.LinksChecked, home.LinksRefused)
+			if home.LinksChecked != 7 || home.LinksRefused != 1 {
+				t.Errorf("home checked %d refused %d, want 7 and 1 (the fragment link is the same page)", home.LinksChecked, home.LinksRefused)
 			}
 			for _, want := range []struct{ key, detail string }{
 				{srv.URL + `/ a[href="/gone"]`, "/gone: HTTP 404"},
 				{srv.URL + `/ a[href="/broken"]`, "/broken: HTTP 500"},
 				{srv.URL + `/second a[href="/gone"]`, "/gone: HTTP 404"},
+				{srv.URL + `/ area[href="/gone-area"]`, "/gone-area: HTTP 404"},
 			} {
 				if !strings.Contains(broken[want.key], want.detail) {
 					t.Errorf("%s: got %q, want %q in %v", want.key, broken[want.key], want.detail, broken)
 				}
 			}
-			if len(broken) != 3 {
+			if len(broken) != 4 {
 				t.Errorf("broken %v", broken)
 			}
 			// The second page's link to /gone was already checked from the first page.
@@ -215,7 +219,7 @@ func TestPlanLinks(t *testing.T) {
 	private := func(host string) bool { return strings.HasPrefix(host, "10.") || strings.HasPrefix(host, "127.") }
 	links := []string{"https://shop.test/a", "http://shop.test/b", "https://other.test/c", "http://10.0.0.5/admin", "http://127.0.0.1:8080/"}
 
-	p := planLinks([]string{"https://shop.test/"}, true, links, private)
+	p := planLinks([]string{"https://shop.test/"}, true, links, private, private)
 	if strings.Join(p.browser, " ") != "https://shop.test/a" {
 		t.Errorf("browser %v: only the swept origin goes through the browser, not http on the same host", p.browser)
 	}
@@ -227,15 +231,22 @@ func TestPlanLinks(t *testing.T) {
 	}
 
 	// A sweep of a local site checks its private links too, and without preview access nothing uses the browser.
-	p = planLinks([]string{"http://127.0.0.1:8080/"}, false, links, private)
+	p = planLinks([]string{"http://127.0.0.1:8080/"}, false, links, private, private)
 	if len(p.browser) != 0 || len(p.skipped) != 0 || len(p.lychee) != 5 || !p.allowPrivate {
 		t.Errorf("local sweep: %+v", p)
 	}
 
 	// One public URL among local ones keeps the filter on.
-	p = planLinks([]string{"http://127.0.0.1:8080/", "https://shop.test/"}, false, links, private)
+	p = planLinks([]string{"http://127.0.0.1:8080/", "https://shop.test/"}, false, links, private, private)
 	if p.allowPrivate || len(p.skipped) != 2 {
 		t.Errorf("mixed sweep: %+v", p)
+	}
+	// A swept URL whose address can't be looked up counts as private for fetching but isn't trusted, so its sweep
+	// still skips private links.
+	unknown := func(host string) bool { return private(host) || host == "unresolved.test" }
+	p = planLinks([]string{"http://unresolved.test/"}, false, links, unknown, private)
+	if p.allowPrivate || !slices.Contains(p.skipped, "http://10.0.0.5/admin") {
+		t.Errorf("unresolved sweep: %+v", p)
 	}
 }
 
