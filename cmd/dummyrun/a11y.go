@@ -71,6 +71,11 @@ Flags:
                     that answers with an error status or can't be reached is advice (dummyrun-broken-link), with
                     the URL and status code. Links to private addresses are skipped unless every URL you sweep is
                     on one. Needs lychee on the PATH or DUMMYRUN_LYCHEE
+  --content         also run the content checks on the words and images your authors wrote: vague link names
+                    such as "read more", links that are web addresses, new tabs and document links that don't say
+                    so, alt text that is a file name, starts "image of" or runs past 150 characters, bold text that
+                    looks like a heading, text in capitals and underlined text that isn't a link. The results are
+                    advice
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
@@ -112,6 +117,7 @@ func a11yCmd(args []string) int {
 	layout := fs.Bool("layout", false, "run the layout checks")
 	keyboard := fs.Bool("keyboard", false, "run the keyboard checks")
 	markup := fs.Bool("markup", false, "run the markup checks")
+	contentOn := fs.Bool("content", false, "run the content checks")
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
 	plainLang := fs.Bool("plain-language", false, "check the main content with Vale")
@@ -163,7 +169,7 @@ func a11yCmd(args []string) int {
 	}
 	if *all {
 		// One switch for every check. A check added later joins this list.
-		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, htmlCheck, lighthouseOn, journeysOn, linksOn, imageContrast} {
+		for _, on := range []*bool{layout, keyboard, markup, contentOn, engines, consent, plainLang, htmlCheck, lighthouseOn, journeysOn, linksOn, imageContrast} {
 			*on = true
 		}
 	}
@@ -230,7 +236,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

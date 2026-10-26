@@ -947,7 +947,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
-To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
+To run every check in one go, add `--all`. It turns on the keyboard, markup and content checks, the cookie banner, the other
 rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the layout checks and
 plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
 the links, and Lighthouse, which also needs Chrome. The container image has Vale, vnu and lychee but not Lighthouse.
@@ -1082,6 +1082,33 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 | `dummyrun-autocomplete-missing` | A field asks for the visitor's own email, phone number, first name, last name or postcode. It is visible, enabled and editable. It has no `autocomplete` value that names a purpose. A value names a purpose when it follows the HTML standard's autofill grammar, such as `email` or `shipping postal-code`. `off`, `on` and made-up values do not. Read-only fields and search forms are skipped, and so are fields that ask for another person's details, such as a friend's email | 1.3.5 | serious |
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
+
+### Content checks
+
+Some barriers are in the words and images a page's authors write: a link called "read more", alt text that is a
+file name, or bold text standing in for a heading. Add `--content` for ten checks on them. They
+run in the browser with no model call, and only on what a visitor can see.
+
+| Rule ID | Reports | Related to |
+|---|---|---|
+| `dummyrun-content-alt-file-name` | An image whose alt text is a file name, such as `IMG_2041.jpg` or `hero-banner.png` | WCAG 1.1.1 |
+| `dummyrun-content-vague-link` | A link whose whole name is a phrase such as "click here", "read more" or "learn more" | WCAG 2.4.4 |
+| `dummyrun-content-fake-heading` | A short paragraph set entirely in bold, with no full stop, followed by a paragraph, list or table | WCAG 1.3.1 |
+| `dummyrun-content-document-link` | A link to a PDF, Word, Excel, PowerPoint, OpenDocument, RTF or CSV file whose name doesn't say that kind of file. "Download" isn't enough, and nor is the wrong kind | GOV.UK content design |
+| `dummyrun-content-new-window` | A link that opens a new tab and whose name doesn't say "new tab" or "new window" | WCAG 3.2.5 |
+| `dummyrun-content-url-link` | A link whose name is a web address of more than 30 characters | WCAG 2.4.4 |
+| `dummyrun-content-alt-redundant` | Alt text that starts "image of", "picture of" or "photo of" | W3C images tutorial |
+| `dummyrun-content-alt-long` | Alt text of more than 150 characters | W3C images tutorial |
+| `dummyrun-content-all-caps` | A block of text with more than 30 letters, all in capitals, typed or set by `text-transform` | GOV.UK style guide |
+| `dummyrun-content-underline` | Underlined text that isn't a link, a button, an abbreviation or inserted text | WCAG 1.4.1 |
+
+Each of these usually makes a page harder to use, but each can be right in context. A "read more" link inside a
+sentence about the story it opens can meet WCAG 2.4.4, for example. So every result is advice, never fails the
+sweep, and the allow-list can accept it. A link's name is its `aria-labelledby` or `aria-label`, or else its text and
+the `alt` of its images and the `aria-label` of its icons, leaving out anything a screen reader skips, so a link that adds words for screen readers isn't reported. A `title` doesn't count, since few people see it and few screen readers read it. The checks that match
+English phrases run only on a page whose language is English or isn't set. The checks on file names, addresses,
+length, bold, capitals and underlines run on every page. When the checks finish on a page, its JSON result has
+`content_checked: true`.
 
 ### Other rule engines
 
