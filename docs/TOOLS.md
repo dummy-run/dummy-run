@@ -102,7 +102,9 @@ Some checks follow a method another project worked out, written again in our own
 ## Data
 
 The list of WCAG 2.2 success criteria at levels A and AA, with their titles and links, was generated from the
-criteria data in Siteimprove Alfa (MIT).
+criteria data in Siteimprove Alfa (MIT). The EN 301 549 clause numbers follow clause 9 of
+[ETSI EN 301 549 V3.2.1](https://www.etsi.org/deliver/etsi_en/301500_301599/301549/03.02.01_60/en_301549v030201p.pdf),
+which numbers each WCAG 2.1 criterion the same way. No text of the standard is copied.
 
 The test fixtures for checking the sweep against real markup come from the
 [AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) (MIT). The fixtures use the rule names and the markup of

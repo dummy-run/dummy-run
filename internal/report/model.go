@@ -192,6 +192,9 @@ type Finding struct {
 	Reason     string   `json:"reason,omitempty"`
 	// WCAG lists success criteria where known. Persona findings often have none.
 	WCAG []string `json:"wcag,omitempty"`
+	// EN301549 lists the clauses of EN 301 549 V3.2.1 that match the WCAG criteria. A criterion WCAG 2.2 added has
+	// none.
+	EN301549 []string `json:"en_301_549,omitempty"`
 	// HelpURL points to fix guidance where there is some.
 	HelpURL string `json:"help_url,omitempty"`
 	// Fix says how to fix the rule, from Dummy Run's fix library, when the finding is one of its own rules.
@@ -296,8 +299,10 @@ type AxeRule struct {
 	Rule        string   `json:"rule"`
 	Impact      string   `json:"impact"`
 	WCAG        []string `json:"wcag,omitempty"`
-	Help        string   `json:"help"`
-	HelpURL     string   `json:"help_url,omitempty"`
+	// EN301549 is as on a Finding.
+	EN301549 []string `json:"en_301_549,omitempty"`
+	Help     string   `json:"help"`
+	HelpURL  string   `json:"help_url,omitempty"`
 	// Fix is how to fix one of Dummy Run's own rules, when the report has one for it.
 	Fix      *fixes.Fix `json:"fix,omitempty"`
 	Elements int        `json:"elements"`
