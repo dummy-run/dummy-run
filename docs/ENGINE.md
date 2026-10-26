@@ -1329,7 +1329,7 @@ the sweep, so a menu on every page costs one check per link. Each URL's links ar
 window sizes and schemes.
 
 A link that answers with an error status, such as 404 or 500, or that can't be reached at all, is advice with
-the rule ID `dummyrun-broken-link`, unless it was refused or timed out, as below. Its detail gives the URL and the status code when there is one, such as
+the rule ID `dummyrun-broken-link`, unless it was skipped, refused or timed out, as below. Its detail gives the URL and the status code when there is one, such as
 `https://example.com/old: HTTP 404 (Rejected status code: 404 Not Found)`. It never fails the sweep. Some sites
 turn automated checkers away with 401, 403, 429 or 999 while the page works in a browser. Those count in
 `links_refused`. A link that doesn't answer in time counts in `links_timed_out`: lychee waits 20 seconds, and the
