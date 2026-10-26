@@ -187,7 +187,7 @@ counted and left out. Rules axe can't decide are listed separately under "needs 
 pages that couldn't be tested.
 
 When text fails a colour contrast rule, a table called "Colours that meet the ratio" lists each pair of text and
-background colours once, with how many elements use it. For each pair it gives the nearest text colour that meets
+background colours once, with how many elements use it. Where one exists, it gives the nearest text colour that meets
 the ratio on the same background, and the nearest background that meets it with the same text. The JSON keeps them
 in `axe.rules[].colours`. "Colours that meet the ratio" in [ENGINE.md](ENGINE.md) explains how they're found.
 
