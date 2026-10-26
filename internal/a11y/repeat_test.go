@@ -191,3 +191,18 @@ func TestRepeatCountsAFlakyElement(t *testing.T) {
 		})
 	}
 }
+
+// TestMergeRepeatsKeepsTheFailureProbe checks the probe, which runs once for each URL, stays in the merged result
+// when the first repeat's page failed after it, and that a probe from a later repeat stays when the first never ran it.
+func TestMergeRepeatsKeepsTheFailureProbe(t *testing.T) {
+	failed := repeatResult("layout checks: no boxes")
+	failed.FailureProbe = &FailureProbe{Failed: 1}
+	ok := repeatResult("")
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.FailureProbe == nil || got.FailureProbe.Failed != 1 {
+		t.Errorf("probe %+v", got.FailureProbe)
+	}
+	ok.FailureProbe = &FailureProbe{Failed: 2}
+	if got := mergeRepeats([][]PageResult{{repeatResult("axe.run: no")}, {ok}})[0]; got.FailureProbe == nil || got.FailureProbe.Failed != 2 {
+		t.Errorf("a later repeat's probe: %+v", got.FailureProbe)
+	}
+}

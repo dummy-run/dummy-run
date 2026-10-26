@@ -28,11 +28,13 @@ type Conn struct {
 	mu      sync.Mutex
 	nextID  int64
 	pending map[int64]chan Message
-	// handlers maps an event method to its handlers. The empty key receives every event.
-	handlers map[string][]EventHandler
-	closed   chan struct{}
-	readErr  error
-	onceErr  sync.Once
+	// handlers maps an event method to its handlers. The empty key receives every event. nextHandler numbers them,
+	// so one can be removed.
+	handlers    map[string][]handler
+	nextHandler uint64
+	closed      chan struct{}
+	readErr     error
+	onceErr     sync.Once
 }
 
 // Dial opens a connection to url and starts reading frames.
@@ -45,7 +47,7 @@ func Dial(ctx context.Context, url string) (*Conn, error) {
 	c := &Conn{
 		ws:       ws,
 		pending:  map[int64]chan Message{},
-		handlers: map[string][]EventHandler{},
+		handlers: map[string][]handler{},
 		closed:   make(chan struct{}),
 	}
 	go c.readLoop() //nolint:gosec // the read loop outlives the dial context by design
@@ -73,11 +75,11 @@ func (c *Conn) readLoop() {
 func (c *Conn) dispatch(m Message) {
 	c.mu.Lock()
 	if m.Type == "event" {
-		hs := append([]EventHandler{}, c.handlers[""]...)
+		hs := append([]handler{}, c.handlers[""]...)
 		hs = append(hs, c.handlers[m.Method]...)
 		c.mu.Unlock()
 		for _, h := range hs {
-			h(m.Method, m.Params)
+			h.f(m.Method, m.Params)
 		}
 		return
 	}
@@ -106,12 +108,30 @@ func (c *Conn) fail(err error) {
 	})
 }
 
+type handler struct {
+	id uint64
+	f  EventHandler
+}
+
 // OnEvent registers a handler for an event method. An empty method receives
-// every event.
-func (c *Conn) OnEvent(method string, h EventHandler) {
+// every event. The returned function removes the handler; calling it again does nothing.
+func (c *Conn) OnEvent(method string, h EventHandler) (remove func()) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.handlers[method] = append(c.handlers[method], h)
+	c.nextHandler++
+	id := c.nextHandler
+	c.handlers[method] = append(c.handlers[method], handler{id: id, f: h})
+	return func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		hs := c.handlers[method]
+		for i := range hs {
+			if hs[i].id == id {
+				c.handlers[method] = append(hs[:i:i], hs[i+1:]...)
+				return
+			}
+		}
+	}
 }
 
 // Call sends one command and decodes its result into out, which may be nil.

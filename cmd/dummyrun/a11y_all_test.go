@@ -38,7 +38,7 @@ func TestAllTurnsOnEveryCheck(t *testing.T) {
 	}
 	t.Cleanup(func() { a11yRun = a11y.Run })
 	checks := func(c a11y.Config) []bool {
-		return []bool{c.Layout, c.Keyboard, c.Markup, c.Content, c.Engines, c.Consent, c.PlainLanguage, c.HTML, c.Lighthouse, c.Journeys, c.Links, c.ImageContrast}
+		return []bool{c.Layout, c.Keyboard, c.Markup, c.Content, c.Engines, c.Consent, c.PlainLanguage, c.HTML, c.Lighthouse, c.Journeys, c.Links, c.Failures, c.ImageContrast}
 	}
 	if code := a11yCmd([]string{"https://example.com/"}); code != 0 {
 		t.Fatalf("exit %d", code)

@@ -534,6 +534,20 @@
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
 
+- rule: dummyrun-failure-silent
+  owner: development
+  summary: Tell everyone when the page's data fails to load, not only people who can see it.
+  steps:
+    - Show an error message that says what failed and what to do next, such as try again later.
+    - Put the message in an element with role="alert", or in a live region that is on the page before the message is added, so screen readers read it out.
+    - Keep anything already on the page usable, and offer a way to try again.
+  example:
+    before: "<div id=\"msg\"></div> <script>fetch(\"/api/items\").catch(() => {})</script>"
+    after: "<div id=\"msg\" role=\"alert\"></div> <script>fetch(\"/api/items\").catch(() => { msg.textContent = \"We couldn't load the items. Try again later.\" })</script>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html
+    - https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA19
+
 - rule: dummyrun-engines-
   owner: development
   summary: Fix the problem two or more rule engines agree on.

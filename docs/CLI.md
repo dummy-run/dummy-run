@@ -289,6 +289,10 @@ Flags:
                     lighthouse true. Its other accessibility failures are candidates and its best-practice failures
                     advice (rules dummyrun-lighthouse-<audit>). Chrome only; needs lighthouse on the PATH or
                     DUMMYRUN_LIGHTHOUSE
+  --failures        also load each page twice more in a tab that sends only GET and HEAD requests: once as normal,
+                    and once with its data requests failing, as when its API is down. A page where a data request
+                    failed and no live region or alert said so is advice (dummyrun-failure-silent). Not run with
+                    preview access
   --links           also check the links on each page with lychee, each link once across the sweep: up to 300 http
                     and https links on a page, without their #fragment, and links_omitted counts the rest. A link
                     that answers with an error status or can't be reached is advice (dummyrun-broken-link), with

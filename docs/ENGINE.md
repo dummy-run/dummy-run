@@ -950,8 +950,8 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 To run every check in one go, add `--all`. It turns on the keyboard, markup and content checks, the cookie banner, the other
-rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the layout checks and
-plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
+rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the failure probe, the
+layout checks and plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
 the links, and Lighthouse, which also needs Chrome. The container image has Vale, vnu and lychee but not Lighthouse.
 A check whose program is missing says so on each page, and the rest of the sweep still runs. Add `--text-scale
 100,200` to test large text in the same run.
@@ -1512,6 +1512,49 @@ checked.
 
 ```sh
 dummyrun a11y --links https://example.com/
+```
+
+### When the page's data fails to load
+
+Many pages fetch their content after they load, such as search results, a basket or opening times. When that
+request fails, a sighted visitor may see an error message. A visitor using a screen reader hears it only if the
+message is in an alert or a live region. Otherwise they may wait for content that never comes, with no idea why.
+WCAG 4.1.3 asks for status messages like these to be announced.
+
+Add `--failures` and the sweep loads each page twice more, in a tab of its own. The first load is normal. In the
+second, every data request the page makes with `fetch` or `XMLHttpRequest` fails before it leaves the browser, as
+it would if the site's API were down. Page loads, frames, scripts, styles, images, fonts and
+prefetches still load. After each
+load the sweep waits two seconds, then reads the text of every alert and live region, and the page's visible text.
+
+In both loads, a request other than GET or HEAD fails before it leaves the browser, whatever the page's scripts try,
+so the probe sends no form, beacon or other write. The page, its scripts, styles and images, and the normal load's
+GET data requests do reach the server. The failing load's data requests never leave the browser. A page that
+fetches its data with POST, as many GraphQL clients do, has those requests stopped in both loads. Its `failed`
+stays 0 and it gets no advice, since the normal load had no data either. With
+`--respect-robots`, a page load robots.txt disallows fails too, and with `--identify` the tab sends the same user
+agent as the sweep.
+
+The first result for each URL that axe could check gets `failure_probe`, which records:
+
+- `failed`, how many data requests were failed on purpose;
+- `stopped`, how many requests other than GET and HEAD the page tried, none of which left the browser;
+- `announced`, true when an alert or live region held text after the failure that it didn't hold on the normal
+  load, and `announcement`, that text;
+- `changed`, true when the page's visible text differs from the normal load.
+
+A page that had data requests fail and announced nothing gets advice, `dummyrun-failure-silent`. Its detail says
+whether the visible text changed. If it did, the page may show an error that a screen reader doesn't read out. If
+it didn't, the visible text is the same as when the data loaded. A page that fetches nothing when it loads gets no advice. The advice never
+fails the sweep. `failure_probe_error` says why the probe couldn't run.
+
+Each URL is probed once, on the first result for the URL that axe could check, before the checks that can end a
+page early. With preview access the probe doesn't run, since preview access answers requests in every tab, and
+the two could disagree about a request. With `--repeat`, the probe runs in the first repeat whose page gets that
+far, and the merged result keeps it. `failure_probe_skipped` says so.
+
+```sh
+dummyrun a11y --failures https://example.com/
 ```
 
 ### Cookie banners

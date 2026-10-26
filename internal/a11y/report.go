@@ -182,6 +182,7 @@ func checkErrors(p PageResult) []checkError {
 	add("HTML", p.HTMLError)
 	add("LIGHTHOUSE", p.LighthouseError)
 	add("LIGHTHOUSE MATCH", p.LighthouseMatchError)
+	add("FAILURES", p.FailureProbeError)
 	add("VISUAL", p.VisualError)
 	add("SNAPSHOT", p.ARIASnapshotError)
 	if p.Consent != nil {

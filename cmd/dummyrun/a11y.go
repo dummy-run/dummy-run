@@ -71,6 +71,10 @@ Flags:
                     lighthouse true. Its other accessibility failures are candidates and its best-practice failures
                     advice (rules dummyrun-lighthouse-<audit>). Chrome only; needs lighthouse on the PATH or
                     DUMMYRUN_LIGHTHOUSE
+  --failures        also load each page twice more in a tab that sends only GET and HEAD requests: once as normal,
+                    and once with its data requests failing, as when its API is down. A page where a data request
+                    failed and no live region or alert said so is advice (dummyrun-failure-silent). Not run with
+                    preview access
   --links           also check the links on each page with lychee, each link once across the sweep: up to 300 http
                     and https links on a page, without their #fragment, and links_omitted counts the rest. A link
                     that answers with an error status or can't be reached is advice (dummyrun-broken-link), with
@@ -155,6 +159,7 @@ func a11yCmd(args []string) int {
 	lighthouseOn := fs.Bool("lighthouse", false, "run Lighthouse's accessibility and best-practice audits")
 	journeysOn := fs.Bool("journeys", false, "try each page's journeys by mouse and by keyboard")
 	linksOn := fs.Bool("links", false, "check the links on each page with lychee")
+	failuresOn := fs.Bool("failures", false, "load each page with its data requests failing")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	visualDir := fs.String("visual", "", "directory of window pictures to compare with the last sweep's")
@@ -206,7 +211,7 @@ func a11yCmd(args []string) int {
 	}
 	if *all {
 		// One switch for every check. A check added later joins this list.
-		for _, on := range []*bool{layout, keyboard, markup, contentOn, engines, consent, plainLang, htmlCheck, lighthouseOn, journeysOn, linksOn, imageContrast} {
+		for _, on := range []*bool{layout, keyboard, markup, contentOn, engines, consent, plainLang, htmlCheck, lighthouseOn, journeysOn, linksOn, failuresOn, imageContrast} {
 			*on = true
 		}
 	}
@@ -285,7 +290,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir, VisualDir: *visualDir, Masks: masks,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, Failures: *failuresOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir, VisualDir: *visualDir, Masks: masks,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
