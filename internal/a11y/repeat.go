@@ -45,6 +45,15 @@ func mergeGroup(ps []PageResult, repeats int) PageResult {
 		}
 	}
 	m := ps[pick]
+	// Only the first repeat takes the --visual picture, so its result has it whichever result is kept.
+	m.Visual, m.VisualError = ps[0].Visual, ps[0].VisualError
+	// Only the first repeat takes the ARIA snapshot, so its result has it whichever result is kept.
+	m.ARIASnapshot, m.ARIASnapshotOmitted, m.ARIAChanges, m.ARIASnapshotError = ps[0].ARIASnapshot, ps[0].ARIASnapshotOmitted, ps[0].ARIAChanges, ps[0].ARIASnapshotError
+	// The failure probe runs once for each URL, in the first repeat that gets that far, so when that repeat's page
+	// failed later on and another result is kept, the probe comes from the first.
+	if f := ps[0]; pick > 0 && (f.FailureProbe != nil || f.FailureProbeError != "" || f.FailureProbeSkipped != "") {
+		m.FailureProbe, m.FailureProbeError, m.FailureProbeSkipped = f.FailureProbe, f.FailureProbeError, f.FailureProbeSkipped
+	}
 	m.Violations, m.NeedsReview, m.Advice, m.Candidates = []Finding{}, []Finding{}, nil, nil
 	errorRuns := 0
 	m.Repeats, m.ErrorRuns, m.Error = repeats, &errorRuns, ""

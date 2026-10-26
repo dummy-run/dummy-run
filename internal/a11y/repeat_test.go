@@ -113,6 +113,16 @@ func TestMergeRepeatsKeepsTheResultThatRan(t *testing.T) {
 	if !got.MarkupChecked || got.Error != "load: timed out" || *got.ErrorRuns != 1 || len(got.Violations) != 1 || got.Violations[0].Nodes[0].Runs != 1 {
 		t.Errorf("%+v", got)
 	}
+	// Only the first repeat takes the --visual picture, so the merged result has it even when a later result is kept.
+	failed.Visual = &Visual{First: true}
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.Visual == nil || !got.Visual.First {
+		t.Errorf("visual %+v", got.Visual)
+	}
+	// Only the first repeat takes the ARIA snapshot, so the merged result has it even when a later result is kept.
+	failed.ARIASnapshot, failed.ARIAChanges = "shop.yaml", &ARIAChanges{AddedCount: 1}
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.ARIASnapshot != "shop.yaml" || got.ARIAChanges == nil || got.ARIAChanges.AddedCount != 1 {
+		t.Errorf("snapshot %q, changes %+v", got.ARIASnapshot, got.ARIAChanges)
+	}
 }
 
 func TestSummaryShowsRepeatCounts(t *testing.T) {
@@ -179,5 +189,20 @@ func TestRepeatCountsAFlakyElement(t *testing.T) {
 				t.Errorf("runs %v, want #always in 2 and #flaky in 1", runs)
 			}
 		})
+	}
+}
+
+// TestMergeRepeatsKeepsTheFailureProbe checks the probe, which runs once for each URL, stays in the merged result
+// when the first repeat's page failed after it, and that a probe from a later repeat stays when the first never ran it.
+func TestMergeRepeatsKeepsTheFailureProbe(t *testing.T) {
+	failed := repeatResult("layout checks: no boxes")
+	failed.FailureProbe = &FailureProbe{Failed: 1}
+	ok := repeatResult("")
+	if got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]; got.FailureProbe == nil || got.FailureProbe.Failed != 1 {
+		t.Errorf("probe %+v", got.FailureProbe)
+	}
+	ok.FailureProbe = &FailureProbe{Failed: 2}
+	if got := mergeRepeats([][]PageResult{{repeatResult("axe.run: no")}, {ok}})[0]; got.FailureProbe == nil || got.FailureProbe.Failed != 2 {
+		t.Errorf("a later repeat's probe: %+v", got.FailureProbe)
 	}
 }

@@ -116,3 +116,23 @@ func understandingURL(sc string) string {
 	}
 	return "https://www.w3.org/TR/WCAG22/"
 }
+
+// wcag22Only are the A and AA criteria WCAG 2.2 added. EN 301 549 V3.2.1 follows WCAG 2.1, so it has no clause for
+// them.
+var wcag22Only = map[string]bool{"2.4.11": true, "2.5.7": true, "2.5.8": true, "3.2.6": true, "3.3.7": true, "3.3.8": true}
+
+// EN301549 returns the clauses of EN 301 549 V3.2.1 for web pages that match the WCAG criteria, in order. Clause 9
+// numbers each WCAG 2.1 criterion with a 9 in front, so WCAG 1.4.3 is clause 9.1.4.3. A criterion WCAG 2.2 added, or
+// one outside the A and AA list, has none.
+func EN301549(criteria []string) []string {
+	var out []string
+	for _, c := range criteria {
+		if _, ok := wcag22[c]; !ok || wcag22Only[c] {
+			continue
+		}
+		if cl := "9." + c; !slices.Contains(out, cl) {
+			out = append(out, cl)
+		}
+	}
+	return out
+}
