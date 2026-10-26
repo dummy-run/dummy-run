@@ -47,6 +47,8 @@ func mergeGroup(ps []PageResult, repeats int) PageResult {
 	m := ps[pick]
 	// Only the first repeat takes the --visual picture, so its result has it whichever result is kept.
 	m.Visual, m.VisualError = ps[0].Visual, ps[0].VisualError
+	// Only the first repeat takes the ARIA snapshot, so its result has it whichever result is kept.
+	m.ARIASnapshot, m.ARIASnapshotOmitted, m.ARIAChanges, m.ARIASnapshotError = ps[0].ARIASnapshot, ps[0].ARIASnapshotOmitted, ps[0].ARIAChanges, ps[0].ARIASnapshotError
 	m.Violations, m.NeedsReview, m.Advice, m.Candidates = []Finding{}, []Finding{}, nil, nil
 	errorRuns := 0
 	m.Repeats, m.ErrorRuns, m.Error = repeats, &errorRuns, ""

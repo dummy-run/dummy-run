@@ -943,7 +943,9 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   result is listed as "needs review" in the JSON and doesn't fail the run.
 - Output. A short summary on standard output lists each failure once, with the browser, size and scheme where
   it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the
-  impact. It also has the WCAG criteria, the element selector and the help link.
+  impact. It also has the WCAG criteria, the element selector and the help link. For a CI job, `--junit FILE` and `--ctrf FILE`
+  write each failing rule as a failed test, in JUnit XML or the Common Test Report Format. Each output needs
+  its own file. When robots.txt keeps every page out, they are still written, with no tests. The JSON report also records when the sweep started and ended, in `started_at` and `ended_at`.
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
@@ -1073,6 +1075,19 @@ Enter sends the form or the arrow keys do the work, or a tab that the arrow keys
 takes Tab. A control's own script can still navigate
 or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
 
+While it tries each control, the sweep also measures how long the page takes to respond, with Google's
+[web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click
+or a key press to the next frame that shows the result, and stands for Interaction to Next Paint. After each click, Enter and Space, the page's result lists
+the response in `tasks.responses`. It gives the time in milliseconds, web-vitals' rating, and where the time went:
+`input_delay` before the page's handlers start, `processing` in them, and `presentation` drawing the result. INP is
+the slowest response on the page so far. Past 50 interactions, web-vitals leaves out one of the slowest for every
+50, so it is then close to the slowest. It can describe an earlier interaction on the same load, such as a Tab
+press on the way to the control, and the response then has `earlier: true`. A control whose slowest response to
+the sweep's own click, Enter or Space is over 500 ms, which web-vitals rates poor, is advice,
+`dummyrun-slow-response`. No WCAG criterion sets a
+time, but a slow response leaves people unsure whether anything happened, and they may press again. The sweep
+reports the measurements and leaves any judgement of how steady they are across runs to you.
+
 The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
 is shown, it presses Enter and then Tab. Focus must then land inside the target or after it. When Tab alone gets
 there, as it does when the link sits just before its target, the check gives no verdict.
@@ -1097,6 +1112,39 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
+### ARIA snapshots
+
+A site you check again and again needs to show what changed. Add `--aria-snapshots DIR` and the sweep writes an
+ARIA snapshot of each page in each setting to DIR. It lists landmarks, headings and controls in page order, as
+YAML. Each line gives a role, an accessible name and any states. A landmark's contents sit under it:
+
+```yaml
+- banner:
+  - link "Home"
+- main:
+  - heading "Shop" [level=1]
+  - button "Buy" [disabled]
+  - checkbox "Gift wrap" [checked]
+```
+
+Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
+landmark. The snapshot also leaves out the focused element and the persona's @numbers. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
+button or a new link changes it. Names come from the spec
+computation alone. The snapshot is still taken after axe and the page's other checks, so a page where axe or
+an earlier check fails has no snapshot. A page keeps up to 2,000 lines, and
+`aria_snapshot_omitted` counts any more.
+
+If DIR already holds a snapshot for the page and setting, the sweep compares the two first. The result's
+`aria_changes` lists up to 50 lines added and 50 removed, and counts them all. The terminal shows a `CHANGED`
+line for each page with the lines that changed. Then the new snapshot replaces the old one. Each file name comes
+from the page's address and setting, with a short hash, such as `example.com_shop--chrome_desktop_light-1a2b3c4d.yaml`.
+With `--repeat`, only the first repeat compares and writes the snapshots, so the comparison is always with the
+sweep before and never with an earlier repeat. A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
+changes and decide.
+
+```sh
+dummyrun a11y --aria-snapshots snapshots https://example.com/
+```
 The markup checks also list the roles and `aria-*` attributes the page's shown elements use, and look each one up
 in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C community group that tests how JAWS,
 NVDA and VoiceOver handle each ARIA pattern. When one screen reader and browser pair passes
@@ -1397,6 +1445,37 @@ isn't reported: the page may simply not work the way the journey expects.
 
 ```sh
 dummyrun a11y --journeys https://example.com/
+```
+
+### PDFs
+
+A PDF linked from a page needs to be accessible too. Its tags, reading order and fonts aren't something a page
+check can see. Add `--pdf` and the sweep collects the links to PDFs on the swept sites, up to 10 across the sweep.
+Only links whose path ends in `.pdf`, in any case, count, so a link such as `/download?id=7` that serves a PDF
+isn't checked.
+It checks each one against PDF/UA-1 (ISO 14289-1), the standard for accessible PDF. The check uses
+[veraPDF](https://verapdf.org/), which runs as its own program. It runs once for all the files, after the last
+page.
+
+- Only shown links count, and only to the same host as a URL you swept. A PDF on another site is left out.
+- Each PDF is fetched once with a plain GET and the sweep's user agent, up to 25 MB.
+- A redirect is followed only on the same host and port or to a public address, even from a site on localhost.
+  The address is checked when the connection is made, and the download uses no proxy, so a proxy can't connect
+  in the check's place.
+- With `--respect-robots`, a PDF robots.txt disallows is skipped.
+- A file that isn't a PDF, is too big or can't be read gets an `error` and no verdict.
+- Signed in or behind preview access, PDFs aren't checked, since the download would carry neither.
+
+A PDF that fails is advice, `dummyrun-pdf-ua`, on the first page that links to it. The advice names the link and
+says how many requirements fail, with the first one's clause. The report's `pdfs` lists every PDF with each
+failing rule. Each rule has its clause in ISO 14289-1 and how many places fail it. Machine checks can't judge
+everything in PDF/UA, such as whether alt text is right. So a PDF that passes still needs a person to read it.
+
+`--all` leaves `--pdf` out, since it downloads files. The container image doesn't include veraPDF. Install it
+from [verapdf.org](https://docs.verapdf.org/install/) and put `verapdf` on the PATH, or set `DUMMYRUN_VERAPDF`.
+
+```sh
+dummyrun a11y --pdf https://example.com/
 ```
 
 ### Broken links

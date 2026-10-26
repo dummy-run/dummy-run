@@ -157,6 +157,17 @@
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
 
+- rule: dummyrun-slow-response
+  owner: development
+  summary: Make the page respond to the control within a fifth of a second.
+  steps:
+    - Look at which part of the time the finding names. Handlers that run long are the usual cause.
+    - Show a response first, such as the menu opening or a busy state, and do the slow work after the next frame.
+    - Break long scripts into smaller pieces, or move the work off the main thread, so a press is never kept waiting.
+  sources:
+    - https://web.dev/articles/inp
+    - https://web.dev/articles/optimize-inp
+
 - rule: dummyrun-skip-link-no-focus
   owner: development
   summary: Let the skip link move keyboard focus to the main content.
@@ -501,6 +512,17 @@
     after: '<button onclick="openMenu()">Menu</button>'
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
+
+- rule: dummyrun-pdf-ua
+  owner: content
+  summary: Make the PDF accessible, or publish the content as a web page.
+  steps:
+    - Ask whether the PDF needs to be a PDF. A web page is easier to read on a phone and with assistive technology.
+    - If it does, export it from the source document with tags turned on, and set the document title and language.
+    - Check the reading order, headings, alt text and table headers in a PDF editor, then check the file again.
+  sources:
+    - https://www.gov.uk/guidance/how-to-publish-on-gov-uk/accessible-pdfs
+    - https://docs.verapdf.org/validation/
 
 - rule: dummyrun-broken-link
   owner: content

@@ -123,13 +123,20 @@ func denyAllSite(t *testing.T) (*httptest.Server, func() []string) {
 
 func TestRobotsDisallowExitsThree(t *testing.T) {
 	srv, seen := denyAllSite(t)
-	jsonOut := filepath.Join(t.TempDir(), "report.json")
-	if got := run([]string{"a11y", "--respect-robots", "--identify", "--json", jsonOut, srv.URL + "/page"}); got != 3 {
+	dir := t.TempDir()
+	jsonOut, junit, ctrf := filepath.Join(dir, "report.json"), filepath.Join(dir, "a11y.xml"), filepath.Join(dir, "a11y.ctrf.json")
+	if got := run([]string{"a11y", "--respect-robots", "--identify", "--json", jsonOut, "--junit", junit, "--ctrf", ctrf, srv.URL + "/page"}); got != 3 {
 		t.Errorf("a11y exited %d, want 3", got)
 	}
 	data, err := os.ReadFile(jsonOut)
 	if err != nil || !strings.Contains(string(data), `"skipped"`) {
 		t.Errorf("the JSON report should list the skipped page: %v %s", err, data)
+	}
+	// A CI job that asked for test reports still gets them.
+	for _, p := range []string{junit, ctrf} {
+		if b, err := os.ReadFile(p); err != nil || len(b) == 0 {
+			t.Errorf("%s: %v", filepath.Base(p), err)
+		}
 	}
 
 	target := filepath.Join(t.TempDir(), "target.json")

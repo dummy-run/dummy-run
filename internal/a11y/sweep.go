@@ -77,9 +77,15 @@ type Config struct {
 	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
 	Markup bool
+	// ARIASnapshots is a directory for the ARIA snapshots of each page and setting. A snapshot left there by an
+	// earlier sweep is compared with the new one, and the new one takes its place.
+	ARIASnapshots string
 	// Content adds the content checks to each run: link names, alt text, fake headings, capitals and underlines,
 	// on the words and images the page's authors wrote. The results are advice.
 	Content bool
+	// PDF checks up to 10 linked PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages. Each is
+	// fetched once with a plain GET. The results are advice. --all leaves it out, since it downloads files.
+	PDF bool
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
@@ -179,6 +185,14 @@ type PageResult struct {
 	TextScale int `json:"text_scale,omitempty"`
 	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
 	MarkupChecked bool `json:"markup_checked,omitempty"`
+	// ARIASnapshot is the file the page's ARIA snapshot was written to, and ARIASnapshotOmitted counts the elements
+	// past its 2,000 lines.
+	ARIASnapshot        string `json:"aria_snapshot,omitempty"`
+	ARIASnapshotOmitted int    `json:"aria_snapshot_omitted,omitempty"`
+	// ARIAChanges are the lines that differ from the snapshot an earlier sweep left, when there was one.
+	ARIAChanges *ARIAChanges `json:"aria_changes,omitempty"`
+	// ARIASnapshotError says why the snapshot couldn't be taken, read or written.
+	ARIASnapshotError string `json:"aria_snapshot_error,omitempty"`
 	// ContentChecked says the content checks ran, so a result with none of their rules means they found nothing.
 	ContentChecked bool `json:"content_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
@@ -230,6 +244,8 @@ type PageResult struct {
 	// VisualError says why it could not be compared.
 	Visual      *Visual `json:"visual,omitempty"`
 	VisualError string  `json:"visual_error,omitempty"`
+	// PDFError says why the page's links to PDFs couldn't be read.
+	PDFError string `json:"pdf_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
@@ -295,7 +311,10 @@ type Report struct {
 	// triedTasks marks each page and window the keyboard and mouse comparison has run on.
 	triedTasks map[string]bool
 
-	Tool           string `json:"tool"`
+	Tool string `json:"tool"`
+	// StartedAt and EndedAt are when the sweep began and finished, in RFC 3339.
+	StartedAt      string `json:"started_at,omitempty"`
+	EndedAt        string `json:"ended_at,omitempty"`
 	Browser        string `json:"browser"`
 	BrowserVersion string `json:"browser_version,omitempty"`
 	AxeVersion     string `json:"axe_version,omitempty"`
@@ -312,9 +331,12 @@ type Report struct {
 	Lychee string   `json:"lychee,omitempty"`
 	Tags   []string `json:"tags"`
 	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
-	AdviceTags    []string `json:"advice_tags,omitempty"`
-	Identify      bool     `json:"identify,omitempty"`
-	RespectRobots bool     `json:"respect_robots,omitempty"`
+	AdviceTags []string `json:"advice_tags,omitempty"`
+	// PDFs are the linked PDFs checked against PDF/UA-1 with --pdf, and PDFError says why none could be checked.
+	PDFs          []PDFCheck `json:"pdfs,omitempty"`
+	PDFError      string     `json:"pdf_error,omitempty"`
+	Identify      bool       `json:"identify,omitempty"`
+	RespectRobots bool       `json:"respect_robots,omitempty"`
 	// PreviewAccess names the protection the sweep answered. Names only, never a value.
 	PreviewAccess *access.Summary `json:"preview_access,omitempty"`
 	// Repeats is how many times the sweep ran, with --repeat.
@@ -337,6 +359,10 @@ type Report struct {
 	// many pages share is checked once.
 	linksDone   map[string]bool
 	linkResults map[string]links.Result
+	// pdfs are the linked PDFs to check after the sweep, and pdfSeen their addresses, so each is checked once.
+	pdfs    []PDFCheck
+	pdfSeen map[string]bool
+	pdfDone map[string]bool
 }
 
 // Summary totals a report.
@@ -424,7 +450,9 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	if cfg.Settle == 0 {
 		cfg.Settle = 300 * time.Millisecond
 	}
-	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, AdviceTags: AdviceTags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots}
+	rep := &Report{Tool: "dummyrun a11y", Browser: cfg.Browser, Tags: Tags, AdviceTags: AdviceTags, Identify: cfg.Identify, RespectRobots: cfg.RespectRobots,
+		StartedAt: time.Now().UTC().Format(time.RFC3339)}
+	defer func() { rep.EndedAt = time.Now().UTC().Format(time.RFC3339) }()
 	if cfg.Engines {
 		rep.Engines = page.EngineVersions
 	}
@@ -475,6 +503,13 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	if repeats > 1 {
 		rep.Repeats = repeats
 		rep.Results = mergeRepeats(runs)
+	}
+	if cfg.PDF {
+		if cfg.Session != nil || cfg.Access != nil {
+			rep.PDFError = "PDFs aren't checked behind a sign-in or preview access, since the download would carry none of it"
+		} else {
+			pdfCheck(ctx, cfg, rep)
+		}
 	}
 	rep.Results = append(rep.Results, skipped...)
 	rep.summarise(cfg)
@@ -541,7 +576,7 @@ func robotsClient(ctx context.Context, base *http.Client, origin string) *http.C
 	prev := c.CheckRedirect
 	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if links.PrivateHost(req.Context(), req.URL.Host) {
-			return fmt.Errorf("robots.txt redirects to a private address, %s", req.URL.Host)
+			return fmt.Errorf("redirects to a private address, %s", req.URL.Host)
 		}
 		if prev != nil {
 			return prev(req, via)
@@ -875,7 +910,13 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		rep.triedTasks[key] = true
 		res.Tasks = t
 		res.Violations = append(res.Violations, taskFindings(t, path, cfg.Allow)...)
+		res.Advice = append(res.Advice, slowResponseAdvice(t, path, cfg.Allow)...)
 	}()
+	// With --repeat, only the first repeat compares and writes the snapshots, so the comparison is always with the
+	// sweep before and never with an earlier repeat.
+	if cfg.ARIASnapshots != "" && rep.repeat == 0 {
+		snapshotCheck(pctx, conn, cx, cfg.ARIASnapshots, &res)
+	}
 	if cfg.Markup {
 		m, err := page.RunMarkupChecks(pctx, conn, cx)
 		if err != nil {
@@ -907,6 +948,14 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	}
 	// The links are the same at every window size and colour scheme, so each URL's are checked once. Like the
 	// journeys, they come last, with their own time limit, so they can't take time from the checks above.
+	// Each URL's PDF links are collected once, like its links, and checked after the last page.
+	if cfg.PDF && cfg.Session == nil && cfg.Access == nil && !rep.pdfDone[u] {
+		if rep.pdfDone == nil {
+			rep.pdfDone = map[string]bool{}
+		}
+		rep.pdfDone[u] = true
+		pdfCollect(ctx, conn, cx, cfg, &res, rep)
+	}
 	if cfg.Links && !rep.linksDone[u] {
 		if rep.linksDone == nil {
 			rep.linksDone = map[string]bool{}

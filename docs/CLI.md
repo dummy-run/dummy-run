@@ -151,7 +151,7 @@ Turn run records and accessibility sweep results into an audit report. See [REPO
 
 ```text
 Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--title TEXT] [--client TEXT]
-    [--format html|md|json|sarif|junit|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+    [--format html|md|json|sarif|junit|ctrf|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
 
 Turns run records and accessibility sweep results into an audit report. The default is one self-contained
 HTML file. It shows only the findings a reviewer has confirmed. Add --include pending to show the rest,
@@ -170,7 +170,7 @@ Both say how many findings are open and the date of the newest run.
   -date string
     	report date as YYYY-MM-DD (default today)
   -format string
-    	html, md, json, sarif, junit, badge (SVG) or shields (shields.io endpoint JSON) (default "html")
+    	html, md, json, sarif, junit, ctrf, badge (SVG) or shields (shields.io endpoint JSON) (default "html")
   -include string
     	"pending" also includes findings no reviewer has confirmed, marked not reviewed (default: confirmed only)
   -out string
@@ -254,7 +254,7 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --all             run every check listed below in the same sweep, including the layout checks at 320 px and at
+  --all             run every check listed below except --pdf in the same sweep, including the layout checks at 320 px and at
                     200 percent text
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
@@ -303,9 +303,17 @@ Flags:
                     your own details with no purpose-specific autocomplete value. When a screen reader and browser
                     pair passes under 60 percent of the ARIA-AT tests for a role or ARIA attribute, the sweep
                     reports advice (dummyrun-aria-support)
+  --pdf             check up to 10 links to PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages.
+                    Each PDF is fetched once with a plain GET, up to 25 MB. A PDF that fails is advice
+                    (dummyrun-pdf-ua). --all leaves it out, since it downloads files. Needs verapdf on the PATH
+                    or DUMMYRUN_VERAPDF
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
+  --aria-snapshots DIR
+                    write an ARIA snapshot of each page and setting into DIR: its landmarks, headings and controls
+                    with their roles, names and states, as YAML. A snapshot an earlier sweep left there is compared
+                    first, and the lines added and removed are listed, so a regular sweep shows what changed
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
   --visual DIR      keep a picture of the window for each page and setting in DIR, and compare each with the one
@@ -319,6 +327,8 @@ Flags:
                     summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --junit FILE      write the failing rules as JUnit XML for a CI job, one test case for each rule
+  --ctrf FILE       write the failing rules in the Common Test Report Format (CTRF) JSON, one test for each rule
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
   --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are

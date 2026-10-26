@@ -97,6 +97,12 @@ SPDX-FileCopyrightText = "DuckDuckGo, Inc. and the autoconsent contributors"
 SPDX-License-Identifier = "MPL-2.0"
 
 [[annotations]]
+path = ["internal/page/webvitals/web-vitals.attribution.iife.js", "internal/page/webvitals/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2020 Google LLC"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
 path = "internal/page/screenreader/vsr.min.js"
 precedence = "override"
 SPDX-FileCopyrightText = ["2023 Craig Morten", "2017 Kent C. Dodds", "2020 Giorgio Polvara", "2020 Sebastian Silbermann", "2024 Drew Powers", "2013 pieroxy", "Facebook, Inc. and its affiliates", "Sindre Sorhus", "Luke Edwards", "Jesse Beach and the A11yance contributors"]
