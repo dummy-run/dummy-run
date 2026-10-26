@@ -354,6 +354,36 @@ persona's own report. Its cost comes from the price table in
 `commit`, the engine makes one from a hash of the home page, fetched with a single GET request outside the
 browser. Findings start with the verdict `pending` until a person reviews them (see [Review](#review)).
 
+### What the site is built with
+
+After the first page loads, the engine reads what the site is built with and keeps it in `target.tech`. It looks
+only at what the page shows: its scripts, its globals, its meta tags, its markup and the cookies it can read. It
+doesn't fetch anything more. Each entry has a `name`, a `category`, the `source` of its fingerprint and the
+`evidence` that matched, such as `window.Shopify.shop`. A page can hide or fake a marker, so treat this as a hint.
+
+The categories suggest journeys worth a persona's time, in `target.journeys`:
+
+| Category | Journeys |
+|---|---|
+| `shop`, such as Shopify, WooCommerce or Magento | `basket`, `checkout` |
+| `payments`, such as Stripe or PayPal | `checkout` |
+| `search`, a search form or Algolia | `search` |
+| `booking`, such as Calendly or OpenTable | `booking` |
+| `forms`, such as HubSpot Forms or Typeform | `contact form` |
+
+The engine's own fingerprints cover about 40 platforms that change what's worth testing. They're written from the
+markers each platform serves, in `internal/tech/tech.go`. For a fuller list, point `DUMMYRUN_WEBAPPANALYZER` at
+your copy of [webappanalyzer](https://github.com/enthec/webappanalyzer), which knows more than 6,000. The engine
+reads its `technologies` files when the run starts and uses the markers a page shows. It leaves out HTTP headers,
+URLs and request patterns, and a global counts when it exists, whatever its value. webappanalyzer is GPL-3.0, so
+Dummy Run doesn't ship it. Its fingerprints come only from your copy. When detection fails, `target.tech_error`
+says why, and the run goes on.
+
+```sh
+git clone https://github.com/enthec/webappanalyzer
+DUMMYRUN_WEBAPPANALYZER="$PWD/webappanalyzer" dummyrun run ...
+```
+
 Next to the record, `report.md` holds the persona's own report. `steps.jsonl` holds the full observation for
 each step, including the page text, so a reviewer can check the persona's quotes.
 
@@ -918,10 +948,10 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
-rule engines, contrast over images, the HTML check, Lighthouse, the layout checks and plain language. Three of them
-use programs of their own: Vale for plain language, vnu for the HTML check, and Lighthouse, which also needs Chrome.
-The container image has Vale and vnu but not Lighthouse. A check whose program is missing says so on each page, and
-the rest of the sweep still runs. Add `--text-scale 100,200` to test large text in the same run.
+rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the layout checks and plain language.
+Three of them use programs of their own: Vale for plain language, vnu for the HTML check, and Lighthouse, which also
+needs Chrome. The container image has Vale and vnu but not Lighthouse. A check whose program is missing says so on
+each page, and the rest of the sweep still runs. Add `--text-scale 100,200` to test large text in the same run.
 
 ```sh
 dummyrun a11y --all --text-scale 100,200 --json report.json https://example.com/
@@ -1239,6 +1269,54 @@ later. The container image doesn't include it, since it would need Node.js as we
 ```sh
 npm install -g lighthouse
 dummyrun a11y --lighthouse https://example.com/
+```
+
+### Journeys
+
+Add `--journeys` and the sweep finds the journeys each page offers and tries each one by mouse and by keyboard. It
+finds them in the page itself, with no model:
+
+| Journey | How it's found | It worked when |
+|---|---|---|
+| `search` | A search field: `type=search`, a field in a search form or landmark, or one named `q`, `s`, `query` or `search` | The words typed appear in the field. Enter is never pressed |
+| `menu` | A menu or navigation button in the header or `nav` with `aria-expanded="false"` | It reports expanded, or the menu it controls shows its links |
+| `signup` | A link or button labelled sign up, register, create an account or join | The page it leads to has an email or password field |
+| `basket` | A link labelled basket, cart, bag or trolley, or to `/cart`, `/basket` or `/bag` | The page it leads to has basket, cart, bag or trolley in its title or main heading |
+| `booking` | A link or button labelled book, reserve, reservation or appointment | The page it leads to, or a dialog it opens, has a date or time field, a calendar or a booking widget |
+| `contact` | A link labelled contact or get in touch, or to `/contact` | The page it leads to has a form with an email field or a message box, and each of its fields takes text |
+
+Every journey has a success test that must be false when the page loads and true after the action. A journey whose
+test is already true is `already` and proves nothing. Each way of trying starts from a fresh load. The mouse clicks
+the journey's start, after checking nothing covers it. The keyboard presses Tab from the top of the page until the
+start has focus, up to 250 times, then presses Enter or types. The contact journey then fills each field the same
+way, Tab and type or click and type.
+
+Nothing is ever sent. Before each try the sweep stops every form on the page from submitting, Enter is never
+pressed in a form, and a journey never starts from a submit button. The journeys run in a tab of their own, once
+for each URL, at the first window size, after the page's other checks and the cookie banner.
+
+Schema.org data the page publishes marks where a journey came from, but doesn't add one: when the page has a search
+field and a `SearchAction`, or a booking link and a `ReserveAction`, that journey's `source` is `schema.org`. What the
+page is built with (see [What the site is built with](#what-the-site-is-built-with)) can suggest a journey the page
+has no element for: Shopify suggests a basket, Calendly a booking. A journey a technology suggests that the page
+shows no way into is listed as `not found`, which says where to look.
+
+A basket journey never starts from an "add to basket" link, or from a link whose address adds to the basket, since
+following it would change the basket. The journeys' tab sends nothing but GET and HEAD requests: the browser fails
+any other request before it leaves, whatever the page's scripts try. With `--respect-robots`, a journey whose link
+leads to a page robots.txt disallows isn't tried and is `skipped`, and the tab loads no page robots.txt disallows,
+in a frame or by a redirect either. A sweep that is signed in, with a session or preview access, tries no
+journeys, for the same reason it tries no controls: a click could change the account or sign it out.
+
+Each result lists its `journeys`. A journey names its `kind`, its `selector`, `label` and `href`, and its `source`.
+It has a `mouse` and a `keyboard` verdict, each one of `pass`, `fail`, `unreachable`, `already`, `not found`,
+`skipped` or `error`, with a `detail`. `error` means the browser couldn't load the page or carry out the action, or the journeys
+ran out of time, so the page wasn't tested that way. A journey that passes by mouse, and fails or is unreachable by
+keyboard, is a violation, `dummyrun-journey-keyboard` (WCAG 2.1.1, serious). One that fails both ways is recorded and
+isn't reported: the page may simply not work the way the journey expects.
+
+```sh
+dummyrun a11y --journeys https://example.com/
 ```
 
 ### Cookie banners

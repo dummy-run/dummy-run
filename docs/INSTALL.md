@@ -196,6 +196,7 @@ docker run --rm \
 | `DUMMYRUN_FIREFOX` | `/opt/firefox/firefox` | Firefox |
 | `DUMMYRUN_VALE` | `/opt/vale/vale` | Vale, the prose checker `dummyrun a11y --plain-language` runs |
 | `DUMMYRUN_VNU` | `/opt/vnu/bin/vnu` | The Nu HTML Checker, which `dummyrun a11y --html` runs |
+| `DUMMYRUN_WEBAPPANALYZER` | not set | Your copy of webappanalyzer, whose fingerprints a run adds to its own for `target.tech`. In the container it's a path inside the container, so mount your copy and name the mount (see the next table) |
 | `DUMMYRUN_NO_SANDBOX` | `1` | Switches off the browsers' own sandboxes, since the container is the sandbox. Unset it only where the container allows user namespaces |
 | `DUMMYRUN_AZURE_ENDPOINT` | | The Azure OpenAI endpoint, such as `https://<resource>.openai.azure.com` |
 | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_CLIENT_SECRET` | | A service principal for Azure. With a managed identity or workload identity, set only the variables that identity needs. [PROVIDERS.md](PROVIDERS.md) lists the sign-in routes |
@@ -212,6 +213,7 @@ put them on a command line. A key is read when the run starts and never written 
 | `/data` | Run records, screenshots and reports. Pass `--out /data/runs`. Mount a volume here to keep them | Read and write for uid 10001 |
 | `/cast` | A cast directory and target configuration. The image holds none, so mount yours | Read only is enough |
 | `/tmp` | Browser profiles, removed when a run ends | Read and write |
+| `/webappanalyzer` | Your copy of webappanalyzer, if you use one. Mount it with `-v "$PWD/webappanalyzer:/webappanalyzer:ro"` and set `-e DUMMYRUN_WEBAPPANALYZER=/webappanalyzer` | Read only is enough |
 
 With a bind mount, make the host directory writable for uid 10001, or pass `--user` with a uid that owns it.
 The container can run with `--read-only` when `/tmp` and `/data` are writable, for example with `--tmpfs /tmp`.

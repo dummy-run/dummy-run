@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/dummy-run/dummy-run/internal/confidence"
 )
@@ -85,6 +86,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 		for _, e := range sortedKeys(p.EngineErrors) {
 			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", confidence.EngineName(e), p.URL, p.Setting(), p.EngineErrors[e])
 		}
+		if p.JourneysError != "" {
+			_, _ = fmt.Fprintf(w, "JOURNEYS %s (%s): %s\n", p.URL, p.Setting(), printable(p.JourneysError))
+		}
 	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
@@ -97,6 +101,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 	}
 	if n := engineErrorRuns(r); n > 0 {
 		_, _ = fmt.Fprintf(w, ", rule engines failed on %d runs (listed above)", n)
+	}
+	if n := journeyErrorPages(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", journeys not tried on %d pages (listed above)", n)
 	}
 	if s.Skipped > 0 {
 		_, _ = fmt.Fprintf(w, ", %d pages skipped for robots.txt", s.Skipped)
@@ -112,6 +119,27 @@ func orUnknown(s string) string {
 		return "no impact"
 	}
 	return s
+}
+
+// journeyErrorPages counts the pages whose journeys couldn't be tried.
+func journeyErrorPages(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if p.JourneysError != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// printable drops control characters, so a message with text from the page can't move the terminal's cursor.
+func printable(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
 }
 
 // engineErrorRuns counts the runs on which at least one of the other rule engines failed.

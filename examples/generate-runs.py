@@ -11,6 +11,9 @@ Fingerprints follow internal/identity (route|locus|symptom, SHA-256, first 16 he
 internal/price/prices.json. Each environment has one commit, so the runs of one environment can be pooled
 by "dummyrun coverage". The records that use the same persona, scenario and model in a batch get a
 repeat_index of 0, 1, 2.
+
+The optional target fields tech, journeys and tech_error are left out on purpose. The exporter does not
+map them, and the records here are the dataset behind the dashboard figures in the docs.
 """
 import argparse
 import hashlib

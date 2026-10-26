@@ -10,7 +10,7 @@ import (
 
 // TestAllNamesEveryCheck keeps --all honest: every check flag in the help is one --all turns on.
 func TestAllNamesEveryCheck(t *testing.T) {
-	for _, flag := range []string{"--consent", "--engines", "--html", "--image-contrast", "--keyboard", "--layout", "--lighthouse", "--markup", "--plain-language"} {
+	for _, flag := range []string{"--consent", "--engines", "--html", "--image-contrast", "--journeys", "--keyboard", "--layout", "--lighthouse", "--markup", "--plain-language"} {
 		i := strings.Index(a11yUsage, "\n  "+flag+" ")
 		if i < 0 {
 			t.Fatalf("%s is not in the help", flag)
@@ -33,7 +33,7 @@ func TestAllTurnsOnEveryCheck(t *testing.T) {
 	}
 	t.Cleanup(func() { a11yRun = a11y.Run })
 	checks := func(c a11y.Config) []bool {
-		return []bool{c.Layout, c.Keyboard, c.Markup, c.Engines, c.Consent, c.PlainLanguage, c.HTML, c.Lighthouse, c.ImageContrast}
+		return []bool{c.Layout, c.Keyboard, c.Markup, c.Engines, c.Consent, c.PlainLanguage, c.HTML, c.Lighthouse, c.Journeys, c.ImageContrast}
 	}
 	if code := a11yCmd([]string{"https://example.com/"}); code != 0 {
 		t.Fatalf("exit %d", code)

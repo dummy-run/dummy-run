@@ -28,6 +28,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
+	"github.com/dummy-run/dummy-run/internal/tech"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
@@ -97,6 +98,10 @@ type entry struct {
 }
 
 type run struct {
+	// tech, journeys and techErr are what the first page showed the site is built with. See detectTech.
+	tech     []record.Tech
+	journeys []string
+	techErr  string
 	cfg      Config
 	id       string
 	dir      string
@@ -312,6 +317,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	r.opening = true
 	first := r.execute(ctx, provider.ToolCall{Name: "visit", Args: json.RawMessage(`{"url":""}`)})
 	r.opening = false
+	r.detectTech(ctx)
 	r.entries = append(r.entries, entry{role: provider.RoleUser, step: first,
 		text: "Begin. This is what you see now.\n\n"})
 
@@ -961,7 +967,36 @@ func (r *run) target() record.Target {
 	if t.Commit == "" && r.build != "" {
 		t.Commit, t.BuildHash = r.build, r.build
 	}
+	t.Tech, t.Journeys, t.TechError = r.tech, r.journeys, r.techErr
 	return t
+}
+
+// detectTech reads what the site is built with from the first page, for the record. It never stops the run.
+func (r *run) detectTech(ctx context.Context) {
+	prints := tech.Own
+	if extra, err := tech.FromEnv(); err != nil {
+		r.techErr = strings.SplitN(err.Error(), "\n", 2)[0]
+	} else if len(extra) > 0 {
+		prints = append(slices.Clone(tech.Own), extra...)
+	}
+	tctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	found, err := tech.Detect(tctx, r.page.Conn(), r.page.Context(), prints)
+	if err != nil {
+		r.techErr = strings.SplitN(err.Error(), "\n", 2)[0]
+		return
+	}
+	for _, f := range found {
+		r.tech = append(r.tech, record.Tech{Name: f.Name, Category: f.Category, Source: f.Source, Evidence: f.Evidence})
+	}
+	r.journeys = tech.Journeys(found)
+	if len(found) > 0 {
+		names := make([]string, len(found))
+		for i, f := range found {
+			names[i] = f.Name
+		}
+		fmt.Fprintf(r.log, "tech: %s; journeys: %s\n", strings.Join(names, ", "), strings.Join(r.journeys, ", "))
+	}
 }
 
 // dimensions records what varied for this run. The engine emulates the device, the zoom, the text size and the persona's
