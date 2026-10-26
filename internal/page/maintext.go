@@ -19,7 +19,6 @@ const mainHTMLJS = `(max) => {
   // first one that is displayed at all, then the first one.
   const mains = [...document.querySelectorAll("main, [role=main]")];
   const boxless = (el) => getComputedStyle(el).display === "contents";
-  const displayed = (el) => !el.checkVisibility || el.checkVisibility() || boxless(el);
   // A boxless element still draws its own text, so text directly inside it counts as showing when the text is
   // visible and the nearest ancestor with a box is displayed and not transparent. checkVisibility says no to every
   // boxless element, so it is asked of that ancestor instead. The ancestor's visibility doesn't count, since a child
@@ -30,6 +29,8 @@ const mainHTMLJS = `(max) => {
     while (a && boxless(a)) a = a.parentElement;
     return !a || a.checkVisibility({ opacityProperty: true });
   };
+  // A boxless element counts as displayed only when that ancestor is.
+  const displayed = (el) => !el.checkVisibility || el.checkVisibility() || (boxless(el) && boxed(el));
   const shows = (el) => !el.checkVisibility ||
     (boxless(el) ? (ownText(el) && getComputedStyle(el).visibility === "visible" && boxed(el)) || [...el.children].some(shows) :
       el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
@@ -44,8 +45,8 @@ const mainHTMLJS = `(max) => {
   const gone = [], silent = [];
   live.forEach((el, i) => {
     // An element with display: contents has no box of its own, so checkVisibility says no, but its children show.
-    const boxless = getComputedStyle(el).display === "contents";
-    if (el.checkVisibility && !boxless && !el.checkVisibility({ opacityProperty: true })) gone.push(copied[i]);
+    // It goes only when the nearest ancestor with a box is hidden or transparent.
+    if (el.checkVisibility && (boxless(el) ? !boxed(el) : !el.checkVisibility({ opacityProperty: true }))) gone.push(copied[i]);
     else if (getComputedStyle(el).visibility !== "visible") silent.push(copied[i]);
   });
   for (const el of silent) for (const n of [...el.childNodes]) if (n.nodeType === Node.TEXT_NODE) n.remove();
