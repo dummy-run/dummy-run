@@ -308,6 +308,9 @@ Flags:
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
+                    gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
+                    summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
