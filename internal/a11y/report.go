@@ -141,6 +141,7 @@ func checkErrors(p PageResult) []checkError {
 	add("HTML", p.HTMLError)
 	add("LIGHTHOUSE", p.LighthouseError)
 	add("LIGHTHOUSE MATCH", p.LighthouseMatchError)
+	add("STATE", p.StateError)
 	if p.Consent != nil {
 		add("CONSENT", p.Consent.Error)
 	}
