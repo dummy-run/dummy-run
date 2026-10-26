@@ -2,7 +2,9 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -143,6 +145,72 @@ func TestSummaryListsPDFProblems(t *testing.T) {
 	for _, want := range []string{"PDF https://example.com/a.pdf: fails 1 PDF/UA-1", "PDF https://example.com/b.pdf: not checked: veraPDF didn't finish", "PDF https://example.com/ (", "links not read: script error"} {
 		if !strings.Contains(b.String(), want) {
 			t.Errorf("summary lacks %q:\n%s", want, b.String())
+		}
+	}
+}
+
+func TestPDFDownloadFailures(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/gone.pdf":
+			http.NotFound(w, r)
+		case "/loop.pdf":
+			http.Redirect(w, r, "/loop.pdf", http.StatusFound)
+		default:
+			_, _ = fmt.Fprint(w, "%PDF-1.7 "+strings.Repeat("x", 100))
+		}
+	}))
+	defer srv.Close()
+	dir := t.TempDir()
+	saved := maxPDFBytes
+	maxPDFBytes = 50
+	defer func() { maxPDFBytes = saved }()
+	for path, want := range map[string]string{"/gone.pdf": "answered 404", "/loop.pdf": "stopped after 10 redirects", "/big.pdf": "larger than"} {
+		if err := download(context.Background(), Config{}, srv.URL+path, dir+"/f.pdf"); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: want %q, got %v", path, want, err)
+		}
+	}
+}
+
+// A name that passes the check when the redirect is followed, but resolves to a private address when the
+// connection is made, is refused at the connection.
+func TestPDFRedirectIsCheckedWhenItConnects(t *testing.T) {
+	inner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = fmt.Fprint(w, "%PDF-1.7") }))
+	defer inner.Close()
+	_, port, _ := net.SplitHostPort(strings.TrimPrefix(inner.URL, "http://"))
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://rebind.invalid:"+port+"/f.pdf", http.StatusFound)
+	}))
+	defer srv.Close()
+	saved := pdfLookup
+	pdfLookup = func(context.Context, string) ([]net.IPAddr, error) {
+		return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}}, nil
+	}
+	defer func() { pdfLookup = saved }()
+	err := download(context.Background(), Config{}, srv.URL+"/away.pdf", t.TempDir()+"/f.pdf")
+	if err == nil || !strings.Contains(err.Error(), "private address") {
+		t.Errorf("want a private address refusal, got %v", err)
+	}
+}
+
+// When veraPDF fails, every PDF that downloaded says it wasn't checked, and the sweep says why.
+func TestPDFCheckWhenVeraPDFFails(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = fmt.Fprint(w, "%PDF-1.7") }))
+	defer srv.Close()
+	savedFind, savedRun := findVeraPDF, runVeraPDF
+	findVeraPDF = func() (string, error) { return "verapdf", nil }
+	runVeraPDF = func(context.Context, string, ...string) ([]pdfua.Result, error) {
+		return nil, errors.New("java crashed")
+	}
+	defer func() { findVeraPDF, runVeraPDF = savedFind, savedRun }()
+	rep := &Report{pdfs: []PDFCheck{{URL: srv.URL + "/a.pdf"}, {URL: srv.URL + "/b.pdf"}}}
+	pdfCheck(context.Background(), Config{}, rep)
+	if !strings.Contains(rep.PDFError, "java crashed") || len(rep.PDFs) != 2 {
+		t.Fatalf("pdf error %q, pdfs %+v", rep.PDFError, rep.PDFs)
+	}
+	for _, p := range rep.PDFs {
+		if p.Error == "" || p.Compliant {
+			t.Errorf("%s has no error: %+v", p.URL, p)
 		}
 	}
 }

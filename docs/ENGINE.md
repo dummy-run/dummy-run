@@ -1327,21 +1327,24 @@ dummyrun a11y --journeys https://example.com/
 
 ### PDFs
 
-A PDF linked from a page needs to be accessible too, and its tags, reading order and fonts aren't something a
-page check can see. Add `--pdf` and the sweep collects the links to PDFs on the swept sites, up to 10 across the
-sweep, and checks each one against PDF/UA-1 (ISO 14289-1), the standard for accessible PDF. The check uses
-[veraPDF](https://verapdf.org/), which runs as its own program, once for all the files, after the last page.
+A PDF linked from a page needs to be accessible too. Its tags, reading order and fonts aren't something a page
+check can see. Add `--pdf` and the sweep collects the links to PDFs on the swept sites, up to 10 across the sweep.
+It checks each one against PDF/UA-1 (ISO 14289-1), the standard for accessible PDF. The check uses
+[veraPDF](https://verapdf.org/), which runs as its own program. It runs once for all the files, after the last
+page.
 
 - Only shown links count, and only to the same host as a URL you swept. A PDF on another site is left out.
-- Each PDF is fetched once with a plain GET, sent with the sweep's user agent, up to 25 MB. A redirect is followed
-  only on the same host or to a public address, even from a site on localhost, and with `--respect-robots` a PDF robots.txt disallows is skipped.
+- Each PDF is fetched once with a plain GET and the sweep's user agent, up to 25 MB.
+- A redirect is followed only on the same host or to a public address, even from a site on localhost. The address
+  is checked when the connection is made.
+- With `--respect-robots`, a PDF robots.txt disallows is skipped.
 - A file that isn't a PDF, is too big or can't be read gets an `error` and no verdict.
-- Signed in, or behind preview access, PDFs aren't checked, since the download would carry neither.
+- Signed in or behind preview access, PDFs aren't checked, since the download would carry neither.
 
 A PDF that fails is advice, `dummyrun-pdf-ua`, on the first page that links to it. The advice names the link and
 says how many requirements fail, with the first one's clause. The report's `pdfs` lists every PDF with each
-failing rule, its clause in ISO 14289-1 and how many places fail it. Machine checks can't judge everything in
-PDF/UA, such as whether alt text is right, so a PDF that passes still needs a person to read it.
+failing rule. Each rule has its clause in ISO 14289-1 and how many places fail it. Machine checks can't judge
+everything in PDF/UA, such as whether alt text is right. So a PDF that passes still needs a person to read it.
 
 `--all` leaves `--pdf` out, since it downloads files. The container image doesn't include veraPDF. Install it
 from [verapdf.org](https://docs.verapdf.org/install/) and put `verapdf` on the PATH, or set `DUMMYRUN_VERAPDF`.

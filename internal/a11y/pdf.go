@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,11 +23,16 @@ import (
 // to a PDF it doesn't own.
 const RulePDFUA = "dummyrun-pdf-ua"
 
-const (
-	// maxPDFs is the most PDFs one sweep checks.
-	maxPDFs = 10
-	// maxPDFBytes is the largest PDF the sweep downloads.
-	maxPDFBytes = 25 << 20
+// maxPDFs is the most PDFs one sweep checks.
+const maxPDFs = 10
+
+// maxPDFBytes is the largest PDF the sweep downloads. Tests lower it.
+var maxPDFBytes = 25 << 20
+
+// findVeraPDF and runVeraPDF are pdfua's Find and Check. Tests replace them so they don't need veraPDF.
+var (
+	findVeraPDF = pdfua.Find
+	runVeraPDF  = pdfua.Check
 )
 
 // PDFCheck is one linked PDF and what veraPDF found in it.
@@ -103,7 +109,7 @@ func pdfCheck(ctx context.Context, cfg Config, rep *Report) {
 	if len(rep.pdfs) == 0 {
 		return
 	}
-	bin, err := pdfua.Find()
+	bin, err := findVeraPDF()
 	if err != nil {
 		rep.PDFError = err.Error()
 		return
@@ -128,7 +134,7 @@ func pdfCheck(ctx context.Context, cfg Config, rep *Report) {
 	if len(files) > 0 {
 		cctx, cancel := context.WithTimeout(ctx, time.Duration(30+20*len(files))*time.Second)
 		defer cancel()
-		got, err := pdfua.Check(cctx, bin, files...)
+		got, err := runVeraPDF(cctx, bin, files...)
 		if err != nil {
 			rep.PDFError = firstLine(err.Error())
 			for _, i := range which {
@@ -179,6 +185,9 @@ func pdfClient(base *http.Client, host string) *http.Client {
 	if base != nil {
 		c = *base
 	}
+	if c.Transport == nil {
+		c.Transport = pdfTransport(host)
+	}
 	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 10 {
 			return errors.New("stopped after 10 redirects")
@@ -190,6 +199,40 @@ func pdfClient(base *http.Client, host string) *http.Client {
 	}
 	return &c
 }
+
+// pdfTransport connects to the PDF's own host as usual, and to any other host only at an address that isn't private.
+// The address is looked up once and the connection made to it, so a name can't pass the check and then resolve to a
+// private address when the connection is made.
+func pdfTransport(host string) http.RoundTripper {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	var d net.Dialer
+	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		h, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+		if own, _, _ := net.SplitHostPort(host); strings.EqualFold(h, host) || strings.EqualFold(h, own) {
+			return d.DialContext(ctx, network, addr)
+		}
+		ips, err := pdfLookup(ctx, h)
+		if err != nil {
+			return nil, err
+		}
+		if len(ips) == 0 {
+			return nil, fmt.Errorf("%s has no address", h)
+		}
+		for _, ip := range ips {
+			if links.PrivateIP(ip.IP) {
+				return nil, fmt.Errorf("redirects to a private address, %s", h)
+			}
+		}
+		return d.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
+	}
+	return t
+}
+
+// pdfLookup resolves a host name for pdfTransport. Tests replace it.
+var pdfLookup = net.DefaultResolver.LookupIPAddr
 
 // download fetches a PDF with a plain GET and nothing else, up to maxPDFBytes, and keeps it only when it starts like
 // a PDF.
@@ -213,12 +256,12 @@ func download(ctx context.Context, cfg Config, raw, name string) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("the server answered %d", resp.StatusCode)
 	}
-	b, err := io.ReadAll(io.LimitReader(resp.Body, maxPDFBytes+1))
+	b, err := io.ReadAll(io.LimitReader(resp.Body, int64(maxPDFBytes)+1))
 	if err != nil {
 		return err
 	}
 	if len(b) > maxPDFBytes {
-		return errors.New("the file is larger than 25 MB, so it wasn't checked")
+		return fmt.Errorf("the file is larger than %d MB, so it wasn't checked", maxPDFBytes>>20)
 	}
 	if !strings.Contains(string(b[:min(len(b), 1024)]), "%PDF-") {
 		return errors.New("the file isn't a PDF")
