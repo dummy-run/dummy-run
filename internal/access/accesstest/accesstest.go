@@ -145,7 +145,8 @@ func New(t *testing.T) *Fixture {
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form</title></head><body><main><h1>Form</h1><form method="post" action="/submit"><button type="submit">Send it</button></form></main></body></html>`) // nosemgrep: go.lang.security.audit.xss.no-io-writestring-to-responsewriter.no-io-writestring-to-responsewriter // constant fixture pages
 	})
-	// /links links to a page behind the protection, a missing page behind it and the other host, for the link check.
+	// /links links to a page behind the protection, a missing page behind it, a page that redirects to the other host
+	// and the other host, for the link check.
 	mux.HandleFunc("/links", func(w http.ResponseWriter, r *http.Request) {
 		if !basicOK(r) || r.Header.Get(BypassHeader) != Bypass {
 			w.Header().Set("WWW-Authenticate", `Basic realm="preview"`)
@@ -153,7 +154,7 @@ func New(t *testing.T) *Fixture {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html")
-		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Links</title></head><body><main><h1>Links</h1><a href="/both">Both</a> <a href="/missing">Missing</a> <a href="`+strings.Replace(other.URL, "127.0.0.1", "localhost", 1)+`/landing">Elsewhere</a></main></body></html>`) // nosemgrep: go.lang.security.audit.xss.no-io-writestring-to-responsewriter.no-io-writestring-to-responsewriter // constant fixture pages
+		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Links</title></head><body><main><h1>Links</h1><a href="/both">Both</a> <a href="/missing">Missing</a> <a href="/redirect">Moved</a> <a href="`+strings.Replace(other.URL, "127.0.0.1", "localhost", 1)+`/landing">Elsewhere</a></main></body></html>`) // nosemgrep: go.lang.security.audit.xss.no-io-writestring-to-responsewriter.no-io-writestring-to-responsewriter // constant fixture pages
 	})
 	mux.HandleFunc("/missing", func(w http.ResponseWriter, r *http.Request) {
 		if !basicOK(r) || r.Header.Get(BypassHeader) != Bypass {

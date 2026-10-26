@@ -46,7 +46,8 @@ const linksJS = `(max) => {
 
 // linksFetchJS checks links from inside the page, with the page's cookies and the preview credentials the browser
 // adds, for links on a site the sweep reaches through preview access. HEAD first, then GET when HEAD isn't allowed.
-// Called with (urlsJSON). Returns [{url, code, error, timeout}].
+// A redirect isn't followed: it counts as an answer, so the browser never goes on to wherever it points, which could
+// be a private address. Called with (urlsJSON). Returns [{url, code, error, timeout}].
 const linksFetchJS = `async (urlsJSON) => {
   const urls = JSON.parse(urlsJSON);
   const one = async (u) => {
@@ -54,7 +55,8 @@ const linksFetchJS = `async (urlsJSON) => {
       const ctl = new AbortController();
       const t = setTimeout(() => ctl.abort(), 15000);
       try {
-        const r = await fetch(u, { method, credentials: "include", redirect: "follow", signal: ctl.signal });
+        const r = await fetch(u, { method, credentials: "include", redirect: "manual", signal: ctl.signal });
+        if (r.type === "opaqueredirect") return { url: u, code: 302 };
         if (method === "HEAD" && (r.status === 405 || r.status === 501)) continue;
         return { url: u, code: r.status };
       } catch (e) {

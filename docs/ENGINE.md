@@ -1340,7 +1340,7 @@ skipped ones: links to private addresses, links robots.txt disallows and links l
 lychee sends the sweep's user agent, `DummyRun/<version> (+https://dummyrun.dev/scanner/)` with `--identify`. It
 never gets your preview credentials. With [preview access](#protected-previews) on, links on the sites you're
 sweeping, the same scheme and host, are checked from inside the browser instead, which already holds them, and
-lychee only gets the rest.
+lychee only gets the rest. The browser counts a redirect as an answer and doesn't follow it.
 
 A page decides where its links point, so a link to `localhost`, to `169.254.169.254` or to another address on a
 private network would have the checker visit the machine it runs on or the network around it. Those links are

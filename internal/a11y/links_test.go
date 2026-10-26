@@ -177,7 +177,7 @@ func TestLinkCheckBehindPreviewAccess(t *testing.T) {
 				t.Fatal(err)
 			}
 			r := rep.Results[0]
-			if r.LinksError != "" || r.LinksChecked != 3 {
+			if r.LinksError != "" || r.LinksChecked != 4 {
 				t.Fatalf("checked %d, error %q", r.LinksChecked, r.LinksError)
 			}
 			var broken []string
@@ -198,6 +198,11 @@ func TestLinkCheckBehindPreviewAccess(t *testing.T) {
 			for _, req := range fx.Elsewhere.For("/landing") {
 				if req.Header.Get("Authorization") != "" || req.Header.Get(accesstest.BypassHeader) != "" {
 					t.Error("the other host received the credentials")
+				}
+				// /redirect points at the other host. The browser counts the redirect as the answer and doesn't
+				// follow it, so the only requests there are lychee's for the direct link.
+				if strings.Contains(req.Header.Get("User-Agent"), "Mozilla") {
+					t.Errorf("the browser followed a redirect to the other host: %q", req.Header.Get("User-Agent"))
 				}
 			}
 		})
@@ -296,6 +301,20 @@ func TestRobotsRedirectStaysPublic(t *testing.T) {
 	}
 	if base.CheckRedirect != nil {
 		t.Error("the sweep's own client was changed")
+	}
+	// An origin whose name can't be looked up, here because the lookup's context has ended, isn't trusted as
+	// private, so it gets the guard too. The request itself still runs.
+	ended, stop := context.WithCancel(ctx)
+	stop()
+	resp, err = robotsClient(ended, base, "http://unknown.invalid").Get("http://unknown.invalid/robots.txt")
+	if err == nil {
+		_ = resp.Body.Close()
+	}
+	if err == nil || !strings.Contains(err.Error(), "private address") {
+		t.Errorf("redirect from an origin that couldn't be looked up: %v", err)
+	}
+	if n := internal.Load(); n != 0 {
+		t.Errorf("the private address was requested %d times", n)
 	}
 	resp, err = robotsClient(ctx, nil, front.URL).Get(front.URL + "/robots.txt")
 	if err != nil {
