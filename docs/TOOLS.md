@@ -106,6 +106,12 @@ criteria data in Siteimprove Alfa (MIT). The EN 301 549 clause numbers follow cl
 [ETSI EN 301 549 V3.2.1](https://www.etsi.org/deliver/etsi_en/301500_301599/301549/03.02.01_60/en_301549v030201p.pdf),
 which numbers each WCAG 2.1 criterion the same way. No text of the standard is copied.
 
+The screen reader support figures for `dummyrun-aria-support` are the
+[ARIA-AT reports](https://aria-at.w3.org/reports) of the W3C ARIA and Assistive Technologies Community Group,
+fetched from its public API and kept unchanged. They are under the
+[W3C Document License](https://www.w3.org/copyright/document-license-2023/), and `internal/a11y/ariaat/LICENSE`
+has the notice. No ARIA-AT code is used.
+
 The test fixtures for checking the sweep against real markup come from the
 [AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) (MIT). The fixtures use the rule names and the markup of
 the elements it lists, and none of its code.
