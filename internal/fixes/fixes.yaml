@@ -50,7 +50,7 @@
     - Inline links in a sentence, and controls whose size the browser sets, are exceptions and need no change.
   example:
     before: ".close { width: 16px; height: 16px; }"
-    after: ".close { width: 16px; height: 16px; padding: 4px; }"
+    after: ".close { display: inline-block; min-width: 24px; min-height: 24px; }"
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
 

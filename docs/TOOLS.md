@@ -1,8 +1,8 @@
 # Tools we build on
 
-Dummy Run stands on other people's open-source work. This page names the tools the accessibility checks bundle or
-run, and the data taken from them, with what each does for you and its licence. The full licence texts are in [LICENSES](../LICENSES) and next to each bundled copy,
-and [NOTICE](../NOTICE) has the copyright lines.
+Dummy Run stands on other people's open-source work. Here are the tools the accessibility checks bundle or run, and
+the data taken from them, with what each does for you and its licence. The full licence texts are in
+[LICENSES](../LICENSES) and next to each bundled copy, and [NOTICE](../NOTICE) has the copyright lines.
 
 ## Rule engines
 
@@ -40,12 +40,10 @@ a test checks the bundle still carries it.
 |---|---|---|---|
 | [guidepup virtual screen reader](https://github.com/guidepup/virtual-screen-reader) by Craig Morten | 0.33.0 | Reads the page aloud as text for a persona that gets no screenshots | MIT |
 
-It's bundled into one script with esbuild. Its browser build already includes these packages, and NOTICE has their
-copyright lines:
-
-- under MIT: @testing-library/dom, @testing-library/user-event, dom-accessibility-api, html-aria, lz-string,
-  pretty-format, react-is, ansi-regex, ansi-styles and dequal;
-- under Apache-2.0: aria-query.
+It's bundled into one script with esbuild. Its browser build already includes other packages, and NOTICE has their
+copyright lines. aria-query is under Apache-2.0. The rest are under MIT: @testing-library/dom,
+@testing-library/user-event, dom-accessibility-api, html-aria, lz-string, pretty-format, react-is, ansi-regex,
+ansi-styles and dequal.
 
 `internal/page/screenreader/build/build.sh` rebuilds it from the pinned versions.
 
