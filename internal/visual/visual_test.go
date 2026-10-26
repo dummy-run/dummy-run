@@ -1,6 +1,7 @@
 package visual
 
 import (
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -117,6 +118,13 @@ func TestCompare(t *testing.T) {
 		t.Errorf("the diff marks a changed pixel %v, want red", got)
 	}
 
+	if c, err = Compare(old, a, diff); err != nil || c.Diff != "" {
+		t.Fatalf("back to the same picture: %+v, %v", c, err)
+	}
+	if _, err := os.Stat(diff); !os.IsNotExist(err) {
+		t.Errorf("the diff from the changed picture is still there: %v", err)
+	}
+
 	c, err = Compare(old, fill(41, 30, white), diff)
 	if err != nil {
 		t.Fatal(err)
@@ -131,8 +139,8 @@ func TestCompare(t *testing.T) {
 	if err := os.WriteFile(old, []byte("not a png"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Compare(old, a, ""); err == nil {
-		t.Error("a broken earlier picture should be an error")
+	if _, err := Compare(old, a, ""); !errors.Is(err, ErrUnreadable) {
+		t.Errorf("a broken earlier picture: %v, want ErrUnreadable", err)
 	}
 }
 

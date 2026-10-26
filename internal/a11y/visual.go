@@ -19,24 +19,26 @@ import (
 )
 
 // maskJS covers each element the selectors match with a solid box fixed over it, so parts of the page that change
-// on every load, such as a clock or an advert, don't count as changes. It returns how many it covered.
+// on every load, such as a clock or an advert, don't count as changes. It reads every selector before it draws a
+// box, so a selector that isn't valid CSS leaves the page as it was. It returns how many it covered.
 const maskJS = `(selectors) => {
-  let n = 0;
+  const rects = [];
   for (const sel of JSON.parse(selectors)) {
     let els;
     try { els = document.querySelectorAll(sel); } catch (e) { throw new Error("--mask " + JSON.stringify(sel) + " is not a CSS selector"); }
     for (const el of els) {
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) continue;
-      const box = document.createElement("div");
-      box.setAttribute("data-dummyrun-mask", "");
-      box.style.cssText = "all:initial;position:fixed;z-index:2147483647;pointer-events:none;background:#ff00ff;" +
-        "left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px";
-      document.documentElement.appendChild(box);
-      n++;
+      if (r.width > 0 && r.height > 0) rects.push(r);
     }
   }
-  return n;
+  for (const r of rects) {
+    const box = document.createElement("div");
+    box.setAttribute("data-dummyrun-mask", "");
+    box.style.cssText = "all:initial;position:fixed;z-index:2147483647;pointer-events:none;background:#ff00ff;" +
+      "left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px";
+    document.documentElement.appendChild(box);
+  }
+  return rects.length;
 }`
 
 const unmaskJS = `() => { for (const el of document.querySelectorAll("[data-dummyrun-mask]")) el.remove(); }`
@@ -52,6 +54,8 @@ func compareScreen(ctx context.Context, conn *bidi.Conn, cx, dir string, masks [
 		return err
 	}
 	var masked int
+	// The boxes come off whatever happens, since the checks after this one measure the same page.
+	defer func() { _, _ = conn.CallFunction(context.WithoutCancel(ctx), cx, unmaskJS) }()
 	if err := conn.CallFunctionJSON(ctx, cx, maskJS, &masked, string(sels)); err != nil {
 		var se *bidi.ScriptError
 		if errors.As(err, &se) {
@@ -62,9 +66,6 @@ func compareScreen(ctx context.Context, conn *bidi.Conn, cx, dir string, masks [
 		return err
 	}
 	data, err := conn.CaptureScreenshot(ctx, cx)
-	if _, uerr := conn.CallFunction(ctx, cx, unmaskJS); uerr != nil && err == nil {
-		err = uerr
-	}
 	if err != nil {
 		return err
 	}
@@ -79,11 +80,15 @@ func compareScreen(ctx context.Context, conn *bidi.Conn, cx, dir string, masks [
 	path := screenName(dir, res)
 	v := &Visual{Screen: path, Masked: masked}
 	if _, err := os.Stat(path); err == nil {
-		c, err := visual.Compare(path, img, strings.TrimSuffix(path, ".png")+".diff.png")
-		if err != nil {
+		// An earlier picture that can't be read is replaced, so one bad file doesn't stop every later sweep.
+		switch c, err := visual.Compare(path, img, strings.TrimSuffix(path, ".png")+".diff.png"); {
+		case errors.Is(err, visual.ErrUnreadable):
+			v.First = true
+		case err != nil:
 			return err
+		default:
+			v.Change = c
 		}
-		v.Change = c
 	} else if !os.IsNotExist(err) {
 		return err
 	} else {

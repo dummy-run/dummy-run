@@ -1434,30 +1434,31 @@ dummyrun a11y --consent --layout https://example.com/
 When you sweep the same site again and again, such as on each deploy, add `--visual DIR` to see which pages look
 different from last time. For each page and setting, the sweep takes a picture of the window once the page has
 loaded and any cookie banner is answered. It compares that picture with the one the last sweep left in `DIR`, then
-puts the new picture in its place. The first sweep has nothing to compare with, so each result says `first`.
+puts the new picture in its place. The first sweep has nothing to compare with, so each result says `first`. So
+does a sweep whose earlier picture can't be read, and the new picture replaces it.
 
 Each result's `visual` records:
 
 - `screen`, the picture this sweep took;
-- `changed` and `total`, how many pixels differ out of all of them, and `ratio`, the one over the other. The count
+- `changed` and `total`, how many pixels differ out of all of them. `ratio` is the one over the other. The count
   comes from a Go port of pixelmatch. It ignores slight shifts in colour and leaves out anti-aliasing at the edges of
   text and shapes;
 - `hash_distance`, how many of the 64 bits of the two pictures' difference hashes differ. It is 0 for pictures that
   look the same at a glance, and grows as their shapes and shading change. It still works when the window changed
   size, which `size_changed` records, and no pixels could be compared;
 - `diff`, a picture beside the screenshot, ending `.diff.png`, with the changed pixels in red and anti-aliasing in
-  yellow over a faded copy of the page. It is written only when a pixel changed;
+  yellow over a faded copy of the page. It is written only when a pixel changed, and the one from an earlier sweep
+  is removed when none did;
 - `masked`, how many elements `--mask` covered.
 
-Some parts of a page change on every load, such as a clock, a carousel or an advert. Add `--mask SELECTOR` for each,
-as a CSS selector, and the sweep covers what it matches with a solid box before it takes the picture, then removes
-the box. A selector that isn't valid CSS puts the reason in `visual_error`, and so does any other reason the
+Some parts of a page change on every load, such as a clock, a carousel or an advert. Add `--mask SELECTOR` for each, as a CSS selector. Before it takes the picture, the sweep covers what the selector
+matches with a solid box. It removes the box afterwards. A selector that isn't valid CSS puts the reason in `visual_error`, and so does any other reason the
 picture couldn't be taken.
 
 The counts are facts for you to judge. A sweep never fails because a page changed, and the summary only lists the
 pages that changed, with their counts. Your pipeline can set its own limit, such as a `ratio` above 0.01.
-Keep `DIR` between runs, as a cache in CI, and keep the browser, window and colour scheme the same, since a picture
-from a different setting is a different file. `--all` doesn't include it, because it needs a directory.
+Keep `DIR` between runs, as a cache in CI. Keep the browser, window and colour scheme the same. A picture from a
+different setting is a different file. `--all` doesn't include it, because it needs a directory.
 
 ```sh
 dummyrun a11y --visual screens --mask '.clock' --mask '#ad' https://example.com/

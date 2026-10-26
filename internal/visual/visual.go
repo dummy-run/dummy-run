@@ -33,8 +33,11 @@ type Change struct {
 	Diff string `json:"diff,omitempty"`
 }
 
-// Compare compares the PNG at oldPath with img, writes a picture of the differences to diffPath when there are
-// any, and returns what changed.
+// ErrUnreadable is an earlier screenshot that isn't a PNG that can be read.
+var ErrUnreadable = errors.New("the earlier screenshot can't be read")
+
+// Compare compares the PNG at oldPath with img and returns what changed. It removes the diffPath an earlier
+// comparison left, and writes a new one when any pixel changed.
 func Compare(oldPath string, img image.Image, diffPath string) (*Change, error) {
 	f, err := os.Open(oldPath) //nolint:gosec // a file the sweep wrote in the directory you chose
 	if err != nil {
@@ -43,7 +46,12 @@ func Compare(oldPath string, img image.Image, diffPath string) (*Change, error) 
 	old, err := png.Decode(f)
 	_ = f.Close()
 	if err != nil {
-		return nil, fmt.Errorf("read the earlier screenshot: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrUnreadable, err)
+	}
+	if diffPath != "" {
+		if err := os.Remove(diffPath); err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
 	}
 	a, b := toRGBA(old), toRGBA(img)
 	c := &Change{HashDistance: bits.OnesCount64(dhash(a) ^ dhash(b))}
