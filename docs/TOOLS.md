@@ -110,7 +110,7 @@ the elements it lists, and none of its code.
 
 ## Mutation testing
 
-This runs only in the project's own weekly workflow. It isn't part of the program you install.
+It runs in the project's own weekly workflow, and CONTRIBUTING.md shows how to run it on your machine. It isn't part of the program you install.
 
 | Tool | Version | What it does for Dummy Run | Licence |
 |---|---|---|---|
