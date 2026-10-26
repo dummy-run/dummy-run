@@ -104,27 +104,31 @@ func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
 	}
 	go func() {
 		defer g.wg.Done()
-		ctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
-		defer cancel()
-		fail := func(n *atomic.Int32) {
-			if err := g.conn.FailRequest(ctx, e.Request.Request); err != nil {
-				g.record(err)
-			} else if n != nil {
-				n.Add(1)
-			}
-		}
+		// The decision comes first: the robots check can wait on another origin's robots.txt, and that wait mustn't
+		// use up the time the command has.
+		block, count := true, (*atomic.Int32)(nil)
 		m := strings.ToUpper(e.Request.Method)
 		switch {
 		case m != "GET" && m != "HEAD":
-			fail(&g.stopped)
+			count = &g.stopped
 		case e.Navigation != "" && g.allowed != nil && !g.allowed(e.Request.URL):
-			fail(nil)
 		case e.Navigation == "" && g.failing.Load() && isDataRequest(e.Request):
-			fail(&g.failed)
+			count = &g.failed
 		default:
+			block = false
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
+		defer cancel()
+		if !block {
 			if err := g.conn.ContinueRequestUnchanged(ctx, e.Request.Request); err != nil {
 				g.record(err)
 			}
+			return
+		}
+		if err := g.conn.FailRequest(ctx, e.Request.Request); err != nil {
+			g.record(err)
+		} else if count != nil {
+			count.Add(1)
 		}
 	}()
 }
@@ -138,10 +142,23 @@ func (g *failureGuard) record(err error) {
 	g.errOnce.Do(func() { g.err = err })
 }
 
-// isDataRequest says a request fetches data for the page's scripts. Fetch and XMLHttpRequest have no destination,
-// where an image, a script or a style has one.
+// isDataRequest says a request fetches data for the page's scripts. Where the browser says what started a request,
+// only fetch and XMLHttpRequest count. Where it doesn't, as Chrome doesn't for XMLHttpRequest, a request counts
+// when it has no destination, as an image, a script or a style has, and isn't a prefetch, which says so in
+// Sec-Purpose.
 func isDataRequest(r bidi.RequestData) bool {
-	return r.Destination == ""
+	if r.InitiatorType != "" {
+		return r.InitiatorType == "fetch" || r.InitiatorType == "xmlhttprequest"
+	}
+	if r.Destination != "" {
+		return false
+	}
+	for _, h := range r.Headers {
+		if n := strings.ToLower(h.Name); n == "sec-purpose" || n == "purpose" {
+			return false
+		}
+	}
+	return true
 }
 
 // failureCheck loads the page twice in a tab of its own: once as normal, and once with its data requests failing,

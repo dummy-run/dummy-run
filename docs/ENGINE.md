@@ -1419,7 +1419,8 @@ WCAG 4.1.3 asks for status messages like these to be announced.
 
 Add `--failures` and the sweep loads each page twice more, in a tab of its own. The first load is normal. In the
 second, every data request the page makes with `fetch` or `XMLHttpRequest` fails before it leaves the browser, as
-it would if the site's API were down. Page loads, frames, scripts, styles, images and fonts still load. After each
+it would if the site's API were down. Page loads, frames, scripts, styles, images, fonts and
+prefetches still load. After each
 load the sweep waits two seconds, then reads the text of every alert and live region, and the page's visible text.
 
 In both loads, a request other than GET or HEAD fails before it leaves the browser, whatever the page's scripts try,

@@ -32,6 +32,9 @@ type RequestData struct {
 	// Destination is the fetch destination, such as document, iframe, image, style or script, where the
 	// browser reports it. It is empty when it does not.
 	Destination string `json:"destination,omitempty"`
+	// InitiatorType says what started the request, such as fetch, xmlhttprequest, link, img or script, where the
+	// browser reports it. It is empty when it does not.
+	InitiatorType string `json:"initiatorType,omitempty"`
 }
 
 // BeforeRequestSent is a network.beforeRequestSent event.

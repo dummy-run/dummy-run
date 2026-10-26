@@ -14,7 +14,8 @@ import (
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
 
-// failurePage loads items with fetch and shows an error in msg when that fails. Every load also tries three
+// failurePage loads items with fetch, and more with XMLHttpRequest, and shows an error in msg when the fetch fails.
+// Every load also tries three
 // writes: a POST with fetch, a beacon and a PUT with XMLHttpRequest. live sets whether msg is an alert.
 func failurePage(live bool) string {
 	role := ""
@@ -27,6 +28,7 @@ func failurePage(live bool) string {
 fetch("/api/items").then(r => { if (!r.ok) throw new Error(); return r.json(); })
   .then(items => { for (const i of items) { const li = document.createElement("li"); li.textContent = i; document.getElementById("items").append(li); } })
   .catch(() => { document.getElementById("msg").textContent = "We couldn't load the items. Try again later."; });
+const g = new XMLHttpRequest(); g.open("GET", "/api/more"); g.onerror = () => {}; g.send();
 fetch("/api/save", {method: "POST", body: "x"}).catch(() => {});
 try { navigator.sendBeacon("/api/beacon", "x"); } catch (e) {}
 const x = new XMLHttpRequest(); x.open("PUT", "/api/put"); x.onerror = () => {}; x.send("x");
@@ -56,7 +58,7 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 			_, _ = fmt.Fprint(w, failurePage(r.URL.Path == "/announced"))
 		case "/static":
 			w.Header().Set("Content-Type", "text/html")
-			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><title>Static</title></head><body><p>Hello</p></body></html>`)
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><title>Static</title></head><body><link rel="prefetch" href="/next"><p>Hello</p></body></html>`)
 		case "/api/items":
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = fmt.Fprint(w, `["Tea","Cake"]`)
@@ -105,14 +107,14 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 			}
 
 			a := probe("/announced")
-			if a.Failed != 1 || !a.Announced || !strings.Contains(a.Announcement, "couldn't load") || a.Stopped < 4 {
+			if a.Failed != 2 || !a.Announced || !strings.Contains(a.Announcement, "couldn't load") || a.Stopped < 4 {
 				t.Errorf("announced: %+v", a)
 			}
 			if f := failureFindings(a, "/announced", nil); len(f) != 0 {
 				t.Errorf("announced page got advice: %+v", f)
 			}
 			s := probe("/silent")
-			if s.Failed != 1 || s.Announced || !s.Changed {
+			if s.Failed != 2 || s.Announced || !s.Changed {
 				t.Errorf("silent: %+v", s)
 			}
 			if f := failureFindings(s, "/silent", nil); len(f) != 1 || f[0].Rule != RuleFailureSilent || !strings.Contains(f[0].Nodes[0].Detail, "no live region") {
@@ -147,8 +149,12 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 				t.Error("a disallowed page loaded")
 			}
 			mu.Lock()
-			if len(seen) != 0 {
-				t.Errorf("a disallowed page reached the server: %v", seen)
+			for _, s := range seen {
+				// The tab before can still ask for its icon after it closes.
+				if s != "GET /favicon.ico" {
+					t.Errorf("a disallowed page reached the server: %v", seen)
+					break
+				}
 			}
 			mu.Unlock()
 		})
@@ -186,5 +192,27 @@ func TestFailureGuardIgnoresCancelledRequests(t *testing.T) {
 	g.record(&bidi.CommandError{Method: "network.failRequest", Code: "invalid argument", Message: "bad"})
 	if g.err == nil {
 		t.Error("a refused decision wasn't recorded")
+	}
+}
+
+// TestIsDataRequest checks which requests the failing load fails: fetch and XMLHttpRequest, and a request with no
+// destination when the browser doesn't say what started it, but never a prefetch or a page's resources.
+func TestIsDataRequest(t *testing.T) {
+	prefetch := []bidi.Header{{Name: "Sec-Purpose", Value: bidi.BytesValue{Type: "string", Value: "prefetch"}}}
+	for _, c := range []struct {
+		r    bidi.RequestData
+		want bool
+	}{
+		{bidi.RequestData{InitiatorType: "fetch"}, true},
+		{bidi.RequestData{InitiatorType: "xmlhttprequest"}, true},
+		{bidi.RequestData{}, true},
+		{bidi.RequestData{InitiatorType: "link"}, false},
+		{bidi.RequestData{InitiatorType: "img", Destination: "image"}, false},
+		{bidi.RequestData{Destination: "image"}, false},
+		{bidi.RequestData{Headers: prefetch}, false},
+	} {
+		if got := isDataRequest(c.r); got != c.want {
+			t.Errorf("%+v: %v, want %v", c.r, got, c.want)
+		}
 	}
 }
