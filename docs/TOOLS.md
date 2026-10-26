@@ -97,7 +97,7 @@ Some checks follow a method another project worked out, written again in our own
 | Project | What we took | Licence of the project |
 |---|---|---|
 | [contrastcap](https://github.com/ICJIA/contrastcap-mcp) by ICJIA | Measuring text contrast over an image by hiding the text, taking a picture of what is behind it and comparing every pixel, for `--image-contrast` | MIT |
-| [Leonardo](https://github.com/adobe/leonardo) by Adobe | Suggesting a colour that meets a contrast ratio by changing only its lightness, so the hue stays, for the colour suggestions on contrast failures. The colour maths is [OKLab](https://bottosson.github.io/posts/oklab/) by Björn Ottosson, written again from the published formulas | Apache-2.0 |
+| [Leonardo](https://github.com/adobe/leonardo) by Adobe | Suggesting a colour that meets a contrast ratio by changing only its lightness, so the hue stays, for the colour suggestions on contrast failures. The colour maths is OKLab, written again from the formulas in [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#ok-lab) | Apache-2.0 |
 | [LayoutLens](https://github.com/gojiplus/layoutlens) by goji+ | Measuring layout from the browser's rectangles and what is painted on top at a point: outermost elements past the window, clipped text, controls under other controls, focus hidden behind opaque content, and the measurable target size exceptions. Used by `--layout` | MIT |
 
 ## Data

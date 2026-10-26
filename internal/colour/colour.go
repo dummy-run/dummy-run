@@ -1,5 +1,5 @@
-// Package colour suggests colours that pass a WCAG contrast threshold. It works in OKLCH, the polar form of
-// Björn Ottosson's OKLab colour space, and changes only lightness, so a suggestion keeps the hue and, where the
+// Package colour suggests colours that pass a WCAG contrast threshold. It works in OKLCH, the polar form of the
+// OKLab colour space defined in CSS Color Module Level 4, and changes only lightness, so a suggestion keeps the hue and, where the
 // screen can show it, the chroma of the colour it replaces. The formulas are the published ones; no code is
 // copied from another library.
 package colour
@@ -37,6 +37,7 @@ func Parse(s string) (RGB, error) {
 // Hex writes the colour as #rrggbb.
 func (c RGB) Hex() string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
 
+// linear turns an sRGB channel from 0 to 255 into linear light from 0 to 1.
 func linear(c float64) float64 {
 	c /= 255
 	if c <= 0.04045 {
@@ -45,6 +46,7 @@ func linear(c float64) float64 {
 	return math.Pow((c+0.055)/1.055, 2.4)
 }
 
+// encode turns linear light from 0 to 1 back into an sRGB channel from 0 to 255, before rounding.
 func encode(c float64) float64 {
 	if c <= 0.0031308 {
 		return 12.92 * c * 255
