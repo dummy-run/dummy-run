@@ -1,0 +1,163 @@
+{
+  "reportFormat": "CTRF",
+  "specVersion": "0.2.0",
+  "timestamp": "2026-10-19T00:00:00Z",
+  "generatedBy": "dummyrun",
+  "results": {
+    "tool": {
+      "name": "dummyrun",
+      "version": "0.0.0-test"
+    },
+    "summary": {
+      "tests": 6,
+      "passed": 0,
+      "failed": 5,
+      "skipped": 1,
+      "pending": 0,
+      "other": 0,
+      "start": 1792165351000,
+      "stop": 1792245243000
+    },
+    "tests": [
+      {
+        "name": "A contributor can open the rates table for all writers",
+        "status": "failed",
+        "duration": 0,
+        "suite": [
+          "dummyrun personas",
+          "access-wrongly-allowed"
+        ],
+        "message": "major: A contributor can open the rates table for all writers",
+        "trace": "Route /payments. Found by lin-contributor in 1 of 4 runs. Fingerprint 933d06cb3cee90e4.",
+        "tags": [
+          "major",
+          "confirmed"
+        ],
+        "extra": {
+          "confidence": "low",
+          "fingerprint": "933d06cb3cee90e4",
+          "route": "/payments",
+          "runs_found": 1,
+          "runs_total": 4
+        }
+      },
+      {
+        "name": "Scheduling an issue for a past date returns a server error",
+        "status": "failed",
+        "duration": 0,
+        "suite": [
+          "dummyrun personas",
+          "error-shown"
+        ],
+        "message": "major: Scheduling an issue for a past date returns a server error",
+        "trace": "Route /issues. Found by ada-editor in 1 of 4 runs. Fingerprint 72be5e1e780d79bb.",
+        "tags": [
+          "major",
+          "confirmed"
+        ],
+        "extra": {
+          "confidence": "low",
+          "fingerprint": "72be5e1e780d79bb",
+          "route": "/issues",
+          "runs_found": 1,
+          "runs_total": 4
+        }
+      },
+      {
+        "name": "The hint under the schedule field is too faint to read",
+        "status": "failed",
+        "duration": 0,
+        "suite": [
+          "dummyrun personas",
+          "a11y:color-contrast"
+        ],
+        "message": "minor: The hint under the schedule field is too faint to read (not reviewed)",
+        "trace": "Route /issues. Found by ada-editor in 1 of 4 runs. Fingerprint 64afd5191821762c.",
+        "tags": [
+          "minor",
+          "not-reviewed"
+        ],
+        "extra": {
+          "confidence": "low",
+          "fingerprint": "64afd5191821762c",
+          "route": "/issues",
+          "runs_found": 1,
+          "runs_total": 4,
+          "wcag": [
+            "1.4.3"
+          ]
+        }
+      },
+      {
+        "name": "The payment status 'settled' is unclear to a contributor",
+        "status": "skipped",
+        "duration": 0,
+        "suite": [
+          "dummyrun personas",
+          "unclear-label"
+        ],
+        "message": "info: The payment status 'settled' is unclear to a contributor",
+        "trace": "Route /payments. Found by lin-contributor in 3 of 4 runs. Fingerprint 1718b75300702f7b.",
+        "tags": [
+          "info",
+          "confirmed"
+        ],
+        "extra": {
+          "confidence": "low",
+          "fingerprint": "1718b75300702f7b",
+          "route": "/payments",
+          "runs_found": 3,
+          "runs_total": 4
+        }
+      },
+      {
+        "name": "Buttons must have discernible text",
+        "status": "failed",
+        "duration": 0,
+        "suite": [
+          "dummyrun axe sweep",
+          "button-name"
+        ],
+        "message": "critical: Buttons must have discernible text",
+        "trace": "https://pr-41.inkwell.example/issues: #menu-toggle\n",
+        "tags": [
+          "blocker",
+          "critical"
+        ],
+        "extra": {
+          "confidence": "high",
+          "elements": 1,
+          "pages": 1,
+          "rule": "button-name",
+          "wcag": [
+            "4.1.2"
+          ]
+        }
+      },
+      {
+        "name": "Elements must meet minimum color contrast ratio thresholds",
+        "status": "failed",
+        "duration": 0,
+        "suite": [
+          "dummyrun axe sweep",
+          "color-contrast"
+        ],
+        "message": "serious: Elements must meet minimum color contrast ratio thresholds",
+        "trace": "https://pr-41.inkwell.example/issues: .hint\n",
+        "tags": [
+          "major",
+          "serious"
+        ],
+        "extra": {
+          "confidence": "high",
+          "elements": 1,
+          "pages": 1,
+          "rule": "color-contrast",
+          "wcag": [
+            "1.4.3"
+          ]
+        }
+      }
+    ]
+  }
+}

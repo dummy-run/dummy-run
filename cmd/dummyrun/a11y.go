@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
@@ -15,7 +16,9 @@ import (
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/plain"
+	"github.com/dummy-run/dummy-run/internal/report"
 	"github.com/dummy-run/dummy-run/internal/signin"
+	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
 const a11yUsage = `Usage:
@@ -33,7 +36,7 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --all             run every check listed below in the same sweep, including the layout checks at 320 px and at
+  --all             run every check listed below except --pdf in the same sweep, including the layout checks at 320 px and at
                     200 percent text
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
@@ -68,6 +71,10 @@ Flags:
                     lighthouse true. Its other accessibility failures are candidates and its best-practice failures
                     advice (rules dummyrun-lighthouse-<audit>). Chrome only; needs lighthouse on the PATH or
                     DUMMYRUN_LIGHTHOUSE
+  --failures        also load each page twice more in a tab that sends only GET and HEAD requests: once as normal,
+                    and once with its data requests failing, as when its API is down. A page where a data request
+                    failed and no live region or alert said so is advice (dummyrun-failure-silent). Not run with
+                    preview access
   --links           also check the links on each page with lychee, each link once across the sweep: up to 300 http
                     and https links on a page, without their #fragment, and links_omitted counts the rest. A link
                     that answers with an error status or can't be reached is advice (dummyrun-broken-link), with
@@ -82,16 +89,32 @@ Flags:
                     your own details with no purpose-specific autocomplete value. When a screen reader and browser
                     pair passes under 60 percent of the ARIA-AT tests for a role or ARIA attribute, the sweep
                     reports advice (dummyrun-aria-support)
+  --pdf             check up to 10 links to PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages.
+                    Each PDF is fetched once with a plain GET, up to 25 MB. A PDF that fails is advice
+                    (dummyrun-pdf-ua). --all leaves it out, since it downloads files. Needs verapdf on the PATH
+                    or DUMMYRUN_VERAPDF
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
+  --aria-snapshots DIR
+                    write an ARIA snapshot of each page and setting into DIR: its landmarks, headings and controls
+                    with their roles, names and states, as YAML. A snapshot an earlier sweep left there is compared
+                    first, and the lines added and removed are listed, so a regular sweep shows what changed
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --visual DIR      keep a picture of the window for each page and setting in DIR, and compare each with the one
+                    the last sweep left there: the pixels that changed, by a port of pixelmatch, and the
+                    distance between the two pictures' difference hashes. A picture of the changes goes beside
+                    it as .diff.png. The counts are in the report; nothing fails the sweep
+  --mask SELECTOR   cover the elements this CSS selector matches before each --visual picture, such as a clock
+                    or an advert that changes on every load. Repeat for more
   --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
                     gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
                     summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --junit FILE      write the failing rules as JUnit XML for a CI job, one test case for each rule
+  --ctrf FILE       write the failing rules in the Common Test Report Format (CTRF) JSON, one test for each rule
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
   --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
@@ -128,6 +151,7 @@ func a11yCmd(args []string) int {
 	keyboard := fs.Bool("keyboard", false, "run the keyboard checks")
 	markup := fs.Bool("markup", false, "run the markup checks")
 	contentOn := fs.Bool("content", false, "run the content checks")
+	pdfOn := fs.Bool("pdf", false, "check linked PDFs against PDF/UA-1 with veraPDF")
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
 	plainLang := fs.Bool("plain-language", false, "check the main content with Vale")
@@ -135,11 +159,18 @@ func a11yCmd(args []string) int {
 	lighthouseOn := fs.Bool("lighthouse", false, "run Lighthouse's accessibility and best-practice audits")
 	journeysOn := fs.Bool("journeys", false, "try each page's journeys by mouse and by keyboard")
 	linksOn := fs.Bool("links", false, "check the links on each page with lychee")
+	failuresOn := fs.Bool("failures", false, "load each page with its data requests failing")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
+	visualDir := fs.String("visual", "", "directory of window pictures to compare with the last sweep's")
+	var masks listFlag
+	fs.Var(&masks, "mask", "a CSS selector to cover before each --visual picture; repeatable")
+	snapDir := fs.String("aria-snapshots", "", "directory for ARIA snapshots, compared with the ones already there")
 	repeat := fs.Int("repeat", 1, "how many times to sweep every page and setting, up to 10")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
+	junitPath := fs.String("junit", "", "JUnit XML file of the failing rules")
+	ctrfPath := fs.String("ctrf", "", "CTRF JSON file of the failing rules")
 	sessionPath := fs.String("session", "", "saved session file to load before the sweep")
 	headful := fs.Bool("headful", false, "show the browser window")
 	identify := fs.Bool("identify", false, "name the scanner page in the user agent")
@@ -180,7 +211,7 @@ func a11yCmd(args []string) int {
 	}
 	if *all {
 		// One switch for every check. A check added later joins this list.
-		for _, on := range []*bool{layout, keyboard, markup, contentOn, engines, consent, plainLang, htmlCheck, lighthouseOn, journeysOn, linksOn, imageContrast} {
+		for _, on := range []*bool{layout, keyboard, markup, contentOn, engines, consent, plainLang, htmlCheck, lighthouseOn, journeysOn, linksOn, failuresOn, imageContrast} {
 			*on = true
 		}
 	}
@@ -190,8 +221,16 @@ func a11yCmd(args []string) int {
 		return 2
 	}
 	viewports, scales = layoutSettings(*layout, flagsSet(fs), viewports, scales)
+	if err := checkOutputs(*jsonPath, *junitPath, *ctrfPath); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
+		return 2
+	}
 	if err := checkScreenshotFlags(*shotDir, *layout, scales); err != nil {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
+		return 2
+	}
+	if len(masks) > 0 && *visualDir == "" {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y: --mask needs --visual, which takes the pictures it covers")
 		return 2
 	}
 	if *repeat < 1 || *repeat > maxRepeat {
@@ -251,7 +290,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, Failures: *failuresOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir, VisualDir: *visualDir, Masks: masks,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
@@ -260,6 +299,10 @@ func a11yCmd(args []string) int {
 			if werr := writeReport(rep, *jsonPath); werr != nil {
 				return fail(werr)
 			}
+		}
+		// A CI job that asked for a test report gets one, with no tests in it.
+		if werr := writeTestReports(rep, *junitPath, *ctrfPath); werr != nil {
+			return fail(werr)
 		}
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return exitRobots
@@ -280,10 +323,26 @@ func a11yCmd(args []string) int {
 			return fail(err)
 		}
 	}
+	if err := writeTestReports(rep, *junitPath, *ctrfPath); err != nil {
+		return fail(err)
+	}
 	if rep.Failed() {
 		return 1
 	}
 	return 0
+}
+
+// writeTestReports writes the JUnit and CTRF reports asked for. An empty path means that one wasn't asked for.
+func writeTestReports(rep *a11y.Report, junitPath, ctrfPath string) error {
+	for format, path := range map[string]string{"junit": junitPath, "ctrf": ctrfPath} {
+		if path == "" {
+			continue
+		}
+		if err := writeTestReport(rep, format, path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // flagsSet names the flags given on the command line.
@@ -341,6 +400,44 @@ func parseTextScales(v string) ([]int, error) {
 func pick[T any](name string, options map[string][]T) ([]T, bool) {
 	v, ok := options[strings.ToLower(name)]
 	return v, ok
+}
+
+// checkOutputs refuses two outputs that would write the same file, since the later one would replace the earlier.
+// --json - goes to standard output, so it shares nothing.
+func checkOutputs(jsonPath, junitPath, ctrfPath string) error {
+	seen := map[string]string{}
+	for _, o := range []struct{ flag, path string }{{"--json", jsonPath}, {"--junit", junitPath}, {"--ctrf", ctrfPath}} {
+		if o.path == "" || (o.flag == "--json" && o.path == "-") {
+			continue
+		}
+		key := filepath.Clean(o.path)
+		if abs, err := filepath.Abs(key); err == nil {
+			key = abs
+		}
+		if other, ok := seen[key]; ok {
+			return fmt.Errorf("%s and %s both write %s; give each its own file", other, o.flag, o.path)
+		}
+		seen[key] = o.flag
+	}
+	return nil
+}
+
+// writeTestReport writes the sweep as a test report for CI, by the same rules as dummyrun report: each failing
+// rule is a failed test.
+func writeTestReport(rep *a11y.Report, format, path string) error {
+	r, err := report.Build(nil, report.Options{A11y: []*a11y.Report{rep}, ToolVersion: telemetry.Version})
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(path) //nolint:gosec // the path comes from the command line on purpose
+	if err != nil {
+		return err
+	}
+	if err := report.Render(f, r, format); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 func writeReport(rep *a11y.Report, path string) error {

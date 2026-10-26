@@ -119,6 +119,7 @@ The Issues page, the Schedule form area (`/issues`)
 | What went wrong | An automated accessibility check failed (color-contrast) |
 | Who hit it | Ada, an editor, in 1 of 4 runs |
 | WCAG 2.2 | 1.4.3 |
+| EN 301 549 | 9.1.4.3 |
 | Review | Not reviewed. No person has checked this finding |
 | How sure | Low confidence. The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |
 | Fix guidance | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
@@ -168,8 +169,8 @@ The sweep ran axe-core 4.13.0 with dummyrun a11y on 2 pages in 3 settings (brows
 
 | Rule | What it checks | Severity | Impact | WCAG 2.2 | Elements | How sure | Fix guidance |
 |---|---|---|---|---|---:|---|---|
-| `button-name` | Buttons must have discernible text | Blocker | Critical | 4.1.2 | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/button-name |
-| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | Major | Serious | 1.4.3 | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
+| `button-name` | Buttons must have discernible text | Blocker | Critical | 4.1.2 (EN 301 549 9.4.1.2) | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/button-name |
+| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | Major | Serious | 1.4.3 (EN 301 549 9.1.4.3) | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
 
 ### Where each rule failed
 

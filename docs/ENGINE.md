@@ -943,13 +943,15 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   result is listed as "needs review" in the JSON and doesn't fail the run.
 - Output. A short summary on standard output lists each failure once, with the browser, size and scheme where
   it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the
-  impact. It also has the WCAG criteria, the element selector and the help link.
+  impact. It also has the WCAG criteria, the element selector and the help link. For a CI job, `--junit FILE` and `--ctrf FILE`
+  write each failing rule as a failed test, in JUnit XML or the Common Test Report Format. Each output needs
+  its own file. When robots.txt keeps every page out, they are still written, with no tests. The JSON report also records when the sweep started and ended, in `started_at` and `ended_at`.
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 To run every check in one go, add `--all`. It turns on the keyboard, markup and content checks, the cookie banner, the other
-rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the layout checks and
-plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
+rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the failure probe, the
+layout checks and plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
 the links, and Lighthouse, which also needs Chrome. The container image has Vale, vnu and lychee but not Lighthouse.
 A check whose program is missing says so on each page, and the rest of the sweep still runs. Add `--text-scale
 100,200` to test large text in the same run.
@@ -1073,6 +1075,19 @@ Enter sends the form or the arrow keys do the work, or a tab that the arrow keys
 takes Tab. A control's own script can still navigate
 or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
 
+While it tries each control, the sweep also measures how long the page takes to respond, with Google's
+[web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click
+or a key press to the next frame that shows the result, and stands for Interaction to Next Paint. After each click, Enter and Space, the page's result lists
+the response in `tasks.responses`. It gives the time in milliseconds, web-vitals' rating, and where the time went:
+`input_delay` before the page's handlers start, `processing` in them, and `presentation` drawing the result. INP is
+the slowest response on the page so far. Past 50 interactions, web-vitals leaves out one of the slowest for every
+50, so it is then close to the slowest. It can describe an earlier interaction on the same load, such as a Tab
+press on the way to the control, and the response then has `earlier: true`. A control whose slowest response to
+the sweep's own click, Enter or Space is over 500 ms, which web-vitals rates poor, is advice,
+`dummyrun-slow-response`. No WCAG criterion sets a
+time, but a slow response leaves people unsure whether anything happened, and they may press again. The sweep
+reports the measurements and leaves any judgement of how steady they are across runs to you.
+
 The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
 is shown, it presses Enter and then Tab. Focus must then land inside the target or after it. When Tab alone gets
 there, as it does when the link sits just before its target, the check gives no verdict.
@@ -1097,6 +1112,39 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
+### ARIA snapshots
+
+A site you check again and again needs to show what changed. Add `--aria-snapshots DIR` and the sweep writes an
+ARIA snapshot of each page in each setting to DIR. It lists landmarks, headings and controls in page order, as
+YAML. Each line gives a role, an accessible name and any states. A landmark's contents sit under it:
+
+```yaml
+- banner:
+  - link "Home"
+- main:
+  - heading "Shop" [level=1]
+  - button "Buy" [disabled]
+  - checkbox "Gift wrap" [checked]
+```
+
+Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
+landmark. The snapshot also leaves out the focused element and the persona's @numbers. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
+button or a new link changes it. Names come from the spec
+computation alone. The snapshot is still taken after axe and the page's other checks, so a page where axe or
+an earlier check fails has no snapshot. A page keeps up to 2,000 lines, and
+`aria_snapshot_omitted` counts any more.
+
+If DIR already holds a snapshot for the page and setting, the sweep compares the two first. The result's
+`aria_changes` lists up to 50 lines added and 50 removed, and counts them all. The terminal shows a `CHANGED`
+line for each page with the lines that changed. Then the new snapshot replaces the old one. Each file name comes
+from the page's address and setting, with a short hash, such as `example.com_shop--chrome_desktop_light-1a2b3c4d.yaml`.
+With `--repeat`, only the first repeat compares and writes the snapshots, so the comparison is always with the
+sweep before and never with an earlier repeat. A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
+changes and decide.
+
+```sh
+dummyrun a11y --aria-snapshots snapshots https://example.com/
+```
 The markup checks also list the roles and `aria-*` attributes the page's shown elements use, and look each one up
 in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C community group that tests how JAWS,
 NVDA and VoiceOver handle each ARIA pattern. When one screen reader and browser pair passes
@@ -1399,6 +1447,37 @@ isn't reported: the page may simply not work the way the journey expects.
 dummyrun a11y --journeys https://example.com/
 ```
 
+### PDFs
+
+A PDF linked from a page needs to be accessible too. Its tags, reading order and fonts aren't something a page
+check can see. Add `--pdf` and the sweep collects the links to PDFs on the swept sites, up to 10 across the sweep.
+Only links whose path ends in `.pdf`, in any case, count, so a link such as `/download?id=7` that serves a PDF
+isn't checked.
+It checks each one against PDF/UA-1 (ISO 14289-1), the standard for accessible PDF. The check uses
+[veraPDF](https://verapdf.org/), which runs as its own program. It runs once for all the files, after the last
+page.
+
+- Only shown links count, and only to the same host as a URL you swept. A PDF on another site is left out.
+- Each PDF is fetched once with a plain GET and the sweep's user agent, up to 25 MB.
+- A redirect is followed only on the same host and port or to a public address, even from a site on localhost.
+  The address is checked when the connection is made, and the download uses no proxy, so a proxy can't connect
+  in the check's place.
+- With `--respect-robots`, a PDF robots.txt disallows is skipped.
+- A file that isn't a PDF, is too big or can't be read gets an `error` and no verdict.
+- Signed in or behind preview access, PDFs aren't checked, since the download would carry neither.
+
+A PDF that fails is advice, `dummyrun-pdf-ua`, on the first page that links to it. The advice names the link and
+says how many requirements fail, with the first one's clause. The report's `pdfs` lists every PDF with each
+failing rule. Each rule has its clause in ISO 14289-1 and how many places fail it. Machine checks can't judge
+everything in PDF/UA, such as whether alt text is right. So a PDF that passes still needs a person to read it.
+
+`--all` leaves `--pdf` out, since it downloads files. The container image doesn't include veraPDF. Install it
+from [verapdf.org](https://docs.verapdf.org/install/) and put `verapdf` on the PATH, or set `DUMMYRUN_VERAPDF`.
+
+```sh
+dummyrun a11y --pdf https://example.com/
+```
+
 ### Broken links
 
 Add `--links` and the sweep checks the links on each page with [lychee](https://lychee.cli.rs/), a link checker
@@ -1433,6 +1512,49 @@ checked.
 
 ```sh
 dummyrun a11y --links https://example.com/
+```
+
+### When the page's data fails to load
+
+Many pages fetch their content after they load, such as search results, a basket or opening times. When that
+request fails, a sighted visitor may see an error message. A visitor using a screen reader hears it only if the
+message is in an alert or a live region. Otherwise they may wait for content that never comes, with no idea why.
+WCAG 4.1.3 asks for status messages like these to be announced.
+
+Add `--failures` and the sweep loads each page twice more, in a tab of its own. The first load is normal. In the
+second, every data request the page makes with `fetch` or `XMLHttpRequest` fails before it leaves the browser, as
+it would if the site's API were down. Page loads, frames, scripts, styles, images, fonts and
+prefetches still load. After each
+load the sweep waits two seconds, then reads the text of every alert and live region, and the page's visible text.
+
+In both loads, a request other than GET or HEAD fails before it leaves the browser, whatever the page's scripts try,
+so the probe sends no form, beacon or other write. The page, its scripts, styles and images, and the normal load's
+GET data requests do reach the server. The failing load's data requests never leave the browser. A page that
+fetches its data with POST, as many GraphQL clients do, has those requests stopped in both loads. Its `failed`
+stays 0 and it gets no advice, since the normal load had no data either. With
+`--respect-robots`, a page load robots.txt disallows fails too, and with `--identify` the tab sends the same user
+agent as the sweep.
+
+The first result for each URL that axe could check gets `failure_probe`, which records:
+
+- `failed`, how many data requests were failed on purpose;
+- `stopped`, how many requests other than GET and HEAD the page tried, none of which left the browser;
+- `announced`, true when an alert or live region held text after the failure that it didn't hold on the normal
+  load, and `announcement`, that text;
+- `changed`, true when the page's visible text differs from the normal load.
+
+A page that had data requests fail and announced nothing gets advice, `dummyrun-failure-silent`. Its detail says
+whether the visible text changed. If it did, the page may show an error that a screen reader doesn't read out. If
+it didn't, the visible text is the same as when the data loaded. A page that fetches nothing when it loads gets no advice. The advice never
+fails the sweep. `failure_probe_error` says why the probe couldn't run.
+
+Each URL is probed once, on the first result for the URL that axe could check, before the checks that can end a
+page early. With preview access the probe doesn't run, since preview access answers requests in every tab, and
+the two could disagree about a request. With `--repeat`, the probe runs in the first repeat whose page gets that
+far, and the merged result keeps it. `failure_probe_skipped` says so.
+
+```sh
+dummyrun a11y --failures https://example.com/
 ```
 
 ### Cookie banners
@@ -1476,6 +1598,65 @@ sweep's browser, so later settings for the same site may show no banner.
 dummyrun a11y --consent --layout https://example.com/
 ```
 
+### Did the page change between sweeps
+
+Two sweeps of one page can disagree because the page changed between them: an A/B test, a banner, or content
+that loads late. Each result whose page loaded has `state` when its state can be read: a fingerprint of the page's
+structure and text. Just
+before the rules run, the sweep describes the page: each element's tag, role and ARIA attributes, the attributes and states that change what
+assistive technology gets, such as `alt`, `hidden`, `required`, `readonly`, `disabled` and `checked`, and the text, in order, including
+open shadow roots. `state.hash` is the SHA-256 of that description and `state.elements` counts the elements.
+
+The description leaves out what changes on every load without changing the page: ids and the attributes that
+point at them, such as `aria-labelledby` and `for`, link addresses, form values including a textarea's text,
+scripts and styles. So a fresh
+session token or a generated id doesn't change the hash, but different text or a menu that starts open does.
+
+When neither description is partial, equal hashes mean the page had the same elements, roles, ARIA, states and text. They don't cover the styles,
+classes, ids or link addresses, so a stylesheet change that alters contrast keeps the hash. The state is read
+once, before the rules start, so a page that changes while they run is hashed as it was. Different hashes mean
+the structure or text changed, and a finding that differs between the two results may come from that change. The
+sweep only records the hash. Comparing hashes across runs is for you or your pipeline to do. A description over 8
+million characters is hashed from its start, and `state.partial` says so. Two partial results can then hash the same though the pages differ past the limit. `state_error` says why the state
+couldn't be read, and the rules still run.
+### Has the page changed since last time
+
+When you sweep the same site again and again, such as on each deploy, add `--visual DIR` to see which pages look
+different from last time. For each page and setting, the sweep takes a picture of the window once the page has
+loaded and, with `--consent`, once the cookie banner is answered. Without `--consent` the banner stays in the
+picture, so a banner that differs between loads shows as changed pixels, and `--mask` can cover it. It compares that picture with the one the last sweep left in `DIR`, then
+puts the new picture in its place. The first sweep has nothing to compare with, so each result says `first`. So
+does a sweep whose earlier picture can't be read, and the new picture replaces it. With `--repeat`, only the
+first repeat compares and keeps its picture, so the comparison is always with the sweep before and never with an
+earlier repeat.
+
+Each result's `visual` records:
+
+- `screen`, the picture this sweep took;
+- `changed` and `total`, how many pixels differ out of all of them. `ratio` is the one over the other. The count
+  comes from a Go port of pixelmatch. It ignores slight shifts in colour and leaves out anti-aliasing at the edges of
+  text and shapes;
+- `hash_distance`, how many of the 64 bits of the two pictures' difference hashes differ. It is 0 for pictures that
+  look the same at a glance, and grows as their shapes and shading change. It still works when the window changed
+  size, which `size_changed` records, and no pixels could be compared;
+- `diff`, a picture beside the screenshot, ending `.diff.png`, with the changed pixels in red and anti-aliasing in
+  yellow over a faded copy of the page. It is written only when a pixel changed, and the one from an earlier sweep
+  is removed when none did;
+- `masked`, how many elements `--mask` covered.
+
+Some parts of a page change on every load, such as a clock, a carousel or an advert. Add `--mask SELECTOR` for each, as a CSS selector. Before it takes the picture, the sweep covers what the selector
+matches with a solid box. It removes the box afterwards. A selector that isn't valid CSS puts the reason in `visual_error`, and so does any other reason the
+picture couldn't be taken.
+
+The counts are facts for you to judge. A sweep never fails because a page changed, and the summary only lists the
+pages that changed, with their counts. Your pipeline can set its own limit, such as a `ratio` above 0.01.
+Keep `DIR` between runs, as a cache in CI. Keep the browser, window and colour scheme the same. A picture from a
+different setting is a different file. `--all` doesn't include it, because it needs a directory.
+
+```sh
+dummyrun a11y --visual screens --mask '.clock' --mask '#ad' https://example.com/
+```
+
 ### Run it more than once
 
 Pages don't always come out the same. An advert loads late, an A/B test picks another version, or a carousel has
@@ -1493,7 +1674,9 @@ as in `chrome/desktop/light (2 of 3 runs)`.
 The counts are there for you to judge. The sweep doesn't decide which findings are stable, and an element that
 failed in any repeat fails the sweep, as it would have if that repeat had been the only one. The checks that run
 once for each URL, such as the HTML check, Lighthouse, journeys and links, run in the first repeat only, so their
-findings count 1 run and say nothing about whether a problem comes and goes.
+findings count 1 run and say nothing about whether a problem comes and goes. When the first repeat
+has their results, such as `html_checked` and `lighthouse_scores`, the merged result keeps them, even when that
+page later failed and a later repeat's result is the one kept. When it doesn't, the kept result's own stay.
 
 ```sh
 dummyrun a11y --repeat 3 https://example.com/

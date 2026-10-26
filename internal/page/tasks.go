@@ -59,6 +59,8 @@ type SkipTry struct {
 type Tasks struct {
 	Tasks []Task   `json:"tasks"`
 	Skip  *SkipTry `json:"skip,omitempty"`
+	// Responses are how long the page took to respond to each click, Enter and Space, as web-vitals measures INP.
+	Responses []Response `json:"responses,omitempty"`
 }
 
 type taskState struct {
@@ -136,7 +138,7 @@ func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int) (
 	space, _ := bidi.Key("Space")
 	out := &Tasks{Tasks: []Task{}}
 	for _, t := range found {
-		if err := tryTask(ctx, conn, cx, url, &t, tab, enter, space); err != nil {
+		if err := tryTask(ctx, conn, cx, url, &t, tab, enter, space, &out.Responses); err != nil {
 			return nil, err
 		}
 		out.Tasks = append(out.Tasks, t)
@@ -149,7 +151,7 @@ func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int) (
 	return out, nil
 }
 
-func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab, enter, space string) error {
+func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab, enter, space string, responses *[]Response) error {
 	spec, err := json.Marshal(struct {
 		Selector string `json:"selector"`
 		Kind     string `json:"kind"`
@@ -164,14 +166,19 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab,
 			return st, fmt.Errorf("tasks: %w", err)
 		}
 		err := taskCall(ctx, conn, cx, "arm", string(spec), &st)
+		startINP(ctx, conn, cx)
 		return st, err
 	}
-	check := func() (bool, error) {
+	// check reads the success test once the page has had time to react, and how long the page took to respond.
+	check := func(action string) (bool, error) {
 		if err := sleep(ctx, taskSettle); err != nil {
 			return false, err
 		}
 		var st taskState
 		err := taskCall(ctx, conn, cx, "check", string(spec), &st)
+		if r := readINP(ctx, conn, cx, action, t.Selector); r != nil {
+			*responses = append(*responses, *r)
+		}
 		return st.Found && st.Pass, err
 	}
 	// By mouse.
@@ -190,10 +197,11 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab,
 		t.Skipped = "something else is on top of it, so a mouse cannot press it"
 		return nil
 	}
+	markINP(ctx, conn, cx)
 	if err := conn.Click(ctx, cx, float64(st.X), float64(st.Y)); err != nil {
 		return fmt.Errorf("tasks: click: %w", err)
 	}
-	if t.Mouse, err = check(); err != nil {
+	if t.Mouse, err = check("click"); err != nil {
 		return err
 	}
 	if !t.Mouse {
@@ -242,11 +250,12 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx, url string, t *Task, tab,
 		}
 		return nil
 	}
-	for _, key := range []string{enter, space} {
+	for i, key := range []string{enter, space} {
+		markINP(ctx, conn, cx)
 		if err := conn.PressKey(ctx, cx, key); err != nil {
 			return fmt.Errorf("tasks: %w", err)
 		}
-		if t.Keyboard, err = check(); err != nil || t.Keyboard {
+		if t.Keyboard, err = check([]string{"enter", "space"}[i]); err != nil || t.Keyboard {
 			return err
 		}
 	}
