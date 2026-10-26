@@ -865,6 +865,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.MarkupChecked = true
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
+		res.Advice = append(res.Advice, ariaSupportAdvice(m.ARIAFeatures, path, cfg.Allow)...)
 	}
 	if cfg.Content {
 		c, err := page.RunContentChecks(pctx, conn, cx)
