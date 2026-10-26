@@ -200,6 +200,34 @@ The content checks from `--content`, such as vague link names and alt text that 
 
 Layout rules appear in the same section when the sweep ran with `--layout`, or with a `--text-scale` above 100, which turns `--layout` on. Keyboard rules appear there when it ran with `--keyboard`, and markup rules when it ran with `--markup`. The report lists them with the axe rules. The rule IDs all begin `dummyrun-`. The layout rules map to WCAG 1.4.10, 1.4.4, 2.5.8 and 2.4.11. The keyboard rules map to WCAG 2.1.1, 2.1.2, 2.4.7 and 2.4.1. The markup rules map to WCAG 1.3.5 and 2.5.3. The layout and keyboard rules are measurements made in the browser, except `dummyrun-mouse-only`, which is a task the sweep tried and could not complete. The markup rules are facts read from the accessibility tree. Each help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
 
+## EN 301 549 and the law
+
+Where EN 301 549 V3.2.1 has a clause for a WCAG criterion, a report names it too. The standard is
+[EN 301 549 V3.2.1](https://www.etsi.org/deliver/etsi_en/301500_301599/301549/03.02.01_60/en_301549v030201p.pdf),
+the European standard for accessible ICT. Its clause 9 covers web pages and numbers each WCAG 2.1 criterion with a 9 in
+front, so WCAG 1.4.3 is clause 9.1.4.3. The JSON has them in `en_301_549` on each finding and axe rule. Version 3.2.1
+follows WCAG 2.1, so the six criteria WCAG 2.2 added at A and AA have no clause: 2.4.11, 2.5.7, 2.5.8, 3.2.6, 3.3.7 and
+3.3.8. The report still lists them under WCAG 2.2.
+
+The standard and WCAG come up in these laws and rules:
+
+- **UK public sector.** The [Public Sector Bodies Accessibility Regulations 2018](https://www.legislation.gov.uk/uksi/2018/952/contents/made)
+  cover websites and apps. [GOV.UK guidance](https://www.gov.uk/guidance/accessibility-requirements-for-public-sector-websites-and-apps)
+  asks you to check them against WCAG 2.2 and publish an accessibility statement.
+- **Any UK organisation.** The [Equality Act 2010](https://www.legislation.gov.uk/ukpga/2010/15/section/20) asks
+  organisations that provide services to make reasonable adjustments for disabled people. It names no technical
+  standard, and WCAG is a useful technical reference for a website.
+- **EU public sector.** The [Web Accessibility Directive](https://eur-lex.europa.eu/eli/dir/2016/2102/oj) uses
+  EN 301 549.
+- **EU businesses providing covered products or services.** The [European Accessibility Act](https://eur-lex.europa.eu/eli/dir/2019/882/oj) covers
+  certain products and services, such as online shops, banking and e-books, from 28 June 2025, with some exemptions. The Act sets requirements
+  and leaves the technical detail to harmonised standards. EN 301 549 is the usual technical reference for websites
+  while those are settled.
+
+A report is evidence for this work, never a verdict on it. Automated checks and personas find only some barriers,
+so a report can't show that a site meets EN 301 549 or the law. A conformance claim or an accessibility statement needs a person
+to assess the criteria that apply, on the pages the claim covers. Take legal advice on what applies to you.
+
 ## Compare with an earlier report
 
 To see what changed since last time, write the earlier report as JSON and pass it back with `--baseline`:
