@@ -24,6 +24,7 @@ const imageContrastPage = `<!doctype html><html lang="en"><head><meta charset="u
 <p id="filled" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);-webkit-text-fill-color:#000">Book your appointment online today</p>
 <p id="faded" class="hero" style="background:linear-gradient(90deg,#123,#000)">Book <b style="opacity:.3">your</b> appointment</p>
 <p id="sized" class="hero" style="background:linear-gradient(90deg,#123,#000);font-size:24px">Book <small style="font-size:14px">your</small> appointment</p>
+<p id="eased" class="hero" style="background:linear-gradient(90deg,#123,#000);transition:color 5s">Book your appointment online today</p>
 <p id="halo" class="hero" style="background:linear-gradient(90deg,#ddd,#fff);text-shadow:0 0 3px #000">Book your appointment online today</p>
 </main></body></html>`
 
@@ -54,7 +55,9 @@ func TestImageContrastMeasuresTextOnGradients(t *testing.T) {
 			for _, m := range r.ImageContrast {
 				measured[m.Selector] = true
 			}
-			if !measured["#faint"] || !measured["#strong"] || !measured["#short"] {
+			// #eased fades its colour over five seconds. The hiding rule is !important, which no transition eases, so the
+			// text is clear at once and #eased is measured.
+			if !measured["#faint"] || !measured["#strong"] || !measured["#short"] || !measured["#eased"] {
 				t.Fatalf("the gradients should be measured: %+v (needs review %+v)", r.ImageContrast, r.NeedsReview)
 			}
 			// A shadow can give text its contrast, and the picture can't show it, so that text is left for a person.
