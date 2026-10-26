@@ -55,6 +55,12 @@ copyright lines:
 |---|---|---|---|
 | [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/), reached through [chromedriver](https://developer.chrome.com/docs/chromedriver)'s `goog:cdp` commands | the Chrome you run | In Chrome, `Accessibility.getFullAXTree` gives the role, name and states of each control in Chrome's tree. It also says whether a screen reader can reach the control. A control missing from the tree, and every control in Firefox, gets the engine's own name script. Firefox refuses `goog:cdp` commands | Part of Chrome; no code of it is bundled |
 
+## Lighthouse
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [Lighthouse](https://github.com/GoogleChrome/lighthouse) by Google | 13.5.0, which you install | Its accessibility and best-practice audits, with `--lighthouse`. It runs as its own program and isn't bundled | Apache-2.0 |
+
 ## Plain language
 
 | Tool | Version | What it does in Dummy Run | Licence |

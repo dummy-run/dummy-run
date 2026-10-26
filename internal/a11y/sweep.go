@@ -16,6 +16,7 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
+	"github.com/dummy-run/dummy-run/internal/lighthouse"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/robots"
@@ -85,6 +86,8 @@ type Config struct {
 	// HTML checks each page's HTML with the Nu HTML Checker (vnu), once for each URL, and keeps the errors that
 	// change what assistive technology gets. The results are advice.
 	HTML bool
+	// Lighthouse runs Lighthouse's accessibility and best-practice audits once for each URL, in Chrome.
+	Lighthouse bool
 	// Engines runs IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
@@ -123,6 +126,9 @@ type Node struct {
 	Confidence string `json:"confidence,omitempty"`
 	// Screenshot is the path of a PNG crop of the element. Layout checks fill it when screenshots are on.
 	Screenshot string `json:"screenshot,omitempty"`
+	// Lighthouse is true when Lighthouse's own run of the same axe rule failed the same element. It confirms the
+	// result, but Lighthouse uses axe-core too, so it never counts as another engine.
+	Lighthouse bool `json:"lighthouse,omitempty"`
 }
 
 // Finding is one axe rule that failed, or needs review, on one page.
@@ -184,6 +190,15 @@ type PageResult struct {
 	HTMLError         string `json:"html_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
+	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
+	// LighthouseAgreed counts the axe nodes Lighthouse also failed. LighthouseError says why it could not run.
+	// LighthouseMatchError says why its elements could not be matched to axe's, so its accessibility failures were
+	// left out. Only the first result for each URL has these.
+	LighthouseChecked    bool               `json:"lighthouse_checked,omitempty"`
+	LighthouseScores     map[string]float64 `json:"lighthouse_scores,omitempty"`
+	LighthouseAgreed     int                `json:"lighthouse_agreed,omitempty"`
+	LighthouseError      string             `json:"lighthouse_error,omitempty"`
+	LighthouseMatchError string             `json:"lighthouse_match_error,omitempty"`
 	// EnginesRan names the other rule engines that finished on the page. EngineErrors says why any others did not.
 	EnginesRan   []string          `json:"engines_ran,omitempty"`
 	EngineErrors map[string]string `json:"engine_errors,omitempty"`
@@ -242,8 +257,11 @@ type Report struct {
 	// Autoconsent is the version of DuckDuckGo autoconsent, when the sweep answered cookie banners.
 	Autoconsent string `json:"autoconsent,omitempty"`
 	// Vnu is the version of the Nu HTML Checker the sweep's HTML check is written for, when it ran.
-	Vnu  string   `json:"vnu,omitempty"`
-	Tags []string `json:"tags"`
+	Vnu string `json:"vnu,omitempty"`
+	// Lighthouse is the version of Lighthouse the sweep's Lighthouse check is written for, set once it has audited a
+	// page.
+	Lighthouse string   `json:"lighthouse,omitempty"`
+	Tags       []string `json:"tags"`
 	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
 	AdviceTags    []string `json:"advice_tags,omitempty"`
 	Identify      bool     `json:"identify,omitempty"`
@@ -254,6 +272,10 @@ type Report struct {
 	Summary       Summary         `json:"summary"`
 	// htmlChecked holds the URLs whose HTML was checked, so each is checked once.
 	htmlChecked map[string]bool
+	// lighthouseDone holds the URLs Lighthouse audited, so each is audited once. debugger is the Chrome DevTools
+	// address of the browser the sweep has open.
+	lighthouseDone map[string]bool
+	debugger       string
 }
 
 // Summary totals a report.
@@ -268,7 +290,7 @@ type Summary struct {
 	UnusedAllowed int `json:"unused_allow_entries"`
 	// Advice counts the elements that failed a best-practice rule. They never fail the sweep.
 	Advice int `json:"advice_nodes,omitempty"`
-	// Candidates counts the elements one other engine reports alone. They never fail the sweep.
+	// Candidates counts the elements another engine or Lighthouse failed where axe didn't. They never fail the sweep.
 	Candidates int `json:"candidate_nodes,omitempty"`
 }
 
@@ -427,6 +449,7 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, 
 	}
 	defer b.Close()
 	rep.BrowserVersion = b.Version
+	rep.debugger = b.DebuggerAddress
 	if err := access.Attach(ctx, b.Conn, cfg.Access); err != nil {
 		return fmt.Errorf("a11y: set up preview access: %w", err)
 	}
@@ -524,8 +547,14 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	started := time.Now()
 	res = PageResult{URL: u, Browser: cfg.Browser, Viewport: vp.Name, Width: vp.Width, Scheme: scheme, TextScale: textScaleField(textScale), Violations: []Finding{}, NeedsReview: []Finding{}}
 	defer func() { res.DurationMS = time.Since(started).Milliseconds() }()
+	var cancels []context.CancelFunc
+	defer func() {
+		for _, c := range cancels {
+			c()
+		}
+	}()
 	pctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
+	cancels = append(cancels, cancel)
 	if _, err := conn.Navigate(pctx, cx, u); err != nil {
 		res.Error = "load: " + firstLine(err.Error())
 		return res
@@ -601,6 +630,19 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	}
 	if cfg.PlainLanguage {
 		plainCheck(pctx, conn, cx, &res, path, cfg.Allow)
+	}
+	// Lighthouse loads the page again in a tab of its own, which takes about 20 seconds, so each URL gets one run.
+	if cfg.Lighthouse && !rep.lighthouseDone[u] {
+		if rep.lighthouseDone == nil {
+			rep.lighthouseDone = map[string]bool{}
+		}
+		rep.lighthouseDone[u] = true
+		if lighthouseCheck(ctx, conn, cx, rep.debugger, u, &res, path, cfg.Allow) {
+			rep.Lighthouse = lighthouse.Version
+		}
+		// Lighthouse has its own limit, so the checks after it get the page's full time again.
+		pctx, cancel = context.WithTimeout(ctx, 90*time.Second)
+		cancels = append(cancels, cancel)
 	}
 	if cfg.Consent {
 		c, err := page.AnswerConsent(pctx, conn, cx, page.ConsentWait)

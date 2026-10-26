@@ -918,7 +918,10 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
-rule engines, contrast over images, the HTML check, the layout checks and plain language. Add `--text-scale 100,200` to test large text in the same run.
+rule engines, contrast over images, the HTML check, Lighthouse, the layout checks and plain language. Three of them
+use programs of their own: Vale for plain language, vnu for the HTML check, and Lighthouse, which also needs Chrome.
+The container image has Vale and vnu but not Lighthouse. A check whose program is missing says so on each page, and
+the rest of the sweep still runs. Add `--text-scale 100,200` to test large text in the same run.
 
 ```sh
 dummyrun a11y --all --text-scale 100,200 --json report.json https://example.com/
@@ -1199,6 +1202,43 @@ still runs and each page says why it wasn't checked. Each check starts Java, whi
 
 ```sh
 dummyrun a11y --html https://example.com/
+```
+
+### Lighthouse
+
+Add `--lighthouse` and the sweep runs Google [Lighthouse](https://github.com/GoogleChrome/lighthouse)'s
+accessibility and best-practice audits once for each URL. It uses the Chrome the sweep already has open, through
+the DevTools address chromedriver reports. Lighthouse opens its own tab there and keeps the browser's cookies, so a
+signed-in sweep stays signed in. Throttling is off and the window is the browser's own. Lighthouse sends its own
+user agent, which names Lighthouse. A run takes about 20 seconds, so it's done once for each URL, whatever the window
+sizes and schemes.
+
+Lighthouse's accessibility audits are axe-core rules, run by Lighthouse's own copy of axe-core. Lighthouse never
+counts towards the other rule engines' agreement.
+
+- Where Lighthouse fails an element that our axe also failed, for the same rule, the node gets `lighthouse: true`.
+  `lighthouse_agreed` counts these nodes. The two can differ when the page changes between loads, or because
+  Lighthouse ships a newer axe-core.
+- An accessibility audit that fails where our axe found nothing goes to `candidates`, with the rule ID
+  `dummyrun-lighthouse-` and the audit, such as `dummyrun-lighthouse-image-alt`. It counts in `candidate_nodes` and never
+  fails the sweep.
+- A best-practice audit that fails, such as `paste-preventing-inputs` or `charset`, goes to `advice` with the same
+  kind of rule ID. Where it's about the page rather than an element, such as a deprecated API a script called, each
+  problem is listed on `html` with Lighthouse's message and the script and line it came from.
+
+The first result for each URL has `lighthouse_checked`, the two category scores from 0 to 1 in `lighthouse_scores`,
+and `lighthouse_error` when Lighthouse couldn't run. When its elements can't be matched to axe's,
+`lighthouse_match_error` says why, and its failures on single elements are left out, since some would repeat axe's.
+Its page-wide failures and best-practice advice are kept. Lighthouse runs only in Chrome. In Firefox each page says
+so. The report's `lighthouse` field names the version once Lighthouse has audited a page.
+
+The sweep looks for `lighthouse` on your `PATH`, or the program `DUMMYRUN_LIGHTHOUSE` names. Install it with
+`npm install -g lighthouse`. Lighthouse 13.5.0, which the sweep is written against, asks for Node.js 22.19 or
+later. The container image doesn't include it, since it would need Node.js as well.
+
+```sh
+npm install -g lighthouse
+dummyrun a11y --lighthouse https://example.com/
 ```
 
 ### Cookie banners

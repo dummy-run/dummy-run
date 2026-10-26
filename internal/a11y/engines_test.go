@@ -224,7 +224,7 @@ func TestSummaryCountsCandidatesAndEngineErrors(t *testing.T) {
 	var b strings.Builder
 	rep.WriteSummary(&b)
 	out := b.String()
-	for _, want := range []string{"1 candidates only one engine reports (not failures)", "rule engines failed on 1 runs",
+	for _, want := range []string{"1 candidates axe did not report (not failures)", "rule engines failed on 1 runs",
 		"ENGINE Siteimprove Alfa https://example.com/a (chrome/desktop/light): load: boom"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("summary lacks %q:\n%s", want, out)
