@@ -1036,11 +1036,25 @@ The pixel comparison covers no more than the first 30 stops that need it. The wa
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
 | `dummyrun-focus-not-visible` | An element that takes focus looks the same, in the pixels around it, with and without focus. An element whose outline or style changes is never checked, so a focus ring drawn another way passes only if it changes the picture | 2.4.7 | serious |
+| `dummyrun-focus-low-contrast` | Pixels change when an element gets focus, but no pixel's colour with focus has a contrast ratio of 3:1 with its colour without focus, as with a pale grey outline or a faint change of background | 1.4.11 | serious |
 | `dummyrun-focus-hidden` | Focus lands on an element with no size, hidden, or outside the window | 2.4.7 | serious |
 | `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
 | `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
 | `dummyrun-skip-link-no-focus` | The skip link's target is there, but after Enter on the link the next Tab lands before the target, so focus never moved | 2.4.1 | serious |
 | `dummyrun-mouse-only` | A click on a control does what it's for, but from the keyboard Tab never reaches it, or Enter and Space do nothing | 2.1.1 | serious |
+
+For the focus rules, the sweep takes two pictures of each element and the 6 pixels round it, one with focus and
+one without. It waits for the page to draw and for any transition to end, up to half a second, before each picture.
+The pictures cover the first 30 stops with no focus style the walk can read, and another 30 with one. From them it
+measures the indicator the way WCAG 2.4.13 does. It counts the pixels that change and how much their contrast
+changes. It also works out the area of a line 2 CSS pixels thick round the element. Fewer than 6 changed screenshot pixels
+don't count as an indicator, since a blinking caret can change that many. Each stop's `appearance` in the JSON
+gives `changed` and `area`, the pixels that change by 3:1 or more, in square CSS pixels. It also gives `need`, the
+area of that 2 pixel line, and `contrast`, the biggest change.
+
+An indicator with enough contrast but less area than that line is advice, `dummyrun-focus-appearance` (WCAG
+2.4.13). Level AAA asks for that area, and AA doesn't, so it never fails the sweep. A one pixel outline is a common
+example. The picture shows only 6 pixels round the element, so an outline set further out than that isn't seen. A control wider than 588 or taller than 288 CSS pixels doesn't fit in the picture, so its indicator isn't measured.
 
 The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
 sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden

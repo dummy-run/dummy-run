@@ -835,6 +835,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.KeyboardChecked = true
 		res.KeyboardPartial = !w.Completed
 		res.Violations = append(res.Violations, keyboardFindings(w, path, cfg.Allow)...)
+		res.Advice = append(res.Advice, focusAppearanceAdvice(w, path, cfg.Allow)...)
 	}
 	// The keyboard and mouse comparison loads the page many times, so it runs last, once for each page and window.
 	defer func() {
