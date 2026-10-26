@@ -108,7 +108,7 @@ type Config struct {
 	// the last sweep left there. Masks are CSS selectors for parts to cover before the picture is taken.
 	VisualDir string
 	Masks     []string
-	Headless      bool
+	Headless  bool
 	// Identify adds a contact URL to the browser's user agent and to the requests for robots.txt.
 	Identify bool
 	// RespectRobots skips pages that the robots.txt of their origin disallows for DummyRun or *.

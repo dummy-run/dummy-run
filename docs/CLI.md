@@ -304,6 +304,12 @@ Flags:
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --visual DIR      keep a picture of the window for each page and setting in DIR, and compare each with the one
+                    the last sweep left there: the pixels that changed, by a port of pixelmatch, and the
+                    distance between the two pictures' difference hashes. A picture of the changes goes beside
+                    it as .diff.png. The counts are in the report; nothing fails the sweep
+  --mask SELECTOR   cover the elements this CSS selector matches before each --visual picture, such as a clock
+                    or an advert that changes on every load. Repeat for more
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent

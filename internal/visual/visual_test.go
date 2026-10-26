@@ -38,15 +38,15 @@ var (
 
 func TestPixelmatchCountsChangedPixels(t *testing.T) {
 	a := fill(40, 30, white)
-	if n := pixelmatch(a, a, image.NewRGBA(a.Rect), Threshold); n != 0 {
+	if n := pixelmatch(a, a, image.NewRGBA(a.Rect)); n != 0 {
 		t.Errorf("the same picture: %d pixels changed, want 0", n)
 	}
 	b := box(a, image.Rect(10, 10, 20, 15), black)
-	if n := pixelmatch(a, b, image.NewRGBA(a.Rect), Threshold); n != 50 {
+	if n := pixelmatch(a, b, image.NewRGBA(a.Rect)); n != 50 {
 		t.Errorf("a black 10 by 5 box: %d pixels changed, want 50", n)
 	}
 	faint := box(a, image.Rect(10, 10, 20, 15), color.RGBA{250, 250, 250, 255})
-	if n := pixelmatch(a, faint, image.NewRGBA(a.Rect), Threshold); n != 0 {
+	if n := pixelmatch(a, faint, image.NewRGBA(a.Rect)); n != 0 {
 		t.Errorf("a box a shade off white: %d pixels changed, want 0 under the threshold", n)
 	}
 }
@@ -56,7 +56,7 @@ func TestPixelmatchLeavesOutAntiAliasing(t *testing.T) {
 	a := box(fill(20, 20, white), image.Rect(5, 5, 15, 15), black)
 	b := box(a, image.Rect(15, 9, 16, 10), color.RGBA{128, 128, 128, 255})
 	out := image.NewRGBA(a.Rect)
-	if n := pixelmatch(a, b, out, Threshold); n != 0 {
+	if n := pixelmatch(a, b, out); n != 0 {
 		t.Errorf("%d pixels changed, want 0 for an anti-aliased edge", n)
 	}
 	if got := out.RGBAAt(15, 9); got.R != 255 || got.G != 255 || got.B != 0 {
@@ -66,7 +66,7 @@ func TestPixelmatchLeavesOutAntiAliasing(t *testing.T) {
 
 func TestDhash(t *testing.T) {
 	a := box(fill(90, 80, white), image.Rect(0, 0, 45, 80), black)
-	if d := bits.OnesCount64(dhash(a) ^ dhash(a)); d != 0 {
+	if d := bits.OnesCount64(dhash(a) ^ dhash(box(a, image.Rect(0, 0, 0, 0), black))); d != 0 {
 		t.Errorf("the same picture is %d bits apart", d)
 	}
 	b := box(fill(90, 80, white), image.Rect(45, 0, 90, 80), black)

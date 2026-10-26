@@ -53,7 +53,7 @@ func Compare(oldPath string, img image.Image, diffPath string) (*Change, error) 
 	}
 	out := image.NewRGBA(a.Rect)
 	c.Total = a.Rect.Dx() * a.Rect.Dy()
-	c.Changed = pixelmatch(a, b, out, Threshold)
+	c.Changed = pixelmatch(a, b, out)
 	c.Ratio = math.Round(float64(c.Changed)/float64(c.Total)*1e4) / 1e4
 	if c.Changed > 0 && diffPath != "" {
 		if err := writePNG(diffPath, out); err != nil {

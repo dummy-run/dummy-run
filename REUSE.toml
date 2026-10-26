@@ -67,6 +67,12 @@ SPDX-FileCopyrightText = "2024 FCUL"
 SPDX-License-Identifier = "ISC"
 
 [[annotations]]
+path = "internal/visual/pixelmatch.go"
+precedence = "override"
+SPDX-FileCopyrightText = ["2025 Mapbox", "2026 Joel Merrick and the Dummy Run contributors"]
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
 path = "internal/page/engines/qualweb/act.bundle.js"
 precedence = "override"
 SPDX-FileCopyrightText = ["2024 FCUL", "JS Foundation and other contributors", "2021 Lea Verou and Chris Lilley"]

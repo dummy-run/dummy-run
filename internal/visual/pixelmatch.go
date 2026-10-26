@@ -24,12 +24,12 @@ import (
 )
 
 // pixelmatch counts the pixels that differ between two pictures of the same size, by their colour difference in the
-// YIQ space, and leaves out pixels that only differ by anti-aliasing. threshold is from 0 to 1, and 0.1 is
+// YIQ space, and leaves out pixels that only differ by anti-aliasing, at Threshold, which is
 // pixelmatch's default. When out is not nil it gets a picture of the differences: the first picture faded to grey,
 // with differing pixels in red and anti-aliased ones in yellow.
-func pixelmatch(a, b *image.RGBA, out *image.RGBA, threshold float64) int {
+func pixelmatch(a, b *image.RGBA, out *image.RGBA) int {
 	w, h := a.Rect.Dx(), a.Rect.Dy()
-	maxDelta := 35215 * threshold * threshold
+	maxDelta := 35215 * Threshold * Threshold
 	diff := 0
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {

@@ -54,8 +54,10 @@ func compareScreen(ctx context.Context, conn *bidi.Conn, cx, dir string, masks [
 	var masked int
 	if err := conn.CallFunctionJSON(ctx, cx, maskJS, &masked, string(sels)); err != nil {
 		var se *bidi.ScriptError
-		if errors.As(err, &se) && strings.Contains(se.Text, "--mask") {
-			return errors.New(se.Text[strings.Index(se.Text, "--mask"):])
+		if errors.As(err, &se) {
+			if i := strings.Index(se.Text, "--mask"); i >= 0 {
+				return errors.New(se.Text[i:])
+			}
 		}
 		return err
 	}

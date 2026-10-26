@@ -82,6 +82,12 @@ ansi-styles and dequal.
 The long sentence, words to avoid and Latin abbreviation rules are our own, written from the public
 [GOV.UK A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/).
 
+## Picture comparison
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [pixelmatch](https://github.com/mapbox/pixelmatch) by Mapbox | 7.1.0, ported to Go in `internal/visual/pixelmatch.go` | Counts the pixels that changed between two pictures of a page with `--visual`, leaving out anti-aliasing, and draws a picture of the changes | ISC |
+
 ## Technology detection
 
 | Tool | Version | What it does in Dummy Run | Licence |
@@ -96,6 +102,7 @@ Some checks follow a method another project worked out, written again in our own
 |---|---|---|
 | [contrastcap](https://github.com/ICJIA/contrastcap-mcp) by ICJIA | Measuring text contrast over an image by hiding the text, taking a picture of what is behind it and comparing every pixel, for `--image-contrast` | MIT |
 | [Sa11y](https://github.com/ryersondmp/sa11y) from Toronto Metropolitan University and [Editoria11y](https://github.com/itmaybejj/editoria11y), which is developed with it | The idea of checking what authors write, such as vague link names, file names as alt text and bold text standing in for a heading, for `--content`. The checks, thresholds and wording are our own, written from the public descriptions of the problems. No code from either is used | GPL-2.0 |
+| [goimagehash](https://github.com/corona10/goimagehash) | The difference hash, which shrinks a picture to 9 by 8 grey cells and sets a bit where a cell is brighter than the next, for the `hash_distance` of `--visual`. The code is our own | BSD-2-Clause |
 | [LayoutLens](https://github.com/gojiplus/layoutlens) by goji+ | Measuring layout from the browser's rectangles and what is painted on top at a point: outermost elements past the window, clipped text, controls under other controls, focus hidden behind opaque content, and the measurable target size exceptions. Used by `--layout` | MIT |
 
 ## Data
