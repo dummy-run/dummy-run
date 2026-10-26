@@ -67,6 +67,9 @@ const pdfLinksJS = `(max) => {
   return out;
 }`
 
+// pdfCollectTimeout bounds reading a page's PDF links.
+var pdfCollectTimeout = 15 * time.Second
+
 // pdfCollect adds the page's links to PDFs on the swept sites to the sweep's list, up to maxPDFs across the sweep.
 // A PDF elsewhere is left out: a scan checks the files of the site it was asked about.
 func pdfCollect(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res *PageResult, rep *Report) {
@@ -77,7 +80,10 @@ func pdfCollect(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res
 		URL      string `json:"url"`
 		Selector string `json:"selector"`
 	}
-	if err := conn.CallFunctionJSONIn(ctx, cx, "dummyrun-pdf", pdfLinksJS, &found, 50); err != nil {
+	// The page has its own limit for its checks, and this runs after them, so the call gets one of its own.
+	lctx, cancel := context.WithTimeout(ctx, pdfCollectTimeout)
+	defer cancel()
+	if err := conn.CallFunctionJSONIn(lctx, cx, "dummyrun-pdf", pdfLinksJS, &found, 50); err != nil {
 		res.PDFError = firstLine(err.Error())
 		return
 	}

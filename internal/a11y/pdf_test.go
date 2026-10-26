@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/pdfua"
 )
 
@@ -283,5 +284,45 @@ func TestOwnAddr(t *testing.T) {
 		if got := ownAddr(c.addr, c.host); got != c.want {
 			t.Errorf("ownAddr(%q, %q) = %v", c.addr, c.host, got)
 		}
+	}
+}
+
+// TestPDFCollectHasItsOwnLimit checks reading a page's PDF links stops at its own limit, though the sweep's context
+// has none.
+func TestPDFCollectHasItsOwnLimit(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	defer func(d time.Duration) { pdfCollectTimeout = d }(pdfCollectTimeout)
+	pdfCollectTimeout = time.Nanosecond
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><title>Docs</title></head><body><a href="/a.pdf">A (PDF)</a></body></html>`)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(b.Close)
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+				t.Fatal(err)
+			}
+			var res PageResult
+			rep := &Report{}
+			pdfCollect(context.Background(), b.Conn, cx, Config{URLs: []string{srv.URL + "/"}}, &res, rep)
+			if !strings.Contains(res.PDFError, "deadline") || len(rep.pdfs) != 0 {
+				t.Errorf("error %q, PDFs %v", res.PDFError, rep.pdfs)
+			}
+		})
 	}
 }
