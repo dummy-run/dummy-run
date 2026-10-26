@@ -101,6 +101,10 @@ type Config struct {
 	Engines bool
 	// ScreenshotDir, when set, receives a PNG crop of each element the layout checks flag.
 	ScreenshotDir string
+	// VisualDir, when set, keeps a picture of the window for each page and setting, and compares each with the one
+	// the last sweep left there. Masks are CSS selectors for parts to cover before the picture is taken.
+	VisualDir string
+	Masks     []string
 	Headless      bool
 	// Identify adds a contact URL to the browser's user agent and to the requests for robots.txt.
 	Identify bool
@@ -209,6 +213,10 @@ type PageResult struct {
 	LinksTimedOut int    `json:"links_timed_out,omitempty"`
 	LinksOmitted  int    `json:"links_omitted,omitempty"`
 	LinksError    string `json:"links_error,omitempty"`
+	// Visual is how the window looked against the last sweep that wrote to the same --visual directory, and
+	// VisualError says why it could not be compared.
+	Visual      *Visual `json:"visual,omitempty"`
+	VisualError string  `json:"visual_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
@@ -761,6 +769,11 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			return res
 		}
 		res.Advice = append(res.Advice, consentFindings(c, path, cfg.Allow)...)
+	}
+	if cfg.VisualDir != "" {
+		if err := compareScreen(pctx, conn, cx, cfg.VisualDir, cfg.Masks, &res); err != nil {
+			res.VisualError = firstLine(err.Error())
+		}
 	}
 	if cfg.ImageContrast {
 		targets := imageContrastTargets(res.NeedsReview)

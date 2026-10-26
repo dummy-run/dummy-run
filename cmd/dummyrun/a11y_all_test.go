@@ -79,3 +79,22 @@ func TestLayoutAddsTheReflowSettings(t *testing.T) {
 		t.Errorf("without --layout: viewports %s, scales %v", names(got), got.TextScales)
 	}
 }
+
+// TestVisualFlagsReachTheSweep checks --visual and each --mask reach the sweep, and that --all leaves --visual off.
+func TestVisualFlagsReachTheSweep(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	if code := a11yCmd([]string{"https://example.com/", "--visual", "screens", "--mask", ".clock", "--mask", "#ad"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if got.VisualDir != "screens" || strings.Join(got.Masks, " ") != ".clock #ad" {
+		t.Errorf("visual %q, masks %q", got.VisualDir, got.Masks)
+	}
+	if code := a11yCmd([]string{"--all", "https://example.com/"}); code != 0 || got.VisualDir != "" {
+		t.Errorf("--all: exit %d, visual %q", code, got.VisualDir)
+	}
+}

@@ -92,6 +92,16 @@ func (r *Report) WriteSummary(w io.Writer) {
 		if p.LinksError != "" {
 			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
 		}
+		if p.VisualError != "" {
+			_, _ = fmt.Fprintf(w, "VISUAL %s (%s): %s\n", p.URL, p.Setting(), printable(p.VisualError))
+		}
+		if v := p.Visual; v != nil && v.Change != nil && (v.Changed > 0 || v.SizeChanged) {
+			if v.SizeChanged {
+				_, _ = fmt.Fprintf(w, "SCREEN %s (%s): the window changed size, hash distance %d of 64\n", p.URL, p.Setting(), v.HashDistance)
+			} else {
+				_, _ = fmt.Fprintf(w, "SCREEN %s (%s): %d of %d pixels changed, hash distance %d of 64, %s\n", p.URL, p.Setting(), v.Changed, v.Total, v.HashDistance, v.Diff)
+			}
+		}
 	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
