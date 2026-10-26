@@ -181,3 +181,21 @@ func TestRepeatCountsAFlakyElement(t *testing.T) {
 		})
 	}
 }
+
+// TestMergeRepeatsKeepsTheChecksThatRanOnce checks the HTML check and Lighthouse, which run in the first repeat only,
+// stay in the merged result when the first repeat's page failed after them and a later result is kept.
+func TestMergeRepeatsKeepsTheChecksThatRanOnce(t *testing.T) {
+	failed := repeatResult("layout checks: no boxes")
+	failed.HTMLChecked, failed.HTMLIgnored = true, 2
+	failed.LighthouseChecked, failed.LighthouseScores = true, map[string]float64{"accessibility": 0.9}
+	ok := repeatResult("")
+	got := mergeRepeats([][]PageResult{{failed}, {ok}})[0]
+	if !got.HTMLChecked || got.HTMLIgnored != 2 || !got.LighthouseChecked || got.LighthouseScores["accessibility"] != 0.9 {
+		t.Errorf("html %v %d, lighthouse %v %v", got.HTMLChecked, got.HTMLIgnored, got.LighthouseChecked, got.LighthouseScores)
+	}
+	// A later repeat's own results stay when the first repeat didn't run the checks.
+	ok.HTMLChecked = true
+	if got := mergeRepeats([][]PageResult{{repeatResult("load: timed out")}, {ok}})[0]; !got.HTMLChecked {
+		t.Error("the kept result's HTML check was dropped")
+	}
+}

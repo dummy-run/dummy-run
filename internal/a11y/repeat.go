@@ -45,6 +45,9 @@ func mergeGroup(ps []PageResult, repeats int) PageResult {
 		}
 	}
 	m := ps[pick]
+	if pick > 0 {
+		keepOnce(&m, ps[0])
+	}
 	m.Violations, m.NeedsReview, m.Advice, m.Candidates = []Finding{}, []Finding{}, nil, nil
 	errorRuns := 0
 	m.Repeats, m.ErrorRuns, m.Error = repeats, &errorRuns, ""
@@ -65,6 +68,20 @@ func mergeGroup(ps []PageResult, repeats int) PageResult {
 		}
 	}
 	return m
+}
+
+// keepOnce copies into m the results of the checks that run once for each URL, in the first repeat, before the
+// checks that can end a page early: the HTML check and Lighthouse. When the first repeat's page failed after them
+// and a later result is kept, they would otherwise be lost. Their findings are counted with the rest either way.
+func keepOnce(m *PageResult, first PageResult) {
+	if first.HTMLChecked || first.HTMLError != "" {
+		m.HTMLChecked, m.HTMLSourceChecked, m.HTMLPartial, m.HTMLStopped = first.HTMLChecked, first.HTMLSourceChecked, first.HTMLPartial, first.HTMLStopped
+		m.HTMLIgnored, m.HTMLError = first.HTMLIgnored, first.HTMLError
+	}
+	if first.LighthouseChecked || first.LighthouseError != "" {
+		m.LighthouseChecked, m.LighthouseScores, m.LighthouseAgreed = first.LighthouseChecked, first.LighthouseScores, first.LighthouseAgreed
+		m.LighthouseError, m.LighthouseMatchError = first.LighthouseError, first.LighthouseMatchError
+	}
 }
 
 func others(n, skip int) []int {
