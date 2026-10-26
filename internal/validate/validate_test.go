@@ -100,3 +100,31 @@ func TestCheckFailsOnAnErrorWithNoDocument(t *testing.T) {
 		t.Fatalf("got %v, %v; want an error naming vnu's message", res, err)
 	}
 }
+
+// Output vnu didn't finish, or that isn't about the files it was given, is an error too. An empty list is clean.
+func TestCheckFailsOnOutputThatIsNotAboutThePages(t *testing.T) {
+	for _, tc := range []struct{ name, out, want string }{
+		{"no list", `{}`, "no messages list"},
+		{"other file", `{"messages":[{"type":"error","url":"file:/elsewhere/page.html","message":"Stray end tag."}]}`, "wasn't given"},
+		{"empty list", `{"messages":[]}`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := filepath.Join(t.TempDir(), "vnu")
+			if err := os.WriteFile(fake, []byte("#!/bin/sh\necho '"+tc.out+"'\n"), 0o700); err != nil { //nolint:gosec // a test script must be executable
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			res, err := Check(ctx, fake, "<!doctype html><title>x</title>")
+			if tc.want == "" {
+				if err != nil || len(res) != 1 || len(res[0]) != 0 {
+					t.Fatalf("got %v, %v; want one clean page", res, err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("got %v, %v; want an error with %q", res, err, tc.want)
+			}
+		})
+	}
+}

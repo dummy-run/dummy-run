@@ -74,21 +74,28 @@ func Check(ctx context.Context, vnu string, docs ...string) ([][]Message, error)
 		return nil, fmt.Errorf("html check: vnu: %w: %s", err, firstLine(stderr.String()))
 	}
 	var r struct {
-		Messages []Message `json:"messages"`
+		Messages *[]Message `json:"messages"`
 	}
 	if err := json.Unmarshal(out.Bytes(), &r); err != nil {
 		return nil, fmt.Errorf("html check: read vnu's output: %w", err)
 	}
+	// Output with no list of messages, or a message for a file it wasn't given, means vnu didn't check the pages as
+	// asked, so neither is taken for a clean page. An empty list is a clean page.
+	if r.Messages == nil {
+		return nil, fmt.Errorf("html check: read vnu's output: it has no messages list")
+	}
 	res := make([][]Message, len(docs))
-	for _, m := range r.Messages {
+	for _, m := range *r.Messages {
 		// An I/O or internal failure comes with no document, and it means vnu did not read the pages.
 		if m.Type == "non-document-error" {
 			return nil, fmt.Errorf("html check: vnu: %s", firstLine(m.Message))
 		}
-		if i, ok := index[path.Base(m.URL)]; ok {
-			m.URL = ""
-			res[i] = append(res[i], m)
+		i, ok := index[path.Base(m.URL)]
+		if !ok {
+			return nil, fmt.Errorf("html check: vnu: a message for a file it wasn't given (%q)", m.URL)
 		}
+		m.URL = ""
+		res[i] = append(res[i], m)
 	}
 	return res, nil
 }
