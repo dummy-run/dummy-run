@@ -183,15 +183,67 @@ func TestPDFRedirectIsCheckedWhenItConnects(t *testing.T) {
 	}))
 	defer srv.Close()
 	saved := pdfLookup
+	// The name passes the redirect check at a public address, then resolves to a private one when the connection is
+	// made, as a rebinding name does.
+	lookups := 0
 	pdfLookup = func(context.Context, string) ([]net.IPAddr, error) {
+		lookups++
+		if lookups == 1 {
+			return []net.IPAddr{{IP: net.ParseIP("93.184.216.34")}}, nil
+		}
 		return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}}, nil
 	}
 	defer func() { pdfLookup = saved }()
 	err := download(context.Background(), Config{}, srv.URL+"/away.pdf", t.TempDir()+"/f.pdf")
-	if err == nil || !strings.Contains(err.Error(), "private address") {
-		t.Errorf("want a private address refusal, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "private address") || lookups != 2 {
+		t.Errorf("want a private address refusal when it connects, got %v after %d lookups", err, lookups)
 	}
 }
+
+// The transport tries each checked address in turn, as the standard dialer does, uses no proxy, and stays in place
+// whatever transport the sweep's client has.
+func TestPDFTransportFallsBackAndIgnoresProxyAndBaseTransport(t *testing.T) {
+	inner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = fmt.Fprint(w, "%PDF-1.7") }))
+	defer inner.Close()
+	innerAddr := strings.TrimPrefix(inner.URL, "http://")
+	_, port, _ := net.SplitHostPort(innerAddr)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://cdn.example:"+port+"/f.pdf", http.StatusFound)
+	}))
+	defer srv.Close()
+	savedLookup, savedDial := pdfLookup, pdfDial
+	defer func() { pdfLookup, pdfDial = savedLookup, savedDial }()
+	pdfLookup = func(context.Context, string) ([]net.IPAddr, error) {
+		return []net.IPAddr{{IP: net.ParseIP("2001:4860:4860::8888")}, {IP: net.ParseIP("93.184.216.34")}}, nil
+	}
+	var tried []string
+	pdfDial = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		tried = append(tried, addr)
+		switch {
+		case strings.HasPrefix(addr, "[2001:"):
+			return nil, errors.New("network is unreachable")
+		case strings.HasPrefix(addr, "93.184.216.34:"):
+			addr = innerAddr
+		}
+		return (&net.Dialer{}).DialContext(ctx, network, addr)
+	}
+	base := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("the base transport was used")
+	})}
+	if err := download(context.Background(), Config{HTTPClient: base}, srv.URL+"/away.pdf", t.TempDir()+"/f.pdf"); err != nil {
+		t.Fatalf("download: %v (tried %v)", err, tried)
+	}
+	if len(tried) != 3 || !strings.HasPrefix(tried[1], "[2001:") || !strings.HasPrefix(tried[2], "93.184.216.34:") {
+		t.Errorf("tried %v, want the PDF's host, then the IPv6 address, then the IPv4 one", tried)
+	}
+	if tr, ok := pdfTransport("example.com").(*http.Transport); !ok || tr.Proxy != nil {
+		t.Error("the PDF transport uses a proxy")
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 // When veraPDF fails, every PDF that downloaded says it wasn't checked, and the sweep says why.
 func TestPDFCheckWhenVeraPDFFails(t *testing.T) {
@@ -211,6 +263,25 @@ func TestPDFCheckWhenVeraPDFFails(t *testing.T) {
 	for _, p := range rep.PDFs {
 		if p.Error == "" || p.Compliant {
 			t.Errorf("%s has no error: %+v", p.URL, p)
+		}
+	}
+}
+
+func TestOwnAddr(t *testing.T) {
+	for _, c := range []struct {
+		addr, host string
+		want       bool
+	}{
+		{"example.com:443", "example.com", true},
+		{"example.com:80", "example.com", true},
+		{"example.com:8080", "example.com", false},
+		{"127.0.0.1:5000", "127.0.0.1:5000", true},
+		{"127.0.0.1:5001", "127.0.0.1:5000", false},
+		{"[::1]:443", "[::1]", true},
+		{"cdn.example:443", "example.com", false},
+	} {
+		if got := ownAddr(c.addr, c.host); got != c.want {
+			t.Errorf("ownAddr(%q, %q) = %v", c.addr, c.host, got)
 		}
 	}
 }

@@ -1335,8 +1335,9 @@ page.
 
 - Only shown links count, and only to the same host as a URL you swept. A PDF on another site is left out.
 - Each PDF is fetched once with a plain GET and the sweep's user agent, up to 25 MB.
-- A redirect is followed only on the same host or to a public address, even from a site on localhost. The address
-  is checked when the connection is made.
+- A redirect is followed only on the same host and port or to a public address, even from a site on localhost.
+  The address is checked when the connection is made, and the download uses no proxy, so a proxy can't connect
+  in the check's place.
 - With `--respect-robots`, a PDF robots.txt disallows is skipped.
 - A file that isn't a PDF, is too big or can't be read gets an `error` and no verdict.
 - Signed in or behind preview access, PDFs aren't checked, since the download would carry neither.

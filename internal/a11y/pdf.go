@@ -179,60 +179,102 @@ func pdfFinding(p PDFCheck, path string, allow *AllowList) Finding {
 }
 
 // pdfClient follows a redirect only to the PDF's own host or to a public address. Unlike robots.txt, even a private
-// origin, such as a site on localhost, can't send the download on to another private address.
+// origin, such as a site on localhost, can't send the download on to another private address. It always uses its
+// own guarded transport, whatever transport base has, and takes only base's time limit.
 func pdfClient(base *http.Client, host string) *http.Client {
-	c := http.Client{Timeout: 30 * time.Second}
-	if base != nil {
-		c = *base
-	}
-	if c.Transport == nil {
-		c.Transport = pdfTransport(host)
+	c := http.Client{Timeout: 30 * time.Second, Transport: pdfTransport(host)}
+	if base != nil && base.Timeout > 0 {
+		c.Timeout = base.Timeout
 	}
 	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 10 {
 			return errors.New("stopped after 10 redirects")
 		}
-		if !strings.EqualFold(req.URL.Host, host) && links.PrivateHost(req.Context(), req.URL.Host) {
-			return fmt.Errorf("redirects to a private address, %s", req.URL.Host)
+		if strings.EqualFold(req.URL.Host, host) {
+			return nil
 		}
-		return nil
+		_, err := publicAddrs(req.Context(), req.URL.Hostname())
+		return err
 	}
 	return &c
 }
 
+// ownAddr says addr, a host and port the transport is about to dial, is the PDF's own host. A host given without a
+// port is its own on 80 or 443. Another port on the same host is another service, so it isn't.
+func ownAddr(addr, host string) bool {
+	if strings.EqualFold(addr, host) {
+		return true
+	}
+	h, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return false
+	}
+	if _, _, err := net.SplitHostPort(host); err == nil {
+		return false
+	}
+	return strings.EqualFold(h, strings.Trim(host, "[]")) && (port == "80" || port == "443")
+}
+
+// publicAddrs looks h up and returns its addresses, or an error if any of them is private.
+func publicAddrs(ctx context.Context, h string) ([]net.IPAddr, error) {
+	if ip := net.ParseIP(h); ip != nil {
+		if links.PrivateIP(ip) {
+			return nil, fmt.Errorf("redirects to a private address, %s", h)
+		}
+		return []net.IPAddr{{IP: ip}}, nil
+	}
+	ips, err := pdfLookup(ctx, h)
+	if err != nil {
+		return nil, err
+	}
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("%s has no address", h)
+	}
+	for _, ip := range ips {
+		if links.PrivateIP(ip.IP) {
+			return nil, fmt.Errorf("redirects to a private address, %s", h)
+		}
+	}
+	return ips, nil
+}
+
 // pdfTransport connects to the PDF's own host as usual, and to any other host only at an address that isn't private.
 // The address is looked up once and the connection made to it, so a name can't pass the check and then resolve to a
-// private address when the connection is made.
+// private address when the connection is made. Each checked address is tried in turn, as the standard dialer does.
+// It uses no proxy, since a proxy would make the connection, and resolve the name, in place of this check.
 func pdfTransport(host string) http.RoundTripper {
 	t := http.DefaultTransport.(*http.Transport).Clone()
-	var d net.Dialer
+	t.Proxy = nil
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		h, port, err := net.SplitHostPort(addr)
 		if err != nil {
 			return nil, err
 		}
-		if own, _, _ := net.SplitHostPort(host); strings.EqualFold(h, host) || strings.EqualFold(h, own) {
-			return d.DialContext(ctx, network, addr)
+		if ownAddr(addr, host) {
+			return pdfDial(ctx, network, addr)
 		}
-		ips, err := pdfLookup(ctx, h)
+		ips, err := publicAddrs(ctx, h)
 		if err != nil {
 			return nil, err
 		}
-		if len(ips) == 0 {
-			return nil, fmt.Errorf("%s has no address", h)
-		}
+		var last error
 		for _, ip := range ips {
-			if links.PrivateIP(ip.IP) {
-				return nil, fmt.Errorf("redirects to a private address, %s", h)
+			conn, err := pdfDial(ctx, network, net.JoinHostPort(ip.IP.String(), port))
+			if err == nil {
+				return conn, nil
 			}
+			last = err
 		}
-		return d.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
+		return nil, last
 	}
 	return t
 }
 
-// pdfLookup resolves a host name for pdfTransport. Tests replace it.
-var pdfLookup = net.DefaultResolver.LookupIPAddr
+// pdfLookup resolves a host name for pdfTransport, and pdfDial makes its connections. Tests replace them.
+var (
+	pdfLookup = net.DefaultResolver.LookupIPAddr
+	pdfDial   = (&net.Dialer{}).DialContext
+)
 
 // download fetches a PDF with a plain GET and nothing else, up to maxPDFBytes, and keeps it only when it starts like
 // a PDF.
