@@ -361,6 +361,24 @@
               "settings": { "type": "array", "items": { "type": "string" } }
             }
           }
+        },
+        "colours": {
+          "type": "array",
+          "description": "For a colour contrast rule, each failing pair of colours and the nearest colours that meet the ratio, changing only lightness in OKLCH",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "background", "ratio", "need", "elements"],
+            "properties": {
+              "text": { "type": "string" },
+              "background": { "type": "string" },
+              "ratio": { "type": "number" },
+              "need": { "type": "number" },
+              "text_fix": { "type": "string" },
+              "background_fix": { "type": "string" },
+              "elements": { "type": "integer" }
+            }
+          }
         }
       }
     },
