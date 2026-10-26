@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -99,6 +100,52 @@ func TestLinkCheckReportsBrokenLinks(t *testing.T) {
 			// The second page's link to /gone was already checked from the first page.
 			if gone != 1 {
 				t.Errorf("/gone was requested %d times, want once", gone)
+			}
+		})
+	}
+}
+
+// With --respect-robots, a link robots.txt disallows is never fetched.
+func TestLinkCheckRespectsRobots(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	if _, err := links.Find(); err != nil {
+		t.Skip("lychee is not installed: ", err)
+	}
+	var private atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case "/private":
+			private.Add(1)
+		case "/fine":
+			_, _ = fmt.Fprint(w, "ok")
+		default:
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><title>Links</title><main><h1>Links</h1><a href="/fine">Fine</a> <a href="/private">Private</a></main></html>`)
+		}
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			private.Store(0)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, Links: true, RespectRobots: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Results[0]
+			// Like a link lychee leaves out, the skipped link counts as checked and isn't broken.
+			if r.LinksError != "" || r.LinksChecked != 2 || len(r.Advice) != 0 {
+				t.Errorf("checked %d, error %q, advice %+v", r.LinksChecked, r.LinksError, r.Advice)
+			}
+			if n := private.Load(); n != 0 {
+				t.Errorf("/private was requested %d times", n)
 			}
 		})
 	}

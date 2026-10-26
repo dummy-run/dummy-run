@@ -105,6 +105,20 @@ func linkCheck(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, res 
 		return v
 	}
 	plan := planLinks(cfg.URLs, cfg.Access.Active(), todo, private)
+	// With --respect-robots, a link robots.txt disallows isn't fetched. Private addresses are already out of the
+	// plan, so no robots.txt is fetched from them either.
+	robotsOK := func(us []string) []string {
+		var kept []string
+		for _, u := range us {
+			if ok, _ := rep.robotsAllows(lctx, cfg, u); ok {
+				kept = append(kept, u)
+			} else {
+				plan.skipped = append(plan.skipped, u)
+			}
+		}
+		return kept
+	}
+	plan.lychee, plan.browser = robotsOK(plan.lychee), robotsOK(plan.browser)
 	for _, u := range plan.skipped {
 		rep.linkResults[u] = links.Result{URL: u, Outcome: links.Skipped}
 	}

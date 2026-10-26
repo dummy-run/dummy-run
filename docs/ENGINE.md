@@ -1344,7 +1344,8 @@ A page decides where its links point, so a link to `localhost`, to `169.254.169.
 private network would have the checker visit the machine it runs on or the network around it. Those links are
 skipped, both by the sweep, which looks up each host first, and by lychee with `--exclude-all-private`. They're
 checked only when every URL you sweep is itself on `localhost` or a private address, as when you sweep a site on
-your own machine. The sweep looks for `lychee` on your `PATH`, or the program `DUMMYRUN_LYCHEE` names. The container
+your own machine. With `--respect-robots`, a link to a page that robots.txt disallows is skipped too, and isn't
+fetched. The sweep looks for `lychee` on your `PATH`, or the program `DUMMYRUN_LYCHEE` names. The container
 image includes lychee 0.24.2. Without it, the rest of the sweep still runs and each page says why its links weren't
 checked.
 
