@@ -154,3 +154,39 @@ func TestReplaceFileKeepsTheOldOneOnFailure(t *testing.T) {
 		t.Errorf("a partial write left %d files, want 1", len(entries))
 	}
 }
+
+// TestARIASnapshotsTakeTheFirstRepeat sweeps a page whose heading counts its loads, twice over with --repeat 2. Only
+// the first repeat writes the snapshot, so the file holds the first load and the result says it is the first.
+func TestARIASnapshotsTakeTheFirstRepeat(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var loads atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Load %d</h1></main></body></html>`, loads.Add(1))
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			loads.Store(0)
+			dir := t.TempDir()
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, ARIASnapshots: dir, Repeat: 2})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Results[0]
+			if r.ARIASnapshot == "" || r.ARIAChanges != nil {
+				t.Fatalf("file %q, changes %+v, error %q", r.ARIASnapshot, r.ARIAChanges, r.ARIASnapshotError)
+			}
+			text, _ := os.ReadFile(r.ARIASnapshot)
+			if !strings.Contains(string(text), `heading "Load 1"`) {
+				t.Errorf("the snapshot isn't the first load's:\n%s", text)
+			}
+		})
+	}
+}

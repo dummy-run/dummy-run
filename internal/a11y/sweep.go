@@ -324,6 +324,8 @@ type Report struct {
 	Repeats int          `json:"repeats,omitempty"`
 	Results []PageResult `json:"results"`
 	Summary Summary      `json:"summary"`
+	// repeat is the repeat the sweep is on, counting from 0.
+	repeat int
 	// htmlChecked holds the URLs whose HTML was checked, so each is checked once.
 	htmlChecked map[string]bool
 	// lighthouseDone holds the URLs Lighthouse audited, so each is audited once. debugger is the Chrome DevTools
@@ -463,6 +465,7 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 			_, _ = fmt.Fprintf(cfg.Log, "repeat %d of %d\n", r+1, repeats)
 		}
 		start := len(rep.Results)
+		rep.repeat = r
 		for _, scale := range cfg.TextScales {
 			for _, scheme := range cfg.Schemes {
 				if err := sweepScheme(ctx, cfg, scheme, scale, rep); err != nil {
@@ -869,7 +872,9 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.Tasks = t
 		res.Violations = append(res.Violations, taskFindings(t, path, cfg.Allow)...)
 	}()
-	if cfg.ARIASnapshots != "" {
+	// With --repeat, only the first repeat compares and writes the snapshots, so the comparison is always with the
+	// sweep before and never with an earlier repeat.
+	if cfg.ARIASnapshots != "" && rep.repeat == 0 {
 		snapshotCheck(pctx, conn, cx, cfg.ARIASnapshots, &res)
 	}
 	if cfg.Markup {

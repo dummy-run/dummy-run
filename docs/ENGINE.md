@@ -1123,7 +1123,8 @@ If DIR already holds a snapshot for the page and setting, the sweep compares the
 `aria_changes` lists up to 50 lines added and 50 removed, and counts them all. The terminal shows a `CHANGED`
 line for each page with the lines that changed. Then the new snapshot replaces the old one. Each file name comes
 from the page's address and setting, with a short hash, such as `example.com_shop--chrome_desktop_light-1a2b3c4d.yaml`.
-A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
+With `--repeat`, only the first repeat compares and writes the snapshots, so the comparison is always with the
+sweep before and never with an earlier repeat. A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
 changes and decide.
 
 ```sh
