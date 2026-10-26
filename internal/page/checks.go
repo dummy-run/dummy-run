@@ -25,6 +25,15 @@ type CheckNode struct {
 type MarkupChecks struct {
 	LabelInName  []CheckNode `json:"labelInName"`
 	Autocomplete []CheckNode `json:"autocomplete"`
+	// ARIAFeatures are the roles and aria-* attributes the page's shown elements use.
+	ARIAFeatures []ARIAFeature `json:"ariaFeatures"`
+}
+
+// ARIAFeature is a role or aria-* attribute in use on a page.
+type ARIAFeature struct {
+	Name     string `json:"name"`
+	Selector string `json:"selector"`
+	Count    int    `json:"count"`
 }
 
 // RunMarkupChecks runs checks.js on the loaded page.

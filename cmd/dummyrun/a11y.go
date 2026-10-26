@@ -71,7 +71,8 @@ Flags:
                     the URL and status code. Links to private addresses are skipped unless every URL you sweep is
                     on one. Needs lychee on the PATH or DUMMYRUN_LYCHEE
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
-                    your own details with no purpose-specific autocomplete value
+                    your own details with no purpose-specific autocomplete value. A role or ARIA attribute that a
+                    screen reader passed under 60 percent of the ARIA-AT tests for is advice (dummyrun-aria-support)
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE

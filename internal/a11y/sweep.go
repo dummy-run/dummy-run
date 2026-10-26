@@ -823,6 +823,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.MarkupChecked = true
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
+		res.Advice = append(res.Advice, ariaSupportAdvice(m.ARIAFeatures, path, cfg.Allow)...)
 	}
 	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size. They run
 	// last, with their own time limit, so they can't take time from the checks above, and the cookie banner has
