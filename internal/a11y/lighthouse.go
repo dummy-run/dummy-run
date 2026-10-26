@@ -8,6 +8,7 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/lighthouse"
+	"github.com/dummy-run/dummy-run/internal/record"
 )
 
 // RuleLighthousePrefix starts the rule ID of a Lighthouse audit that failed where axe found nothing, as in
@@ -124,7 +125,7 @@ func foldLighthouse(res *PageResult, r *lighthouse.Result, refs []lighthouseRef,
 	for _, f := range r.Failures {
 		access := f.Category == "accessibility"
 		finding := Finding{Rule: RuleLighthousePrefix + f.ID, Help: "Lighthouse: " + f.Title,
-			HelpURL: "https://developer.chrome.com/docs/lighthouse/", Nodes: []Node{}}
+			HelpURL: "https://developer.chrome.com/docs/lighthouse/", Evidence: record.EvidenceEngineRule, Nodes: []Node{}}
 		if access {
 			finding.HelpURL = "https://dequeuniversity.com/rules/axe/4.14/" + f.ID
 		}
@@ -159,7 +160,8 @@ func foldLighthouse(res *PageResult, r *lighthouse.Result, refs []lighthouseRef,
 					continue
 				}
 			}
-			n := Node{Target: it.Selector, Detail: strings.TrimSpace(strings.Trim(it.Label+": "+it.Detail, ": "))}
+			// The node names Lighthouse as the engine, so the report doesn't take it for one of axe's.
+			n := Node{Target: it.Selector, Detail: strings.TrimSpace(strings.Trim(it.Label+": "+it.Detail, ": ")), Engines: []string{"lighthouse"}}
 			if e := allow.Match(finding.Rule, path, n.Target); e != nil {
 				n.Allowed, n.Reason = true, e.Reason
 			}

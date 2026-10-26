@@ -1,6 +1,12 @@
 package lighthouse
 
-import "testing"
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
 const report = `{"lighthouseVersion":"13.5.0",
  "categories":{
@@ -71,5 +77,36 @@ func TestParseKeepsRowsWithNoElement(t *testing.T) {
 	}
 	if got := r.Failures[1].Items; len(got) != 1 || got[0].Detail != "Mixed content" {
 		t.Errorf("inspector-issues items %+v", got)
+	}
+}
+
+// Find takes DUMMYRUN_LIGHTHOUSE over lighthouse on the PATH, says when that program is missing rather than falling
+// back, and says how to install Lighthouse when there's neither.
+func TestFindPrefersTheOverride(t *testing.T) {
+	dir := t.TempDir()
+	onPath := filepath.Join(dir, "lighthouse")
+	chosen := filepath.Join(dir, "my-lighthouse")
+	for _, p := range []string{onPath, chosen} {
+		if err := os.WriteFile(p, []byte("#!/bin/sh\n"), 0o700); err != nil { //nolint:gosec // a test program must be executable
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", dir)
+
+	t.Setenv("DUMMYRUN_LIGHTHOUSE", chosen)
+	if got, err := Find(); err != nil || got != chosen {
+		t.Errorf("with the override: %q, %v; want %q", got, err, chosen)
+	}
+	t.Setenv("DUMMYRUN_LIGHTHOUSE", filepath.Join(dir, "missing"))
+	if got, err := Find(); err == nil || !strings.Contains(err.Error(), "DUMMYRUN_LIGHTHOUSE") {
+		t.Errorf("with a missing override: %q, %v; want an error naming DUMMYRUN_LIGHTHOUSE", got, err)
+	}
+	t.Setenv("DUMMYRUN_LIGHTHOUSE", "")
+	if got, err := Find(); err != nil || got != onPath {
+		t.Errorf("from the PATH: %q, %v; want %q", got, err, onPath)
+	}
+	t.Setenv("PATH", t.TempDir())
+	if _, err := Find(); !errors.Is(err, ErrNoLighthouse) {
+		t.Errorf("with neither: %v; want ErrNoLighthouse", err)
 	}
 }

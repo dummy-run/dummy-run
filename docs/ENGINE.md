@@ -1213,9 +1213,8 @@ signed-in sweep stays signed in. Throttling is off and the window is the browser
 user agent, which names Lighthouse. A run takes about 20 seconds, so it's done once for each URL, whatever the window
 sizes and schemes.
 
-Lighthouse's accessibility audits are axe-core rules, run by Lighthouse's own copy of axe-core. So it isn't a
-second opinion the way the other rule engines are, and it never counts towards their agreement. The sweep uses it in
-three ways:
+Lighthouse's accessibility audits are axe-core rules, run by Lighthouse's own copy of axe-core. Lighthouse never
+counts towards the other rule engines' agreement.
 
 - Where Lighthouse fails an element that our axe also failed, for the same rule, the node gets `lighthouse: true`.
   `lighthouse_agreed` counts these nodes. The two can differ when the page changes between loads, or because

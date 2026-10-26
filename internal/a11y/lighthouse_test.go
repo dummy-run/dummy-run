@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/lighthouse"
+	"github.com/dummy-run/dummy-run/internal/record"
 )
 
 const lighthousePage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Lighthouse</title></head><body><main><h1>Lighthouse</h1>
@@ -23,9 +24,7 @@ func TestLighthouseConfirmsAxeAndAddsAdvice(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	if _, err := lighthouse.Find(); err != nil {
-		t.Skip("lighthouse is not installed: ", err)
-	}
+	_, findErr := lighthouse.Find()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = fmt.Fprint(w, lighthousePage)
@@ -33,6 +32,10 @@ func TestLighthouseConfirmsAxeAndAddsAdvice(t *testing.T) {
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
+			// Firefox never starts Lighthouse, so its check runs whether or not Lighthouse is installed.
+			if browser == "chrome" && findErr != nil {
+				t.Skip("lighthouse is not installed: ", findErr)
+			}
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
 			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop, Phone},
@@ -119,6 +122,12 @@ func TestFoldLighthouseMatchesEachRule(t *testing.T) {
 	}
 	if len(res.Advice) != 1 || res.Advice[0].Rule != "dummyrun-lighthouse-deprecations" {
 		t.Errorf("advice %+v", res.Advice)
+	}
+	// Each finding is a rule engine's, and each node names Lighthouse, so the report doesn't credit it to axe.
+	for _, f := range append(res.Candidates, res.Advice...) {
+		if f.Evidence != record.EvidenceEngineRule || len(f.Nodes[0].Engines) != 1 || f.Nodes[0].Engines[0] != "lighthouse" {
+			t.Errorf("%s: evidence %q, engines %v", f.Rule, f.Evidence, f.Nodes[0].Engines)
+		}
 	}
 
 	// An allow-list entry for a Lighthouse rule marks its node allowed, with the reason, and leaves the others alone.

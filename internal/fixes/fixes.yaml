@@ -321,7 +321,7 @@
   summary: Fix the problem Lighthouse reports.
   steps:
     - Read Lighthouse's title and the element in the finding.
-    - Follow the Lighthouse guidance for that audit, linked from the finding.
+    - Follow the guidance linked from the finding.
     - Run the sweep again with --lighthouse to check the audit passes.
   sources:
     - https://developer.chrome.com/docs/lighthouse/
