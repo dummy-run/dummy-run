@@ -206,6 +206,9 @@ func TestConformance(t *testing.T) {
 			ctx := context.Background()
 			b := launch(t, browser)
 			c := b.Conn
+			if (browser == "chrome") != (b.DebuggerAddress != "") {
+				t.Errorf("debugger address %q for %s; only Chrome has one", b.DebuggerAddress, browser)
+			}
 			if b.Version == "" {
 				t.Errorf("session reported no browserVersion")
 			}

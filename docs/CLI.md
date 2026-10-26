@@ -279,6 +279,11 @@ Flags:
                     They fail the sweep like axe rules and the allow-list can accept them. Unless you set
                     --viewport or --text-scale, it adds the 320 px window and a run at 200 percent text, the
                     two settings WCAG 1.4.10 and 1.4.4 name
+  --lighthouse      also run Lighthouse's accessibility and best-practice audits once for each URL, in the same
+                    Chrome. Where Lighthouse's copy of axe-core fails an element axe failed, the node gets
+                    lighthouse true. Its other accessibility failures are candidates and its best-practice failures
+                    advice (rules dummyrun-lighthouse-<audit>). Chrome only; needs lighthouse on the PATH or
+                    DUMMYRUN_LIGHTHOUSE
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences

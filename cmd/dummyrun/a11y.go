@@ -57,6 +57,11 @@ Flags:
                     They fail the sweep like axe rules and the allow-list can accept them. Unless you set
                     --viewport or --text-scale, it adds the 320 px window and a run at 200 percent text, the
                     two settings WCAG 1.4.10 and 1.4.4 name
+  --lighthouse      also run Lighthouse's accessibility and best-practice audits once for each URL, in the same
+                    Chrome. Where Lighthouse's copy of axe-core fails an element axe failed, the node gets
+                    lighthouse true. Its other accessibility failures are candidates and its best-practice failures
+                    advice (rules dummyrun-lighthouse-<audit>). Chrome only; needs lighthouse on the PATH or
+                    DUMMYRUN_LIGHTHOUSE
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
                     your own details with no purpose-specific autocomplete value
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
@@ -102,6 +107,7 @@ func a11yCmd(args []string) int {
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
 	plainLang := fs.Bool("plain-language", false, "check the main content with Vale")
 	htmlCheck := fs.Bool("html", false, "check the HTML with the Nu HTML Checker")
+	lighthouseOn := fs.Bool("lighthouse", false, "run Lighthouse's accessibility and best-practice audits")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
@@ -146,7 +152,7 @@ func a11yCmd(args []string) int {
 	}
 	if *all {
 		// One switch for every check. A check added later joins this list.
-		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, htmlCheck, imageContrast} {
+		for _, on := range []*bool{layout, keyboard, markup, engines, consent, plainLang, htmlCheck, lighthouseOn, imageContrast} {
 			*on = true
 		}
 	}
@@ -211,7 +217,7 @@ func a11yCmd(args []string) int {
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

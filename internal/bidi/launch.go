@@ -55,9 +55,12 @@ type Browser struct {
 	Version string
 	// UserAgent is navigator.userAgent of the first context.
 	UserAgent string
-	procs     []*proc
-	tempDirs  []string
-	closeOnce sync.Once
+	// DebuggerAddress is Chrome's DevTools address, such as localhost:9222, as chromedriver reports it, so a tool
+	// such as Lighthouse can use the same browser. It is empty in Firefox.
+	DebuggerAddress string
+	procs           []*proc
+	tempDirs        []string
+	closeOnce       sync.Once
 }
 
 // proc is a started process, its exit watcher and its parent-death guard.
@@ -399,6 +402,9 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	}
 	b.Conn = conn
 	b.Version, _ = v.Value.Capabilities["browserVersion"].(string)
+	if o, ok := v.Value.Capabilities["goog:chromeOptions"].(map[string]any); ok {
+		b.DebuggerAddress, _ = o["debuggerAddress"].(string)
+	}
 	return nil
 }
 

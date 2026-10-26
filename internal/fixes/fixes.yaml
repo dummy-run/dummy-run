@@ -316,6 +316,16 @@
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html
 
+- rule: dummyrun-lighthouse-
+  owner: development
+  summary: Fix the problem Lighthouse reports.
+  steps:
+    - Read Lighthouse's title and the element in the finding.
+    - Follow the Lighthouse guidance for that audit, linked from the finding.
+    - Run the sweep again with --lighthouse to check the audit passes.
+  sources:
+    - https://developer.chrome.com/docs/lighthouse/
+
 - rule: dummyrun-engines-
   owner: development
   summary: Fix the problem two or more rule engines agree on.
