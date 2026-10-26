@@ -18,7 +18,7 @@ import (
 var templateFS embed.FS
 
 // Formats lists the output formats.
-var Formats = []string{"html", "md", "json", "sarif", "junit", "badge", "shields"}
+var Formats = []string{"html", "md", "json", "sarif", "junit", "ctrf", "badge", "shields"}
 
 // maxEmbedBytes is the largest screenshot embedded in HTML. A larger file is left out and named.
 const maxEmbedBytes = 4 << 20
@@ -40,6 +40,8 @@ func Render(w io.Writer, rep *Report, format string) error {
 		return RenderShields(w, rep)
 	case "junit":
 		return renderJUnit(w, rep)
+	case "ctrf":
+		return renderCTRF(w, rep)
 	}
 	return fmt.Errorf("unknown format %q: the formats are %s", format, strings.Join(Formats, ", "))
 }

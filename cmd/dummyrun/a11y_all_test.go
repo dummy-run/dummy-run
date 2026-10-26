@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -77,5 +80,33 @@ func TestLayoutAddsTheReflowSettings(t *testing.T) {
 	}
 	if a11yCmd([]string{"https://example.com/"}); names(got) != "desktop,phone" || len(got.TextScales) != 0 {
 		t.Errorf("without --layout: viewports %s, scales %v", names(got), got.TextScales)
+	}
+}
+
+// TestA11yWritesTestReports checks --junit and --ctrf write each failing rule as a failed test.
+func TestA11yWritesTestReports(t *testing.T) {
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		return &a11y.Report{Browser: "chrome", AxeVersion: "4.13.0", Summary: a11y.Summary{Failing: 1}, Results: []a11y.PageResult{{URL: cfg.URLs[0], Viewport: "desktop", Scheme: "light",
+			Violations: []a11y.Finding{{Rule: "image-alt", Impact: "critical", WCAG: []string{"1.1.1"}, Help: "Images must have alternative text", Nodes: []a11y.Node{{Target: "#logo"}}}}}}}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	dir := t.TempDir()
+	junit, ctrf := filepath.Join(dir, "a11y.xml"), filepath.Join(dir, "a11y.ctrf.json")
+	if code := a11yCmd([]string{"--junit", junit, "--ctrf", ctrf, "https://example.com/"}); code != 1 {
+		t.Fatalf("exit %d, want 1 for a failing rule", code)
+	}
+	x, err := os.ReadFile(junit)
+	if err != nil || !strings.Contains(string(x), `classname="axe.image-alt"`) || !strings.Contains(string(x), "<failure") {
+		t.Errorf("junit: %v\n%s", err, x)
+	}
+	var doc struct {
+		ReportFormat string `json:"reportFormat"`
+		Results      struct {
+			Summary struct{ Tests, Failed int } `json:"summary"`
+		} `json:"results"`
+	}
+	b, err := os.ReadFile(ctrf)
+	if err != nil || json.Unmarshal(b, &doc) != nil || doc.ReportFormat != "CTRF" || doc.Results.Summary.Tests != 1 || doc.Results.Summary.Failed != 1 {
+		t.Errorf("ctrf: %v %+v\n%s", err, doc, b)
 	}
 }

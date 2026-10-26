@@ -14,7 +14,9 @@ import (
 	"github.com/dummy-run/dummy-run/internal/a11y"
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/cast"
+	"github.com/dummy-run/dummy-run/internal/report"
 	"github.com/dummy-run/dummy-run/internal/signin"
+	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
 const a11yUsage = `Usage:
@@ -79,6 +81,8 @@ Flags:
                     setting
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
+  --junit FILE      write the failing rules as JUnit XML for a CI job, one test case for each rule
+  --ctrf FILE       write the failing rules in the Common Test Report Format (CTRF) JSON, one test for each rule
   --identify        add "DummyRun/<version> (+https://dummyrun.dev/scanner/)" to the browser's user agent
   --respect-robots  fetch robots.txt from each page's origin and skip pages it disallows for DummyRun or *
   --session FILE    a saved session (see "dummyrun session save"), loaded before the first page so the pages are
@@ -122,6 +126,8 @@ func a11yCmd(args []string) int {
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
 	allowPath := fs.String("allow", "", "allow-list file")
 	jsonPath := fs.String("json", "", "JSON report file, or - for standard output")
+	junitPath := fs.String("junit", "", "JUnit XML file of the failing rules")
+	ctrfPath := fs.String("ctrf", "", "CTRF JSON file of the failing rules")
 	sessionPath := fs.String("session", "", "saved session file to load before the sweep")
 	headful := fs.Bool("headful", false, "show the browser window")
 	identify := fs.Bool("identify", false, "name the scanner page in the user agent")
@@ -256,6 +262,14 @@ func a11yCmd(args []string) int {
 			return fail(err)
 		}
 	}
+	for format, path := range map[string]string{"junit": *junitPath, "ctrf": *ctrfPath} {
+		if path == "" {
+			continue
+		}
+		if err := writeTestReport(rep, format, path); err != nil {
+			return fail(err)
+		}
+	}
 	if rep.Failed() {
 		return 1
 	}
@@ -317,6 +331,24 @@ func parseTextScales(v string) ([]int, error) {
 func pick[T any](name string, options map[string][]T) ([]T, bool) {
 	v, ok := options[strings.ToLower(name)]
 	return v, ok
+}
+
+// writeTestReport writes the sweep as a test report for CI, by the same rules as dummyrun report: each failing
+// rule is a failed test.
+func writeTestReport(rep *a11y.Report, format, path string) error {
+	r, err := report.Build(nil, report.Options{A11y: []*a11y.Report{rep}, ToolVersion: telemetry.Version})
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(path) //nolint:gosec // the path comes from the command line on purpose
+	if err != nil {
+		return err
+	}
+	if err := report.Render(f, r, format); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 func writeReport(rep *a11y.Report, path string) error {
