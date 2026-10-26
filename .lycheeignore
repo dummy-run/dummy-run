@@ -1,0 +1,4 @@
+# Official legal texts whose sites answer automated checks with a 202 challenge page instead of the document.
+# They are checked by hand when the text that cites them changes.
+^https://eur-lex\.europa\.eu/
+^https://www\.legislation\.gov\.uk/
