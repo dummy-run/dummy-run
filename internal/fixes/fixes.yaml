@@ -340,6 +340,16 @@
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
 
+- rule: dummyrun-broken-link
+  owner: content
+  summary: Fix or remove links that go nowhere.
+  steps:
+    - Open the link named in the finding and check the address and the status code.
+    - Point the link at the page's new address, or remove the link if the page has gone.
+    - If the page moved on your own site, add a redirect from the old address too.
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+
 - rule: dummyrun-engines-
   owner: development
   summary: Fix the problem two or more rule engines agree on.

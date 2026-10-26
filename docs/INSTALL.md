@@ -196,6 +196,7 @@ docker run --rm \
 | `DUMMYRUN_FIREFOX` | `/opt/firefox/firefox` | Firefox |
 | `DUMMYRUN_VALE` | `/opt/vale/vale` | Vale, the prose checker `dummyrun a11y --plain-language` runs |
 | `DUMMYRUN_VNU` | `/opt/vnu/bin/vnu` | The Nu HTML Checker, which `dummyrun a11y --html` runs |
+| `DUMMYRUN_LYCHEE` | `/opt/lychee/lychee` | lychee, the link checker `dummyrun a11y --links` runs |
 | `DUMMYRUN_WEBAPPANALYZER` | not set | Your copy of webappanalyzer, whose fingerprints a run adds to its own for `target.tech`. In the container it's a path inside the container, so mount your copy and name the mount (see the next table) |
 | `DUMMYRUN_NO_SANDBOX` | `1` | Switches off the browsers' own sandboxes, since the container is the sandbox. Unset it only where the container allows user namespaces |
 | `DUMMYRUN_AZURE_ENDPOINT` | | The Azure OpenAI endpoint, such as `https://<resource>.openai.azure.com` |
