@@ -41,8 +41,9 @@ const readAloudBody = `
     return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
   };
   try {
-    // Inside the try, so a start that fails part-way still reaches stop.
-    await v.start({ container: document.body, displayCursor: false });
+    // Inside the try, so a start that fails part-way still reaches stop. Every call to the reader runs inside the
+    // budget, start and the log included, so no step of it can hold the call past the budget.
+    if ((await step(v.start({ container: document.body, displayCursor: false }))) === late) return { phrases: [], complete };
     for (let i = 0; i < max && Date.now() - started < budgetMs; i++) {
       if ((await step(v.next())) === late) break;
       // After the last item the reader says "end of document", then wraps round to the top.
@@ -53,9 +54,14 @@ const readAloudBody = `
         break;
       }
     }
-    return { phrases: (await v.spokenPhraseLog()).slice(0, max), complete };
+    const log = await step(v.spokenPhraseLog());
+    if (log === late) return { phrases: [], complete: false };
+    return { phrases: log.slice(0, max), complete };
   } finally {
-    await v.stop();
+    // stop gets a second of its own, so a reader that hangs on the way out still lets the call end.
+    let timer;
+    await Promise.race([Promise.resolve().then(() => v.stop()).catch(() => {}), new Promise((r) => { timer = setTimeout(r, 1000); })]);
+    clearTimeout(timer);
   }
 `
 
@@ -83,6 +89,10 @@ type Spoken struct {
 // ReadAloud reads the loaded page with the virtual screen reader. It runs in the page's own world: in Firefox a sandbox
 // wraps the DOM in a way the reader cannot read through.
 func ReadAloud(ctx context.Context, conn *bidi.Conn, cx string) (*Spoken, error) {
+	// The reading bounds itself in the page. The call gets a little more, so a page that blocks its own thread still
+	// can't hold the run.
+	ctx, cancel := context.WithTimeout(ctx, SpokenBudget+5*time.Second)
+	defer cancel()
 	var out Spoken
 	if err := conn.CallFunctionJSON(ctx, cx, readAloudJS, &out, SpokenMax, int(SpokenBudget.Milliseconds())); err != nil {
 		return nil, fmt.Errorf("screen reader: %w", err)

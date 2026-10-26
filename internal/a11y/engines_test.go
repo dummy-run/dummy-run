@@ -70,6 +70,9 @@ func TestEnginesAgreeOnPlantedProblems(t *testing.T) {
 			if len(rep.Engines) != 4 {
 				t.Errorf("report engines: %v", rep.Engines)
 			}
+			if len(rep.Results) != 2 {
+				t.Fatalf("%d results, want one for each page", len(rep.Results))
+			}
 			for _, r := range rep.Results {
 				if r.Error != "" || len(r.EngineErrors) > 0 {
 					t.Fatalf("%s: error %q engine errors %v", r.URL, r.Error, r.EngineErrors)
@@ -174,6 +177,9 @@ func TestEngineFindingsSplitAgreementFromCandidates(t *testing.T) {
 		},
 	}
 	agreed, cands := engineFindings(r, violations, "/", allow)
+	if len(agreed) != 1 || len(cands) != 1 {
+		t.Fatalf("agreed %+v candidates %+v, want one of each", agreed, cands)
+	}
 	// Three engines agree on the first node and axe is alone on the second. Both rest on axe's measured record, so both
 	// rate high: the table has no separate data for three-way agreement yet and falls back to the axe subset.
 	if n := violations[0].Nodes; n[0].Confidence != "high" || !slices.Equal(n[0].Engines, []string{"alfa", "axe", "ibm"}) || n[1].Confidence != "high" {
