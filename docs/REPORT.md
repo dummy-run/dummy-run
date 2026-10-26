@@ -208,18 +208,18 @@ The standard and WCAG come up in these laws and rules:
   cover websites and apps. [GOV.UK guidance](https://www.gov.uk/guidance/accessibility-requirements-for-public-sector-websites-and-apps)
   asks you to check them against WCAG 2.2 and publish an accessibility statement.
 - **Any UK organisation.** The [Equality Act 2010](https://www.legislation.gov.uk/ukpga/2010/15/section/20) asks
-  organisations that provide services to make reasonable adjustments for disabled people. It names no standard, so
-  WCAG is the usual way to show what you did.
+  organisations that provide services to make reasonable adjustments for disabled people. It names no technical
+  standard, and WCAG is a useful technical reference for a website.
 - **EU public sector.** The [Web Accessibility Directive](https://eur-lex.europa.eu/eli/dir/2016/2102/oj) uses
   EN 301 549.
-- **EU businesses.** The [European Accessibility Act](https://eur-lex.europa.eu/eli/dir/2019/882/oj) covers
-  products and services such as online shops, banking and e-books, from 28 June 2025. The Act sets requirements
+- **EU businesses providing covered products or services.** The [European Accessibility Act](https://eur-lex.europa.eu/eli/dir/2019/882/oj) covers
+  set products and services, such as online shops, banking and e-books, from 28 June 2025, with some exemptions. The Act sets requirements
   and leaves the technical detail to harmonised standards. EN 301 549 is the usual technical reference for websites
   while those are settled.
 
 A report is evidence for this work, never a verdict on it. Automated checks and personas find only some barriers,
-so a report can't show that a site meets EN 301 549 or the law. An accessibility statement or an audit for one of
-these needs a person to test every criterion. Take legal advice on what applies to you.
+so a report can't show that a site meets EN 301 549 or the law. A conformance claim or an accessibility statement needs a person
+to assess the criteria that apply, on the pages the claim covers. Take legal advice on what applies to you.
 
 ## Compare with an earlier report
 
