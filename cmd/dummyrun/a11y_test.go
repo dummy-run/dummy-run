@@ -65,6 +65,8 @@ func TestA11yRefusesBadTextScaleAndScreenshotFlags(t *testing.T) {
 		"screenshots at scale 100 only":       {"--screenshots", "shots", "--text-scale", "100", "http://127.0.0.1:1/"},
 		"screenshots after the URL, no scale": {"http://127.0.0.1:1/", "--screenshots", "shots"},
 		"mask with no visual directory":       {"--mask", ".clock", "http://127.0.0.1:1/"},
+		"repeat of none":                      {"--repeat", "0", "http://127.0.0.1:1/"},
+		"repeat past the limit":               {"--repeat", "11", "http://127.0.0.1:1/"},
 	} {
 		if code := quiet(t, args...); code != 2 {
 			t.Errorf("%s: exit %d, want 2 before any browser starts", name, code)
