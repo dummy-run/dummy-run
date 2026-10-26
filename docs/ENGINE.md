@@ -1224,7 +1224,8 @@ three ways:
   `dummyrun-lighthouse-` and the audit, such as `dummyrun-lighthouse-image-alt`. It counts in `candidate_nodes` and never
   fails the sweep.
 - A best-practice audit that fails, such as `paste-preventing-inputs` or `charset`, goes to `advice` with the same
-  kind of rule ID.
+  kind of rule ID. Where it's about the page rather than an element, such as a deprecated API a script called, each
+  problem is listed on `html` with Lighthouse's message and the script and line it came from.
 
 The first result for each URL has `lighthouse_checked`, the two category scores from 0 to 1 in `lighthouse_scores`,
 and `lighthouse_error` when Lighthouse couldn't run. When its elements can't be matched to axe's,

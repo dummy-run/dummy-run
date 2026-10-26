@@ -47,3 +47,29 @@ func TestParseReportsARuntimeError(t *testing.T) {
 		t.Error("a runtime error was not reported")
 	}
 }
+
+// A best-practice audit such as deprecations reports rows with no element. Each one is kept on html with its
+// message and where in a script it came from, so the advice says what to change.
+func TestParseKeepsRowsWithNoElement(t *testing.T) {
+	r, err := Parse([]byte(`{"lighthouseVersion":"13.5.0",
+ "categories":{"best-practices":{"score":0.9,"auditRefs":[{"id":"deprecations"},{"id":"inspector-issues"}]}},
+ "audits":{
+  "deprecations":{"title":"Uses deprecated APIs","score":0,"scoreDisplayMode":"binary","details":{"items":[
+   {"value":"Synchronous XMLHttpRequest on the main thread is deprecated.","source":{"type":"source-location","url":"https://example.com/app.js","line":41,"column":7}},
+   {"value":""}]}},
+  "inspector-issues":{"title":"Issues were logged in the Issues panel","score":0,"scoreDisplayMode":"binary","details":{"items":[
+   {"issueType":"Mixed content"}]}}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Failures) != 2 {
+		t.Fatalf("failures %+v", r.Failures)
+	}
+	if got := r.Failures[0].Items; len(got) != 1 || got[0].Selector != "html" ||
+		got[0].Detail != "Synchronous XMLHttpRequest on the main thread is deprecated. (https://example.com/app.js:42)" {
+		t.Errorf("deprecations items %+v", got)
+	}
+	if got := r.Failures[1].Items; len(got) != 1 || got[0].Detail != "Mixed content" {
+		t.Errorf("inspector-issues items %+v", got)
+	}
+}

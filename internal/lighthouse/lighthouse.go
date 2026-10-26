@@ -36,7 +36,8 @@ func Find() (string, error) {
 	return p, nil
 }
 
-// Item is one element an audit failed.
+// Item is one element an audit failed. For a best-practice audit, it can be a message about the page instead, on
+// html, with where in a script it came from.
 type Item struct {
 	Selector string `json:"selector"`
 	Label    string `json:"label,omitempty"`
@@ -109,6 +110,12 @@ func Parse(b []byte) (*Result, error) {
 						NodeLabel   string `json:"nodeLabel"`
 						Explanation string `json:"explanation"`
 					} `json:"node"`
+					// A best-practice row with no node says what went wrong in one of these, and where in a script.
+					Value          json.RawMessage `json:"value"`
+					Description    json.RawMessage `json:"description"`
+					IssueType      json.RawMessage `json:"issueType"`
+					Source         json.RawMessage `json:"source"`
+					SourceLocation json.RawMessage `json:"sourceLocation"`
 				} `json:"items"`
 			} `json:"details"`
 		} `json:"audits"`
@@ -135,15 +142,59 @@ func Parse(b []byte) (*Result, error) {
 			}
 			f := Failure{ID: ref.ID, Category: cat, Title: a.Title, Items: []Item{}}
 			for _, it := range a.Details.Items {
-				if it.Node == nil {
+				if it.Node != nil {
+					f.Items = append(f.Items, Item{Selector: it.Node.Selector, Label: it.Node.NodeLabel, Detail: firstLine(it.Node.Explanation)})
 					continue
 				}
-				f.Items = append(f.Items, Item{Selector: it.Node.Selector, Label: it.Node.NodeLabel, Detail: firstLine(it.Node.Explanation)})
+				// Accessibility audits are axe rules and always name an element. A best-practice row without one,
+				// such as a deprecated API a script called, is kept on the page with its message and place.
+				if cat != "best-practices" {
+					continue
+				}
+				msg := firstText(it.Value, it.Description, it.IssueType)
+				if msg == "" {
+					continue
+				}
+				if at := location(it.Source, it.SourceLocation); at != "" {
+					msg += " (" + at + ")"
+				}
+				f.Items = append(f.Items, Item{Selector: "html", Detail: msg})
 			}
 			res.Failures = append(res.Failures, f)
 		}
 	}
 	return res, nil
+}
+
+// firstText returns the first line of the first field that holds a non-empty string.
+func firstText(fields ...json.RawMessage) string {
+	for _, f := range fields {
+		var s string
+		if json.Unmarshal(f, &s) == nil && strings.TrimSpace(s) != "" {
+			return firstLine(s)
+		}
+	}
+	return ""
+}
+
+// location returns url:line for the first field that is a Lighthouse source location. Lighthouse counts lines from
+// 0, and the location counts them from 1, as an editor does.
+func location(fields ...json.RawMessage) string {
+	for _, f := range fields {
+		var l struct {
+			Type string `json:"type"`
+			URL  string `json:"url"`
+			Line *int   `json:"line"`
+		}
+		if json.Unmarshal(f, &l) != nil || l.Type != "source-location" || l.URL == "" {
+			continue
+		}
+		if l.Line == nil {
+			return l.URL
+		}
+		return fmt.Sprintf("%s:%d", l.URL, *l.Line+1)
+	}
+	return ""
 }
 
 func firstLine(s string) string {
