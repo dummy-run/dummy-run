@@ -39,7 +39,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - The screen reader stops reading after eight seconds, even when the page stops answering. A persona that gets no screenshots now hears the page even when it may not click. What it says is scanned as visible text, and each phrase is cut at 300 characters.
 - The keyboard and mouse comparison leaves out text fields, comboboxes and tabs reached by the arrow keys, which it reported as working only by mouse.
 - Each rule engine has its own time limit, so one that hangs is an error for that engine alone. Alfa's findings on an attribute, such as a `lang` value that isn't a language, are kept, and every engine finding's selector names one element.
-- The plain language check reads the first `main` element that is displayed, its readability messages match their thresholds, and it removes its temporary rules when the sweep ends.
+- The plain language check reads the first `main` element that shows, counting text directly inside one with `display: contents`, and its findings name that element when a page has more than one. Its readability messages match their thresholds, and it removes its temporary rules when the sweep ends.
 - Reports show how to act on Dummy Run's own advice, such as plain language, and link a fix that has no help page instead of saying none was recorded. Long examples wrap.
 - The terminal summary lists the plain language, HTML, Lighthouse and cookie banner checks that couldn't run.
 

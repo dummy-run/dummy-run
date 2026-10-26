@@ -20,8 +20,11 @@ const mainHTMLJS = `(max) => {
   const mains = [...document.querySelectorAll("main, [role=main]")];
   const boxless = (el) => getComputedStyle(el).display === "contents";
   const displayed = (el) => !el.checkVisibility || el.checkVisibility() || boxless(el);
+  // A boxless element still draws its own text, so text directly inside it counts as showing.
+  const ownText = (el) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== "");
   const shows = (el) => !el.checkVisibility ||
-    (boxless(el) ? [...el.children].some(shows) : el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+    (boxless(el) ? (ownText(el) && getComputedStyle(el).visibility === "visible") || [...el.children].some(shows) :
+      el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
   const root = mains.find(shows) || mains.find(displayed) || mains[0] || document.body;
   if (!root) return { html: "", selector: "", truncated: false };
   const copy = root.cloneNode(true);
@@ -39,7 +42,20 @@ const mainHTMLJS = `(max) => {
   });
   for (const el of silent) for (const n of [...el.childNodes]) if (n.nodeType === Node.TEXT_NODE) n.remove();
   for (const el of gone) el.remove();
-  const selector = root === document.body ? "body" : (root.tagName === "MAIN" ? "main" : "[role=main]");
+  // The selector names the root alone: main or [role=main] when the page has one, else its id, else its place.
+  const nth = (el) => {
+    const same = [...el.parentElement.children].filter((c) => c.tagName === el.tagName);
+    return el.tagName.toLowerCase() + (same.length > 1 ? ":nth-of-type(" + (same.indexOf(el) + 1) + ")" : "");
+  };
+  const name = (el) => {
+    const base = el.tagName === "MAIN" ? "main" : "[role=main]";
+    if (document.querySelectorAll(base).length === 1) return base;
+    if (el.id && document.querySelectorAll("#" + CSS.escape(el.id)).length === 1) return "#" + CSS.escape(el.id);
+    const parts = [];
+    for (let e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) parts.unshift(nth(e));
+    return "body > " + parts.join(" > ");
+  };
+  const selector = root === document.body ? "body" : name(root);
   if (gone.includes(copy)) return { html: "", selector, truncated: false };
   const drop = "script, style, noscript, template, svg, canvas, iframe, [hidden], [aria-hidden=true]" +
     (root === document.body ? ", header, nav, footer, aside, [role=banner], [role=navigation], [role=contentinfo], [role=complementary]" : "");
@@ -53,7 +69,8 @@ type MainContent struct {
 	HTML string `json:"html"`
 	// Truncated says the content was longer than MainHTMLMax, so only its start is in HTML.
 	Truncated bool `json:"truncated"`
-	// Selector names the element the content came from: main, [role=main] or body.
+	// Selector names the element the content came from: main, [role=main] or body, or, on a page with more than one
+	// main landmark, a selector for the one used.
 	Selector string `json:"selector"`
 }
 
