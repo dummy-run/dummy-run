@@ -34,7 +34,8 @@ sed "s|^$root/||" "$pkgs" | sort | while read -r pkg; do
   last=$pkg
   n=$(printf '%s' "$pkg" | cksum | cut -d' ' -f1)
   [ $((n % count)) -eq "$shard" ] || continue
-  name=$(printf '%s' "$pkg" | tr '/.' '__')
+  # The checksum keeps names apart that read the same once / and . become _, such as foo_bar and foo/bar.
+  name=$(printf '%s' "$pkg" | tr '/.' '__')-$n
   echo "gremlins: $pkg"
   printf '%s\n' "$pkg" >"$out/$name.pkg"
   rm -f "$out/$name.json"

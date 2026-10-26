@@ -90,9 +90,10 @@ Every Monday the `Mutation` workflow checks how well the unit tests catch change
 or `+` to `-`, and runs the package's tests. A change the tests catch is killed. One they still pass has lived,
 and is a gap in the tests. A change on a line no test runs is not covered. The workflow splits the packages
 between four jobs and writes a summary: the counts, each package's test efficacy (killed over killed and lived)
-and the files with the most changes that lived. It never fails, since the counts are for you to read. The
-benchmark and the confidence table are left out, since their tests check measured numbers. Browser tests skip
-there, so a change only they would catch counts as lived or not covered.
+and the files with the most changes that lived. No count of surviving mutants fails it, since the counts are
+for you to read, though a job that can't set up or list the packages does fail. The benchmark and the
+confidence table are left out, since their tests check measured numbers. Browser tests skip there, so a
+change only they would catch counts as lived or not covered.
 
 To run it yourself, install gremlins 0.6.0 and pass an output directory, and optionally a part and how many parts:
 
@@ -100,6 +101,8 @@ To run it yourself, install gremlins 0.6.0 and pass an output directory, and opt
 go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 bin/mutation mutation 0 4
 bin/mutation-summary mutation
+```
+
 Some tests use rapid to check a rule over thousands of random inputs. Their names start with `TestProperty`
 or `TestMetamorphic`. A property test compares the code with an independent reading of the same rule, such
 as robots.txt patterns against a regular expression. A metamorphic test changes the input in a way that
