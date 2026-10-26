@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -102,7 +103,8 @@ func TestRunEndToEnd(t *testing.T) {
 					_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Docs</title><main><h1>Docs</h1><p>All the docs.</p></main></html>`)
 					return
 				}
-				_, _ = io.WriteString(w, sitePage)
+				// The home page carries one technology marker, which the run records with the journeys it suggests.
+				_, _ = io.WriteString(w, strings.Replace(sitePage, "</head>", `<script>window.Shopify = {shop: "t"};</script></head>`, 1))
 			}))
 			t.Cleanup(srv.Close)
 
@@ -146,6 +148,9 @@ func TestRunEndToEnd(t *testing.T) {
 			}
 			if rec.Target.TechError != "" {
 				t.Errorf("tech detection failed: %s", rec.Target.TechError)
+			}
+			if len(rec.Target.Tech) != 1 || rec.Target.Tech[0].Name != "Shopify" || !slices.Equal(rec.Target.Journeys, []string{"basket", "checkout"}) {
+				t.Errorf("target tech %+v journeys %v: want Shopify, with basket and checkout", rec.Target.Tech, rec.Target.Journeys)
 			}
 			if len(rec.Target.Commit) != 12 || rec.Target.Commit != rec.Target.BuildHash {
 				t.Errorf("target %+v", rec.Target)
@@ -565,5 +570,25 @@ func TestIdentifyAndRobotsInBrowser(t *testing.T) {
 				t.Errorf("no step noted the robots.txt block: %+v", res.Record.Steps)
 			}
 		})
+	}
+}
+
+// A webappanalyzer copy that can't be read is recorded in target.tech_error, and the run goes on with the engine's
+// own fingerprints.
+func TestTechErrorDoesNotStopTheRun(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the end-to-end test")
+	}
+	t.Setenv("DUMMYRUN_WEBAPPANALYZER", t.TempDir())
+	browser := strings.Split(browsers, ",")[0]
+	srv, _ := plainServer(t)
+	castDir := writePersonaCast(t, "", "Find the documentation.")
+	res, _ := runScripted(t, browser, castDir, []provider.ToolCall{
+		{Name: "click", Args: json.RawMessage(`{"target":"Documentation"}`)},
+	}, srv.URL)
+	rec := res.Record
+	if !strings.Contains(rec.Target.TechError, "webappanalyzer") || rec.Outcome != record.OutcomeCompleted {
+		t.Errorf("tech error %q, outcome %s: want the error recorded and the run completed", rec.Target.TechError, rec.Outcome)
 	}
 }

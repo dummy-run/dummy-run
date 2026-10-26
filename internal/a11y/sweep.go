@@ -654,17 +654,6 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		pctx, cancel = context.WithTimeout(ctx, 90*time.Second)
 		cancels = append(cancels, cancel)
 	}
-	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size.
-	if cfg.Journeys && !rep.journeysDone[u] {
-		if rep.journeysDone == nil {
-			rep.journeysDone = map[string]bool{}
-		}
-		rep.journeysDone[u] = true
-		journeyCheck(ctx, conn, cfg, u, vp, &res)
-		// Journeys have their own limit too, so the checks after them get the page's full time again.
-		pctx, cancel = context.WithTimeout(ctx, 90*time.Second)
-		cancels = append(cancels, cancel)
-	}
 	if cfg.Consent {
 		c, err := page.AnswerConsent(pctx, conn, cx, page.ConsentWait)
 		if err != nil {
@@ -739,6 +728,16 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		res.MarkupChecked = true
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
+	}
+	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size. They run
+	// last, with their own time limit, so they can't take time from the checks above, and the cookie banner has
+	// already been answered.
+	if cfg.Journeys && !rep.journeysDone[u] {
+		if rep.journeysDone == nil {
+			rep.journeysDone = map[string]bool{}
+		}
+		rep.journeysDone[u] = true
+		journeyCheck(ctx, conn, cfg, u, vp, &res)
 	}
 	return res
 }

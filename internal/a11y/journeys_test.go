@@ -49,3 +49,24 @@ func TestJourneysInTheSweep(t *testing.T) {
 		})
 	}
 }
+
+// A page whose journeys couldn't be tried says so in the terminal summary, without the control characters a page
+// could put in the message.
+func TestSummaryListsJourneyErrors(t *testing.T) {
+	rep := &Report{Browser: "chrome", Results: []PageResult{
+		{URL: "https://example.com/a", Browser: "chrome", Viewport: "desktop", Scheme: "light", JourneysError: "load\u001b[2K failed"},
+		{URL: "https://example.com/b", Browser: "chrome", Viewport: "desktop", Scheme: "light"},
+	}}
+	rep.summarise(Config{Allow: &AllowList{}})
+	var b strings.Builder
+	rep.WriteSummary(&b)
+	out := b.String()
+	for _, want := range []string{"JOURNEYS https://example.com/a (chrome/desktop/light): load[2K failed", "journeys not tried on 1 pages"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("summary lacks %q:\n%s", want, out)
+		}
+	}
+	if strings.ContainsRune(out, '\u001b') {
+		t.Errorf("summary keeps a control character:\n%q", out)
+	}
+}

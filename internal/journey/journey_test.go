@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -46,10 +47,10 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	var posts int
+	var posts atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			posts++
+			posts.Add(1)
 		}
 		body, ok := pages[r.URL.Path]
 		if !ok {
@@ -62,7 +63,7 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
-			posts = 0
+			posts.Store(0)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
@@ -119,9 +120,31 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 			if j := got["menu"]; j == nil || !j.KeyboardShortfall() || got["search"].KeyboardShortfall() {
 				t.Error("the shortfall test is wrong")
 			}
-			if posts != 0 {
-				t.Errorf("%d requests that were not GET or HEAD: a journey submitted something", posts)
+			if n := posts.Load(); n != 0 {
+				t.Errorf("%d requests that were not GET or HEAD: a journey submitted something", n)
 			}
 		})
+	}
+}
+
+// Only a keyboard try that ran and failed, or never reached the start, is a shortfall. A browser error, a journey
+// that was already done, or one the mouse couldn't do either, is not.
+func TestKeyboardShortfallNeedsAKeyboardFailure(t *testing.T) {
+	for _, tc := range []struct {
+		mouse, keyboard string
+		want            bool
+	}{
+		{Pass, Fail, true},
+		{Pass, Unreachable, true},
+		{Pass, Pass, false},
+		{Pass, Errored, false},
+		{Pass, Already, false},
+		{Fail, Fail, false},
+		{Errored, Fail, false},
+	} {
+		j := Journey{Mouse: &Verdict{Outcome: tc.mouse}, Keyboard: &Verdict{Outcome: tc.keyboard}}
+		if got := j.KeyboardShortfall(); got != tc.want {
+			t.Errorf("mouse %s, keyboard %s: shortfall %v, want %v", tc.mouse, tc.keyboard, got, tc.want)
+		}
 	}
 }

@@ -1293,7 +1293,7 @@ way, Tab and type or click and type.
 
 Nothing is ever sent. Before each try the sweep stops every form on the page from submitting, Enter is never
 pressed in a form, and a journey never starts from a submit button. The journeys run in a tab of their own, once
-for each URL, at the first window size.
+for each URL, at the first window size, after the page's other checks and the cookie banner.
 
 Schema.org data the page publishes can find a journey too: a `SearchAction` marks the search, and a
 `ReserveAction` marks the booking. So can what the page is built with (see [What the site is built
@@ -1301,10 +1301,11 @@ with](#what-the-site-is-built-with)): Shopify suggests a basket, Calendly a book
 that the page shows no way into is listed as `not found`, which says where to look.
 
 Each result lists its `journeys`. A journey names its `kind`, its `selector`, `label` and `href`, and its `source`.
-It has a `mouse` and a `keyboard` verdict, each one of `pass`, `fail`, `unreachable`, `already` or `not found`, with a
-`detail`. A journey that passes by
-mouse and doesn't by keyboard is a violation, `dummyrun-journey-keyboard` (WCAG 2.1.1, serious). One that fails both
-ways is recorded and isn't reported: the page may simply not work the way the journey expects.
+It has a `mouse` and a `keyboard` verdict, each one of `pass`, `fail`, `unreachable`, `already`, `not found` or
+`error`, with a `detail`. `error` means the browser couldn't load the page or carry out the action, or the journeys
+ran out of time, so the page wasn't tested that way. A journey that passes by mouse, and fails or is unreachable by
+keyboard, is a violation, `dummyrun-journey-keyboard` (WCAG 2.1.1, serious). One that fails both ways is recorded and
+isn't reported: the page may simply not work the way the journey expects.
 
 ```sh
 dummyrun a11y --journeys https://example.com/

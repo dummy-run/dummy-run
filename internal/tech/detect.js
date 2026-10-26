@@ -5,7 +5,7 @@
   const prints = JSON.parse(printsJSON);
   const re = (p) => {
     try {
-      return new RegExp(p, "i"); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- the patterns are the engine's own or the user's webappanalyzer copy, never a page's, and the call has a time limit
+      return new RegExp(p, "i"); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- the patterns are the engine's own or the user's webappanalyzer copy, never a page's
     } catch (e) {
       return null;
     }
@@ -17,8 +17,14 @@
     const k = m.getAttribute("name").toLowerCase();
     (metas[k] = metas[k] || []).push(m.getAttribute("content"));
   }
+  // A regular expression runs to the end in the page's thread, and nothing can stop it once it starts, however long
+  // the call's time limit. The text it reads comes from the page, so the markup patterns from a webappanalyzer copy,
+  // which the engine hasn't checked, read a shorter slice of it than the engine's own.
   let html = null;
-  const markup = () => (html === null ? (html = document.documentElement.outerHTML.slice(0, 500000)) : html);
+  const markup = (source) => {
+    if (html === null) html = document.documentElement.outerHTML.slice(0, 500000);
+    return source === "webappanalyzer" ? html.slice(0, 100000) : html;
+  };
   let cookies = [];
   try {
     cookies = document.cookie.split(";").map((c) => c.split("=")[0].trim()).filter(Boolean);
@@ -93,7 +99,7 @@
     for (const h of p.html || []) {
       if (ev) break;
       const r = re(h);
-      const m = r && markup().match(r);
+      const m = r && markup(p.source).match(r);
       if (m) ev = "markup " + clip(m[0]);
     }
     if (ev) out.push({ name: p.name, category: p.category, source: p.source || "dummyrun", evidence: ev });

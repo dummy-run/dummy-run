@@ -31,6 +31,7 @@ const (
 	Unreachable = "unreachable" // the mouse couldn't hit it or Tab never reached it
 	Already     = "already"     // the success test was true before anything was done, so the journey proves nothing
 	NotFound    = "not found"   // a technology suggested the journey, but the page shows no way in
+	Errored     = "error"       // the browser couldn't load the page or carry out an action, so the page wasn't tested
 )
 
 // Verdict is how one way of trying went.
@@ -51,9 +52,11 @@ type Journey struct {
 	Keyboard *Verdict `json:"keyboard,omitempty"`
 }
 
-// KeyboardShortfall reports whether the journey works by mouse but not by keyboard.
+// KeyboardShortfall reports whether the journey works by mouse but not by keyboard. Only a keyboard try that ran and
+// failed, or never reached the start, counts: an error in the browser says nothing about the page.
 func (j Journey) KeyboardShortfall() bool {
-	return j.Mouse != nil && j.Keyboard != nil && j.Mouse.Outcome == Pass && j.Keyboard.Outcome != Pass
+	return j.Mouse != nil && j.Keyboard != nil && j.Mouse.Outcome == Pass &&
+		(j.Keyboard.Outcome == Fail || j.Keyboard.Outcome == Unreachable)
 }
 
 // Driver runs journeys in one tab.
@@ -154,7 +157,7 @@ func (d *Driver) Try(ctx context.Context, url string, j *Journey) {
 
 func (d *Driver) try(ctx context.Context, url string, j Journey, keyboard bool) *Verdict {
 	if err := d.load(ctx, url); err != nil {
-		return &Verdict{Outcome: Fail, Detail: "the page did not load: " + err.Error()}
+		return &Verdict{Outcome: Errored, Detail: "the page did not load: " + err.Error()}
 	}
 	// Some pages give elements a new id on every load, so the start is found again on this load.
 	var fresh []Journey
@@ -183,7 +186,7 @@ func (d *Driver) try(ctx context.Context, url string, j Journey, keyboard bool) 
 	switch j.Kind {
 	case "search":
 		if err := d.Conn.TypeText(ctx, d.CX, searchText); err != nil {
-			return &Verdict{Outcome: Fail, Detail: "typing failed: " + err.Error()}
+			return &Verdict{Outcome: Errored, Detail: "typing failed: " + err.Error()}
 		}
 		how = "typed into"
 	default:
@@ -198,10 +201,13 @@ func (d *Driver) try(ctx context.Context, url string, j Journey, keyboard bool) 
 			err = d.Conn.Click(ctx, d.CX, at.X, at.Y)
 		}
 		if err != nil {
-			return &Verdict{Outcome: Fail, Detail: err.Error()}
+			return &Verdict{Outcome: Errored, Detail: err.Error()}
 		}
 	}
 	if !d.settle(ctx, s) {
+		if ctx.Err() != nil {
+			return &Verdict{Outcome: Errored, Detail: "the journeys ran out of time: " + ctx.Err().Error()}
+		}
 		return &Verdict{Outcome: Fail, Detail: fmt.Sprintf("%s %q and %s", how, j.Label, failed(j.Kind))}
 	}
 	if j.Kind == "contact" {
@@ -250,7 +256,7 @@ func (d *Driver) reach(ctx context.Context, j Journey, keyboard bool) *Verdict {
 	}
 	if j.Kind == "search" {
 		if err := d.Conn.Click(ctx, d.CX, at.X, at.Y); err != nil {
-			return &Verdict{Outcome: Fail, Detail: err.Error()}
+			return &Verdict{Outcome: Errored, Detail: err.Error()}
 		}
 	}
 	return nil
@@ -265,7 +271,7 @@ func (d *Driver) tabTo(ctx context.Context, j Journey) *Verdict {
 	}
 	for i := 0; i < maxTabs; i++ {
 		if err := d.Conn.PressKey(ctx, d.CX, bidi.KeyTab); err != nil {
-			return &Verdict{Outcome: Fail, Detail: err.Error()}
+			return &Verdict{Outcome: Errored, Detail: err.Error()}
 		}
 		var on bool
 		if err := d.call(ctx, "focused", spec{Sel: j.Selector}, &on); err == nil && on {

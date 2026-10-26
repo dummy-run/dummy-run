@@ -30,7 +30,8 @@ const waFile = `{
  "Example Shop": {"cats": [6], "js": {"exampleShop": "\\;confidence:50"}, "scriptSrc": "cdn\\.example-shop\\.test\\;version:\\1",
   "cookies": {"_exshop": ""}, "dom": {"div.ex-cart": {"exists": ""}}, "meta": {"ex-shop": ["\\d+"]}, "headers": {"x-ex": ""}},
  "Header Only": {"cats": [22], "headers": {"server": "only"}},
- "Example Forms": {"cats": [110, 5], "html": ["<form[^>]+ex-form"]}
+ "Example Forms": {"cats": [110, 5], "html": ["<form[^>]+ex-form"]},
+ "Example Widget": {"cats": [5], "dom": {"div.ex-widget": {"exists": "", "attributes": {"data-ex": "^w\\d"}}}}
 }`
 
 func TestLoadWebappanalyzer(t *testing.T) {
@@ -45,8 +46,12 @@ func TestLoadWebappanalyzer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 2 || got[0].Name != "Example Forms" || got[1].Name != "Example Shop" {
-		t.Fatalf("want the two with page markers, got %+v", got)
+	if len(got) != 3 || got[0].Name != "Example Forms" || got[1].Name != "Example Shop" || got[2].Name != "Example Widget" {
+		t.Fatalf("want the three with page markers, got %+v", got)
+	}
+	// An entry with exists and attributes keeps its attribute test, rather than matching on the selector alone.
+	if w := got[2]; len(w.Selectors) != 0 || len(w.DOM) != 1 || w.DOM[0].Selector != "div.ex-widget" || w.DOM[0].Attributes["data-ex"] != `^w\d` {
+		t.Errorf("widget fingerprint %+v", w)
 	}
 	shop := got[1]
 	if shop.Category != Shop || shop.Source != "webappanalyzer" || !slices.Equal(shop.Globals, []string{"exampleShop"}) ||
@@ -64,12 +69,13 @@ func TestLoadWebappanalyzer(t *testing.T) {
 
 const techPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Tech</title>
 <meta name="generator" content="WordPress 6.9">
-<script src="https://cdn.shopify.com/s/files/stub.js" async></script>
+<script src="/s/files/stub.js" async></script>
 <script>window.Shopify = { shop: "example.myshopify.com" }; document.cookie = "_exshop=1";</script>
 </head><body><main><h1>Tech</h1>
 <form role="search" action="/search"><label>Search <input name="q"></label></form>
 <a href="https://calendly.com/example/30min">Book a call</a>
 <div class="ex-cart"></div>
+<div class="ex-widget" data-ex="w2">Widget</div>
 </main></body></html>`
 
 func TestDetectOnAPage(t *testing.T) {
@@ -77,13 +83,13 @@ func TestDetectOnAPage(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		_, _ = io.WriteString(w, techPage)
-	}))
+	srv := httptest.NewServer(techHandler())
 	defer srv.Close()
+	// The page has div.ex-widget with data-ex="w2", so the first DOM check matches and the second doesn't.
 	prints := append(slices.Clone(Own), Fingerprint{Name: "Example Shop", Category: Shop, Source: "webappanalyzer", Cookies: []string{"^_exshop$"}},
-		Fingerprint{Name: "Broken", Category: Other, Scripts: []string{"("}})
+		Fingerprint{Name: "Broken", Category: Other, Scripts: []string{"("}},
+		Fingerprint{Name: "Widget", Category: Other, Source: "webappanalyzer", DOM: []DOMCheck{{Selector: "div.ex-widget", Attributes: map[string]string{"data-ex": `^w\d`}}}},
+		Fingerprint{Name: "Not this widget", Category: Other, Source: "webappanalyzer", DOM: []DOMCheck{{Selector: "div.ex-widget", Attributes: map[string]string{"data-ex": "^z"}}}})
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
@@ -108,7 +114,7 @@ func TestDetectOnAPage(t *testing.T) {
 			for _, f := range found {
 				names[f.Name] = f
 			}
-			for _, want := range []string{"Shopify", "WordPress", "Site search", "Calendly", "Example Shop"} {
+			for _, want := range []string{"Shopify", "WordPress", "Site search", "Calendly", "Example Shop", "Widget"} {
 				if _, ok := names[want]; !ok {
 					t.Errorf("%s not found in %+v", want, found)
 				}
@@ -118,6 +124,12 @@ func TestDetectOnAPage(t *testing.T) {
 			}
 			if _, ok := names["Broken"]; ok {
 				t.Error("a bad pattern matched")
+			}
+			if f := names["Widget"]; f.Evidence != "element div.ex-widget with data-ex=w2" {
+				t.Errorf("Widget %+v", f)
+			}
+			if _, ok := names["Not this widget"]; ok {
+				t.Error("a DOM check matched an attribute value it doesn't allow")
 			}
 			if j := Journeys(found); !slices.Equal(j, []string{"search", "basket", "checkout", "booking"}) {
 				t.Errorf("journeys %v", j)
@@ -138,10 +150,7 @@ func TestWebappanalyzerFromEnv(t *testing.T) {
 	if len(prints) < 1000 {
 		t.Fatalf("only %d fingerprints", len(prints))
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		_, _ = io.WriteString(w, techPage)
-	}))
+	srv := httptest.NewServer(techHandler())
 	defer srv.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
@@ -160,4 +169,16 @@ func TestWebappanalyzerFromEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("%d fingerprints, %d found in %v: %+v", len(prints), len(found), time.Since(start), found)
+}
+
+// techHandler serves techPage, and its script from the same server, so the test never goes to the network.
+func techHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, ".js") {
+			w.Header().Set("Content-Type", "text/javascript")
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = io.WriteString(w, techPage)
+	})
 }

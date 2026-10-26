@@ -103,8 +103,9 @@ func strs(raw json.RawMessage) []string {
 }
 
 // dom reads webappanalyzer's dom field: a selector, a list of them, or an object keyed by selector. In the object
-// form, an entry with exists is a plain selector, and one with attributes or text needs them to match too. An
-// entry that checks only properties is left out, since a property can't be read from markup.
+// form, an entry with attributes or text needs them to match too, even when it also has exists, and an entry with
+// only exists is a plain selector. An entry that checks only properties is left out, since a property can't be read
+// from markup.
 func dom(raw json.RawMessage) (plain []string, checks []DOMCheck) {
 	if s := strs(raw); s != nil {
 		return s, nil
@@ -119,9 +120,11 @@ func dom(raw json.RawMessage) (plain []string, checks []DOMCheck) {
 	}
 	for sel, c := range obj {
 		switch {
-		case c.Exists != nil:
-			plain = append(plain, sel)
-		case len(c.Attributes) > 0 || c.Text != nil:
+		case len(c.Attributes) == 0 && c.Text == nil:
+			if c.Exists != nil {
+				plain = append(plain, sel)
+			}
+		default:
 			d := DOMCheck{Selector: sel, Attributes: map[string]string{}}
 			for a, p := range c.Attributes {
 				d.Attributes[a] = pattern(p)
