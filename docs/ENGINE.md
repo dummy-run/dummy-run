@@ -1455,7 +1455,8 @@ dummyrun a11y --consent --layout https://example.com/
 
 When you sweep the same site again and again, such as on each deploy, add `--visual DIR` to see which pages look
 different from last time. For each page and setting, the sweep takes a picture of the window once the page has
-loaded and any cookie banner is answered. It compares that picture with the one the last sweep left in `DIR`, then
+loaded and, with `--consent`, once the cookie banner is answered. Without `--consent` the banner stays in the
+picture, so a banner that differs between loads shows as changed pixels, and `--mask` can cover it. It compares that picture with the one the last sweep left in `DIR`, then
 puts the new picture in its place. The first sweep has nothing to compare with, so each result says `first`. So
 does a sweep whose earlier picture can't be read, and the new picture replaces it.
 
