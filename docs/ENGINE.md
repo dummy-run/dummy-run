@@ -1138,8 +1138,8 @@ A finding, `dummyrun-contrast-over-image` (WCAG 1.4.3, serious), means most of t
 The median of the contrast ratios between the text colour and each pixel behind it is below 4.5:1, or 3:1 for large
 text. The figures are rounded down to two places, so a ratio just under the threshold never shows as meeting it. The `detail` gives that figure and the ratio at the worst tenth
 of the pixels, so you can see how much of the text is affected. Text that passes at the median and fails only in its
-worst tenth isn't reported. A result the check ran on has `image_contrast_checked`, and `image_contrast` with every
-measurement when there were any.
+worst tenth isn't reported. When the check runs on a result, the result has `image_contrast_checked`. If the check
+measured anything, `image_contrast` lists every measurement.
 
 `image_contrast_unmeasured` counts the elements it couldn't measure, so check those by eye:
 
