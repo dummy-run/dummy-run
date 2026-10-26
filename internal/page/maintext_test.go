@@ -48,7 +48,7 @@ func TestMainHTMLDropsHiddenTextAndSaysWhenItIsCut(t *testing.T) {
 
 // TestMainHTMLFindsTheMainContent checks where main content comes from: a role=main element, or the body without
 // its header, navigation, footer and asides when there is no main landmark. A hidden main landmark's own text is
-// left out, and one with opacity 0, or with no box inside a hidden element, gives no content.
+// left out, and one with opacity 0, or with no box inside a hidden or transparent element, gives no content.
 func TestMainHTMLFindsTheMainContent(t *testing.T) {
 	head := `<!doctype html><html lang="cy"><head><meta charset="utf-8"><title>T</title></head><body>`
 	cases := []struct{ body, selector, kept string }{
@@ -61,6 +61,8 @@ func TestMainHTMLFindsTheMainContent(t *testing.T) {
 		{head + `<main style="display:contents">Bare words.</main><main><p>Old words.</p></main></body></html>`, "body > main:nth-of-type(1)", "Bare words."},
 		{head + `<div style="display:none"><main style="display:contents">Old words.</main></div><main><p>New words.</p></main></body></html>`, "body > main", "New words."},
 		{head + `<div style="display:none"><main style="display:contents">Old words.</main></div></body></html>`, "main", ""},
+		{head + `<div style="opacity:0"><main style="display:contents">Old words.</main></div></body></html>`, "main", ""},
+		{head + `<div style="opacity:0"><main style="display:contents">Old words.</main></div><main><p>New words.</p></main></body></html>`, "body > main", "New words."},
 		{head + `<div style="visibility:hidden"><main style="display:contents;visibility:visible">Seen words.</main></div><main><p>Old words.</p></main></body></html>`, "body > div > main", "Seen words."},
 		{head + `<nav>Menu words.</nav><div role="main"><p>Role words.</p></div></body></html>`, "[role=main]", "Role words."},
 		{head + `<header>Top words.</header><nav>Menu words.</nav><p>Body words.</p><aside>Side words.</aside><footer>Foot words.</footer></body></html>`,
