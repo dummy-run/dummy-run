@@ -342,7 +342,7 @@ const (
 
 func clipPhrase(s string) string {
 	if r := []rune(s); len(r) > spokenPhraseMax {
-		return string(r[:spokenPhraseMax]) + "..."
+		return string(r[:spokenPhraseMax-3]) + "..."
 	}
 	return s
 }

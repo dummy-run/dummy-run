@@ -2,6 +2,7 @@ package report
 
 import (
 	"encoding/json"
+	"html"
 	"strings"
 	"testing"
 
@@ -182,7 +183,31 @@ func TestOwnRuleFindingFixInHTML(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := render(t, rep, "html"); !strings.Contains(got, "<dt>How to fix</dt><dd>Let the page fit a narrow window without scrolling sideways. Usually done by development.<ol><li>") {
-		t.Error("html: the finding's fix is missing")
+	var f *Finding
+	for i := range rep.Findings {
+		if rep.Findings[i].Symptom == "a11y:dummyrun-reflow" {
+			f = &rep.Findings[i]
+		}
+	}
+	if f == nil || f.Fix == nil {
+		t.Fatal("no dummyrun-reflow finding with a fix")
+	}
+	// The finding's own article, from its heading to the end of the article.
+	out := render(t, rep, "html")
+	start := strings.Index(out, `-t">`+html.EscapeString(f.Title)+"</h4>")
+	if start < 0 {
+		t.Fatalf("html: no article for %q", f.Title)
+	}
+	section := out[start:]
+	if end := strings.Index(section, "</article>"); end >= 0 {
+		section = section[:end]
+	}
+	if !strings.Contains(section, f.Fix.Summary) {
+		t.Errorf("html: the finding's fix summary is missing from its section")
+	}
+	for _, step := range f.Fix.Steps {
+		if !strings.Contains(section, step) {
+			t.Errorf("html: step %q is missing from the finding's section", step)
+		}
 	}
 }

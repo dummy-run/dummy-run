@@ -14,10 +14,15 @@ const MainHTMLMax = 200_000
 // footer and asides. Scripts, styles, hidden elements and inline images are dropped, so only words a visitor reads
 // are left. An element the page's CSS hides with display, visibility or opacity is dropped too. Called with (max).
 const mainHTMLJS = `(max) => {
-  // A page can keep more than one main element and hide all but one, so the first one with a box is used.
+  // A page can keep more than one main element and hide all but one. The first one that shows is used: one that is
+  // displayed, with opacity and visibility, or one with no box of its own whose children show. Failing that, the
+  // first one that is displayed at all, then the first one.
   const mains = [...document.querySelectorAll("main, [role=main]")];
-  const shown = (el) => !el.checkVisibility || el.checkVisibility() || getComputedStyle(el).display === "contents";
-  const root = mains.find(shown) || mains[0] || document.body;
+  const boxless = (el) => getComputedStyle(el).display === "contents";
+  const displayed = (el) => !el.checkVisibility || el.checkVisibility() || boxless(el);
+  const shows = (el) => !el.checkVisibility ||
+    (boxless(el) ? [...el.children].some(shows) : el.checkVisibility({ opacityProperty: true, visibilityProperty: true }));
+  const root = mains.find(shows) || mains.find(displayed) || mains[0] || document.body;
   if (!root) return { html: "", selector: "", truncated: false };
   const copy = root.cloneNode(true);
   // The copy has no styles, so what CSS hides is found on the page and removed from the copy, which has the same

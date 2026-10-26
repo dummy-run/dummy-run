@@ -55,7 +55,8 @@ const readAloudBody = `
       }
     }
     const log = await step(v.spokenPhraseLog());
-    return { phrases: log === late ? [] : log.slice(0, max), complete };
+    if (log === late) return { phrases: [], complete: false };
+    return { phrases: log.slice(0, max), complete };
   } finally {
     // stop gets a second of its own, so a reader that hangs on the way out still lets the call end.
     let timer;

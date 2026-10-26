@@ -86,7 +86,7 @@
 
   // A text field or a combobox is never tried: Enter in a field sends its form, and a combobox opens with the arrow
   // keys, not Enter or Space, so the keyboard would look as if it failed.
-  const entry = (el) => el.matches("[role=combobox], [role=textbox], [role=searchbox], textarea, select, [contenteditable=true]") ||
+  const entry = (el) => el.isContentEditable || el.matches("[role=combobox], [role=textbox], [role=searchbox], textarea, select") ||
     (el.tagName === "INPUT" && /^(text|search|email|tel|url|password|number)$/.test(el.type));
   // A tab that is out of the Tab order while another tab in its list is in it follows the roving pattern: the arrow
   // keys reach it, so Tab never will.

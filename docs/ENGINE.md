@@ -1115,8 +1115,8 @@ Every failing element in a sweep carries a `confidence` of `high`, `medium`, `lo
 `measurement` for the layout and keyboard checks and `ax-fact` for the markup checks. `dummyrun-mouse-only` is a
 `task-verdict`, because the sweep tried the control by keyboard and it did not work.
 
-Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. IBM Equal Access, HTML_CodeSniffer and Alfa each have 25
+Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`.
+The other engines still run, and the summary lists the error. IBM Equal Access, HTML_CodeSniffer and Alfa each have 25
 seconds on a page, and one that takes longer is an error in the same way. If none of them runs, the page has an `error` and the sweep
 fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's

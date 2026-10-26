@@ -59,11 +59,18 @@ document.getElementById("both").addEventListener("click", (e) => e.currentTarget
 	"/entry": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Entry</title></head><body><main>
 <h1>Entry</h1>
 <label for="town">Town</label><input id="town" role="combobox" aria-expanded="false" aria-controls="towns"><ul id="towns" hidden><li>Leeds</li></ul>
+<div contenteditable="true"><p id="note" aria-expanded="false">Notes</p></div>
 <div role="tablist"><button id="t1" role="tab" aria-selected="true" tabindex="0">Day</button><button id="t2" role="tab" aria-selected="false" tabindex="-1">Week</button></div>
 <script>
 document.getElementById("town").addEventListener("click", (e) => { e.currentTarget.setAttribute("aria-expanded", "true"); document.getElementById("towns").hidden = false; });
 document.getElementById("t2").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-selected", "true"));
 </script></main></body></html>`,
+	// Two skip links in the same deep nesting give a selector that names both, so the next load could test the
+	// other one. There is no verdict.
+	"/skip-twice": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Skip</title></head><body>
+` + strings.Repeat(`<div><div><div><div><div><div><a href="#main">Skip to content</a></div></div></div></div></div></div>`, 2) + `
+<nav><a href="/a">Home</a></nav><main id="main"><h1>Main</h1><a id="first" href="/c">First in main</a></main>
+<script>document.querySelectorAll("a[href='#main']").forEach((a) => a.addEventListener("click", (e) => e.preventDefault()));</script></body></html>`,
 	"/skip-good": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Skip</title></head><body>
 <a id="skip" href="#main">Skip to content</a><nav><a href="/a">Home</a> <a href="/b">About</a></nav>
 <main id="main"><h1>Main</h1><a id="first" href="/c">First in main</a></main></body></html>`,
@@ -113,7 +120,7 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/skip-next", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/entry", srv.URL + "/long"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/skip-next", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/entry", srv.URL + "/skip-twice", srv.URL + "/long"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)
@@ -172,6 +179,9 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 			}
 			if f := layoutFinding(by["/skip-bad"], RuleSkipLinkNoFocus); f == nil || f.Nodes[0].Target != "#skip" {
 				t.Errorf("broken skip link not reported: %+v", by["/skip-bad"].Tasks.Skip)
+			}
+			if sk := by["/skip-twice"].Tasks.Skip; sk != nil || layoutFinding(by["/skip-twice"], RuleSkipLinkNoFocus) != nil {
+				t.Errorf("a skip link whose selector names two links should have no verdict: %+v", sk)
 			}
 			if sk := by["/skip-next"].Tasks.Skip; sk != nil {
 				t.Errorf("a skip link just before its target should have no verdict: %+v", sk)

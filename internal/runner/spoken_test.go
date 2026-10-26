@@ -42,8 +42,10 @@ func TestSpokenLines(t *testing.T) {
 		t.Errorf("error: %q", got)
 	}
 	// A phrase the page made very long is cut.
-	if got := spokenLines(&page.Snapshot{Spoken: &page.Spoken{Phrases: []string{"img, " + strings.Repeat("a", 2000)}, Complete: true}}); len(got) > 500 || !strings.Contains(got, "...") {
-		t.Errorf("long phrase not cut: %d characters", len(got))
+	got = spokenLines(&page.Snapshot{Spoken: &page.Spoken{Phrases: []string{"img, " + strings.Repeat("a", 2000)}, Complete: true}})
+	line := strings.TrimPrefix(strings.Split(got, "\n")[1], "  ")
+	if n := len([]rune(line)); n != spokenPhraseMax || !strings.HasSuffix(line, "...") {
+		t.Errorf("long phrase cut to %d characters, want %d ending in ...: %q", n, spokenPhraseMax, line)
 	}
 }
 

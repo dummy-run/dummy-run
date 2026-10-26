@@ -58,6 +58,15 @@ func TestConsentRejectsAndReportsAMissingReject(t *testing.T) {
 			if rep.Autoconsent != page.AutoconsentVersion {
 				t.Errorf("report autoconsent %q", rep.Autoconsent)
 			}
+			got := map[string]int{}
+			for _, r := range rep.Results {
+				got[strings.TrimPrefix(r.URL, srv.URL)]++
+			}
+			for _, name := range []string{"/fair", "/unfair", "/late", "/many", "/none"} {
+				if got[name] != 1 {
+					t.Fatalf("%s: %d results, want 1: %v", name, got[name], got)
+				}
+			}
 			for _, r := range rep.Results {
 				name := strings.TrimPrefix(r.URL, srv.URL)
 				if r.Error != "" || r.Consent == nil || r.Consent.Error != "" {

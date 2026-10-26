@@ -71,7 +71,8 @@ async (axeJSON, criteriaJSON, max, engineMs) => {
   const ran = [];
   const errors = {};
   // Each engine that waits gets its own time, so one that never finishes is an error for that engine and the others
-  // still report. QualWeb runs without waiting, so it can't be stopped this way.
+  // still report. The time covers the waiting only: the engine's call starts before the timer, so work it does
+  // straight away, without waiting, isn't counted, and QualWeb, which never waits, can't be stopped this way.
   const within = (p, name) => {
     let timer;
     const late = new Promise((_, reject) => {
