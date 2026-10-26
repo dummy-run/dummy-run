@@ -19,6 +19,7 @@ var ownRules = []string{
 	"dummyrun-html-broken-reference", "dummyrun-html-duplicate-id", "dummyrun-html-nested-interactive",
 	"dummyrun-html-aria", "dummyrun-html-structure", "dummyrun-html-img-alt",
 	"dummyrun-lighthouse-paste-preventing-inputs",
+	"dummyrun-journey-keyboard",
 }
 
 func TestEveryOwnRuleHasAFix(t *testing.T) {

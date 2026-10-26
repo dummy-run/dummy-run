@@ -16,6 +16,7 @@ import (
 
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/bidi"
+	"github.com/dummy-run/dummy-run/internal/journey"
 	"github.com/dummy-run/dummy-run/internal/lighthouse"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/record"
@@ -88,6 +89,9 @@ type Config struct {
 	HTML bool
 	// Lighthouse runs Lighthouse's accessibility and best-practice audits once for each URL, in Chrome.
 	Lighthouse bool
+	// Journeys finds the journeys each page offers, such as search, a menu or a contact form, and tries each by
+	// mouse and by keyboard, once for each URL. One that works by mouse but not by keyboard is a violation.
+	Journeys bool
 	// Engines runs IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
@@ -188,6 +192,10 @@ type PageResult struct {
 	HTMLStopped       bool   `json:"html_stopped,omitempty"`
 	HTMLIgnored       int    `json:"html_ignored,omitempty"`
 	HTMLError         string `json:"html_error,omitempty"`
+	// Journeys are the journeys the page offers and how each went by mouse and by keyboard. JourneysError says why
+	// they could not be tried. Only the first result for each URL has these.
+	Journeys      []journey.Journey `json:"journeys,omitempty"`
+	JourneysError string            `json:"journeys_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
@@ -276,6 +284,8 @@ type Report struct {
 	// address of the browser the sweep has open.
 	lighthouseDone map[string]bool
 	debugger       string
+	// journeysDone holds the URLs whose journeys were tried, so each is tried once.
+	journeysDone map[string]bool
 }
 
 // Summary totals a report.
@@ -641,6 +651,17 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			rep.Lighthouse = lighthouse.Version
 		}
 		// Lighthouse has its own limit, so the checks after it get the page's full time again.
+		pctx, cancel = context.WithTimeout(ctx, 90*time.Second)
+		cancels = append(cancels, cancel)
+	}
+	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size.
+	if cfg.Journeys && !rep.journeysDone[u] {
+		if rep.journeysDone == nil {
+			rep.journeysDone = map[string]bool{}
+		}
+		rep.journeysDone[u] = true
+		journeyCheck(ctx, conn, cfg, u, vp, &res)
+		// Journeys have their own limit too, so the checks after them get the page's full time again.
 		pctx, cancel = context.WithTimeout(ctx, 90*time.Second)
 		cancels = append(cancels, cancel)
 	}

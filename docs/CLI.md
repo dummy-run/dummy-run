@@ -269,6 +269,9 @@ Flags:
   --image-contrast  also measure the text axe could not judge for contrast, usually text on an image or gradient:
                     hide the text, take a picture of what is behind it and compare the text colour with every pixel.
                     Text whose median pixel contrast fails is a violation (dummyrun-contrast-over-image, WCAG 1.4.3)
+  --journeys        also find the journeys each page offers (search, menu, sign-up, basket, booking, contact form)
+                    and try each by mouse and by keyboard, never submitting anything. One that works by mouse but
+                    not by keyboard is a violation (dummyrun-journey-keyboard, WCAG 2.1.1)
   --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
                     skip link that goes nowhere or doesn't move focus. It also tries up to 5 controls on each page
                     by mouse and by keyboard, and reports one that works only by mouse
