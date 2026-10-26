@@ -1400,10 +1400,11 @@ second, every data request the page makes with `fetch` or `XMLHttpRequest` fails
 it would if the site's API were down. Page loads, frames, scripts, styles, images and fonts still load. After each
 load the sweep waits two seconds, then reads the text of every alert and live region, and the page's visible text.
 
-The tab is read-only. A request other than GET or HEAD fails before it leaves the browser, in both loads, whatever
-the page's scripts try. The failing requests are GETs that never reach the server. So the probe never sends a
-form, a beacon or anything else that could change the site. With `--respect-robots`, a page load robots.txt
-disallows fails too.
+In both loads, a request other than GET or HEAD fails before it leaves the browser, whatever the page's scripts try,
+so the probe sends no form, beacon or other write. The page, its scripts, styles and images, and the normal load's
+data requests do reach the server, as GETs. The failing load's data requests never leave the browser. With
+`--respect-robots`, a page load robots.txt disallows fails too, and with `--identify` the tab sends the same user
+agent as the sweep.
 
 Each URL's first result gets `failure_probe`, which records:
 
@@ -1414,12 +1415,12 @@ Each URL's first result gets `failure_probe`, which records:
 - `changed`, true when the page's visible text differs from the normal load.
 
 A page that had data requests fail and announced nothing gets advice, `dummyrun-failure-silent`. Its detail says
-whether the visible text changed. If it did, the page shows an error that a screen reader doesn't read out. If it
-didn't, the page shows nothing at all. A page that fetches nothing when it loads gets no advice. The advice never
+whether the visible text changed. If it did, the page may show an error that a screen reader doesn't read out. If
+it didn't, the visible text is the same as when the data loaded. A page that fetches nothing when it loads gets no advice. The advice never
 fails the sweep. `failure_probe_error` says why the probe couldn't run.
 
 Each URL is probed once, at the first window size. With preview access the probe doesn't run, since preview
-access answers requests in every tab, and the two could disagree about a request.
+access answers requests in every tab, and the two could disagree about a request. `failure_probe_error` says so.
 
 ```sh
 dummyrun a11y --failures https://example.com/

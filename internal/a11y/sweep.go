@@ -97,7 +97,7 @@ type Config struct {
 	// Journeys finds the journeys each page offers, such as search, a menu or a contact form, and tries each by
 	// mouse and by keyboard, once for each URL. One that works by mouse but not by keyboard is a violation.
 	Journeys bool
-	// Failures loads each page once more with its data requests failing, as when its API is down, and reports a
+	// Failures loads each page twice more, once as normal and once with its data requests failing, as when its API is down, and reports a
 	// page that announced nothing. Only GET and HEAD requests leave the browser. The results are advice.
 	Failures bool
 	// Links checks the links on each page with lychee, each link once across the sweep. Broken ones are advice.
@@ -858,14 +858,19 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		journeyCheck(ctx, conn, cfg, u, vp, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
 	}
 	// The failure probe loads the page twice in a tab of its own, so each URL is probed once, at the first window
-	// size. With preview access it isn't run, since that answers requests in every tab.
-	if cfg.Failures && cfg.Access == nil && !rep.failuresDone[u] {
+	// size. With preview access it isn't run, since that answers requests in every tab and the two would both decide
+	// the same requests.
+	if cfg.Failures && !rep.failuresDone[u] {
 		if rep.failuresDone == nil {
 			rep.failuresDone = map[string]bool{}
 		}
 		rep.failuresDone[u] = true
-		failureCheck(ctx, conn, u, vp, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
-		res.Advice = append(res.Advice, failureFindings(res.FailureProbe, path, cfg.Allow)...)
+		if cfg.Access.Active() {
+			res.FailureProbeError = "not run with preview access, which answers the same requests"
+		} else {
+			failureCheck(ctx, conn, u, vp, cfg.Identify, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+			res.Advice = append(res.Advice, failureFindings(res.FailureProbe, path, cfg.Allow)...)
+		}
 	}
 	// The links are the same at every window size and colour scheme, so each URL's are checked once. Like the
 	// journeys, they come last, with their own time limit, so they can't take time from the checks above.

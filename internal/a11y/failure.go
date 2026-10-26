@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
+	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
 // RuleFailureSilent is a page whose data requests failed and that announced nothing to assistive technology.
@@ -54,6 +56,10 @@ type pageText struct {
 // failureGuard decides each request in the probe's tab. A request other than GET or HEAD always fails before it
 // leaves the browser, so the probe can't change anything on the site. While failing is set, the page's data
 // requests, the ones that aren't a page load, a frame, a script, a style, an image or a font, fail too.
+//
+// Each decision runs in a goroutine of its own, since the handler runs on the connection's read loop. wg tracks them,
+// so the counts are read only once every decision has been sent, and err keeps the first decision the browser
+// refused. A count goes up only when its decision was accepted.
 type failureGuard struct {
 	conn    *bidi.Conn
 	id      atomic.Value
@@ -61,6 +67,9 @@ type failureGuard struct {
 	failed  atomic.Int32
 	stopped atomic.Int32
 	allowed func(string) bool
+	wg      sync.WaitGroup
+	errOnce sync.Once
+	err     error
 }
 
 func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
@@ -68,27 +77,36 @@ func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
 	if !e.IsBlocked || mine == "" || !slices.Contains(e.Intercepts, mine) {
 		return
 	}
+	g.wg.Add(1)
 	go func() {
+		defer g.wg.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
 		defer cancel()
+		fail := func(n *atomic.Int32) {
+			if err := g.conn.FailRequest(ctx, e.Request.Request); err != nil {
+				g.record(err)
+			} else if n != nil {
+				n.Add(1)
+			}
+		}
 		m := strings.ToUpper(e.Request.Method)
 		switch {
 		case m != "GET" && m != "HEAD":
-			g.stopped.Add(1)
-			_ = g.conn.FailRequest(ctx, e.Request.Request)
-		case e.Navigation != "":
-			if g.allowed != nil && !g.allowed(e.Request.URL) {
-				_ = g.conn.FailRequest(ctx, e.Request.Request)
-				return
-			}
-			_ = g.conn.ContinueRequestUnchanged(ctx, e.Request.Request)
-		case g.failing.Load() && isDataRequest(e.Request):
-			g.failed.Add(1)
-			_ = g.conn.FailRequest(ctx, e.Request.Request)
+			fail(&g.stopped)
+		case e.Navigation != "" && g.allowed != nil && !g.allowed(e.Request.URL):
+			fail(nil)
+		case e.Navigation == "" && g.failing.Load() && isDataRequest(e.Request):
+			fail(&g.failed)
 		default:
-			_ = g.conn.ContinueRequestUnchanged(ctx, e.Request.Request)
+			if err := g.conn.ContinueRequestUnchanged(ctx, e.Request.Request); err != nil {
+				g.record(err)
+			}
 		}
 	}()
+}
+
+func (g *failureGuard) record(err error) {
+	g.errOnce.Do(func() { g.err = err })
 }
 
 // isDataRequest says a request fetches data for the page's scripts. Fetch and XMLHttpRequest have no destination,
@@ -101,10 +119,10 @@ func isDataRequest(r bidi.RequestData) bool {
 // as when its server or API is down. It records whether the page told assistive technology anything. A page that
 // had data requests fail and announced nothing gets advice under WCAG 4.1.3, since a visitor who can't see the
 // page may never learn that something went wrong.
-func failureCheck(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, res *PageResult, allowed func(string) (bool, string)) {
+func failureCheck(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, identify bool, res *PageResult, allowed func(string) (bool, string)) {
 	fctx, cancel := context.WithTimeout(ctx, failureTimeout)
 	defer cancel()
-	p, err := probeFailures(fctx, conn, u, vp, allowed)
+	p, err := probeFailures(fctx, conn, u, vp, identify, allowed)
 	if err != nil {
 		res.FailureProbeError = firstLine(err.Error())
 		return
@@ -112,7 +130,7 @@ func failureCheck(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, r
 	res.FailureProbe = p
 }
 
-func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, allowed func(string) (bool, string)) (*FailureProbe, error) {
+func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, identify bool, allowed func(string) (bool, string)) (*FailureProbe, error) {
 	cx, err := conn.CreateContext(ctx)
 	if err != nil {
 		return nil, err
@@ -125,9 +143,19 @@ func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, 
 	if err := conn.SetViewport(ctx, cx, vp.Width, vp.Height); err != nil {
 		return nil, err
 	}
+	if identify {
+		v, err := conn.Evaluate(ctx, cx, "navigator.userAgent")
+		if err != nil {
+			return nil, err
+		}
+		ua, _ := v.String()
+		if err := conn.SetUserAgentOverride(ctx, telemetry.UserAgent(ua, true), []string{cx}); err != nil {
+			return nil, err
+		}
+	}
 	g := &failureGuard{conn: conn, allowed: func(raw string) bool { ok, _ := allowed(raw); return ok }}
 	g.id.Store("")
-	conn.OnBeforeRequestSent(g.handle)
+	defer conn.OnBeforeRequestSent(g.handle)()
 	if err := conn.Subscribe(ctx, []string{"network.beforeRequestSent"}, cx); err != nil {
 		return nil, err
 	}
@@ -163,6 +191,10 @@ func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, 
 	if err != nil {
 		return nil, fmt.Errorf("load with failing requests: %w", err)
 	}
+	g.wg.Wait()
+	if g.err != nil {
+		return nil, fmt.Errorf("answer a request: %w", g.err)
+	}
 	p := &FailureProbe{Failed: int(g.failed.Load()), Stopped: int(g.stopped.Load()), Changed: failed.Text != normal.Text}
 	if failed.Live != "" && failed.Live != normal.Live {
 		p.Announced = true
@@ -176,9 +208,13 @@ func failureFindings(p *FailureProbe, path string, allow *AllowList) []Finding {
 	if p == nil || p.Failed == 0 || p.Announced {
 		return nil
 	}
-	detail := fmt.Sprintf("%d data requests failed and the page's text didn't change", p.Failed)
+	what := fmt.Sprintf("%d data requests", p.Failed)
+	if p.Failed == 1 {
+		what = "1 data request"
+	}
+	detail := what + " failed and the page's visible text didn't change"
 	if p.Changed {
-		detail = fmt.Sprintf("%d data requests failed; the page's text changed but no live region or alert said so", p.Failed)
+		detail = what + " failed; the page's visible text changed but no live region or alert said so"
 	}
 	n := Node{Target: "html", Detail: detail}
 	if e := allow.Match(RuleFailureSilent, path, n.Target); e != nil {

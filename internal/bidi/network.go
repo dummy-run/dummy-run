@@ -167,9 +167,9 @@ func HeaderValue(headers []Header, name string) (string, bool) {
 	return "", false
 }
 
-// OnBeforeRequestSent calls f for every network.beforeRequestSent event.
-func (c *Conn) OnBeforeRequestSent(f func(BeforeRequestSent)) {
-	c.OnEvent("network.beforeRequestSent", func(_ string, params json.RawMessage) {
+// OnBeforeRequestSent calls f for every network.beforeRequestSent event. The returned function stops it.
+func (c *Conn) OnBeforeRequestSent(f func(BeforeRequestSent)) (remove func()) {
+	return c.OnEvent("network.beforeRequestSent", func(_ string, params json.RawMessage) {
 		var e BeforeRequestSent
 		if err := json.Unmarshal(params, &e); err != nil {
 			return

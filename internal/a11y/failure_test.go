@@ -81,7 +81,7 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 				mu.Lock()
 				seen = nil
 				mu.Unlock()
-				fp, err := probeFailures(ctx, b.Conn, srv.URL+path, Desktop, allowAll)
+				fp, err := probeFailures(ctx, b.Conn, srv.URL+path, Desktop, false, allowAll)
 				if err != nil {
 					t.Fatalf("%s: %v", path, err)
 				}
@@ -126,7 +126,7 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 
 func TestFailureFindingsWording(t *testing.T) {
 	f := failureFindings(&FailureProbe{Failed: 2}, "/", nil)
-	if len(f) != 1 || f[0].Nodes[0].Detail != "2 data requests failed and the page's text didn't change" || f[0].WCAG[0] != "4.1.3" {
+	if len(f) != 1 || f[0].Nodes[0].Detail != "2 data requests failed and the page's visible text didn't change" || f[0].WCAG[0] != "4.1.3" {
 		t.Errorf("%+v", f)
 	}
 	allow, err := ParseAllowList(strings.NewReader("dummyrun-failure-silent | / | html | the page has no data to lose\n"))
@@ -135,6 +135,9 @@ func TestFailureFindingsWording(t *testing.T) {
 	}
 	if f := failureFindings(&FailureProbe{Failed: 1}, "/", allow); !f[0].Nodes[0].Allowed {
 		t.Errorf("the allow-list didn't accept it: %+v", f)
+	}
+	if f := failureFindings(&FailureProbe{Failed: 1, Changed: true}, "/", nil); !strings.HasPrefix(f[0].Nodes[0].Detail, "1 data request failed;") {
+		t.Errorf("one request: %q", f[0].Nodes[0].Detail)
 	}
 	if cut("abcdef", 5) != "ab..." || cut("abc", 5) != "abc" {
 		t.Error("cut")
