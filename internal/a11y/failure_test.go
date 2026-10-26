@@ -43,11 +43,12 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 	defer func(d time.Duration) { failureSettle = d }(failureSettle)
 	failureSettle = 1500 * time.Millisecond
 	var mu sync.Mutex
-	var seen []string
+	var seen, agents []string
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		seen = append(seen, r.Method+" "+r.URL.Path)
+		agents = append(agents, r.UserAgent())
 		mu.Unlock()
 		switch r.URL.Path {
 		case "/announced", "/silent":
@@ -120,6 +121,36 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 			if st := probe("/static"); st.Failed != 0 || st.Changed || len(failureFindings(st, "/static", nil)) != 0 {
 				t.Errorf("static: %+v", st)
 			}
+
+			// With --identify, every request from the probe's tab names the scanner.
+			mu.Lock()
+			agents = nil
+			mu.Unlock()
+			if _, err := probeFailures(ctx, b.Conn, srv.URL+"/static", Desktop, true, allowAll); err != nil {
+				t.Fatal(err)
+			}
+			mu.Lock()
+			for _, ua := range agents {
+				if !strings.Contains(ua, "DummyRun/") {
+					t.Errorf("a request from the probe's tab didn't identify itself: %q", ua)
+				}
+			}
+			if len(agents) == 0 {
+				t.Error("the identified probe made no requests")
+			}
+			seen = nil
+			mu.Unlock()
+
+			// A page robots.txt disallows never loads.
+			refuse := func(string) (bool, string) { return false, "robots.txt disallows it" }
+			if _, err := probeFailures(ctx, b.Conn, srv.URL+"/silent", Desktop, false, refuse); err == nil {
+				t.Error("a disallowed page loaded")
+			}
+			mu.Lock()
+			if len(seen) != 0 {
+				t.Errorf("a disallowed page reached the server: %v", seen)
+			}
+			mu.Unlock()
 		})
 	}
 }
@@ -141,5 +172,19 @@ func TestFailureFindingsWording(t *testing.T) {
 	}
 	if cut("abcdef", 5) != "ab..." || cut("abc", 5) != "abc" {
 		t.Error("cut")
+	}
+}
+
+// TestFailureGuardIgnoresCancelledRequests checks a decision on a request the page already cancelled doesn't stop
+// the probe, and any other refused decision does.
+func TestFailureGuardIgnoresCancelledRequests(t *testing.T) {
+	var g failureGuard
+	g.record(&bidi.CommandError{Method: "network.failRequest", Code: "no such request", Message: "gone"})
+	if g.err != nil {
+		t.Errorf("a cancelled request was recorded: %v", g.err)
+	}
+	g.record(&bidi.CommandError{Method: "network.failRequest", Code: "invalid argument", Message: "bad"})
+	if g.err == nil {
+		t.Error("a refused decision wasn't recorded")
 	}
 }

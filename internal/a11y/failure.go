@@ -59,7 +59,8 @@ type pageText struct {
 //
 // Each decision runs in a goroutine of its own, since the handler runs on the connection's read loop. wg tracks them,
 // so the counts are read only once every decision has been sent, and err keeps the first decision the browser
-// refused. A count goes up only when its decision was accepted.
+// refused. A count goes up only when its decision was accepted. Once close has begun, a request that still arrives
+// is failed and not counted, so none is left waiting.
 type failureGuard struct {
 	conn    *bidi.Conn
 	id      atomic.Value
@@ -67,9 +68,19 @@ type failureGuard struct {
 	failed  atomic.Int32
 	stopped atomic.Int32
 	allowed func(string) bool
+	mu      sync.Mutex
+	closed  bool
 	wg      sync.WaitGroup
 	errOnce sync.Once
 	err     error
+}
+
+// close stops counting and waits for every decision so far.
+func (g *failureGuard) close() {
+	g.mu.Lock()
+	g.closed = true
+	g.mu.Unlock()
+	g.wg.Wait()
 }
 
 func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
@@ -77,7 +88,20 @@ func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
 	if !e.IsBlocked || mine == "" || !slices.Contains(e.Intercepts, mine) {
 		return
 	}
-	g.wg.Add(1)
+	g.mu.Lock()
+	closed := g.closed
+	if !closed {
+		g.wg.Add(1)
+	}
+	g.mu.Unlock()
+	if closed {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
+			defer cancel()
+			_ = g.conn.FailRequest(ctx, e.Request.Request)
+		}()
+		return
+	}
 	go func() {
 		defer g.wg.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
@@ -105,7 +129,12 @@ func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
 	}()
 }
 
+// record keeps the first decision the browser refused. A request the page cancelled before the decision arrived is
+// "no such request", which says nothing about the probe, so it's left out.
 func (g *failureGuard) record(err error) {
+	if bidi.IsCommandError(err, "no such request") {
+		return
+	}
 	g.errOnce.Do(func() { g.err = err })
 }
 
@@ -191,7 +220,7 @@ func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, 
 	if err != nil {
 		return nil, fmt.Errorf("load with failing requests: %w", err)
 	}
-	g.wg.Wait()
+	g.close()
 	if g.err != nil {
 		return nil, fmt.Errorf("answer a request: %w", g.err)
 	}

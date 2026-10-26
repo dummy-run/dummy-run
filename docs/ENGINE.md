@@ -1405,7 +1405,9 @@ load the sweep waits two seconds, then reads the text of every alert and live re
 
 In both loads, a request other than GET or HEAD fails before it leaves the browser, whatever the page's scripts try,
 so the probe sends no form, beacon or other write. The page, its scripts, styles and images, and the normal load's
-data requests do reach the server, as GETs. The failing load's data requests never leave the browser. With
+GET data requests do reach the server. The failing load's data requests never leave the browser. A page that
+fetches its data with POST, as many GraphQL clients do, has those requests stopped in both loads. Its `failed`
+stays 0 and it gets no advice, since the normal load had no data either. With
 `--respect-robots`, a page load robots.txt disallows fails too, and with `--identify` the tab sends the same user
 agent as the sweep.
 
