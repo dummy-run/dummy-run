@@ -1054,7 +1054,7 @@ area of that 2 pixel line, and `contrast`, the biggest change.
 
 An indicator with enough contrast but less area than that line is advice, `dummyrun-focus-appearance` (WCAG
 2.4.13). Level AAA asks for that area, and AA doesn't, so it never fails the sweep. A one pixel outline is a common
-example. The picture shows only 6 pixels round the element, so an outline set further out than that isn't seen.
+example. The picture shows only 6 pixels round the element, so an outline set further out than that isn't seen. A control wider than 588 or taller than 288 CSS pixels doesn't fit in the picture, so its indicator isn't measured.
 
 The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
 sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden
@@ -1153,12 +1153,17 @@ A finding, `dummyrun-contrast-over-image` (WCAG 1.4.3, serious), means most of t
 The median of the contrast ratios between the text colour and each pixel behind it is below 4.5:1, or 3:1 for large
 text. The figures are rounded down to two places, so a ratio just under the threshold never shows as meeting it. The `detail` gives that figure and the ratio at the worst tenth
 of the pixels, so you can see how much of the text is affected. Text that passes at the median and fails only in its
-worst tenth isn't reported. Each result has `image_contrast`, with every
-measurement, and `image_contrast_checked`. `image_contrast_unmeasured` counts the elements it couldn't measure. These
-are ones inside a shadow root or frame, text in more than one colour or that mixes large and smaller text, text faded
-with opacity, text with a shadow (a halo can give the contrast, and the picture wouldn't show it), text on a page
-whose content security policy blocks the style that hides it, ones it couldn't find or picture, and any past the
-limit. Check those by eye.
+worst tenth isn't reported. When the check finishes on a result, the result has `image_contrast_checked`. If it fails, the result has an `error` instead. If the check
+measured anything, `image_contrast` lists every measurement.
+
+`image_contrast_unmeasured` counts the elements it couldn't measure, so check those by eye:
+
+- elements inside a shadow root or a frame
+- text in more than one colour, or that mixes large and smaller text
+- text faded with opacity
+- text with a shadow, since a halo can give the contrast and the picture wouldn't show it
+- text on a page whose content security policy blocks the style that hides it
+- elements it couldn't find or take a picture of, and any past the limit
 
 The picture is taken as the page draws it, so a slideshow that moves on or a video behind the text can give a
 different answer next time. Check a finding by eye before you change the design.

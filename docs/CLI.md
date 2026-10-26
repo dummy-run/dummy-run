@@ -275,7 +275,7 @@ Flags:
   --keyboard        also press Tab through each page and report focus you cannot see, a focus indicator with less
                     than 3:1 contrast, focus that gets stuck and a skip link that goes nowhere or doesn't move
                     focus. An indicator smaller than a 2 px line round the control is advice. It also tries up to 5
-                    controls on each page by mouse and by keyboard, and reports one that works only by mouse
+                    controls on each page by mouse and by keyboard, and reports each one that works only by mouse
   --layout          also run the layout checks, measured from what the browser lays out and paints: sideways
                     scrolling, text cut off by its box, a control covered by another, targets under 24 by 24 CSS
                     px and a control hidden behind other content when it has focus. Rules dummyrun-reflow,

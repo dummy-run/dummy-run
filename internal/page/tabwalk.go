@@ -261,7 +261,10 @@ func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) (*TabW
 			s.Checked = true
 			s.NoIndicator = changedPixels(with, without) < minChangedPixels
 		}
-		s.Appearance = measureFocus(with, without, clip, s.Box)
+		// A control bigger than the clip has part of its indicator outside the pictures, so it isn't measured.
+		if s.Box.Width+12 <= clip.Width && s.Box.Height+12 <= clip.Height {
+			s.Appearance = measureFocus(with, without, clip, s.Box)
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("tab walk: %w", err)

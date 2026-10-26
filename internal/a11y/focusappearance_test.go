@@ -28,6 +28,8 @@ button { display: block; margin: 24px; padding: 8px 16px; border: 1px solid #111
 #bad-fade { transition: background-color 0.3s; }
 #bad-fade:focus { background: #eeeeee; }
 #bad-thin:focus { outline: 1px solid #000; }
+#ok-wide { width: 700px; }
+#ok-wide:focus { outline: 1px solid #000; }
 #ok-after { position: relative; }
 #ok-after:focus::after { content: ""; position: absolute; inset: -5px; border: 3px solid #000; }
 </style></head><body><main><h1>Focus</h1>
@@ -37,6 +39,7 @@ button { display: block; margin: 24px; padding: 8px 16px; border: 1px solid #111
 <button id="bad-shade">Shade</button>
 <button id="bad-fade">Fading shade</button>
 <button id="bad-thin">Thin</button>
+<button id="ok-wide">Too wide to measure</button>
 <button id="ok-after">Drawn after</button>
 </main></body></html>`
 
