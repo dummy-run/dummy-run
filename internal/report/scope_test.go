@@ -32,6 +32,9 @@ func TestScopeDescribesEachPersonaRun(t *testing.T) {
 		t.Fatalf("personas %+v", sc.Personas)
 	}
 	a, b := sc.Personas[0], sc.Personas[1]
+	if a.Runs != 2 || b.Runs != 3 {
+		t.Errorf("runs: a %d, b %d", a.Runs, b.Runs)
+	}
 	if want := []string{"phone", "phone with text at 101 percent"}; !slices.Equal(a.Devices, want) || len(a.Dimensions) != 0 {
 		t.Errorf("a: devices %q, dimensions %q", a.Devices, a.Dimensions)
 	}
