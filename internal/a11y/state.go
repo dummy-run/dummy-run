@@ -8,9 +8,12 @@ import (
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
 
-// maxStateBytes bounds the page description the state hash reads. A page past it is hashed from its start, and
-// the state says partial.
-const maxStateBytes = 8 << 20
+// maxStateChars bounds the page description the state hash reads, in the UTF-16 code units JavaScript counts. A
+// page past it is hashed from its start, and the state says partial.
+var maxStateChars = 8_000_000
+
+// readPageState reads the state. Tests replace it to make the read fail.
+var readPageState = readState
 
 // stateJS describes the page as the rules see it: each element's tag, its role, its ARIA attributes, and the
 // attributes and states that change what assistive technology gets, with the text between them, in document order,
@@ -57,14 +60,15 @@ const stateJS = `(max) => {
   return {text: out.join("\n"), elements, partial};
 }`
 
-// PageState identifies the page the rules saw. Two results with the same Hash saw the same elements, roles,
-// ARIA, states and text, whatever else differed, such as an id or a token in a form.
+// PageState identifies the page's structure and text just before the rules run. Two results with the same Hash saw
+// the same elements, roles, ARIA, states and text, whatever else differed, such as an id or a token in a form. It
+// doesn't cover styles, classes, ids or link addresses, so a change to those alone keeps the hash.
 type PageState struct {
 	// Hash is the SHA-256 of the page's description, in hex.
 	Hash string `json:"hash"`
 	// Elements counts the elements described.
 	Elements int `json:"elements"`
-	// Partial says the description passed 8 MB, and the hash covers its start.
+	// Partial says the description passed 8 million characters, and the hash covers its start.
 	Partial bool `json:"partial,omitempty"`
 }
 
@@ -75,7 +79,7 @@ func readState(ctx context.Context, conn *bidi.Conn, cx string) (*PageState, err
 		Elements int    `json:"elements"`
 		Partial  bool   `json:"partial"`
 	}
-	if err := conn.CallFunctionJSONIn(ctx, cx, "dummyrun-state", stateJS, &out, maxStateBytes); err != nil {
+	if err := conn.CallFunctionJSONIn(ctx, cx, "dummyrun-state", stateJS, &out, maxStateChars); err != nil {
 		return nil, err
 	}
 	sum := sha256.Sum256([]byte(out.Text))

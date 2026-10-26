@@ -679,8 +679,8 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	case <-time.After(cfg.Settle):
 	case <-pctx.Done():
 	}
-	// The page's state is read before anything of ours goes into it, so equal hashes mean the rules saw equal pages.
-	if st, err := readState(pctx, conn, cx); err != nil {
+	// The page's state is read before anything of ours goes into it.
+	if st, err := readPageState(pctx, conn, cx); err != nil {
 		res.StateError = firstLine(err.Error())
 	} else {
 		res.State = st

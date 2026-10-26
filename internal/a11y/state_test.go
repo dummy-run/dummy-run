@@ -2,6 +2,7 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dummy-run/dummy-run/internal/bidi"
 )
 
 // statePage is a page whose ids, link addresses and form token change on every load, as many sites' do. The query
@@ -75,5 +78,67 @@ func TestStateHashSeesThePageNotItsTokens(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestStateIsPartialPastTheLimit checks a page whose description passes the limit is hashed from its start.
+func TestStateIsPartialPastTheLimit(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	defer func(n int) { maxStateChars = n }(maxStateChars)
+	maxStateChars = 200
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		end := "same"
+		if r.URL.Query().Has("end") {
+			end = "different"
+		}
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><title>Long</title></head><body><main><h1>Long</h1><p>%s</p><p>%s</p></main></body></html>`,
+			strings.Repeat("word ", 100), end)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/", srv.URL + "/?end"}, Browser: browser, Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			a, b := rep.Results[0].State, rep.Results[1].State
+			if a == nil || b == nil || !a.Partial || !b.Partial || a.Hash != b.Hash {
+				t.Errorf("past the limit: %+v and %+v, want both partial with one hash", a, b)
+			}
+		})
+	}
+}
+
+// TestStateErrorLeavesTheRulesRunning checks a state that can't be read is recorded and axe still runs.
+func TestStateErrorLeavesTheRulesRunning(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	defer func(f func(context.Context, *bidi.Conn, string) (*PageState, error)) { readPageState = f }(readPageState)
+	readPageState = func(context.Context, *bidi.Conn, string) (*PageState, error) {
+		return nil, errors.New("the sandbox went away\nsecond line")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><title>Image</title></head><body><main><h1>Image</h1><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></main></body></html>`)
+	}))
+	defer srv.Close()
+	browser := strings.Split(v, ",")[0]
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	rep, err := Run(ctx, Config{URLs: []string{srv.URL}, Browser: browser, Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := rep.Results[0]
+	if r.State != nil || r.StateError != "the sandbox went away" || r.Error != "" || len(r.Violations) == 0 {
+		t.Errorf("state %+v, state error %q, error %q, %d violations", r.State, r.StateError, r.Error, len(r.Violations))
 	}
 }
