@@ -97,7 +97,7 @@ Some checks follow a method another project worked out, written again in our own
 | Project | What we took | Licence of the project |
 |---|---|---|
 | [contrastcap](https://github.com/ICJIA/contrastcap-mcp) by ICJIA | Measuring text contrast over an image by hiding the text, taking a picture of what is behind it and comparing every pixel, for `--image-contrast` | MIT |
-| [Sa11y](https://github.com/ryersondmp/sa11y) by Adam Chaboryk at Toronto Metropolitan University and [Editoria11y](https://github.com/itmaybejj/editoria11y) by John Jameson | The idea of checking what authors write, such as vague link names, file names as alt text and bold text standing in for a heading, for `--content`. The checks, thresholds and wording are our own, written from the public descriptions of the problems. No code from either is used | GPL-2.0 |
+| [Sa11y](https://github.com/ryersondmp/sa11y) from Toronto Metropolitan University and [Editoria11y](https://github.com/itmaybejj/editoria11y), which is developed with it | The idea of checking what authors write, such as vague link names, file names as alt text and bold text standing in for a heading, for `--content`. The checks, thresholds and wording are our own, written from the public descriptions of the problems. No code from either is used | GPL-2.0 |
 | [LayoutLens](https://github.com/gojiplus/layoutlens) by goji+ | Measuring layout from the browser's rectangles and what is painted on top at a point: outermost elements past the window, clipped text, controls under other controls, focus hidden behind opaque content, and the measurable target size exceptions. Used by `--layout` | MIT |
 
 ## Data
