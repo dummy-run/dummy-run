@@ -1101,7 +1101,8 @@ YAML. Each line gives a role, an accessible name and any states. A landmark's co
 Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
 landmark. The snapshot also leaves out the focused element and the persona's @numbers. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
 button or a new link changes it. Names come from the spec
-computation alone, so a snapshot doesn't depend on whether axe loaded. A page keeps up to 2,000 lines, and
+computation alone. The snapshot is still taken after axe and the page's other checks, so a page where axe or
+an earlier check fails has no snapshot. A page keeps up to 2,000 lines, and
 `aria_snapshot_omitted` counts any more.
 
 If DIR already holds a snapshot for the page and setting, the sweep compares the two first. The result's
