@@ -91,6 +91,11 @@ it again.
 The long sentence, words to avoid and Latin abbreviation rules are our own, written from the public
 [GOV.UK A to Z style guide](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/).
 
+## Picture comparison
+
+| Tool | Version | What it does in Dummy Run | Licence |
+|---|---|---|---|
+| [pixelmatch](https://github.com/mapbox/pixelmatch) by Mapbox | 7.1.0, ported to Go in `internal/visual/pixelmatch.go` | Counts the pixels that changed between two pictures of a page with `--visual`, leaving out anti-aliasing, and draws a picture of the changes | ISC |
 ## PDF checking
 
 | Tool | Version | What it does in Dummy Run | Licence |
@@ -114,6 +119,7 @@ Some checks follow a method another project worked out, written again in our own
 | [Playwright](https://github.com/microsoft/playwright) by Microsoft | The YAML layout of its ARIA snapshots, one list item for each role and name with its states in square brackets, for `--aria-snapshots`. The outline is our own and no Playwright code is used | Apache-2.0 |
 | [Leonardo](https://github.com/adobe/leonardo) by Adobe | Suggesting a colour that meets a contrast ratio by changing its lightness, so the hue stays, for the colour suggestions on contrast failures. When the new lightness at that chroma is a colour the screen can't show, the chroma comes down too. The colour maths is OKLab, written again from the formulas in [CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/#ok-lab) | Apache-2.0 |
 | [Sa11y](https://github.com/ryersondmp/sa11y) from Toronto Metropolitan University and [Editoria11y](https://github.com/itmaybejj/editoria11y), which is developed with it | The idea of checking what authors write, such as vague link names, file names as alt text and bold text standing in for a heading, for `--content`. The checks, thresholds and wording are our own, written from the public descriptions of the problems. No code from either is used | GPL-2.0 |
+| [goimagehash](https://github.com/corona10/goimagehash) | The difference hash, which shrinks a picture to 9 by 8 grey cells and sets a bit where a cell is brighter than the next, for the `hash_distance` of `--visual`. The code is our own | BSD-2-Clause |
 | [LayoutLens](https://github.com/gojiplus/layoutlens) by goji+ | Measuring layout from the browser's rectangles and what is painted on top at a point: outermost elements past the window, clipped text, controls under other controls, focus hidden behind opaque content, and the measurable target size exceptions. Used by `--layout` | MIT |
 
 ## Data

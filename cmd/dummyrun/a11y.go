@@ -98,6 +98,12 @@ Flags:
                     first, and the lines added and removed are listed, so a regular sweep shows what changed
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --visual DIR      keep a picture of the window for each page and setting in DIR, and compare each with the one
+                    the last sweep left there: the pixels that changed, by a port of pixelmatch, and the
+                    distance between the two pictures' difference hashes. A picture of the changes goes beside
+                    it as .diff.png. The counts are in the report; nothing fails the sweep
+  --mask SELECTOR   cover the elements this CSS selector matches before each --visual picture, such as a clock
+                    or an advert that changes on every load. Repeat for more
   --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
                     gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
                     summary shows the counts. The checks that run once for each URL run in the first repeat
@@ -151,6 +157,9 @@ func a11yCmd(args []string) int {
 	linksOn := fs.Bool("links", false, "check the links on each page with lychee")
 	imageContrast := fs.Bool("image-contrast", false, "measure text contrast against the pixels behind it")
 	shotDir := fs.String("screenshots", "", "directory for PNG crops of flagged elements")
+	visualDir := fs.String("visual", "", "directory of window pictures to compare with the last sweep's")
+	var masks listFlag
+	fs.Var(&masks, "mask", "a CSS selector to cover before each --visual picture; repeatable")
 	snapDir := fs.String("aria-snapshots", "", "directory for ARIA snapshots, compared with the ones already there")
 	repeat := fs.Int("repeat", 1, "how many times to sweep every page and setting, up to 10")
 	allowPath := fs.String("allow", "", "allow-list file")
@@ -215,6 +224,10 @@ func a11yCmd(args []string) int {
 		fmt.Fprintln(os.Stderr, "dummyrun a11y:", err)
 		return 2
 	}
+	if len(masks) > 0 && *visualDir == "" {
+		fmt.Fprintln(os.Stderr, "dummyrun a11y: --mask needs --visual, which takes the pictures it covers")
+		return 2
+	}
 	if *repeat < 1 || *repeat > maxRepeat {
 		fmt.Fprintf(os.Stderr, "dummyrun a11y: --repeat must be from 1 to %d\n", maxRepeat)
 		return 2
@@ -272,7 +285,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir, VisualDir: *visualDir, Masks: masks,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {

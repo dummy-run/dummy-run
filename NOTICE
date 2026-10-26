@@ -69,6 +69,10 @@ Java runtime (/opt/vnu/jre) made with jlink from Debian's OpenJDK 21 package, li
 License version 2 with the Classpath Exception (see /opt/vnu/jre/legal). Its source is in Debian's openjdk-21
 source package.
 
+internal/visual/pixelmatch.go is a Go port of pixelmatch 7.1.0, Copyright (c) 2025, Mapbox, licensed under the ISC
+licence (see LICENSES/ISC.txt). The file carries the licence. The original source is at
+https://github.com/mapbox/pixelmatch.
+
 The container image includes the lychee 0.24.2 program (/opt/lychee/lychee), Copyright (c) 2020 Matthias Endler and
 the lychee contributors, licensed under the MIT licence or the Apache License 2.0, at your option. Its source is at
 https://github.com/lycheeverse/lychee.

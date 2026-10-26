@@ -103,6 +103,13 @@ func (r *Report) WriteSummary(w io.Writer) {
 		for _, c := range checkErrors(p) {
 			_, _ = fmt.Fprintf(w, "%s %s (%s): %s\n", c.check, p.URL, p.Setting(), printable(c.err))
 		}
+		if v := p.Visual; v != nil && v.Change != nil && (v.Changed > 0 || v.SizeChanged) {
+			if v.SizeChanged {
+				_, _ = fmt.Fprintf(w, "SCREEN %s (%s): the window changed size, hash distance %d of 64\n", p.URL, p.Setting(), v.HashDistance)
+			} else {
+				_, _ = fmt.Fprintf(w, "SCREEN %s (%s): %d of %d pixels changed, hash distance %d of 64, %s\n", p.URL, p.Setting(), v.Changed, v.Total, v.HashDistance, v.Diff)
+			}
+		}
 		if p.PDFError != "" {
 			_, _ = fmt.Fprintf(w, "PDF %s (%s): links not read: %s\n", p.URL, p.Setting(), printable(p.PDFError))
 		}
@@ -175,6 +182,7 @@ func checkErrors(p PageResult) []checkError {
 	add("HTML", p.HTMLError)
 	add("LIGHTHOUSE", p.LighthouseError)
 	add("LIGHTHOUSE MATCH", p.LighthouseMatchError)
+	add("VISUAL", p.VisualError)
 	add("SNAPSHOT", p.ARIASnapshotError)
 	if p.Consent != nil {
 		add("CONSENT", p.Consent.Error)

@@ -316,6 +316,12 @@ Flags:
                     first, and the lines added and removed are listed, so a regular sweep shows what changed
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --visual DIR      keep a picture of the window for each page and setting in DIR, and compare each with the one
+                    the last sweep left there: the pixels that changed, by a port of pixelmatch, and the
+                    distance between the two pictures' difference hashes. A picture of the changes goes beside
+                    it as .diff.png. The counts are in the report; nothing fails the sweep
+  --mask SELECTOR   cover the elements this CSS selector matches before each --visual picture, such as a clock
+                    or an advert that changes on every load. Repeat for more
   --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
                     gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
                     summary shows the counts. The checks that run once for each URL run in the first repeat
