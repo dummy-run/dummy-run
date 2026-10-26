@@ -6,6 +6,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
+- `internal/report` has a test for how a report's scope words each persona's device and dimensions and counts each run outcome, so a setting at its default, such as text at 100 percent, stays unnamed.
 - `internal/tech` has tests for technologies with only two kinds of signal, webappanalyzer's tags at the start of a pattern, meta values given as lists and empty text checks. Of the mutants gremlins makes in it, the tests now catch 34 of the 36 they run, up from 25 of 35. The two left change nothing the package returns: one turns `<` into `<=` in a sort by names that are always different, and the other turns `>` into `>=` in a length check that then cuts a 120-character string to the same 120 characters.
 - `internal/robots` has tests for the edges of its wildcard and end-anchor matching, its percent-escape handling and a fetch the caller cancels. Of the mutants gremlins makes in it, the tests now catch 91 of the 95 they run, up from 70 of 94. The four left change nothing the package returns.
 - With `dummyrun a11y --repeat`, a page whose first repeat failed after the HTML check or Lighthouse keeps those checks' results, such as `html_checked` and `lighthouse_scores`, when a later repeat's result is the one kept. Before, the merged result lost them, though their findings were still counted.
