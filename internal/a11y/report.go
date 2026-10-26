@@ -84,10 +84,13 @@ func (r *Report) WriteSummary(w io.Writer) {
 			_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
 		}
 		for _, e := range sortedKeys(p.EngineErrors) {
-			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", confidence.EngineName(e), p.URL, p.Setting(), p.EngineErrors[e])
+			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", confidence.EngineName(e), p.URL, p.Setting(), printable(p.EngineErrors[e]))
 		}
 		if p.JourneysError != "" {
 			_, _ = fmt.Fprintf(w, "JOURNEYS %s (%s): %s\n", p.URL, p.Setting(), printable(p.JourneysError))
+		}
+		for _, c := range checkErrors(p) {
+			_, _ = fmt.Fprintf(w, "%s %s (%s): %s\n", c.check, p.URL, p.Setting(), printable(c.err))
 		}
 	}
 	s := r.Summary
@@ -105,6 +108,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 	if n := journeyErrorPages(r); n > 0 {
 		_, _ = fmt.Fprintf(w, ", journeys not tried on %d pages (listed above)", n)
 	}
+	if n := checkErrorRuns(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", other checks failed on %d runs (listed above)", n)
+	}
 	if s.Skipped > 0 {
 		_, _ = fmt.Fprintf(w, ", %d pages skipped for robots.txt", s.Skipped)
 	}
@@ -112,6 +118,38 @@ func (r *Report) WriteSummary(w io.Writer) {
 		_, _ = fmt.Fprintf(w, ", %d unused allow-list entries", s.UnusedAllowed)
 	}
 	_, _ = fmt.Fprintln(w)
+}
+
+type checkError struct{ check, err string }
+
+// checkErrors lists the optional checks that couldn't run on a page, other than the rule engines and the journeys,
+// which have lines of their own.
+func checkErrors(p PageResult) []checkError {
+	var out []checkError
+	add := func(check, err string) {
+		if err != "" {
+			out = append(out, checkError{check, err})
+		}
+	}
+	add("PLAIN", p.PlainLanguageError)
+	add("HTML", p.HTMLError)
+	add("LIGHTHOUSE", p.LighthouseError)
+	add("LIGHTHOUSE", p.LighthouseMatchError)
+	if p.Consent != nil {
+		add("CONSENT", p.Consent.Error)
+	}
+	return out
+}
+
+// checkErrorRuns counts the runs where an optional check other than the rule engines and the journeys failed.
+func checkErrorRuns(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if len(checkErrors(p)) > 0 {
+			n++
+		}
+	}
+	return n
 }
 
 func orUnknown(s string) string {
