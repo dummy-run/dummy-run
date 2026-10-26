@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"math"
 	"slices"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -36,6 +37,22 @@ type TabStop struct {
 	NoIndicator bool `json:"no_indicator,omitempty"`
 	// Checked is true when the pixel comparison ran for this stop.
 	Checked bool `json:"checked,omitempty"`
+	// Appearance is how the focus indicator measured, when the pictures with and without focus were compared.
+	Appearance *FocusAppearance `json:"appearance,omitempty"`
+}
+
+// FocusAppearance measures a focus indicator from two pictures of the same place, with and without focus, by the
+// method of WCAG 2.4.13: the pixels that change, and how much their contrast changes.
+type FocusAppearance struct {
+	// Changed is the area, in CSS pixels, of the pixels that differ at all.
+	Changed float64 `json:"changed"`
+	// Area is the area, in CSS pixels, of the pixels whose colours with and without focus have a contrast ratio of
+	// at least 3:1.
+	Area float64 `json:"area"`
+	// Need is the area of a 2 CSS pixel thick line round the element, the least WCAG 2.4.13 asks for.
+	Need float64 `json:"need"`
+	// Contrast is the largest contrast ratio between a pixel's colours with and without focus.
+	Contrast float64 `json:"contrast"`
 }
 
 // SkipLink describes a skip link found at the first stop.
@@ -61,6 +78,9 @@ const MaxTabStops = 80
 
 // maxIndicatorChecks is the most stops whose focus indicator is checked with pixels.
 const maxIndicatorChecks = 30
+
+// maxAppearanceChecks is the most stops with a focus style of their own whose indicator is measured with pixels.
+const maxAppearanceChecks = 30
 
 // minChangedPixels is how many pixels must differ before the screenshots count as showing a focus indicator.
 const minChangedPixels = 6
@@ -197,16 +217,26 @@ func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) (*TabW
 	if slices.ContainsFunc(w.Stops, func(s TabStop) bool { return s.Frame }) {
 		w.Completed = false
 	}
-	checks := 0
+	// Stops that show no focus style get the pictures first, so the measurements of styled ones can't use up the
+	// check for an indicator that may be missing.
+	checks, measured := 0, 0
 	for i := range w.Stops {
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("tab walk: %w", err)
 		}
 		s := &w.Stops[i]
-		if s.Outline || s.StyleChanged || s.Hidden || s.Offscreen || s.Frame || checks >= maxIndicatorChecks {
+		if s.Hidden || s.Offscreen || s.Frame {
 			continue
 		}
-		checks++
+		styled := s.Outline || s.StyleChanged
+		if (!styled && checks >= maxIndicatorChecks) || (styled && measured >= maxAppearanceChecks) {
+			continue
+		}
+		if styled {
+			measured++
+		} else {
+			checks++
+		}
 		clip := bidi.Clip{X: max(s.Box.X-6, 0), Y: max(s.Box.Y-6, 0), Width: min(s.Box.Width+12, 600), Height: min(s.Box.Height+12, 300)}
 		var ok bool
 		if err := w.call(ctx, conn, cx, "focus", s.ID, &ok); err != nil || !ok {
@@ -215,9 +245,11 @@ func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) (*TabW
 			}
 			continue
 		}
-		with, err1 := shot(ctx, conn, cx, clip)
 		var b bool
+		_ = w.call(ctx, conn, cx, "settle", nil, &b)
+		with, err1 := shot(ctx, conn, cx, clip)
 		_ = w.call(ctx, conn, cx, "blur", nil, &b)
+		_ = w.call(ctx, conn, cx, "settle", nil, &b)
 		without, err2 := shot(ctx, conn, cx, clip)
 		if err1 != nil || err2 != nil {
 			if ctx.Err() != nil {
@@ -225,8 +257,11 @@ func (w *TabWalk) finish(ctx context.Context, conn *bidi.Conn, cx string) (*TabW
 			}
 			continue
 		}
-		s.Checked = true
-		s.NoIndicator = changedPixels(with, without) < minChangedPixels
+		if !styled {
+			s.Checked = true
+			s.NoIndicator = changedPixels(with, without) < minChangedPixels
+		}
+		s.Appearance = measureFocus(with, without, clip, s.Box)
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("tab walk: %w", err)
@@ -264,3 +299,39 @@ func changedPixels(a, b image.Image) int {
 	}
 	return n
 }
+
+// measureFocus compares pictures of the same clip with and without focus. A picture can have more pixels than the
+// clip has CSS pixels, on a high density screen, so areas are scaled back to CSS pixels. The line WCAG 2.4.13 asks
+// for goes round the part of the element inside the clip.
+func measureFocus(with, without image.Image, clip bidi.Clip, box LayoutBox) *FocusAppearance {
+	if with.Bounds() != without.Bounds() || clip.Width <= 0 || clip.Height <= 0 {
+		return nil
+	}
+	bd := with.Bounds()
+	scale := float64(bd.Dx()) / clip.Width * float64(bd.Dy()) / clip.Height
+	if scale <= 0 {
+		return nil
+	}
+	changed, strong, best := 0, 0, 1.0
+	for y := bd.Min.Y; y < bd.Max.Y; y++ {
+		for x := bd.Min.X; x < bd.Max.X; x++ {
+			a, b := with.At(x, y), without.At(x, y)
+			r1, g1, b1, _ := a.RGBA()
+			r2, g2, b2, _ := b.RGBA()
+			if r1 == r2 && g1 == g2 && b1 == b2 {
+				continue
+			}
+			changed++
+			c := ratio(luminance(float64(r1>>8), float64(g1>>8), float64(b1>>8)), luminance(float64(r2>>8), float64(g2>>8), float64(b2>>8)))
+			if c >= 3 {
+				strong++
+			}
+			best = max(best, c)
+		}
+	}
+	w, h := min(box.Width, clip.Width), min(box.Height, clip.Height)
+	return &FocusAppearance{Changed: round1(float64(changed) / scale), Area: round1(float64(strong) / scale),
+		Need: round1(4 * (w + h)), Contrast: round2(best)}
+}
+
+func round1(v float64) float64 { return math.Round(v*10) / 10 }

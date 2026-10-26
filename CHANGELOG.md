@@ -10,6 +10,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - `confidence` on a sweep's failing elements now means how often findings with the same inputs have turned out to be right: `high`, `medium`, `low` or `unknown`, looked up in a table that ships with the engine, instead of `high` or `single` from the engine count alone. Every failing element has one, with or without `--engines`. An engine with no measured record of its own is `unknown`, never `high`.
 
 ### Added
+- `dummyrun a11y --keyboard` measures each focus indicator from pictures with and without focus. A new rule, `dummyrun-focus-low-contrast` (WCAG 1.4.11), fails an indicator none of whose pixels changes by 3:1, such as a pale outline or a faint change of background. An indicator smaller than a 2 pixel line round the element is advice, `dummyrun-focus-appearance` (WCAG 2.4.13, level AAA). Each stop in the JSON has its `appearance`: the area that changed, the area that changed by 3:1, the area needed and the biggest change in contrast. The pictures wait for the page to draw and for transitions to end.
 - `dummyrun a11y --lighthouse` runs Lighthouse's accessibility and best-practice audits once for each URL, in the Chrome the sweep already has open. Lighthouse's accessibility audits are axe-core rules, so where it fails an element our axe failed, the node gets `lighthouse: true` and never counts as another engine. Its other accessibility failures are candidates, and its best-practice failures are advice, as `dummyrun-lighthouse-<audit>`. Each URL records the two scores. Lighthouse runs only in Chrome and isn't in the container image. `--all` includes it, and without it each page says why it wasn't audited.
 - `dummyrun a11y --layout` now measures layout from the rectangles the browser lays out and what it paints on top at a point, so a box that only reaches into another box no longer counts. Clipped text covers all text, not only controls, and counts only text that is partly inside the box. Text a carousel hides, and teasers shortened on purpose, are left out. An overlap needs one control on top of the other's text. Reflow leaves out data tables, images, maps, video and toolbars, which WCAG 1.4.10 lets scroll. It also leaves out a skip link parked past the left edge, which can't make the page scroll. Target size adds the exception for controls the page leaves at the browser's own size. A new rule, `dummyrun-focus-obscured` (WCAG 2.4.11), reports a control that is entirely hidden, such as behind a sticky header, once it has focus. An image, video or canvas hides it only where its pixels are solid.
 - A test benchmark plants known barriers in clean pages. It reports how many of them the sweep finds for each check. It also runs 150 real elements from the AccessGuru dataset (MIT) one by one. See [Check the sweep against known problems](docs/ENGINE.md#check-the-sweep-against-known-problems).
@@ -33,6 +34,9 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Unless you set `--viewport` or `--text-scale`, `dummyrun a11y --layout` now adds the 320 px window and a run at 200 percent text, the two settings WCAG 1.4.10 and 1.4.4 name.
+
+### Fixed
+- In Firefox, the focus pictures came after the Tab walk had moved focus out to the browser's toolbar, so the page drew no focus styles and `dummyrun-focus-not-visible` could report an element whose indicator only the pictures can see, such as one drawn with `::after`. The page now takes focus back first.
 
 ## [0.1.4] - 2026-10-24
 
