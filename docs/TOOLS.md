@@ -139,6 +139,13 @@ The test fixtures for checking the sweep against real markup come from the
 [AccessGuru dataset](https://github.com/NadeenAhmad/AccessGuruLLM) (MIT). The fixtures use the rule names and the markup of
 the elements it lists, and none of its code.
 
+## Mutation testing
+
+Mutation testing runs in the project's own weekly workflow, and CONTRIBUTING.md shows how you run it on your machine. gremlins isn't part of the program you install.
+
+| Tool | Version | What it does for Dummy Run | Licence |
+|---|---|---|---|
+| [gremlins](https://github.com/go-gremlins/gremlins) | 0.6.0 | Changes the engine's code one small step at a time and runs the unit tests against each change, to show where the tests would miss a bug | Apache-2.0 |
 ## Testing
 
 These run only in the project's own tests. None of them is part of the program you install.
