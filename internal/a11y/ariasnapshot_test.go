@@ -2,6 +2,7 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -136,5 +137,20 @@ func TestReplaceFileKeepsTheOldOneOnFailure(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
 		t.Errorf("left %d files, want 1", len(entries))
+	}
+	// A write that fails after the new file exists leaves the old one too, and removes the new one.
+	writeSnapshot = func(f *os.File, data []byte) (int, error) {
+		n, _ := f.Write(data[:2])
+		return n, errors.New("disk full")
+	}
+	t.Cleanup(func() { writeSnapshot = func(f *os.File, data []byte) (int, error) { return f.Write(data) } })
+	if err := replaceFile(dir, path, []byte("- banner:\n")); err == nil || !strings.Contains(err.Error(), "disk full") {
+		t.Fatalf("want the write error, got %v", err)
+	}
+	if b, _ := os.ReadFile(path); string(b) != "- main:\n" {
+		t.Errorf("a partial write changed the old snapshot: %q", b)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("a partial write left %d files, want 1", len(entries))
 	}
 }

@@ -126,6 +126,9 @@ func diffLines(a, b []string) *ARIAChanges {
 // snapshotItem is a snapshot line without its indent and list marker, for the terminal, where - and + mark the change.
 func snapshotItem(line string) string { return strings.TrimPrefix(strings.TrimSpace(line), "- ") }
 
+// writeSnapshot writes the new snapshot. Tests replace it to fail part way.
+var writeSnapshot = func(f *os.File, data []byte) (int, error) { return f.Write(data) }
+
 // replaceFile writes data to a new file in dir and renames it over path, so a write that fails part way leaves the
 // earlier snapshot whole for the next sweep to compare with.
 func replaceFile(dir, path string, data []byte) error {
@@ -134,7 +137,7 @@ func replaceFile(dir, path string, data []byte) error {
 		return err
 	}
 	tmp := f.Name()
-	_, werr := f.Write(data)
+	_, werr := writeSnapshot(f, data)
 	cerr := f.Close()
 	if err := errors.Join(werr, cerr); err != nil {
 		_ = os.Remove(tmp)
