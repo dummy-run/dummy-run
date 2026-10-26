@@ -121,6 +121,20 @@ func TestFoldLighthouseMatchesEachRule(t *testing.T) {
 		t.Errorf("advice %+v", res.Advice)
 	}
 
+	// An allow-list entry for a Lighthouse rule marks its node allowed, with the reason, and leaves the others alone.
+	allow, err := ParseAllowList(strings.NewReader("dummyrun-lighthouse-label | / | input | the search box has a visible label\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res = page()
+	foldLighthouse(res, r, refs, [][]int{{0, 1}, {}}, "/", allow)
+	if n := res.Candidates[0].Nodes[0]; !n.Allowed || n.Reason != "the search box has a visible label" {
+		t.Errorf("allowed candidate node %+v", n)
+	}
+	if res.Advice[0].Nodes[0].Allowed {
+		t.Errorf("advice node allowed with no entry: %+v", res.Advice[0].Nodes[0])
+	}
+
 	// When matching failed, element-level accessibility failures are left out rather than reported twice.
 	res = page()
 	res.LighthouseMatchError = "lighthouse: matching failed"
