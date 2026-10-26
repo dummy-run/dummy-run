@@ -298,7 +298,9 @@ Flags:
                     looks like a heading, text in capitals and underlined text that isn't a link. The results are
                     advice
   --markup          also run the markup checks: a control whose visible words are missing from its name, and a field for
-                    your own details with no purpose-specific autocomplete value
+                    your own details with no purpose-specific autocomplete value. When a screen reader and browser
+                    pair passes under 60 percent of the ARIA-AT tests for a role or ARIA attribute, the sweep
+                    reports advice (dummyrun-aria-support)
   --pdf             check up to 10 links to PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages.
                     Each PDF is fetched once with a plain GET, up to 25 MB. A PDF that fails is advice
                     (dummyrun-pdf-ua). --all leaves it out, since it downloads files. Needs verapdf on the PATH
