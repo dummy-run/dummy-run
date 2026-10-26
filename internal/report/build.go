@@ -125,6 +125,7 @@ func Build(runs []*Run, opt Options) (*Report, error) {
 	if opt.Baseline != nil {
 		applyBaseline(rep, opt.Baseline, omitted)
 	}
+	addEN301549(rep)
 	summarise(rep)
 	return rep, nil
 }
@@ -1031,4 +1032,19 @@ func sweepTimes(reps []*a11y.Report) (string, string) {
 		}
 	}
 	return start, end
+}
+
+// addEN301549 fills in the EN 301 549 clauses from the WCAG criteria of every finding and axe rule.
+func addEN301549(rep *Report) {
+	for i := range rep.Findings {
+		rep.Findings[i].EN301549 = a11y.EN301549(rep.Findings[i].WCAG)
+	}
+	if rep.Axe == nil {
+		return
+	}
+	for _, rules := range [][]AxeRule{rep.Axe.Rules, rep.Axe.NeedsReview, rep.Axe.Advice} {
+		for i := range rules {
+			rules[i].EN301549 = a11y.EN301549(rules[i].WCAG)
+		}
+	}
 }

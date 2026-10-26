@@ -254,7 +254,7 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --all             run every check listed below in the same sweep, including the layout checks at 320 px and at
+  --all             run every check listed below except --pdf in the same sweep, including the layout checks at 320 px and at
                     200 percent text
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
@@ -272,9 +272,11 @@ Flags:
   --journeys        also find the journeys each page offers (search, menu, sign-up, basket, booking, contact form)
                     and try each by mouse and by keyboard, never submitting anything. One that works by mouse but
                     not by keyboard is a violation (dummyrun-journey-keyboard, WCAG 2.1.1)
-  --keyboard        also press Tab through each page and report focus you cannot see, focus that gets stuck and a
-                    skip link that goes nowhere or doesn't move focus. It also tries up to 5 controls on each page
-                    by mouse and by keyboard, and reports each one that works only by mouse
+  --keyboard        also press Tab through each page and report focus you cannot see, a focus indicator of at
+                    least 6 changed screenshot pixels with none of them changing by 3:1, focus that gets stuck
+                    and a skip link that goes nowhere or doesn't move focus. An indicator with 3:1 contrast but
+                    smaller than a 2 px line round the control is advice. It also tries up to 5
+                    controls on each page by mouse and by keyboard, and reports each one that works only by mouse
   --layout          also run the layout checks, measured from what the browser lays out and paints: sideways
                     scrolling, text cut off by its box, a control covered by another, targets under 24 by 24 CSS
                     px and a control hidden behind other content when it has focus. Rules dummyrun-reflow,
@@ -301,11 +303,22 @@ Flags:
                     your own details with no purpose-specific autocomplete value. When a screen reader and browser
                     pair passes under 60 percent of the ARIA-AT tests for a role or ARIA attribute, the sweep
                     reports advice (dummyrun-aria-support)
+  --pdf             check up to 10 links to PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages.
+                    Each PDF is fetched once with a plain GET, up to 25 MB. A PDF that fails is advice
+                    (dummyrun-pdf-ua). --all leaves it out, since it downloads files. Needs verapdf on the PATH
+                    or DUMMYRUN_VERAPDF
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
+  --aria-snapshots DIR
+                    write an ARIA snapshot of each page and setting into DIR: its landmarks, headings and controls
+                    with their roles, names and states, as YAML. A snapshot an earlier sweep left there is compared
+                    first, and the lines added and removed are listed, so a regular sweep shows what changed
   --screenshots DIR write a PNG crop of the elements the layout checks flag into DIR, at most 12 for each page and
                     setting
+  --repeat N        sweep every page and setting N times, up to 10, each in a fresh browser. Each failing element
+                    gets runs, the number of repeats it failed in, and each result repeats and error_runs. The
+                    summary shows the counts. The checks that run once for each URL run in the first repeat
   --allow FILE      accepted violations, one per line: rule | page | selector | reason
   --json FILE       write the full report as JSON; "-" writes it to standard output
   --junit FILE      write the failing rules as JUnit XML for a CI job, one test case for each rule

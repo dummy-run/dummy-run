@@ -81,6 +81,32 @@
     - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
     - https://design-system.service.gov.uk/get-started/focus-states/
 
+- rule: dummyrun-focus-low-contrast
+  owner: design
+  summary: Make the focus indicator stand out from the colours around it.
+  steps:
+    - Use a focus colour with a contrast ratio of at least 3:1 against the background next to the control and against the control itself.
+    - A pale grey outline or a slight change of background colour isn't enough. A solid outline of 2 pixels or more in a dark or strong colour usually is.
+    - Check it in every colour scheme your site has.
+  example:
+    before: "button:focus-visible { outline: 2px solid #e6e6e6; }"
+    after: "button:focus-visible { outline: 3px solid #0b0c0c; outline-offset: 2px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+    - https://design-system.service.gov.uk/get-started/focus-states/
+
+- rule: dummyrun-focus-appearance
+  owner: design
+  summary: Make the focus indicator at least as big as a 2 pixel line round the control.
+  steps:
+    - Use an outline or border of at least 2 CSS pixels all the way round, rather than a 1 pixel line or an underline.
+    - Keep the contrast between the focused and unfocused colours at 3:1 or more.
+  example:
+    before: "a:focus-visible { outline: 1px solid #0b0c0c; }"
+    after: "a:focus-visible { outline: 3px solid #0b0c0c; outline-offset: 2px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html
+
 - rule: dummyrun-focus-hidden
   owner: development
   summary: Do not let keyboard focus land on something that cannot be seen.
@@ -475,6 +501,17 @@
     after: '<button onclick="openMenu()">Menu</button>'
   sources:
     - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
+
+- rule: dummyrun-pdf-ua
+  owner: content
+  summary: Make the PDF accessible, or publish the content as a web page.
+  steps:
+    - Ask whether the PDF needs to be a PDF. A web page is easier to read on a phone and with assistive technology.
+    - If it does, export it from the source document with tags turned on, and set the document title and language.
+    - Check the reading order, headings, alt text and table headers in a PDF editor, then check the file again.
+  sources:
+    - https://www.gov.uk/guidance/how-to-publish-on-gov-uk/accessible-pdfs
+    - https://docs.verapdf.org/validation/
 
 - rule: dummyrun-broken-link
   owner: content

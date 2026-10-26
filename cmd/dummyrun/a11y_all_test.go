@@ -24,7 +24,7 @@ func TestAllNamesEveryCheck(t *testing.T) {
 			t.Errorf("%s does not start with \"also\": %q", flag, line)
 		}
 	}
-	if !strings.Contains(a11yUsage, "--all             run every check listed below") {
+	if !strings.Contains(a11yUsage, "--all             run every check listed below except --pdf") {
 		t.Error("--all is not described")
 	}
 }
@@ -55,6 +55,9 @@ func TestAllTurnsOnEveryCheck(t *testing.T) {
 		if !on {
 			t.Errorf("check %d is off with --all", i)
 		}
+	}
+	if got.PDF {
+		t.Error("--all turned on --pdf, which downloads files")
 	}
 }
 
@@ -131,6 +134,42 @@ func TestA11yRefusesSharedOutputs(t *testing.T) {
 	}
 	if code := a11yCmd([]string{"--json", "-", "--ctrf", f, "https://example.com/"}); code != 0 {
 		t.Errorf("--json - with a file: exit %d", code)
+	}
+}
+
+// TestARIASnapshotsFlagReachesTheSweep checks --aria-snapshots passes its directory to the sweep unchanged.
+func TestARIASnapshotsFlagReachesTheSweep(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	dir := t.TempDir()
+	if code := a11yCmd([]string{"--aria-snapshots", dir, "https://example.com/"}); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if got.ARIASnapshots != dir {
+		t.Errorf("ARIASnapshots = %q, want %q", got.ARIASnapshots, dir)
+	}
+	if a11yCmd([]string{"https://example.com/"}); got.ARIASnapshots != "" {
+		t.Errorf("without the flag, ARIASnapshots = %q", got.ARIASnapshots)
+	}
+}
+
+// TestRepeatReachesTheSweep checks --repeat reaches the sweep, and that it sweeps once without it.
+func TestRepeatReachesTheSweep(t *testing.T) {
+	var got a11y.Config
+	a11yRun = func(_ context.Context, cfg a11y.Config) (*a11y.Report, error) {
+		got = cfg
+		return &a11y.Report{}, nil
+	}
+	t.Cleanup(func() { a11yRun = a11y.Run })
+	if code := a11yCmd([]string{"https://example.com/"}); code != 0 || got.Repeat != 1 {
+		t.Errorf("without --repeat: exit %d, repeat %d", code, got.Repeat)
+	}
+	if code := a11yCmd([]string{"https://example.com/", "--repeat", "3"}); code != 0 || got.Repeat != 3 {
+		t.Errorf("--repeat 3: exit %d, repeat %d", code, got.Repeat)
 	}
 }
 
