@@ -22,7 +22,7 @@ func TestAllNamesEveryCheck(t *testing.T) {
 			t.Errorf("%s does not start with \"also\": %q", flag, line)
 		}
 	}
-	if !strings.Contains(a11yUsage, "--all             run every check listed below") {
+	if !strings.Contains(a11yUsage, "--all             run every check listed below except --pdf") {
 		t.Error("--all is not described")
 	}
 }
@@ -53,6 +53,9 @@ func TestAllTurnsOnEveryCheck(t *testing.T) {
 		if !on {
 			t.Errorf("check %d is off with --all", i)
 		}
+	}
+	if got.PDF {
+		t.Error("--all turned on --pdf, which downloads files")
 	}
 }
 

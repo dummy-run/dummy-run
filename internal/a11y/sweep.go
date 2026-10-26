@@ -83,6 +83,9 @@ type Config struct {
 	// Content adds the content checks to each run: link names, alt text, fake headings, capitals and underlines,
 	// on the words and images the page's authors wrote. The results are advice.
 	Content bool
+	// PDF checks up to 10 linked PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages. Each is
+	// fetched once with a plain GET. The results are advice. --all leaves it out, since it downloads files.
+	PDF bool
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
@@ -233,6 +236,8 @@ type PageResult struct {
 	LinksTimedOut int    `json:"links_timed_out,omitempty"`
 	LinksOmitted  int    `json:"links_omitted,omitempty"`
 	LinksError    string `json:"links_error,omitempty"`
+	// PDFError says why the page's links to PDFs couldn't be read.
+	PDFError string `json:"pdf_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
@@ -315,9 +320,12 @@ type Report struct {
 	Lychee string   `json:"lychee,omitempty"`
 	Tags   []string `json:"tags"`
 	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
-	AdviceTags    []string `json:"advice_tags,omitempty"`
-	Identify      bool     `json:"identify,omitempty"`
-	RespectRobots bool     `json:"respect_robots,omitempty"`
+	AdviceTags []string `json:"advice_tags,omitempty"`
+	// PDFs are the linked PDFs checked against PDF/UA-1 with --pdf, and PDFError says why none could be checked.
+	PDFs          []PDFCheck `json:"pdfs,omitempty"`
+	PDFError      string     `json:"pdf_error,omitempty"`
+	Identify      bool       `json:"identify,omitempty"`
+	RespectRobots bool       `json:"respect_robots,omitempty"`
 	// PreviewAccess names the protection the sweep answered. Names only, never a value.
 	PreviewAccess *access.Summary `json:"preview_access,omitempty"`
 	// Repeats is how many times the sweep ran, with --repeat.
@@ -340,6 +348,10 @@ type Report struct {
 	// many pages share is checked once.
 	linksDone   map[string]bool
 	linkResults map[string]links.Result
+	// pdfs are the linked PDFs to check after the sweep, and pdfSeen their addresses, so each is checked once.
+	pdfs    []PDFCheck
+	pdfSeen map[string]bool
+	pdfDone map[string]bool
 }
 
 // Summary totals a report.
@@ -479,6 +491,13 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 		rep.Repeats = repeats
 		rep.Results = mergeRepeats(runs)
 	}
+	if cfg.PDF {
+		if cfg.Session != nil || cfg.Access != nil {
+			rep.PDFError = "PDFs aren't checked behind a sign-in or preview access, since the download would carry none of it"
+		} else {
+			pdfCheck(ctx, cfg, rep)
+		}
+	}
 	rep.Results = append(rep.Results, skipped...)
 	rep.summarise(cfg)
 	return rep, nil
@@ -544,7 +563,7 @@ func robotsClient(ctx context.Context, base *http.Client, origin string) *http.C
 	prev := c.CheckRedirect
 	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if links.PrivateHost(req.Context(), req.URL.Host) {
-			return fmt.Errorf("robots.txt redirects to a private address, %s", req.URL.Host)
+			return fmt.Errorf("redirects to a private address, %s", req.URL.Host)
 		}
 		if prev != nil {
 			return prev(req, via)
@@ -908,6 +927,14 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	}
 	// The links are the same at every window size and colour scheme, so each URL's are checked once. Like the
 	// journeys, they come last, with their own time limit, so they can't take time from the checks above.
+	// Each URL's PDF links are collected once, like its links, and checked after the last page.
+	if cfg.PDF && cfg.Session == nil && cfg.Access == nil && !rep.pdfDone[u] {
+		if rep.pdfDone == nil {
+			rep.pdfDone = map[string]bool{}
+		}
+		rep.pdfDone[u] = true
+		pdfCollect(ctx, conn, cx, cfg, &res, rep)
+	}
 	if cfg.Links && !rep.linksDone[u] {
 		if rep.linksDone == nil {
 			rep.linksDone = map[string]bool{}

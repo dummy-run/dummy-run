@@ -103,6 +103,9 @@ func (r *Report) WriteSummary(w io.Writer) {
 		for _, c := range checkErrors(p) {
 			_, _ = fmt.Fprintf(w, "%s %s (%s): %s\n", c.check, p.URL, p.Setting(), printable(c.err))
 		}
+		if p.PDFError != "" {
+			_, _ = fmt.Fprintf(w, "PDF %s (%s): links not read: %s\n", p.URL, p.Setting(), printable(p.PDFError))
+		}
 		if c := p.ARIAChanges; c != nil && c.AddedCount+c.RemovedCount > 0 {
 			_, _ = fmt.Fprintf(w, "CHANGED %s (%s): %d lines added and %d removed in the ARIA snapshot\n", p.URL, p.Setting(), c.AddedCount, c.RemovedCount)
 			for _, l := range c.Removed {
@@ -111,6 +114,17 @@ func (r *Report) WriteSummary(w io.Writer) {
 			for _, l := range c.Added {
 				_, _ = fmt.Fprintf(w, "     + %s\n", printable(snapshotItem(l)))
 			}
+		}
+	}
+	if r.PDFError != "" {
+		_, _ = fmt.Fprintf(w, "PDF %s\n", printable(r.PDFError))
+	}
+	for _, p := range r.PDFs {
+		switch {
+		case p.Error != "":
+			_, _ = fmt.Fprintf(w, "PDF %s: not checked: %s\n", p.URL, printable(p.Error))
+		case !p.Compliant:
+			_, _ = fmt.Fprintf(w, "PDF %s: fails %d PDF/UA-1 requirements (advice)\n", p.URL, len(p.Rules))
 		}
 	}
 	s := r.Summary

@@ -20,7 +20,7 @@ var ownRules = []string{
 	"dummyrun-html-aria", "dummyrun-html-structure", "dummyrun-html-img-alt",
 	"dummyrun-lighthouse-paste-preventing-inputs",
 	"dummyrun-journey-keyboard",
-	"dummyrun-broken-link",
+	"dummyrun-broken-link", "dummyrun-pdf-ua",
 	"dummyrun-content-vague-link", "dummyrun-content-url-link", "dummyrun-content-new-window",
 	"dummyrun-content-document-link", "dummyrun-content-alt-file-name", "dummyrun-content-alt-redundant",
 	"dummyrun-content-alt-long", "dummyrun-content-fake-heading", "dummyrun-content-all-caps", "dummyrun-content-underline",

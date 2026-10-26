@@ -33,7 +33,7 @@ Flags:
   --text-scale N    the system text size in percent, 100 to 300, such as 200. A comma-separated list such as
                     100,200 tests each size. The browser's default font size is raised and the page is not zoomed,
                     so rem and em text grows and px text may not. A size above 100 turns on --layout
-  --all             run every check listed below in the same sweep, including the layout checks at 320 px and at
+  --all             run every check listed below except --pdf in the same sweep, including the layout checks at 320 px and at
                     200 percent text
   --consent         also answer a cookie banner by rejecting, with DuckDuckGo autoconsent, before the layout checks.
                     A banner with an accept button and no reject button is advice (dummyrun-consent-no-reject)
@@ -82,6 +82,10 @@ Flags:
                     your own details with no purpose-specific autocomplete value. When a screen reader and browser
                     pair passes under 60 percent of the ARIA-AT tests for a role or ARIA attribute, the sweep
                     reports advice (dummyrun-aria-support)
+  --pdf             check up to 10 links to PDFs on the swept sites against PDF/UA-1 with veraPDF, after the pages.
+                    Each PDF is fetched once with a plain GET, up to 25 MB. A PDF that fails is advice
+                    (dummyrun-pdf-ua). --all leaves it out, since it downloads files. Needs verapdf on the PATH
+                    or DUMMYRUN_VERAPDF
   --plain-language  also check the main content of each page with Vale: Flesch reading ease and grade, sentences
                     over 25 words, words the GOV.UK style guide asks you to avoid and Latin abbreviations. The
                     results are advice. Needs vale on the PATH or DUMMYRUN_VALE
@@ -132,6 +136,7 @@ func a11yCmd(args []string) int {
 	keyboard := fs.Bool("keyboard", false, "run the keyboard checks")
 	markup := fs.Bool("markup", false, "run the markup checks")
 	contentOn := fs.Bool("content", false, "run the content checks")
+	pdfOn := fs.Bool("pdf", false, "check linked PDFs against PDF/UA-1 with veraPDF")
 	engines := fs.Bool("engines", false, "run the other rule engines beside axe-core")
 	consent := fs.Bool("consent", false, "answer cookie banners by rejecting")
 	plainLang := fs.Bool("plain-language", false, "check the main content with Vale")
@@ -256,7 +261,7 @@ func a11yCmd(args []string) int {
 	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
-		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir,
+		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, PDF: *pdfOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat, ARIASnapshots: *snapDir,
 		Headless: !*headful, Log: os.Stderr, Session: session, Identify: *identify, RespectRobots: *respect, Access: pa,
 	})
 	if errors.Is(err, a11y.ErrRobotsDisallow) {
