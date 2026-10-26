@@ -186,10 +186,17 @@ WCAG criteria, plus the pages, elements and settings where the rule failed. Elem
 counted and left out. Rules axe can't decide are listed separately under "needs a person to check", and so are
 pages that couldn't be tested.
 
+When text fails a colour contrast rule, a table called "Colours that meet the ratio" lists each pair of text and
+background colours once, with how many elements use it. Where one exists, it gives the nearest text colour that meets
+the ratio on the same background, and the nearest background that meets it with the same text. The JSON keeps them
+in `axe.rules[].colours`. "Colours that meet the ratio" in [ENGINE.md](ENGINE.md) explains how they're found.
+
 Axe's best-practice rules, such as content outside any landmark or headings that skip a level, have their own
 table, "Advice beyond WCAG A and AA". A few of them are WCAG AAA rules. They aren't WCAG A or AA failures, so
 they aren't counted as failing elements. The report's JSON keeps them in `axe.advice` and the tags checked in
 `axe.advice_tags`. A sweep made before advice existed has none.
+
+The content checks from `--content`, such as vague link names and alt text that is a file name, are advice too, and appear in the same table.
 
 Layout rules appear in the same section when the sweep ran with `--layout`, or with a `--text-scale` above 100, which turns `--layout` on. Keyboard rules appear there when it ran with `--keyboard`, and markup rules when it ran with `--markup`. The report lists them with the axe rules. The rule IDs all begin `dummyrun-`. The layout rules map to WCAG 1.4.10, 1.4.4, 2.5.8 and 2.4.11. The keyboard rules map to WCAG 2.1.1, 2.1.2, 2.4.7 and 2.4.1. The markup rules map to WCAG 1.3.5 and 2.5.3. The layout and keyboard rules are measurements made in the browser, except `dummyrun-mouse-only`, which is a task the sweep tried and could not complete. The markup rules are facts read from the accessibility tree. Each help link goes to the W3C page for the criterion. The settings of a rule end in `/text-200` when the sweep used a text size of 200 percent, for example `chrome/phone/light/text-200`. Persona runs at a larger text size are listed with the device, as in "phone with text at 200 percent". [ENGINE.md](ENGINE.md) explains the checks.
 

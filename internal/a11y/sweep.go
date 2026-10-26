@@ -77,6 +77,9 @@ type Config struct {
 	// Markup adds the markup checks to each run: a control whose visible words are missing from its accessible
 	// name, and a field for the person's own details with no autocomplete value.
 	Markup bool
+	// Content adds the content checks to each run: link names, alt text, fake headings, capitals and underlines,
+	// on the words and images the page's authors wrote. The results are advice.
+	Content bool
 	// Consent answers a cookie banner with DuckDuckGo autoconsent, choosing to opt out, after the rule engines have
 	// seen it and before the layout checks, so the banner does not cover the page they measure.
 	Consent bool
@@ -134,6 +137,8 @@ type Node struct {
 	Confidence string `json:"confidence,omitempty"`
 	// Screenshot is the path of a PNG crop of the element. Layout checks fill it when screenshots are on.
 	Screenshot string `json:"screenshot,omitempty"`
+	// Colours, for a colour contrast failure, are the colours axe measured and the nearest ones that would pass.
+	Colours *Colours `json:"colours,omitempty"`
 	// Lighthouse is true when Lighthouse's own run of the same axe rule failed the same element. It confirms the
 	// result, but Lighthouse uses axe-core too, so it never counts as another engine.
 	Lighthouse bool `json:"lighthouse,omitempty"`
@@ -164,6 +169,8 @@ type PageResult struct {
 	TextScale int `json:"text_scale,omitempty"`
 	// MarkupChecked says the markup checks ran, so a result with none of their rules means they found nothing.
 	MarkupChecked bool `json:"markup_checked,omitempty"`
+	// ContentChecked says the content checks ran, so a result with none of their rules means they found nothing.
+	ContentChecked bool `json:"content_checked,omitempty"`
 	// LayoutChecked says the layout checks ran, so a result with none of their rules means they found nothing.
 	LayoutChecked bool `json:"layout_checked,omitempty"`
 	// KeyboardChecked says the Tab walk ran, so a result with none of its rules means it found nothing.
@@ -639,6 +646,15 @@ type axeRule struct {
 	HelpURL string    `json:"helpUrl"`
 	Tags    []string  `json:"tags"`
 	Nodes   []axeNode `json:"nodes"`
+	// Colours has, for each node of a colour contrast rule, the colours axe measured, or nil.
+	Colours []*axeColours `json:"colours,omitempty"`
+}
+
+type axeColours struct {
+	FG    string  `json:"fg"`
+	BG    string  `json:"bg"`
+	Ratio float64 `json:"ratio"`
+	Need  float64 `json:"need"`
 }
 
 type axeOut struct {
@@ -824,6 +840,15 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		res.MarkupChecked = true
 		res.Violations = append(res.Violations, markupFindings(m, path, cfg.Allow)...)
 	}
+	if cfg.Content {
+		c, err := page.RunContentChecks(pctx, conn, cx)
+		if err != nil {
+			res.Error = "content checks: " + firstLine(err.Error())
+			return res
+		}
+		res.ContentChecked = true
+		res.Advice = append(res.Advice, contentFindings(c, path, cfg.Allow)...)
+	}
 	// Each journey loads the page twice, so each URL's journeys are tried once, at the first window size. They run
 	// last, with their own time limit, so they can't take time from the checks above, and the cookie banner has
 	// already been answered. Signed in, like the tasks, they aren't tried at all.
@@ -906,8 +931,14 @@ func textScaleField(n int) int {
 
 func finding(r axeRule, path string, allow *AllowList) Finding {
 	f := Finding{Rule: r.ID, Impact: r.Impact, WCAG: Criteria(r.Tags), Help: r.Help, HelpURL: r.HelpURL, Evidence: record.EvidenceEngineRule, Nodes: []Node{}}
-	for _, t := range r.Nodes {
+	for i, t := range r.Nodes {
 		n := Node{Target: t, Confidence: rate(record.EvidenceEngineRule, r.ID, []string{"axe"})}
+		if i < len(r.Colours) && r.Colours[i] != nil {
+			n.Colours = suggestColours(*r.Colours[i])
+			if n.Colours != nil {
+				n.Detail = n.Colours.Detail()
+			}
+		}
 		if e := allow.Match(r.ID, path, t); e != nil {
 			n.Allowed, n.Reason = true, e.Reason
 		}
@@ -985,7 +1016,13 @@ func (r *Report) summarise(cfg Config) {
 //nolint:misspell // the CSS media feature name is prefers-color-scheme
 const axeRunJS = `(tagsJSON) => {
   const flat = (t) => (Array.isArray(t) ? t.map(flat).join(" >> ") : String(t));
-  const rules = (rs) => rs.map((v) => ({ id: v.id, impact: v.impact || "", help: v.help, helpUrl: v.helpUrl, tags: v.tags, nodes: v.nodes.map((n) => flat(n.target)) }));
+  // For a colour contrast failure, the colours axe measured, so the sweep can suggest ones that pass.
+  const colours = (n) => {
+    const d = [...(n.any || []), ...(n.all || []), ...(n.none || [])].map((c) => c.data).find((d) => d && d.fgColor && d.bgColor);
+    return d ? { fg: String(d.fgColor), bg: String(d.bgColor), ratio: Number(d.contrastRatio) || 0, need: parseFloat(d.expectedContrastRatio) || 0 } : null;
+  };
+  const rules = (rs) => rs.map((v) => ({ id: v.id, impact: v.impact || "", help: v.help, helpUrl: v.helpUrl, tags: v.tags, nodes: v.nodes.map((n) => flat(n.target)),
+    colours: v.id === "color-contrast" ? v.nodes.map(colours) : undefined }));
   return window.axe.run(document, { runOnly: { type: "tag", values: JSON.parse(tagsJSON) }, resultTypes: ["violations", "incomplete"] }).then((r) => ({
     version: window.axe.version,
     scheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
