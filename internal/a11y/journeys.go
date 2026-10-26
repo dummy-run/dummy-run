@@ -38,6 +38,17 @@ func journeyCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp
 		res.JourneysError = firstLine(err.Error())
 		return
 	}
+	// The tab sends nothing but GET and HEAD, and with --respect-robots loads no page robots.txt disallows.
+	d := &journey.Driver{Conn: conn, CX: cx}
+	unguard, err := d.Guard(jctx, func(raw string) bool {
+		ok, _ := allowed(raw)
+		return ok
+	})
+	if err != nil {
+		res.JourneysError = firstLine(err.Error())
+		return
+	}
+	defer unguard()
 	if cfg.Identify {
 		v, err := conn.Evaluate(jctx, cx, "navigator.userAgent")
 		if err == nil {
@@ -54,7 +65,6 @@ func journeyCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp
 		prints = append(slices.Clone(tech.Own), extra...)
 	}
 	found, _ := tech.Detect(jctx, conn, cx, prints)
-	d := &journey.Driver{Conn: conn, CX: cx}
 	js, err := d.Find(jctx, u, found)
 	if err != nil {
 		res.JourneysError = firstLine(err.Error())

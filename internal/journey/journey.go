@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
@@ -67,7 +69,54 @@ type Driver struct {
 	CX   string
 	// Settle is how long to wait after an action before the success test. Default 800 ms.
 	Settle time.Duration
+	// stopped counts the requests Guard failed.
+	stopped atomic.Int32
 }
+
+// Guard makes the tab read-only, whatever the page's scripts do: a request other than GET or HEAD fails before it
+// leaves the browser. allowed, when not nil, is asked about each page load in the tab, redirects included, and one
+// it refuses fails too, so robots.txt holds however the tab got there. The returned function removes the guard.
+func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func(), error) {
+	var id atomic.Value
+	id.Store("")
+	d.Conn.OnBeforeRequestSent(func(e bidi.BeforeRequestSent) {
+		mine := id.Load().(string)
+		if !e.IsBlocked || mine == "" || !slices.Contains(e.Intercepts, mine) {
+			return
+		}
+		go func() {
+			cctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
+			defer cancel()
+			m := strings.ToUpper(e.Request.Method)
+			ok := m == "GET" || m == "HEAD"
+			if ok && allowed != nil && e.Navigation != "" && e.Context == d.CX {
+				ok = allowed(e.Request.URL)
+			}
+			if !ok {
+				d.stopped.Add(1)
+				_ = d.Conn.FailRequest(cctx, e.Request.Request)
+				return
+			}
+			_ = d.Conn.ContinueRequestUnchanged(cctx, e.Request.Request)
+		}()
+	})
+	if err := d.Conn.Subscribe(ctx, []string{"network.beforeRequestSent"}, d.CX); err != nil {
+		return nil, err
+	}
+	in, err := d.Conn.AddInterceptInContexts(ctx, []string{d.CX}, "beforeRequestSent")
+	if err != nil {
+		return nil, err
+	}
+	id.Store(in)
+	return func() {
+		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer cancel()
+		_ = d.Conn.RemoveIntercept(cctx, in)
+	}, nil
+}
+
+// Stopped is how many requests the guard failed.
+func (d *Driver) Stopped() int { return int(d.stopped.Load()) }
 
 // searchText is what the search journey types. It is never sent.
 const searchText = "opening hours"
@@ -140,12 +189,12 @@ type spec struct {
 	Typed string `json:"typed,omitempty"`
 }
 
-func (d *Driver) check(ctx context.Context, s spec) bool {
+func (d *Driver) check(ctx context.Context, s spec) (bool, error) {
 	var ok bool
 	if err := d.call(ctx, "check", s, &ok); err != nil {
-		return false
+		return false, err
 	}
-	return ok
+	return ok, nil
 }
 
 // Try drives the journey by mouse and then by keyboard, each from a fresh load of the page.
@@ -175,7 +224,11 @@ func (d *Driver) try(ctx context.Context, url string, j Journey, keyboard bool) 
 	if j.Kind == "search" {
 		s.Typed = searchText
 	}
-	if d.check(ctx, s) {
+	already, err := d.check(ctx, s)
+	if err != nil {
+		return errored(err)
+	}
+	if already {
 		return &Verdict{Outcome: Already}
 	}
 	if v := d.reach(ctx, j, keyboard); v != nil {
@@ -207,9 +260,12 @@ func (d *Driver) try(ctx context.Context, url string, j Journey, keyboard bool) 
 			return &Verdict{Outcome: Errored, Detail: err.Error()}
 		}
 	}
-	if !d.settle(ctx, s) {
+	if ok, err := d.settle(ctx, s); !ok {
 		if ctx.Err() != nil {
-			return &Verdict{Outcome: Errored, Detail: "the journeys ran out of time: " + ctx.Err().Error()}
+			return errored(ctx.Err())
+		}
+		if err != nil {
+			return errored(err)
 		}
 		return &Verdict{Outcome: Fail, Detail: fmt.Sprintf("%s %q and %s", how, j.Label, failed(j.Kind))}
 	}
@@ -219,8 +275,9 @@ func (d *Driver) try(ctx context.Context, url string, j Journey, keyboard bool) 
 	return &Verdict{Outcome: Pass}
 }
 
-// settle waits for the success test, up to a few seconds for a journey that loads another page.
-func (d *Driver) settle(ctx context.Context, s spec) bool {
+// settle waits for the success test, up to a few seconds for a journey that loads another page. A poll can fail
+// while a new page loads, so it keeps polling, and returns the last poll's error if the test never passed.
+func (d *Driver) settle(ctx context.Context, s spec) (bool, error) {
 	wait := d.Settle
 	if wait == 0 {
 		wait = 800 * time.Millisecond
@@ -231,11 +288,12 @@ func (d *Driver) settle(ctx context.Context, s spec) bool {
 	}
 	for {
 		time.Sleep(200 * time.Millisecond)
-		if d.check(ctx, s) {
-			return true
+		ok, err := d.check(ctx, s)
+		if ok {
+			return true, nil
 		}
 		if time.Now().After(deadline) || ctx.Err() != nil {
-			return false
+			return false, err
 		}
 	}
 }

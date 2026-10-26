@@ -87,6 +87,16 @@ func (c *Conn) AddInterceptPhases(ctx context.Context, hostnames []string, phase
 	return out.Intercept, err
 }
 
+// AddInterceptInContexts is AddIntercept for every request in the given top-level browsing contexts and the
+// frames inside them.
+func (c *Conn) AddInterceptInContexts(ctx context.Context, contexts []string, phases ...string) (string, error) {
+	var out struct {
+		Intercept string `json:"intercept"`
+	}
+	err := c.Call(ctx, "network.addIntercept", map[string]any{"phases": phases, "contexts": contexts}, &out)
+	return out.Intercept, err
+}
+
 // RemoveIntercept removes an intercept.
 func (c *Conn) RemoveIntercept(ctx context.Context, intercept string) error {
 	return c.Call(ctx, "network.removeIntercept", map[string]any{"intercept": intercept}, nil)

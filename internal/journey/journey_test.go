@@ -17,7 +17,7 @@ import (
 
 // The home page offers six ways in, each with a known answer:
 //   - search works by mouse and keyboard;
-//   - the menu opens on mousedown only, so the keyboard fails;
+//   - the menu opens on mousedown only, so the keyboard fails, and it posts to /track, which the guard stops;
 //   - sign-up and basket are plain links that work both ways, and the basket journey passes over the link that adds
 //     to the basket;
 //   - the contact link swallows Enter, so the keyboard fails, and its form takes text by mouse;
@@ -26,7 +26,7 @@ import (
 // The page is long, so a driver that scrolls before tabbing would start Tab past the menu.
 const home = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title>
 <script>window.Shopify = { shop: "x" };</script><script src="/assets.calendly.com/widget.js" async></script></head>
-<body><header><button id="menu" aria-expanded="false" aria-controls="navlist" onmousedown="this.setAttribute('aria-expanded','true');document.getElementById('navlist').hidden=false">Menu</button>
+<body><header><button id="menu" aria-expanded="false" aria-controls="navlist" onmousedown="this.setAttribute('aria-expanded','true');document.getElementById('navlist').hidden=false;fetch('/track',{method:'POST',body:'menu'})">Menu</button>
 <ul id="navlist" hidden><li><a href="/a">A</a></li></ul>
 <form role="search" action="/search"><label for="q">Search</label><input id="q" name="q" type="search"></form></header>
 <main><h1>Shop</h1>
@@ -82,6 +82,11 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 			}
 			_ = b.Conn.SetViewport(ctx, cx, 1200, 800)
 			d := &Driver{Conn: b.Conn, CX: cx}
+			unguard, err := d.Guard(ctx, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer unguard()
 			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
 				t.Fatal(err)
 			}
@@ -127,6 +132,9 @@ func TestJourneysByMouseAndKeyboard(t *testing.T) {
 			}
 			if n := posts.Load(); n != 0 {
 				t.Errorf("%d requests that were not GET or HEAD: a journey submitted something", n)
+			}
+			if d.Stopped() == 0 {
+				t.Error("the guard stopped nothing, but the menu posts to /track")
 			}
 			if j := got["basket"]; j != nil && !strings.HasSuffix(j.Href, "/basket") {
 				t.Errorf("basket journey starts from %q, want the link to the basket", j.Href)

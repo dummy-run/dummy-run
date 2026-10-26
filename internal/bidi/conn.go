@@ -144,7 +144,17 @@ func (c *Conn) Call(ctx context.Context, method string, params any, out any) err
 		c.forget(id)
 		return fmt.Errorf("bidi: encode %s: %w", method, err)
 	}
-	if err := c.ws.Write(ctx, websocket.MessageText, body); err != nil {
+	// The websocket closes the whole connection when a write's context ends, so a call whose own time ran out would
+	// take the browser down for every other caller. The write gets a context of its own, and the call's context
+	// only bounds the wait for the answer.
+	if err := ctx.Err(); err != nil {
+		c.forget(id)
+		return fmt.Errorf("bidi: %s: %w", method, err)
+	}
+	wctx, wcancel := context.WithTimeout(context.WithoutCancel(ctx), DefaultTimeout)
+	err = c.ws.Write(wctx, websocket.MessageText, body)
+	wcancel()
+	if err != nil {
 		c.forget(id)
 		return fmt.Errorf("bidi: send %s: %w", method, err)
 	}

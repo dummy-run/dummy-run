@@ -29,12 +29,16 @@ func TestJourneysInTheSweep(t *testing.T) {
 			return
 		case "/basket":
 			basket.Add(1)
+		case "/join":
+			// Sign-up redirects to the basket, which robots.txt disallows, so the tab mustn't follow it.
+			http.Redirect(w, r, "/basket", http.StatusFound)
+			return
 		}
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><title>J</title><header>
 <button id="menu" aria-expanded="false" aria-controls="nav" onmousedown="this.setAttribute('aria-expanded','true');document.getElementById('nav').hidden=false">Menu</button>
 <ul id="nav" hidden><li><a href="/a">A</a></li></ul></header><main><h1>J</h1>
-<label for="q">Search</label><input id="q" type="search" name="q"> <a href="/basket">Basket</a></main></html>`)
+<label for="q">Search</label><input id="q" type="search" name="q"> <a href="/basket">Basket</a> <a href="/join">Sign up</a></main></html>`)
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
@@ -48,10 +52,11 @@ func TestJourneysInTheSweep(t *testing.T) {
 				t.Fatal(err)
 			}
 			first, second := rep.Results[0], rep.Results[1]
-			if first.JourneysError != "" || len(first.Journeys) != 3 || len(second.Journeys) != 0 {
+			if first.JourneysError != "" || len(first.Journeys) != 4 || len(second.Journeys) != 0 {
 				t.Fatalf("journeys %+v (error %q), then %d at the second size", first.Journeys, first.JourneysError, len(second.Journeys))
 			}
-			// robots.txt disallows the basket, so its journey is skipped and the basket is never loaded.
+			// robots.txt disallows the basket, so its journey is skipped, and the redirect to it from /join is stopped, so the
+			// basket is never loaded.
 			for _, j := range first.Journeys {
 				if j.Kind == "basket" && (j.Mouse.Outcome != journey.Skipped || !strings.Contains(j.Mouse.Detail, "robots.txt")) {
 					t.Errorf("basket journey %+v, want skipped for robots.txt", *j.Mouse)

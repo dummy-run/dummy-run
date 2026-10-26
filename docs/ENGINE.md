@@ -1302,8 +1302,10 @@ has no element for: Shopify suggests a basket, Calendly a booking. A journey a t
 shows no way into is listed as `not found`, which says where to look.
 
 A basket journey never starts from an "add to basket" link, or from a link whose address adds to the basket, since
-following it would change the basket. With `--respect-robots`, a journey whose link leads to a page robots.txt
-disallows isn't tried and is `skipped`. A sweep that is signed in, with a session or preview access, tries no
+following it would change the basket. The journeys' tab sends nothing but GET and HEAD requests: the browser fails
+any other request before it leaves, whatever the page's scripts try. With `--respect-robots`, a journey whose link
+leads to a page robots.txt disallows isn't tried and is `skipped`, and the tab loads no page robots.txt disallows,
+even by a redirect. A sweep that is signed in, with a session or preview access, tries no
 journeys, for the same reason it tries no controls: a click could change the account or sign it out.
 
 Each result lists its `journeys`. A journey names its `kind`, its `selector`, `label` and `href`, and its `source`.
