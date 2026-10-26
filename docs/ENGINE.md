@@ -1328,8 +1328,9 @@ without its `#fragment`, up to 300 on a page. `links_omitted` counts any past th
 the sweep, so a menu on every page costs one check per link. Each URL's links are checked once too, whatever the
 window sizes and schemes.
 
-A link that answers with an error status such as 404 or 500, or that can't be reached at all, is advice with the
-rule ID `dummyrun-broken-link`. A link that was skipped, refused or timed out isn't, as below. Its detail gives the URL and the status code when there is one, such as
+The sweep reports a broken link as advice with the rule ID `dummyrun-broken-link`. A link is broken when it answers
+with an error status such as 404 or 500, or can't be reached at all. Skipped, refused and timed-out links aren't
+broken. Its detail gives the URL and the status code when there is one, such as
 `https://example.com/old: HTTP 404 (Rejected status code: 404 Not Found)`. It never fails the sweep. Some sites
 turn automated checkers away with 401, 403, 429 or 999 while the page works in a browser. Those count in
 `links_refused`. A link that doesn't answer in time counts in `links_timed_out`: lychee waits 20 seconds, and the
