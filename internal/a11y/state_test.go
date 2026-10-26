@@ -29,13 +29,21 @@ func statePage(r *http.Request) string {
 		shadow = "Changed inside"
 	}
 	n := time.Now().UnixNano()
-	return fmt.Sprintf(`<!doctype html><html lang="en"><head><title>State</title><style>p{color:#111}</style></head><body>
+	// The textarea's starting text is a form value, so it changes on every load like the token.
+	extra := fmt.Sprintf(`<label for="t%d">Note</label><textarea id="t%d">draft %d</textarea>`, n, n, n)
+	switch {
+	case q.Has("attrs-joined"):
+		extra += `<span aria-label="x role=y">Tag</span>`
+	case q.Has("attrs-split"):
+		extra += `<span aria-label="x" role="y">Tag</span>`
+	}
+	return strings.Replace(fmt.Sprintf(`<!doctype html><html lang="en"><head><title>State</title><style>p{color:#111}</style></head><body>
 <main id="m%d"><h1>%s</h1>
 <button aria-expanded="%s" aria-controls="menu%d">Menu</button><ul id="menu%d"><li><a href="/x?session=%d">Home</a></li></ul>
 <form><input type="hidden" name="csrf" value="%d"><label for="q%d">Search</label><input id="q%d" type="search"></form>
 <div id="host"></div>
 <script>document.getElementById("host").attachShadow({mode: "open"}).innerHTML = "<p>%s</p>";</script>
-</main></body></html>`, n, text, expanded, n, n, n, n, n, n, shadow)
+</main></body></html>`, n, text, expanded, n, n, n, n, n, n, shadow), `<div id="host">`, extra+`<div id="host">`, 1)
 }
 
 // TestStateHashSeesThePageNotItsTokens sweeps the same page twice, with fresh ids and tokens each time, and three
@@ -50,7 +58,8 @@ func TestStateHashSeesThePageNotItsTokens(t *testing.T) {
 		_, _ = fmt.Fprint(w, statePage(r))
 	}))
 	defer srv.Close()
-	urls := []string{srv.URL + "/?a", srv.URL + "/?b", srv.URL + "/?text", srv.URL + "/?expanded", srv.URL + "/?shadow"}
+	urls := []string{srv.URL + "/?a", srv.URL + "/?b", srv.URL + "/?text", srv.URL + "/?expanded", srv.URL + "/?shadow",
+		srv.URL + "/?attrs-joined", srv.URL + "/?attrs-split"}
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -70,7 +79,10 @@ func TestStateHashSeesThePageNotItsTokens(t *testing.T) {
 				hash[strings.TrimPrefix(r.URL, srv.URL+"/?")] = r.State.Hash
 			}
 			if hash["a"] != hash["b"] {
-				t.Error("the same page with new ids and tokens hashed differently")
+				t.Error("the same page with new ids, tokens and textarea text hashed differently")
+			}
+			if hash["attrs-joined"] == hash["attrs-split"] {
+				t.Error(`aria-label="x role=y" hashed the same as aria-label="x" role="y"`)
 			}
 			for _, k := range []string{"text", "expanded", "shadow"} {
 				if hash[k] == hash["a"] {
@@ -91,25 +103,31 @@ func TestStateIsPartialPastTheLimit(t *testing.T) {
 	maxStateChars = 200
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		end := "same"
+		start, end := "first", "same"
 		if r.URL.Query().Has("end") {
 			end = "different"
 		}
-		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><title>Long</title></head><body><main><h1>Long</h1><p>%s</p><p>%s</p></main></body></html>`,
-			strings.Repeat("word ", 100), end)
+		if r.URL.Query().Has("start") {
+			start = "other"
+		}
+		_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><head><title>Long</title></head><body><main><h1>Long</h1><p>%s %s</p><p>%s</p></main></body></html>`,
+			start, strings.Repeat("word ", 100), end)
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/", srv.URL + "/?end"}, Browser: browser, Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true})
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/", srv.URL + "/?end", srv.URL + "/?start"}, Browser: browser, Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true})
 			if err != nil {
 				t.Fatal(err)
 			}
-			a, b := rep.Results[0].State, rep.Results[1].State
-			if a == nil || b == nil || !a.Partial || !b.Partial || a.Hash != b.Hash {
-				t.Errorf("past the limit: %+v and %+v, want both partial with one hash", a, b)
+			a, b, c := rep.Results[0].State, rep.Results[1].State, rep.Results[2].State
+			if a == nil || b == nil || c == nil || !a.Partial || !b.Partial || a.Hash != b.Hash {
+				t.Fatalf("past the limit: %+v and %+v, want both partial with one hash", a, b)
+			}
+			if c.Hash == a.Hash {
+				t.Error("a change at the start of the text node that passes the limit kept the hash")
 			}
 		})
 	}

@@ -1435,13 +1435,15 @@ dummyrun a11y --consent --layout https://example.com/
 ### Did the page change between sweeps
 
 Two sweeps of one page can disagree because the page changed between them: an A/B test, a banner, or content
-that loads late. Each result whose page loaded has `state`, a fingerprint of the page's structure and text. Just
+that loads late. Each result whose page loaded has `state` when its state can be read: a fingerprint of the page's
+structure and text. Just
 before the rules run, the sweep describes the page: each element's tag, role and ARIA attributes, the attributes and states that change what
 assistive technology gets, such as `alt`, `hidden`, `disabled` and `checked`, and the text, in order, including
 open shadow roots. `state.hash` is the SHA-256 of that description and `state.elements` counts the elements.
 
 The description leaves out what changes on every load without changing the page: ids and the attributes that
-point at them, such as `aria-labelledby` and `for`, link addresses, form values, scripts and styles. So a fresh
+point at them, such as `aria-labelledby` and `for`, link addresses, form values including a textarea's text,
+scripts and styles. So a fresh
 session token or a generated id doesn't change the hash, but different text or a menu that starts open does.
 
 Equal hashes mean the page had the same elements, roles, ARIA, states and text. They don't cover the styles,

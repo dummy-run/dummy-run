@@ -19,7 +19,9 @@ var readPageState = readState
 // attributes and states that change what assistive technology gets, with the text between them, in document order,
 // open shadow roots included. It leaves out what changes on every load without changing the page: ids and the
 // attributes that point at them, such as for and aria-labelledby, which it records only as present, links'
-// addresses, form values, scripts and styles. It runs in a sandbox, so the
+// addresses, form values, a textarea's text among them, scripts and styles. Each attribute's name and value are
+// JSON-quoted, so one value can't pass for another attribute. A description past the limit keeps the part of the
+// last piece that fits. It runs in a sandbox, so the
 // page's own scripts can't change what it reads.
 const stateJS = `(max) => {
   const skip = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
@@ -29,7 +31,7 @@ const stateJS = `(max) => {
   let size = 0, elements = 0, partial = false;
   const push = (s) => {
     if (partial) return;
-    if (size + s.length > max) { partial = true; return; }
+    if (size + s.length > max) { out.push(s.slice(0, Math.max(max - size, 0))); partial = true; return; }
     out.push(s);
     size += s.length + 1;
   };
@@ -44,15 +46,16 @@ const stateJS = `(max) => {
       elements++;
       const attrs = [];
       for (const a of Array.from(n.attributes).map(a => a.name).sort()) {
-        if (idRefs.has(a)) attrs.push(a);
-        else if (a === "role" || keep.includes(a) || a.startsWith("aria-")) attrs.push(a + "=" + n.getAttribute(a));
+        if (idRefs.has(a)) attrs.push(JSON.stringify(a));
+        else if (a === "role" || keep.includes(a) || a.startsWith("aria-")) attrs.push(JSON.stringify(a) + "=" + JSON.stringify(n.getAttribute(a)));
       }
       if (n.disabled) attrs.push(":disabled");
       if (n.checked) attrs.push(":checked");
       if (n.open) attrs.push(":open");
       push("<" + n.tagName.toLowerCase() + (attrs.length ? " " + attrs.join(" ") : ""));
       if (n.shadowRoot) walk(n.shadowRoot);
-      walk(n);
+      // A textarea's text is its starting value, a form value like any other.
+      if (n.tagName !== "TEXTAREA") walk(n);
       push(">");
     }
   };
