@@ -5,7 +5,9 @@
 #
 # Each package runs on its own, with its own tests, and writes OUTDIR/<package>.json. With SHARD and COUNT, only the
 # packages whose name hashes to SHARD out of COUNT run, so CI can split the work between jobs. bin/mutation-summary
-# reads the files. A package gremlins can't finish leaves OUTDIR/<package>.failed instead, so the summary lists it.
+# reads the files. Before each package runs, OUTDIR/<package>.pkg records its import path, so a package that
+# gremlins doesn't finish, even when the job is stopped, has a .pkg file and no report, and the summary lists it.
+# When the shard has been through every package, OUTDIR/shard-SHARD-of-COUNT.done says so.
 #
 # Gremlins gives each mutant the time the package's tests took to gather coverage, times the coefficient. Unit tests
 # run in milliseconds and most of a mutant's time is the build, so the coefficient is high: a lower one counts most
@@ -32,10 +34,11 @@ sed "s|^$root/||" "$pkgs" | sort | while read -r pkg; do
   [ $((n % count)) -eq "$shard" ] || continue
   name=$(printf '%s' "$pkg" | tr '/.' '__')
   echo "gremlins: $pkg"
-  ${GREMLINS:-gremlins} unleash --workers 4 --timeout-coefficient 60 --output-statuses lt \
-    --exclude-files '_test\.go$' --output "$out/$name.json" "./$pkg" || {
+  printf '%s\n' "$pkg" >"$out/$name.pkg"
+  if ! ${GREMLINS:-gremlins} unleash --workers 4 --timeout-coefficient 60 --output-statuses lt \
+    --exclude-files '_test\.go$' --output "$out/$name.json" "./$pkg"; then
     echo "gremlins: $pkg did not finish"
     rm -f "$out/$name.json"
-    : >"$out/$name.failed"
-  }
+  fi
 done
+: >"$out/shard-$shard-of-$count.done"

@@ -116,7 +116,7 @@ the elements it lists, and none of its code.
 
 ## Mutation testing
 
-It runs in the project's own weekly workflow, and CONTRIBUTING.md shows how to run it on your machine. It isn't part of the program you install.
+Mutation testing runs in the project's own weekly workflow, and CONTRIBUTING.md shows how you run it on your machine. gremlins isn't part of the program you install.
 
 | Tool | Version | What it does for Dummy Run | Licence |
 |---|---|---|---|

@@ -56,4 +56,4 @@ jobs:
           pattern: mutation-*
           path: mutation
       - name: Summarise
-        run: python3 bin/mutation-summary mutation >> "$GITHUB_STEP_SUMMARY"
+        run: python3 bin/mutation-summary --shards 4 mutation >> "$GITHUB_STEP_SUMMARY"
