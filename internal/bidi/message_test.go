@@ -86,7 +86,7 @@ func TestCommandError(t *testing.T) {
 // An error frame without an id, which the remote end sends when it cannot parse
 // a command, must be dropped rather than dereferenced.
 func TestDispatchDropsErrorWithoutID(t *testing.T) {
-	c := &Conn{pending: map[int64]chan Message{}, handlers: map[string][]EventHandler{}}
+	c := &Conn{pending: map[int64]chan Message{}, handlers: map[string][]handler{}}
 	m, err := Decode([]byte(`{"type":"error","error":"invalid argument","message":"unparsable"}`))
 	if err != nil {
 		t.Fatal(err)
@@ -98,5 +98,21 @@ func TestDispatchDropsErrorWithoutID(t *testing.T) {
 	c.dispatch(Message{ID: &id, Type: "success"})
 	if len(ch) != 1 || len(c.pending) != 0 {
 		t.Error("a matched result was not delivered")
+	}
+}
+
+// TestRemovedHandlerGetsNoEvents checks a removed handler hears nothing more, and the others still do.
+func TestRemovedHandlerGetsNoEvents(t *testing.T) {
+	c := &Conn{pending: map[int64]chan Message{}, handlers: map[string][]handler{}}
+	var a, b int
+	removeA := c.OnEvent("log.entryAdded", func(string, json.RawMessage) { a++ })
+	c.OnEvent("log.entryAdded", func(string, json.RawMessage) { b++ })
+	ev := Message{Type: "event", Method: "log.entryAdded"}
+	c.dispatch(ev)
+	removeA()
+	removeA()
+	c.dispatch(ev)
+	if a != 1 || b != 2 {
+		t.Errorf("removed handler ran %d times, the other %d, want 1 and 2", a, b)
 	}
 }
