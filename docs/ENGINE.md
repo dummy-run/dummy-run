@@ -1057,6 +1057,16 @@ within 80 stops has no verdict, and its `skipped` says why. A link to another pa
 form's submit button are never picked, and nor is anything holding one. A control's own script can still navigate
 or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
 
+While it tries each control, the sweep also measures how long the page takes to respond, with Google's
+[web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click
+or a key press to the next frame that shows the result. After each click, Enter and Space, the page's result lists
+the response in `tasks.responses`. It gives the time in milliseconds, web-vitals' rating, and where the time went:
+`input_delay` before the page's handlers start, `processing` in them, and `presentation` drawing the result. INP is
+the slowest response on the page so far, which can be an earlier Tab press on the same load. A control whose slowest
+response is over 500 ms, which web-vitals rates poor, is advice, `dummyrun-slow-response`. No WCAG criterion sets a
+time, but a slow response leaves people unsure whether anything happened, and they may press again. The sweep
+reports the measurements and leaves any judgement of how steady they are across runs to you.
+
 The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
 is shown, it presses Enter and then Tab. Focus must then land inside the target or after it. When Tab alone gets
 there, as it does when the link sits just before its target, the check gives no verdict.

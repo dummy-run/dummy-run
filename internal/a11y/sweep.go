@@ -814,6 +814,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		rep.triedTasks[key] = true
 		res.Tasks = t
 		res.Violations = append(res.Violations, taskFindings(t, path, cfg.Allow)...)
+		res.Advice = append(res.Advice, slowResponseAdvice(t, path, cfg.Allow)...)
 	}()
 	if cfg.Markup {
 		m, err := page.RunMarkupChecks(pctx, conn, cx)
