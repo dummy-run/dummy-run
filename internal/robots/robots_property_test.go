@@ -49,6 +49,9 @@ func TestPropertyNoRulesAllowEverything(t *testing.T) {
 		if DenyAll().Allowed(s) != (normalise(s) == "/robots.txt") {
 			t.Fatalf("DenyAll gives %v for %q", DenyAll().Allowed(s), s)
 		}
+		if !DenyAll().Allowed("/robots.txt") {
+			t.Fatal("DenyAll disallows /robots.txt")
+		}
 	})
 }
 

@@ -85,25 +85,25 @@ go test -run='^$' -fuzz=FuzzWrite -fuzztime=30s ./internal/record/
 go test -run='^$' -fuzz=FuzzDecodeResponses -fuzztime=30s ./internal/provider/
 ```
 
-Some tests check a rule over many random inputs with rapid, rather than a few examples. Their names start
-`TestProperty` or `TestMetamorphic`. A property test compares the code with an independent reading of the
-same rule, such as robots.txt patterns against a regular expression. A metamorphic test changes the input
-in a way that should move the answer only one way, or not at all, and checks it does:
+Some tests use rapid to check a rule over thousands of random inputs. Their names start with `TestProperty`
+or `TestMetamorphic`. A property test compares the code with an independent reading of the same rule, such
+as robots.txt patterns against a regular expression. A metamorphic test changes the input in a way that
+should move the answer in one direction only, or leave it as it was, and checks that the answer does:
 
 - adding a Disallow rule to robots.txt never lets in a path that was kept out, and adding an Allow rule
-  never keeps one out that was let in;
+  never keeps out a path that was let in;
 - the order of the rules in a robots.txt group never changes an answer;
-- adding entries to an allow-list never stops it accepting a violation, and anything new it accepts, an
-  added entry accepts.
+- adding entries to an allow-list never stops it accepting a violation, and every violation the longer
+  list accepts but the shorter list doesn't is accepted by an added entry.
 
-They run with the unit tests, 100 cases each. To run more:
+The unit tests run 100 cases of each. This command runs 10,000:
 
 ```sh
 go test ./internal/robots/ ./internal/a11y/ -run 'Property|Metamorphic' -rapid.checks=10000
 ```
 
-A failure prints the smallest input it found and the arguments that replay it. Pass its seed back with the failing
-test's name to run that case again, for example:
+A failure prints the smallest input it found and the arguments that replay it. This command replays a case
+from the seed it printed and the failing test's name:
 
 ```sh
 go test ./internal/robots/ -run TestMetamorphicRuleOrderDoesNotMatter -rapid.seed=1234567890
