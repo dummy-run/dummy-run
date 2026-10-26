@@ -2,6 +2,7 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/visual"
 )
@@ -158,6 +160,18 @@ func TestMaskLeavesNothingBehind(t *testing.T) {
 			}
 			if err := compareScreen(ctx, conn, cx, dir, []string{".clock"}, &res); err != nil || res.Visual.Masked != 1 || boxes() != 0 {
 				t.Fatalf("a good selector: error %v, %+v, %d boxes left", err, res.Visual, boxes())
+			}
+			// The sweep is cancelled with the masks drawn, and they still come off.
+			saved := captureScreen
+			cctx, ccancel := context.WithCancel(ctx)
+			captureScreen = func(context.Context, *bidi.Conn, string) (string, error) {
+				ccancel()
+				return "", cctx.Err()
+			}
+			err = compareScreen(cctx, conn, cx, t.TempDir(), []string{".clock"}, &PageResult{URL: srv.URL, Browser: browser, Viewport: "desktop", Scheme: Light})
+			captureScreen = saved
+			if !errors.Is(err, context.Canceled) || boxes() != 0 {
+				t.Fatalf("cancelled: error %v, %d boxes left", err, boxes())
 			}
 			shot := res.Visual.Screen
 			diff := strings.TrimSuffix(shot, ".png") + ".diff.png"

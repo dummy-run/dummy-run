@@ -42,6 +42,11 @@ const maskJS = `(selectors) => {
   return rects.length;
 }`
 
+// captureScreen takes the picture. Tests replace it to cancel the sweep with the masks drawn.
+var captureScreen = func(ctx context.Context, conn *bidi.Conn, cx string) (string, error) {
+	return conn.CaptureScreenshot(ctx, cx)
+}
+
 const unmaskJS = `() => { for (const el of document.querySelectorAll("[data-dummyrun-mask]")) el.remove(); }`
 
 // compareScreen takes a picture of the window with the masks drawn, compares it with the one the last sweep left in
@@ -70,7 +75,7 @@ func compareScreen(ctx context.Context, conn *bidi.Conn, cx, dir string, masks [
 		}
 		return err
 	}
-	data, err := conn.CaptureScreenshot(ctx, cx)
+	data, err := captureScreen(ctx, conn, cx)
 	if err != nil {
 		return err
 	}
