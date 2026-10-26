@@ -1,0 +1,22 @@
+features.json is the response of the ARIA-AT app's public API (https://aria-at.w3.org/api/graphql) to the query in
+fetch.sh, copied unchanged. It holds the ARIA-AT project's test results for each ARIA feature, by screen reader and
+browser, as shown on https://aria-at.w3.org/reports.
+
+Copyright © 2026 World Wide Web Consortium. https://www.w3.org/copyright/document-license-2023/
+
+This software or document includes material copied from or derived from ARIA-AT Reports,
+https://aria-at.w3.org/reports, by the W3C ARIA and Assistive Technologies Community Group
+(https://www.w3.org/community/aria-at/). The material is licensed under the W3C Document License, whose full text is
+at https://www.w3.org/copyright/document-license-2023/.
+
+THIS DOCUMENT IS PROVIDED "AS IS," AND COPYRIGHT HOLDERS MAKE NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED,
+INCLUDING, BUT NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR
+TITLE; THAT THE CONTENTS OF THE DOCUMENT ARE SUITABLE FOR ANY PURPOSE; NOR THAT THE IMPLEMENTATION OF SUCH CONTENTS
+WILL NOT INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+COPYRIGHT HOLDERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY
+USE OF THE DOCUMENT OR THE PERFORMANCE OR IMPLEMENTATION OF THE CONTENTS THEREOF.
+
+The name and trademarks of copyright holders may NOT be used in advertising or publicity pertaining to this
+document or its contents without specific, written prior permission. Title to copyright in this document will at
+all times remain with copyright holders.

@@ -2,6 +2,7 @@
 // Called as a function expression with (max): the most nodes to return for each rule.
 //   labelInName   a control whose visible words are not part of its accessible name (WCAG 2.5.3)
 //   autocomplete  a field that asks for the person's own details with no autocomplete value that names a purpose (WCAG 1.3.5)
+//   ariaFeatures  each role and aria-* attribute shown elements use, with the first element and how many use it
 (max) => {
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim();
   const part = (el) => {
@@ -53,7 +54,7 @@
     if (["home", "work", "mobile", "fax", "pager"].includes(t[i]) && /^(tel|email|impp)/.test(field)) i++;
     return i === t.length;
   };
-  const out = { labelInName: [], autocomplete: [] };
+  const out = { labelInName: [], autocomplete: [], ariaFeatures: [] };
   const push = (list, node) => { if (list.length < max) list.push(node); };
 
   const nameFromAttrs = (el) => {
@@ -110,5 +111,27 @@
     if (names(have)) continue;
     push(out.autocomplete, { selector: selector(el), detail: "it asks for " + want.replace("-", " ") + (have ? " and autocomplete is \"" + have + "\"" : " with no autocomplete value"), want });
   }
+
+  // The roles and ARIA attributes in use, so they can be looked up in the screen reader support figures. A role
+  // attribute can list fallbacks, and the browser uses the first one it knows, so that one counts.
+  const ariaRoles = new Set(("alert alertdialog application article banner blockquote button caption cell checkbox code " +
+    "columnheader combobox complementary contentinfo definition deletion dialog document emphasis feed figure form generic " +
+    "grid gridcell group heading img insertion link list listbox listitem log main mark marquee math menu menubar menuitem " +
+    "menuitemcheckbox menuitemradio meter navigation none note option paragraph presentation progressbar radio radiogroup " +
+    "region row rowgroup rowheader scrollbar search searchbox separator slider spinbutton status strong subscript " +
+    "superscript switch tab table tablist tabpanel term textbox time timer toolbar tooltip tree treegrid treeitem").split(" "));
+  const features = new Map();
+  for (const el of document.body ? [document.body, ...document.body.querySelectorAll("*")] : []) {
+    const names = [...el.attributes].map((a) => a.name).filter((n) => n.startsWith("aria-"));
+    const role = squash(el.getAttribute("role")).toLowerCase().split(" ").find((r) => ariaRoles.has(r));
+    if (role) names.push(role);
+    if (!names.length || !shown(el)) continue;
+    for (const n of names) {
+      const f = features.get(n);
+      if (f) f.count++;
+      else if (features.size < 100) features.set(n, { name: n, selector: selector(el), count: 1 });
+    }
+  }
+  out.ariaFeatures = [...features.values()];
   return out;
 }
