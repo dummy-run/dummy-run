@@ -14,6 +14,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/a11y"
 	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/cast"
+	"github.com/dummy-run/dummy-run/internal/plain"
 	"github.com/dummy-run/dummy-run/internal/signin"
 )
 
@@ -242,6 +243,8 @@ func a11yCmd(args []string) int {
 		urls = append(pages, urls...)
 	}
 	// With the JSON on standard output, progress goes to standard error so the JSON stays clean.
+	// Vale's rules are written to a temporary folder for the sweep. It goes when the command ends.
+	defer plain.Cleanup()
 	rep, err := a11yRun(ctx, a11y.Config{
 		URLs: urls, Browser: *browser, Viewports: viewports, Schemes: schemes, Allow: allow,
 		TextScales: scales, Layout: *layout, Keyboard: *keyboard, Markup: *markup, Content: *contentOn, Engines: *engines, Consent: *consent, PlainLanguage: *plainLang, HTML: *htmlCheck, Lighthouse: *lighthouseOn, Journeys: *journeysOn, Links: *linksOn, ImageContrast: *imageContrast, ScreenshotDir: *shotDir, Repeat: *repeat,

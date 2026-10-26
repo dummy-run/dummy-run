@@ -56,20 +56,21 @@ func Find() (string, error) {
 }
 
 var (
-	stylesOnce sync.Once
-	stylesDir  string
-	stylesErr  error
+	stylesMu  sync.Mutex
+	stylesDir string
 )
 
-// configPath writes the embedded rules to a private directory once per process and returns its .vale.ini.
+// configPath writes the embedded rules to a private directory, once until Cleanup removes it, and returns its
+// .vale.ini.
 func configPath() (string, error) {
-	stylesOnce.Do(func() {
+	stylesMu.Lock()
+	defer stylesMu.Unlock()
+	if stylesDir == "" {
 		dir, err := os.MkdirTemp("", "dummyrun-vale-")
 		if err != nil {
-			stylesErr = err
-			return
+			return "", fmt.Errorf("plain language: write the rules: %w", err)
 		}
-		stylesErr = fs.WalkDir(styles, "styles", func(path string, d fs.DirEntry, err error) error {
+		err = fs.WalkDir(styles, "styles", func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -84,12 +85,24 @@ func configPath() (string, error) {
 			}
 			return os.WriteFile(dst, b, 0o600)
 		})
+		if err != nil {
+			_ = os.RemoveAll(dir)
+			return "", fmt.Errorf("plain language: write the rules: %w", err)
+		}
 		stylesDir = dir
-	})
-	if stylesErr != nil {
-		return "", fmt.Errorf("plain language: write the rules: %w", stylesErr)
 	}
 	return filepath.Join(stylesDir, ".vale.ini"), nil
+}
+
+// Cleanup removes the rules configPath wrote. A later Check writes them again. Call it when no Check is running,
+// such as when a command ends.
+func Cleanup() {
+	stylesMu.Lock()
+	defer stylesMu.Unlock()
+	if stylesDir != "" {
+		_ = os.RemoveAll(stylesDir)
+		stylesDir = ""
+	}
 }
 
 // Check runs Vale on one page of HTML and returns its alerts, in line order.
