@@ -240,6 +240,131 @@
   sources:
     - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#eg-etc-and-ie
 
+- rule: dummyrun-content-vague-link
+  owner: content
+  summary: Write link text that says where the link goes.
+  steps:
+    - Replace words such as read more or click here with the name of the page or what the link does.
+    - Make sure the link still makes sense when it is read out on its own, in a list of all the links on the page.
+    - If the design needs a short link, add the rest of the words in text that is hidden visually but read out.
+  example:
+    before: "<a href=\"/opening-times\">Read more</a>"
+    after: "<a href=\"/opening-times\">Opening times</a>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+    - https://www.gov.uk/guidance/content-design/links
+
+- rule: dummyrun-content-url-link
+  owner: content
+  summary: Use the name of the page as the link text, not its address.
+  steps:
+    - Replace the web address with the name of the page or site it goes to.
+    - Keep the address in the text only when people need to type or copy it, such as on a printed page.
+  example:
+    before: "<a href=\"https://example.com/help/contact\">https://example.com/help/contact</a>"
+    after: "<a href=\"https://example.com/help/contact\">Contact us</a>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+
+- rule: dummyrun-content-new-window
+  owner: content
+  summary: Say when a link opens in a new tab, or let it open in the same one.
+  steps:
+    - Decide whether the link needs a new tab at all. Most links don't.
+    - If it does, add opens in a new tab to the link text.
+  example:
+    before: "<a href=\"/terms\" target=\"_blank\">Terms</a>"
+    after: "<a href=\"/terms\" target=\"_blank\">Terms (opens in a new tab)</a>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html
+    - https://design-system.service.gov.uk/styles/links/#opening-links-in-a-new-tab
+
+- rule: dummyrun-content-document-link
+  owner: content
+  summary: Say what kind of file a link downloads, and how big it is.
+  steps:
+    - Add the file type and size to the link text, such as PDF, 2 MB.
+    - Think about publishing the content as a web page, which is easier to read on a phone and with assistive technology.
+  example:
+    before: "<a href=\"/report.pdf\">Annual report</a>"
+    after: "<a href=\"/report.pdf\">Annual report (PDF, 2 MB)</a>"
+  sources:
+    - https://www.gov.uk/guidance/content-design/links
+    - https://www.gov.uk/guidance/how-to-publish-on-gov-uk/accessible-pdfs
+
+- rule: dummyrun-content-alt-file-name
+  owner: content
+  summary: Replace a file name in alt text with what the image shows.
+  steps:
+    - Write what the image tells a reader who can see it, in a few words.
+    - If the image is only decoration, give it an empty alt attribute so screen readers skip it.
+    - Check your content system doesn't fill in alt text from the file name by itself.
+  example:
+    before: "<img src=\"pier.jpg\" alt=\"IMG_2041.jpg\">"
+    after: "<img src=\"pier.jpg\" alt=\"The pier at sunset\">"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html
+    - https://www.w3.org/WAI/tutorials/images/decision-tree/
+
+- rule: dummyrun-content-alt-redundant
+  owner: content
+  summary: Start alt text with what the image shows.
+  steps:
+    - Remove image of, picture of or photo of from the start of the alt text, since a screen reader already says it is an image.
+    - Keep words such as painting or diagram when the kind of image matters to the reader.
+  example:
+    before: "<img src=\"dog.jpg\" alt=\"Image of a dog on a beach\">"
+    after: "<img src=\"dog.jpg\" alt=\"A dog on a beach\">"
+  sources:
+    - https://www.w3.org/WAI/tutorials/images/tips/
+
+- rule: dummyrun-content-alt-long
+  owner: content
+  summary: Keep alt text short and put a long description in the page.
+  steps:
+    - Cut the alt text down to what a reader needs to follow the page.
+    - For a chart or diagram, give the full details in the text or a table next to it, and say so in the alt text.
+  sources:
+    - https://www.w3.org/WAI/tutorials/images/complex/
+
+- rule: dummyrun-content-fake-heading
+  owner: content
+  summary: Mark up text that works as a heading as a heading.
+  steps:
+    - Change the bold paragraph to a heading of the right level, such as h2 or h3.
+    - Style the heading to look the way you want, rather than choosing a level for its size.
+    - If the text isn't a heading, leave it as it is.
+  example:
+    before: "<p><strong>Opening times</strong></p>"
+    after: "<h2>Opening times</h2>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html
+    - https://www.w3.org/WAI/tutorials/page-structure/headings/
+
+- rule: dummyrun-content-all-caps
+  owner: content
+  summary: Write text in sentence case, not capitals.
+  steps:
+    - Rewrite the text in sentence case. Capitals are harder to read, and some screen readers read them letter by letter.
+    - If you want capitals for the look, use text-transform in CSS with sentence case in the page, and keep it to a few words.
+  example:
+    before: "<p>PLEASE READ THESE TERMS CAREFULLY</p>"
+    after: "<p>Please read these terms carefully</p>"
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#capitalisation
+
+- rule: dummyrun-content-underline
+  owner: design
+  summary: Keep underlines for links.
+  steps:
+    - Use bold or a heading for emphasis, not an underline.
+    - Check that every link is still underlined, or marked some other way than colour alone.
+  example:
+    before: "<u>Important</u>"
+    after: "<strong>Important</strong>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
+
 - rule: dummyrun-html-broken-reference
   owner: development
   summary: Point each ID reference at an element that exists and can take it.
