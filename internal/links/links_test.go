@@ -1,0 +1,146 @@
+package links
+
+import (
+	"context"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestClassify(t *testing.T) {
+	for _, c := range []struct {
+		code    int
+		timeout bool
+		want    string
+	}{{200, false, OK}, {301, false, OK}, {404, false, Broken}, {500, false, Broken}, {0, false, Broken},
+		{403, false, Refused}, {429, false, Refused}, {999, false, Refused}, {0, true, TimedOut}} {
+		if got := Classify(c.code, c.timeout); got != c.want {
+			t.Errorf("Classify(%d, %v) = %s, want %s", c.code, c.timeout, got, c.want)
+		}
+	}
+}
+
+// A report in the shape lychee 0.24 writes.
+const report = `{"total":5,"error_map":{"stdin":[
+ {"url":"https://example.test/gone","status":{"text":"Rejected status code: 404 Not Found","code":404}},
+ {"url":"https://example.test/wall","status":{"text":"Rejected status code: 403 Forbidden","code":403}},
+ {"url":"https://nohost.test/","status":{"text":"Network error: dns error\nmore"}}]},
+ "timeout_map":{"stdin":[{"url":"https://slow.test/","status":{"text":"Timeout"}}]},
+ "excluded_map":{"stdin":[{"url":"https://x.invalid/","status":{"text":"Excluded"}}]}}`
+
+func TestParse(t *testing.T) {
+	urls := []string{"https://example.test/fine", "https://example.test/gone", "https://example.test/wall", "https://nohost.test", "https://slow.test/", "https://x.invalid/"}
+	got, err := parse([]byte(report), urls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Result{
+		{URL: urls[0], Outcome: OK},
+		{URL: urls[1], Outcome: Broken, Code: 404, Text: "Rejected status code: 404 Not Found"},
+		{URL: urls[2], Outcome: Refused, Code: 403, Text: "Rejected status code: 403 Forbidden"},
+		{URL: urls[3], Outcome: Broken, Text: "Network error: dns error"},
+		{URL: urls[4], Outcome: TimedOut, Text: "Timeout"},
+		{URL: urls[5], Outcome: Skipped},
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("%d: got %+v want %+v", i, got[i], want[i])
+		}
+	}
+}
+
+func TestLycheeVersionMatchesDockerfile(t *testing.T) {
+	b, err := os.ReadFile("../../docker/Dockerfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "\nARG LYCHEE_VERSION="+LycheeVersion+"\n") {
+		t.Errorf("docker/Dockerfile does not pin lychee %s", LycheeVersion)
+	}
+}
+
+func TestPrivateHost(t *testing.T) {
+	ctx := context.Background()
+	saved := lookup
+	t.Cleanup(func() { lookup = saved })
+	// A controlled resolver: nohost.invalid doesn't exist, inside.test is on a private network, and anything else
+	// fails the way an unreachable DNS server does.
+	lookup = func(_ context.Context, host string) ([]net.IPAddr, error) {
+		switch host {
+		case "nohost.invalid":
+			return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+		case "inside.test":
+			return []net.IPAddr{{IP: net.ParseIP("10.9.8.7")}}, nil
+		}
+		return nil, &net.DNSError{Err: "server misbehaving", Name: host, IsTemporary: true}
+	}
+	for host, want := range map[string]bool{
+		"localhost": true, "app.localhost:3000": true, "127.0.0.1:8080": true, "[::1]:9": true, "10.1.2.3": true,
+		"192.168.0.1": true, "169.254.169.254": true, "0.0.0.0": true, "8.8.8.8": false, "[2001:4860::8888]": false,
+		"nohost.invalid": false, "100.100.100.200": true, "100.63.255.255": false, "100.128.0.1": false,
+	} {
+		if got := PrivateHost(ctx, host); got != want {
+			t.Errorf("%s: private %v, want %v", host, got, want)
+		}
+	}
+	// A name the sweep can't look up is private, so it is never fetched, but it is never trusted as private either.
+	if !PrivateHost(ctx, "example.com") || ConfirmedPrivate(ctx, "example.com") {
+		t.Error("a failed lookup: fetched, or trusted")
+	}
+	if !PrivateHost(ctx, "inside.test") || !ConfirmedPrivate(ctx, "inside.test") || ConfirmedPrivate(ctx, "nohost.invalid") {
+		t.Error("a name on a private network, or one that doesn't exist")
+	}
+}
+
+// Check asks lychee to skip private addresses, unless the sweep allows them.
+func TestCheckExcludesPrivateAddresses(t *testing.T) {
+	dir := t.TempDir()
+	fake := filepath.Join(dir, "lychee")
+	args := filepath.Join(dir, "args")
+	script := "#!/bin/sh\necho \"$@\" > " + args + "\ncat > /dev/null\necho '{}'\n"
+	if err := os.WriteFile(fake, []byte(script), 0o700); err != nil { //nolint:gosec // a test program must be executable
+		t.Fatal(err)
+	}
+	for _, allow := range []bool{false, true} {
+		if _, err := Check(context.Background(), fake, []string{"https://example.test/"}, "ua", allow); err != nil {
+			t.Fatal(err)
+		}
+		b, err := os.ReadFile(args)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Contains(string(b), "--exclude-all-private"); got == allow {
+			t.Errorf("allow private %v: lychee args %q", allow, b)
+		}
+	}
+}
+
+// lychee exits 2 when it found broken links, which is a result: Check reads its report. Any other failure is an error
+// that names lychee's first line of complaint.
+func TestCheckReadsExitCodes(t *testing.T) {
+	dir := t.TempDir()
+	report := `{"error_map":{"stdin":[{"url":"https://example.test/gone","status":{"text":"Not Found","code":404}}]}}`
+	for _, tc := range []struct {
+		name, script, err string
+	}{
+		{"broken", "#!/bin/sh\ncat > /dev/null\necho '" + report + "'\nexit 2\n", ""},
+		{"failed", "#!/bin/sh\ncat > /dev/null\necho 'bad config: no such option' >&2\necho 'more' >&2\nexit 1\n", "bad config: no such option"},
+	} {
+		fake := filepath.Join(dir, tc.name)
+		if err := os.WriteFile(fake, []byte(tc.script), 0o700); err != nil { //nolint:gosec // a test program must be executable
+			t.Fatal(err)
+		}
+		got, err := Check(context.Background(), fake, []string{"https://example.test/gone", "https://example.test/fine"}, "ua", false)
+		if tc.err != "" {
+			if err == nil || !strings.Contains(err.Error(), tc.err) || strings.Contains(err.Error(), "more") {
+				t.Errorf("%s: error %v, want one naming %q", tc.name, err, tc.err)
+			}
+			continue
+		}
+		if err != nil || len(got) != 2 || got[0].Outcome != Broken || got[0].Code != 404 || got[1].Outcome != OK {
+			t.Errorf("%s: %v %+v", tc.name, err, got)
+		}
+	}
+}

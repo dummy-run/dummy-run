@@ -19,6 +19,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/journey"
 	"github.com/dummy-run/dummy-run/internal/lighthouse"
+	"github.com/dummy-run/dummy-run/internal/links"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/robots"
@@ -93,6 +94,8 @@ type Config struct {
 	// Journeys finds the journeys each page offers, such as search, a menu or a contact form, and tries each by
 	// mouse and by keyboard, once for each URL. One that works by mouse but not by keyboard is a violation.
 	Journeys bool
+	// Links checks the links on each page with lychee, each link once across the sweep. Broken ones are advice.
+	Links bool
 	// Engines runs IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb beside axe-core, and counts how many
 	// engines agree on each failing element.
 	Engines bool
@@ -197,6 +200,15 @@ type PageResult struct {
 	// they could not be tried. Only the first result for each URL has these.
 	Journeys      []journey.Journey `json:"journeys,omitempty"`
 	JourneysError string            `json:"journeys_error,omitempty"`
+	// LinksChecked counts the page's links that were checked. LinksRefused counts the ones a site turned the
+	// checker away from, such as with 403 or 429, and LinksTimedOut the ones that didn't answer in time; neither is
+	// reported as broken. LinksOmitted counts links past the most one page has checked, and LinksError says why the
+	// check could not run. Only the first result for each URL has these.
+	LinksChecked  int    `json:"links_checked,omitempty"`
+	LinksRefused  int    `json:"links_refused,omitempty"`
+	LinksTimedOut int    `json:"links_timed_out,omitempty"`
+	LinksOmitted  int    `json:"links_omitted,omitempty"`
+	LinksError    string `json:"links_error,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
@@ -269,8 +281,10 @@ type Report struct {
 	Vnu string `json:"vnu,omitempty"`
 	// Lighthouse is the version of Lighthouse the sweep's Lighthouse check is written for, set once it has audited a
 	// page.
-	Lighthouse string   `json:"lighthouse,omitempty"`
-	Tags       []string `json:"tags"`
+	Lighthouse string `json:"lighthouse,omitempty"`
+	// Lychee is the version of lychee the link check is written for, when it ran.
+	Lychee string   `json:"lychee,omitempty"`
+	Tags   []string `json:"tags"`
 	// AdviceTags are the best-practice tags the sweep also ran. Empty in a sweep written before advice.
 	AdviceTags    []string `json:"advice_tags,omitempty"`
 	Identify      bool     `json:"identify,omitempty"`
@@ -289,6 +303,10 @@ type Report struct {
 	journeysDone map[string]bool
 	// robots holds each origin's robots.txt rules, with --respect-robots.
 	robots *robotsCache
+	// linksDone holds the URLs whose links were checked, and linkResults each link's result, so a link that
+	// many pages share is checked once.
+	linksDone   map[string]bool
+	linkResults map[string]links.Result
 }
 
 // Summary totals a report.
@@ -386,6 +404,9 @@ func Run(ctx context.Context, cfg Config) (*Report, error) {
 	if cfg.HTML {
 		rep.Vnu = validate.VnuVersion
 	}
+	if cfg.Links {
+		rep.Lychee = links.LycheeVersion
+	}
 	if cfg.Access.Active() {
 		sum := cfg.Access.Summary()
 		rep.PreviewAccess = &sum
@@ -448,7 +469,7 @@ func robotsFor(ctx context.Context, cfg Config, byOrigin map[string]*robots.Resu
 	if res := byOrigin[origin]; res != nil {
 		return res, nil
 	}
-	res, err := robots.Fetch(ctx, cfg.HTTPClient, raw, telemetry.RobotsToken, telemetry.RequestUserAgent(cfg.Identify))
+	res, err := robots.Fetch(ctx, robotsClient(ctx, cfg.HTTPClient, origin), raw, telemetry.RobotsToken, telemetry.RequestUserAgent(cfg.Identify))
 	if err != nil {
 		return nil, err
 	}
@@ -457,6 +478,36 @@ func robotsFor(ctx context.Context, cfg Config, byOrigin map[string]*robots.Resu
 		_, _ = fmt.Fprintf(cfg.Log, "robots: %s: %s\n", origin, res.Status)
 	}
 	return res, nil
+}
+
+// robotsClient is the client that fetches one origin's robots.txt. A page decides which origins the link check and
+// the journeys ask about, so a public origin's robots.txt may not redirect to localhost or a private address: the
+// redirect fails, and robots.txt then counts as unreachable. A private origin, one you chose to sweep, keeps its
+// redirects.
+func robotsClient(ctx context.Context, base *http.Client, origin string) *http.Client {
+	c := http.Client{Timeout: 15 * time.Second}
+	if base != nil {
+		c = *base
+	}
+	u, err := url.Parse(origin)
+	// Only an origin known to be private keeps its redirects: one whose name can't be looked up gets the guard.
+	if err != nil || links.ConfirmedPrivate(ctx, u.Host) {
+		return &c
+	}
+	prev := c.CheckRedirect
+	c.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if links.PrivateHost(req.Context(), req.URL.Host) {
+			return fmt.Errorf("robots.txt redirects to a private address, %s", req.URL.Host)
+		}
+		if prev != nil {
+			return prev(req, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		return nil
+	}
+	return &c
 }
 
 // robotsCache holds each origin's robots.txt rules. mu guards it, since the journeys' tab asks from the browser's
@@ -782,6 +833,15 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		}
 		rep.journeysDone[u] = true
 		journeyCheck(ctx, conn, cfg, u, vp, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+	}
+	// The links are the same at every window size and colour scheme, so each URL's are checked once. Like the
+	// journeys, they come last, with their own time limit, so they can't take time from the checks above.
+	if cfg.Links && !rep.linksDone[u] {
+		if rep.linksDone == nil {
+			rep.linksDone = map[string]bool{}
+		}
+		rep.linksDone[u] = true
+		linkCheck(ctx, conn, cx, cfg, &res, path, rep)
 	}
 	return res
 }

@@ -948,10 +948,11 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
 
 To run every check in one go, add `--all`. It turns on the keyboard and markup checks, the cookie banner, the other
-rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the layout checks and plain language.
-Three of them use programs of their own: Vale for plain language, vnu for the HTML check, and Lighthouse, which also
-needs Chrome. The container image has Vale and vnu but not Lighthouse. A check whose program is missing says so on
-each page, and the rest of the sweep still runs. Add `--text-scale 100,200` to test large text in the same run.
+rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the layout checks and
+plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
+the links, and Lighthouse, which also needs Chrome. The container image has Vale, vnu and lychee but not Lighthouse.
+A check whose program is missing says so on each page, and the rest of the sweep still runs. Add `--text-scale
+100,200` to test large text in the same run.
 
 ```sh
 dummyrun a11y --all --text-scale 100,200 --json report.json https://example.com/
@@ -1322,6 +1323,42 @@ isn't reported: the page may simply not work the way the journey expects.
 
 ```sh
 dummyrun a11y --journeys https://example.com/
+```
+
+### Broken links
+
+Add `--links` and the sweep checks the links on each page with [lychee](https://lychee.cli.rs/), a link checker
+that runs on your machine as its own program. Every `http` and `https` link in an `a` or `area` element counts,
+without its `#fragment`, up to 300 on a page. `links_omitted` counts any past that. Each link is checked once across
+the sweep, so a menu on every page costs one check per link. Each URL's links are checked once too, whatever the
+window sizes and schemes.
+
+The sweep reports a broken link as advice with the rule ID `dummyrun-broken-link`. A link is broken when it answers
+with an error status such as 404 or 500, or can't be reached at all. Skipped, refused and timed-out links aren't
+broken. Its detail gives the URL and the status code when there is one, such as
+`https://example.com/old: HTTP 404 (Rejected status code: 404 Not Found)`. It never fails the sweep. Some sites
+turn automated checkers away with 401, 403, 429 or 999 while the page works in a browser. Those count in
+`links_refused`. A link that doesn't answer in time counts in `links_timed_out`: lychee waits 20 seconds, and the
+browser, for links behind preview access, waits 15. `links_checked` counts every link looked at. That includes the
+skipped ones: links to private addresses, links robots.txt disallows and links lychee leaves out, such as a
+`.invalid` host. `links_error` says why the check couldn't run.
+
+lychee sends the sweep's user agent, `DummyRun/<version> (+https://dummyrun.dev/scanner/)` with `--identify`. It
+never gets your preview credentials. With [preview access](#protected-previews) on, links on the sites you're
+sweeping, the same scheme and host, are checked from inside the browser instead, which already holds them, and
+lychee only gets the rest. The browser counts a redirect as an answer and doesn't follow it.
+
+A page decides where its links point, so a link to `localhost`, to `169.254.169.254` or to another address on a
+private network would have the checker visit the machine it runs on or the network around it. Those links are
+skipped, both by the sweep, which looks up each host first, and by lychee with `--exclude-all-private`. They're
+checked only when every URL you sweep is itself on `localhost` or a private address, as when you sweep a site on
+your own machine. With `--respect-robots`, a link to a page that robots.txt disallows is skipped too, and isn't
+fetched. The sweep looks for `lychee` on your `PATH`, or the program `DUMMYRUN_LYCHEE` names. The container
+image includes lychee 0.24.2. Without it, the rest of the sweep still runs and each page says why its links weren't
+checked.
+
+```sh
+dummyrun a11y --links https://example.com/
 ```
 
 ### Cookie banners
