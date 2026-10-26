@@ -7,7 +7,7 @@ import (
 )
 
 // Colours are the colours of text that fails a contrast rule, and the nearest colours that would meet the ratio. A suggestion
-// changes only the lightness of one colour in OKLCH, so it keeps the hue of the design. TextFix keeps the
+// changes the lightness of one colour in OKLCH, so it keeps the hue of the design, and lowers its chroma only where the screen can't show it otherwise. TextFix keeps the
 // background, and BackgroundFix keeps the text. Either is empty when no lightness at that hue reaches the ratio.
 type Colours struct {
 	Text          string  `json:"text"`

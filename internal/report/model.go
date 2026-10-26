@@ -316,7 +316,7 @@ type AxeRule struct {
 }
 
 // ColourPair is one text and background colour pair that fails a contrast rule, and the nearest colours that meet it.
-// TextFix keeps the background and changes only the lightness of the text, in OKLCH. BackgroundFix keeps the text.
+// TextFix keeps the background and changes the lightness of the text, in OKLCH. BackgroundFix keeps the text.
 type ColourPair struct {
 	Text          string  `json:"text"`
 	Background    string  `json:"background"`
