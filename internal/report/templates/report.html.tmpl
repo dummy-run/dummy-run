@@ -485,6 +485,21 @@ footer p { margin: 0 0 0.4rem; }
 </tbody>
 </table>
 </div>
+{{- if colourRules .Axe.Rules}}
+<h3 class="sub">Colours that meet the ratio</h3>
+<p>For each pair of colours that failed, the nearest text colour that meets the ratio on the same background, and the nearest background that meets it with the same text, where one exists. When none does at that hue, the table says so. Each one changes how light the colour is and keeps its hue. Check the new colour against the rest of your design.</p>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Colours that meet the ratio">
+<table>
+<caption>Colours that meet the ratio</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">Text</th><th scope="col">Background</th><th scope="col" class="num">Contrast</th><th scope="col" class="num">Needs</th><th scope="col">Text that meets it</th><th scope="col">Background that meets it</th><th scope="col" class="num">Elements</th></tr></thead>
+<tbody>
+{{- range $r := colourRules .Axe.Rules}}{{range $r.Colours}}
+<tr><th scope="row"><code>{{$r.Rule}}</code></th><td><code>{{.Text}}</code></td><td><code>{{.Background}}</code></td><td class="num">{{printf "%.2f" .Ratio}}:1</td><td class="num">{{.Need}}:1</td><td>{{if .TextFix}}<code>{{.TextFix}}</code>{{else}}None at this hue{{end}}</td><td>{{if .BackgroundFix}}<code>{{.BackgroundFix}}</code>{{else}}None at this hue{{end}}</td><td class="num">{{.Elements}}</td></tr>
+{{- end}}{{end}}
+</tbody>
+</table>
+</div>
+{{- end}}
 {{if fixRules .Axe.Rules}}
 <h3 class="sub">How to fix what failed</h3>
 <p>Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the elements listed above.</p>
