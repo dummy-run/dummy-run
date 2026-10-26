@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/visual"
@@ -55,7 +56,11 @@ func compareScreen(ctx context.Context, conn *bidi.Conn, cx, dir string, masks [
 	}
 	var masked int
 	// The boxes come off whatever happens, since the checks after this one measure the same page.
-	defer func() { _, _ = conn.CallFunction(context.WithoutCancel(ctx), cx, unmaskJS) }()
+	defer func() {
+		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		_, _ = conn.CallFunction(cctx, cx, unmaskJS)
+	}()
 	if err := conn.CallFunctionJSON(ctx, cx, maskJS, &masked, string(sels)); err != nil {
 		var se *bidi.ScriptError
 		if errors.As(err, &se) {
