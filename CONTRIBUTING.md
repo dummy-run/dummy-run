@@ -99,14 +99,14 @@ in a way that should move the answer only one way, or not at all, and checks it 
 They run with the unit tests, 100 cases each. To run more:
 
 ```sh
-go test -run 'Property|Metamorphic' -rapid.checks=10000 ./internal/robots/ ./internal/a11y/
+go test ./internal/robots/ ./internal/a11y/ -run 'Property|Metamorphic' -rapid.checks=10000
 ```
 
 A failure prints the smallest input it found and the arguments that replay it. Pass its seed back with the failing
 test's name to run that case again, for example:
 
 ```sh
-go test -run TestMetamorphicRuleOrderDoesNotMatter -rapid.seed=1234567890 ./internal/robots/
+go test ./internal/robots/ -run TestMetamorphicRuleOrderDoesNotMatter -rapid.seed=1234567890
 ```
 
 The OpenAI-compatible chat fixtures were recorded from a local Ollama, and the other providers' fixtures
