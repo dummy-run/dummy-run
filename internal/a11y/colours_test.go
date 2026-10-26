@@ -3,6 +3,8 @@ package a11y
 import (
 	"strings"
 	"testing"
+
+	"github.com/dummy-run/dummy-run/internal/colour"
 )
 
 func TestSuggestColours(t *testing.T) {
@@ -16,6 +18,14 @@ func TestSuggestColours(t *testing.T) {
 	got := suggestColours(axeColours{FG: "#777777", BG: "#ffffff", Need: 4.5})
 	if got == nil || got.Ratio < 4.47 || got.Ratio > 4.49 || got.TextFix != "#767676" || got.BackgroundFix == "" {
 		t.Fatalf("grey on white: %+v", got)
+	}
+	// Each suggestion meets the ratio with the colour it keeps.
+	text, _ := colour.Parse(got.Text)
+	bg, _ := colour.Parse(got.Background)
+	tf, err1 := colour.Parse(got.TextFix)
+	bf, err2 := colour.Parse(got.BackgroundFix)
+	if err1 != nil || err2 != nil || colour.Ratio(tf, bg) < 4.5 || colour.Ratio(text, bf) < 4.5 {
+		t.Errorf("suggestions don't meet 4.5:1: text %.3f, background %.3f", colour.Ratio(tf, bg), colour.Ratio(text, bf))
 	}
 	if d := got.Detail(); !strings.Contains(d, "#777777 on #ffffff is 4.48:1, and needs 4.5:1.") || !strings.Contains(d, "Text #767676") {
 		t.Errorf("detail %q", d)

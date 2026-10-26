@@ -1135,7 +1135,7 @@ works out two colours that would meet the ratio:
 - `text_fix`, the nearest text colour that meets it on the same background
 - `background_fix`, the nearest background that meets it with the same text
 
-Each one changes only how light the colour is, in the OKLCH colour space, and keeps its hue and, where it can, its
+Each one changes how light the colour is, in the OKLCH colour space, and keeps its hue and, where it can, its
 chroma. So a brand blue stays blue and only gets darker or lighter. The sweep tries darker and lighter and keeps the
 smaller change. If no lightness at that hue meets the ratio, that suggestion is left out. The element's `detail` says
 the same in words, for example "#777777 on #ffffff is 4.48:1, and needs 4.5:1. Text #767676 on the same background
