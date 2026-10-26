@@ -1126,6 +1126,25 @@ dummyrun a11y --engines --json report.json https://example.com/
 
 [Tools we build on](TOOLS.md) lists each engine with its licence.
 
+### Colours that meet the ratio
+
+When axe fails text on `color-contrast` or `color-contrast-enhanced`, it records the text colour, the background
+colour, the ratio between them and the ratio the text needs. The sweep keeps those in the element's `colours` and
+works out two colours that would meet the ratio:
+
+- `text_fix`, the nearest text colour that meets it on the same background
+- `background_fix`, the nearest background that meets it with the same text
+
+Each one changes only how light the colour is, in the OKLCH colour space, and keeps its hue and, where it can, its
+chroma. So a brand blue stays blue and only gets darker or lighter. The sweep tries darker and lighter and keeps the
+smaller change. If no lightness at that hue meets the ratio, that suggestion is left out. The element's `detail` says
+the same in words, for example "#777777 on #ffffff is 4.48:1, and needs 4.5:1. Text #767676 on the same background
+meets it, or the same text on #060606."
+
+A suggestion is a starting point. Check it against the rest of your design, and against the other colour scheme if
+your site has both. Axe measures only text on a flat colour, so text on an image or a gradient has no suggestion.
+Use `--image-contrast` for that.
+
 ### Contrast over images
 
 axe-core can't judge the contrast of text that sits on a photo or a gradient, so it lists that text under

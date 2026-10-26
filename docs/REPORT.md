@@ -186,6 +186,11 @@ WCAG criteria, plus the pages, elements and settings where the rule failed. Elem
 counted and left out. Rules axe can't decide are listed separately under "needs a person to check", and so are
 pages that couldn't be tested.
 
+When text fails a colour contrast rule, a table called "Colours that meet the ratio" lists each pair of text and
+background colours once, with how many elements use it. For each pair it gives the nearest text colour that meets
+the ratio on the same background, and the nearest background that meets it with the same text. The JSON keeps them
+in `axe.rules[].colours`. [ENGINE.md](ENGINE.md#colours-that-meet-the-ratio) explains how they're found.
+
 Axe's best-practice rules, such as content outside any landmark or headings that skip a level, have their own
 table, "Advice beyond WCAG A and AA". A few of them are WCAG AAA rules. They aren't WCAG A or AA failures, so
 they aren't counted as failing elements. The report's JSON keeps them in `axe.advice` and the tags checked in
