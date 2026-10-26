@@ -35,8 +35,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Unless you set `--viewport` or `--text-scale`, `dummyrun a11y --layout` now adds the 320 px window and a run at 200 percent text, the two settings WCAG 1.4.10 and 1.4.4 name.
 
 ### Fixed
-- In Chrome, pages fetched ahead of a click skipped the request interception. A page asks for these with speculation rules, and Chrome adds rules of its own on sites it knows, such as Shopify ones. They carried no run headers and passed no request policy. Chrome now starts with preloading off.
-- The screen reader's reading stays within its eight seconds however the page behaves, and a persona that gets no screenshots hears the page even when it may not click. What it says is scanned as visible text, and each phrase is cut at 300 characters.
+- In Chrome, pages fetched ahead of a click skipped the request interception. A page asks for these with speculation rules, and Chrome adds rules of its own on sites it knows, such as Shopify ones. The requests Chrome made for them carried no run headers and skipped the request policy. Chrome now starts with preloading off.
+- The screen reader stops reading after eight seconds, even when the page stops answering. A persona that gets no screenshots now hears the page even when it may not click. What it says is scanned as visible text, and each phrase is cut at 300 characters.
 - The keyboard and mouse comparison leaves out text fields, comboboxes and tabs reached by the arrow keys, which it reported as working only by mouse.
 - Each rule engine has its own time limit, so one that hangs is an error for that engine alone. Alfa's findings on an attribute, such as a `lang` value that isn't a language, are kept, and every engine finding's selector names one element.
 - The plain language check reads the first `main` element that is displayed, its readability messages match their thresholds, and it removes its temporary rules when the sweep ends.
