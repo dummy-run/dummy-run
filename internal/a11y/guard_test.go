@@ -387,6 +387,19 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 			"document.getElementById('send').click()", "order.getAttribute('target')", "_self"},
 		"/named": {`<script>window.name = '_blank';</script><form id="order" target="_blank" ` + fields + `</form>`,
 			"order.submit()", "order.getAttribute('target')", "_self"},
+		"/null": {`<form id="order" onsubmit="this.setAttribute('target', null)" ` + fields + `<button id="send">Send</button></form>`,
+			"document.getElementById('send').click()", "order.getAttribute('target')", "_self"},
+		"/newline": {`<script>window.name = 'a\n<b';</script><form id="order" target="a&#10;&lt;b" ` + fields + `</form>`,
+			"order.submit()", "order.getAttribute('target')", "_self"},
+		"/attrnode": {`<div id="src" target="_blank" hidden></div><form id="order" onsubmit="this.setAttributeNode(document.getElementById('src').getAttributeNode('target').cloneNode())" ` + fields + `<button id="send">Send</button></form>`,
+			"document.getElementById('send').click()", "order.getAttribute('target')", "_self"},
+		"/nameditem": {`<div id="src" target="_blank" hidden></div><form id="order" onsubmit="this.attributes.setNamedItem(document.getElementById('src').getAttributeNode('target').cloneNode())" ` + fields + `<button id="send">Send</button></form>`,
+			"document.getElementById('send').click()", "order.getAttribute('target')", "_self"},
+		"/attrvalue": {`<form id="order" target="_self" onsubmit="this.getAttributeNode('target').value = '_blank'" ` + fields + `<button id="send">Send</button></form>`,
+			"document.getElementById('send').click()", "order.getAttribute('target')", "_self"},
+		"/shadow": {`<div id="host"></div>
+<script>document.getElementById('host').attachShadow({mode: 'open'}).innerHTML = '<form id="order" target="_blank" method="post" action="/order"><input type="hidden" name="item" value="1"><button id="send">Send</button></form>';</script>`,
+			"order.querySelector('button').dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true}))", "order.getAttribute('target')", "_self"},
 		"/sibling": {`<iframe id="inner" title="Order" srcdoc="<form id='order' target='result' method='post' action='/order'><input type='hidden' name='item' value='1'></form>"></iframe><iframe name="result" title="Result"></iframe>`,
 			"order.submit()", "order.getAttribute('target')", "result"},
 	}
@@ -409,8 +422,11 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 			return
 		}
 		order := "document.getElementById('order')"
-		if r.URL.Path == "/sibling" {
+		switch r.URL.Path {
+		case "/sibling":
 			order = "document.getElementById('inner').contentDocument.getElementById('order')"
+		case "/shadow":
+			order = "document.getElementById('host').shadowRoot.getElementById('order')"
 		}
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
@@ -470,6 +486,9 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 		"/open": `<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked');window.open('/private/account')">Your account</button>`,
 		"/onclick": `<a id="link" href="/private/account" onclick="this.target = '_blank'">Account page</a>
 <button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('link').click(); })">Your account</button>`,
+		"/shadow": `<div id="host"></div>
+<script>document.getElementById('host').attachShadow({mode: 'open'}).innerHTML = '<a href="/private/account" target="_blank">Account page</a>';</script>
+<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('host').shadowRoot.querySelector('a').dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true})); })">Your account</button>`,
 		"/link": `<a id="link" href="/private/account" target="_blank">Account page</a>
 <button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('link').click(); })">Your account</button>`,
 	}

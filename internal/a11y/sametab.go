@@ -7,14 +7,14 @@ import (
 )
 
 // sameTab keeps a page from opening a new window. Chrome never reports the first request of a tab a page opens to the
-// request interception, so a form sent to a new window would reach the server before any guard saw it. window.open
-// does nothing and returns null, and a form, submit button, link or base element that names a new window is sent to
-// the page's own tab instead, where the tab's guard decides it. A target in the markup is changed as the link is
-// clicked or the form sent. A script that sets one, through the property, setAttribute or an attribute node, gets
-// _self instead, so a page's own click or submit handler can't put _blank back. _blank always means a new window,
-// whatever a window is named. A target that names a frame anywhere in the tab is left
-// alone, a sibling of the frame the link or form is in included. A cross-origin frame's name can't be read, so a
-// target that names one is sent to the page's own frame.
+// request interception, so a form sent to a new window would reach the server before any guard saw it. window.open does
+// nothing and returns null, and a form, submit button, link or base element that names a new window is sent to the
+// page's own tab instead, where the tab's guard decides it. A target in the markup is changed as the link is clicked or
+// the form sent. A script that sets one, through the property, setAttribute or an attribute node, gets _self instead,
+// so a page's own click or submit handler can't put _blank back. _blank always means a new window, whatever a window is
+// named, and so does a name the browser would treat as _blank. Links and forms inside a shadow root are covered too. A
+// target that names a frame anywhere in the tab is left alone, a sibling of the frame the link or form is in included.
+// A cross-origin frame's name can't be read, so a target that names one is sent to the page's own frame.
 const sameTab = `() => {
 	const named = (w, name) => {
 		try { if (w.name === name) return true; } catch (e) {}
@@ -26,6 +26,7 @@ const sameTab = `() => {
 		if (t === null || t === undefined) return false;
 		const n = String(t).toLowerCase();
 		if (n === "" || n === "_self" || n === "_parent" || n === "_top") return false;
+		if (/[\t\n\r]/.test(n) && n.includes("<")) return true;
 		return n === "_blank" || !frames(String(t));
 	};
 	const keep = (el) => {
@@ -36,11 +37,11 @@ const sameTab = `() => {
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
 	window.open = function () { return null; };
 	const targets = (name) => { const n = String(name).toLowerCase(); return n === "target" || n === "formtarget"; };
-	const same = (name, value) => (targets(name) && away(value) ? "_self" : value);
+	const same = (name, value) => { const v = String(value); return targets(name) && away(v) ? "_self" : v; };
 	const property = (proto, name) => {
 		const d = proto && Object.getOwnPropertyDescriptor(proto, name);
 		if (!d || !d.set) return;
-		Object.defineProperty(proto, name, { configurable: true, enumerable: d.enumerable, get: d.get, set: function (v) { d.set.call(this, away(v) ? "_self" : v); } });
+		Object.defineProperty(proto, name, { configurable: true, enumerable: d.enumerable, get: d.get, set: function (v) { const t = String(v); d.set.call(this, away(t) ? "_self" : t); } });
 	};
 	[HTMLFormElement, HTMLAnchorElement, HTMLAreaElement, HTMLBaseElement].forEach((c) => property(c.prototype, "target"));
 	[HTMLButtonElement, HTMLInputElement].forEach((c) => property(c.prototype, "formTarget"));
@@ -53,14 +54,25 @@ const sameTab = `() => {
 		const proto = name === "value" ? Attr.prototype : Node.prototype;
 		const d = Object.getOwnPropertyDescriptor(proto, name);
 		if (!d || !d.set) return;
-		Object.defineProperty(proto, name, { configurable: true, enumerable: d.enumerable, get: d.get, set: function (v) { d.set.call(this, this instanceof Attr && !this.namespaceURI ? same(this.name, v) : v); } });
+		Object.defineProperty(proto, name, { configurable: true, enumerable: d.enumerable, get: d.get, set: function (v) { d.set.call(this, this instanceof Attr && !this.namespaceURI ? same(this.name, name === "value" || v !== null ? v : "") : v); } });
 	});
 	[[Element.prototype, "setAttributeNode"], [Element.prototype, "setAttributeNodeNS"], [NamedNodeMap.prototype, "setNamedItem"], [NamedNodeMap.prototype, "setNamedItemNS"]].forEach(([proto, name]) => {
 		const f = proto[name];
 		if (f) proto[name] = function (a) { return f.call(this, attr(a)); };
 	});
-	document.addEventListener("submit", (e) => { keep(e.target); keep(e.submitter); bases(); }, true);
-	document.addEventListener("click", (e) => { const el = e.target && e.target.closest ? e.target.closest("a, area") : null; keep(el); bases(); }, true);
+	const submitted = (e) => { keep(e.target); keep(e.submitter); bases(); };
+	const clicked = (e) => {
+		for (const el of e.composedPath ? e.composedPath() : [e.target]) {
+			if (!el || !el.matches) continue;
+			if (el.matches("a, area")) { keep(el); break; }
+			if (el.form && el.matches("button, input")) { keep(el); keep(el.form); break; }
+		}
+		bases();
+	};
+	document.addEventListener("submit", submitted, true);
+	document.addEventListener("click", clicked, true);
+	const attachShadow = Element.prototype.attachShadow;
+	if (attachShadow) Element.prototype.attachShadow = function () { const root = attachShadow.apply(this, arguments); root.addEventListener("submit", submitted, true); return root; };
 	const submit = HTMLFormElement.prototype.submit;
 	HTMLFormElement.prototype.submit = function () { keep(this); bases(); return submit.call(this); };
 	const request = HTMLFormElement.prototype.requestSubmit;
