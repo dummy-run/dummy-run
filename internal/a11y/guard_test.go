@@ -619,7 +619,8 @@ if (!window.trustedTypes) {
 // or a POST form's submit button, each aimed at a new window. No script on the page ever reaches the root, so only
 // the sweep's own click or key press can land on what is inside. On the click pages it covers the whole control,
 // so the mouse try lands on it. On the keyboard page it sits in a corner, so the click opens the control and the
-// comparison goes on to its keyboard try, where Tab reaches the link and Enter follows it. The hostile page also
+// comparison goes on to its keyboard try, where Tab reaches the link and Enter follows it. On the nested page the
+// link is in a closed root inside the control's closed root. The hostile page also
 // breaks addEventListener on shadow roots and WeakSet's has before the guard reaches its root. The address must
 // never be loaded and the form must never arrive, in Chrome as in Firefox.
 func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
@@ -637,6 +638,8 @@ func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 			script: `ShadowRoot.prototype.addEventListener = function () { throw new Error('no'); };
 var has = WeakSet.prototype.has;
 WeakSet.prototype.has = function (x) { return x instanceof ShadowRoot || has.call(this, x); };`},
+		"/nested": {inside: `<shop-inner style="position:absolute;inset:0"><template shadowrootmode="closed"><a href="/private/account" target="_blank" ` + fill + `>Account page</a></template></shop-inner>`,
+			pressed: "GET /clicked"},
 		"/keyboard": {inside: `<a href="/private/account" target="_blank" style="position:absolute;right:0;top:0;width:20px;height:20px">Account page</a>`,
 			pressed: "GET /keyed"},
 	}
