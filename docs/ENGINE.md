@@ -935,7 +935,9 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   form or an API call made as the page loads or when a check presses a control, fails before it leaves the
   browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A tab the page opens itself,
   with `window.open` or a link to a new window, is closed as soon as it opens, so it can't take focus from the page
-  under test. GET and HEAD still go through, so a site that changes data on a GET can still be changed. Each page's
+  under test. In Chrome, the first load of such a tab is the one request that gets past the guard, because Chrome
+  doesn't report it, so a form a script sends to a new window can still arrive. Every later request from that tab is
+  stopped. GET and HEAD still go through, so a site that changes data on a GET can still be changed. Each page's
   `requests_stopped` counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure
   probe's `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused
   there isn't counted.
