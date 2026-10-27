@@ -621,7 +621,8 @@ if (!window.trustedTypes) {
 // so the mouse try lands on it. On the keyboard page it sits in a corner, so the click opens the control and the
 // comparison goes on to its keyboard try, where Tab reaches the link and Enter follows it. On the nested page the
 // link is in a closed root inside the control's closed root. The hostile page also
-// breaks addEventListener on shadow roots and WeakSet's has before the guard reaches its root. The address must
+// breaks addEventListener on shadow roots and WeakSet's has before the guard reaches its root, and the decoy page
+// makes document.documentElement return an empty element, to hide its roots from the guard. The address must
 // never be loaded and the form must never arrive, in Chrome as in Firefox.
 func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
@@ -638,6 +639,9 @@ func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 			script: `ShadowRoot.prototype.addEventListener = function () { throw new Error('no'); };
 var has = WeakSet.prototype.has;
 WeakSet.prototype.has = function (x) { return x instanceof ShadowRoot || has.call(this, x); };`},
+		"/decoy": {inside: `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`, pressed: "GET /clicked",
+			script: `var decoy = document.createElement('html');
+Object.defineProperty(document, 'documentElement', {get: function () { return decoy; }});`},
 		"/nested": {inside: `<shop-inner style="position:absolute;inset:0"><template shadowrootmode="closed"><a href="/private/account" target="_blank" ` + fill + `>Account page</a></template></shop-inner>`,
 			pressed: "GET /clicked"},
 		"/keyboard": {inside: `<a href="/private/account" target="_blank" style="position:absolute;right:0;top:0;width:20px;height:20px">Account page</a>`,
@@ -645,7 +649,7 @@ WeakSet.prototype.has = function (x) { return x instanceof ShadowRoot || has.cal
 	}
 	var mu sync.Mutex
 	seen := map[string]int{}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		seen[r.Method+" "+r.URL.Path]++
 		mu.Unlock()
@@ -666,18 +670,23 @@ menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('
 		default:
 			w.WriteHeader(http.StatusNoContent)
 		}
-	}))
-	defer srv.Close()
+	})
 	for _, browser := range strings.Split(v, ",") {
 		for path, f := range pages {
 			t.Run(browser+path, func(t *testing.T) {
 				mu.Lock()
 				clear(seen)
 				mu.Unlock()
+				// Each test has its own server, so closing it waits out any request still in flight.
+				srv := httptest.NewServer(handler)
+				defer srv.Close()
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 				defer cancel()
 				rep, err := Run(ctx, Config{URLs: []string{srv.URL + path}, Browser: browser, Viewports: []Viewport{Desktop},
 					Schemes: []string{Light}, Headless: true, Keyboard: true, RespectRobots: true})
+				// Run closes the browser before it returns, so no request starts after it, and Close returns once
+				// every request that did start has been answered.
+				srv.Close()
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -696,6 +705,9 @@ menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('
 					}
 				}
 				// The root was guarded before the press, so the press stays in the guarded tab, which stops it.
+				if n := rep.opened.Opened(); n != 0 {
+					t.Errorf("the press opened %d tabs, want none", n)
+				}
 				if r.RequestsStopped < 1 {
 					t.Errorf("requests_stopped is %d, want the press", r.RequestsStopped)
 				}

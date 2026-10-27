@@ -103,6 +103,10 @@ const sameTab = `() => {
 // shadow root to sameTab's guard.
 const guardRoot = "__dummyrunGuardRoot"
 
+// guardRealm is the sandbox in which guardClosedRoots reads the page. The page's own script can't change what
+// document.documentElement returns there, so it can't hide its closed roots behind a decoy.
+const guardRealm = "dummyrun-guard"
+
 // domNode is the part of a WebDriver BiDi node remote value that guardClosedRoots walks.
 type domNode struct {
 	SharedID string `json:"sharedId"`
@@ -143,7 +147,7 @@ func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx string) error {
 		}
 		if err := conn.Call(ctx, "script.callFunction", map[string]any{
 			"functionDeclaration":  "() => document.documentElement",
-			"target":               map[string]any{"context": c},
+			"target":               map[string]any{"context": c, "sandbox": guardRealm},
 			"awaitPromise":         true,
 			"resultOwnership":      "none",
 			"serializationOptions": map[string]any{"maxDomDepth": nil, "includeShadowTree": "all"},
