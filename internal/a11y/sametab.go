@@ -19,7 +19,7 @@ const sameTab = `() => {
 		if (away(el.getAttribute && el.getAttribute("formtarget"))) el.setAttribute("formtarget", "_self");
 	};
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
-	try { Object.defineProperty(window, "open", { value: function () { return null; }, writable: false, configurable: false }); } catch (e) { window.open = function () { return null; }; }
+	window.open = function () { return null; };
 	document.addEventListener("submit", (e) => { keep(e.target); keep(e.submitter); bases(); }, true);
 	document.addEventListener("click", (e) => { const el = e.target && e.target.closest ? e.target.closest("a, area") : null; keep(el); bases(); }, true);
 	const submit = HTMLFormElement.prototype.submit;
