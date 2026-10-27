@@ -54,6 +54,21 @@ ok.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") 
 document.getElementById("mouse").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-expanded", "true"));
 document.getElementById("both").addEventListener("click", (e) => e.currentTarget.setAttribute("aria-expanded", "true"));
 </script></main></body></html>`,
+	// A sign-up form with a header, a footer and a select. At desktop width in Firefox, focus can take more than ten
+	// Tab presses to come back into the page from the browser's own controls after a walk runs off the end.
+	"/form": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Join</title></head><body>
+<a href="#content">Skip to the form</a>
+<header><nav aria-label="Main"><a href="/">Home</a> <a href="/books">Books</a> <a href="/help">Help</a></nav></header>
+<main id="content"><h1>Join</h1>
+<form action="/join" method="get">
+<label for="first">First name</label><input id="first" name="first" autocomplete="given-name">
+<label for="last">Last name</label><input id="last" name="last" autocomplete="family-name">
+<label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email">
+<label for="branch">Nearest branch</label><select id="branch" name="branch"><option>Central</option><option>Riverside</option></select>
+<button type="submit">Join now</button>
+</form></main>
+<footer><p><a href="/privacy">Privacy</a> <a href="/contact">Contact us</a></p></footer>
+</body></html>`,
 	// A combobox opens with the arrow keys and a roving tab is reached by them, so Enter and Tab would look as if
 	// they failed. Neither is tried.
 	"/entry": `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Entry</title></head><body><main>
@@ -98,6 +113,8 @@ func longPage() string {
 	return b.String()
 }
 
+// TestKeyboardAgainstMouseInBrowser sweeps pages of controls, skip links and forms with the keyboard and mouse
+// comparison on, and checks its verdict on each page in every browser.
 func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
@@ -120,7 +137,7 @@ func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 		t.Run(browser, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/skip-next", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/entry", srv.URL + "/skip-twice", srv.URL + "/long"}, Browser: browser,
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/tasks", srv.URL + "/skip-good", srv.URL + "/skip-bad", srv.URL + "/skip-next", srv.URL + "/cards", srv.URL + "/recover", srv.URL + "/entry", srv.URL + "/skip-twice", srv.URL + "/long", srv.URL + "/form"}, Browser: browser,
 				Viewports: []Viewport{Desktop}, Schemes: []string{Light}, Headless: true, Keyboard: true})
 			if err != nil {
 				t.Fatal(err)

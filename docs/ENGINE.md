@@ -1083,8 +1083,10 @@ form's submit button are never picked, and nor is anything holding one. Nor are 
 Enter sends the form or the arrow keys do the work, or a tab that the arrow keys reach while another tab in its list
 takes Tab. A control's own script can still navigate when it's clicked, unless `--respect-robots` is set and
 robots.txt disallows the address. A request it sends with any method but GET or HEAD fails before it leaves the
-browser, as the [Writes](#the-accessibility-sweep) item says. A page
-that never takes keyboard focus shows as an error.
+browser, as the [Writes](#the-accessibility-sweep) item says. On each load the comparison presses Tab up to 40
+times to bring focus into the page, since the browser's own controls can hold it for many stops first, as Firefox's
+do once a Tab walk has run off the end. A page that never takes keyboard focus in those 40 presses shows as an
+error.
 
 While it tries each control, the sweep also measures how long the page takes to respond, with Google's
 [web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click
