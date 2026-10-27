@@ -667,11 +667,11 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, 
 	if err != nil {
 		return fmt.Errorf("a11y: open a tab: %w", err)
 	}
-	guard, unguard, err := guardTab(ctx, b.Conn, cx, cfg, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+	// The guard stays on until the browser closes, so the tab is never left unguarded.
+	guard, _, err := guardTab(ctx, b.Conn, cx, cfg, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
 	if err != nil {
 		return fmt.Errorf("a11y: guard the tab: %w", err)
 	}
-	defer unguard()
 	rep.tab = guard
 	if cfg.Identify {
 		// The browser's own user agent stays in front, so pages render as they do for the browser.
@@ -1043,12 +1043,17 @@ func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	if err != nil {
 		return nil, 0, err
 	}
-	defer func() { _ = conn.CloseContext(context.WithoutCancel(ctx), tab) }()
+	// The tab closes before the guard comes off, so nothing it sends on the way out gets through.
 	guard, unguard, err := guardTab(ctx, conn, tab, cfg, allowed)
+	defer func() {
+		_ = conn.CloseContext(context.WithoutCancel(ctx), tab)
+		if unguard != nil {
+			unguard()
+		}
+	}()
 	if err != nil {
 		return nil, 0, err
 	}
-	defer unguard()
 	if err := conn.SetViewport(ctx, tab, vp.Width, vp.Height); err != nil {
 		return nil, 0, err
 	}

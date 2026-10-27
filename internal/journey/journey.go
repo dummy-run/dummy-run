@@ -79,11 +79,11 @@ type Driver struct {
 // Guard makes the tab read-only, whatever the page's scripts do: a request other than GET or HEAD fails before it
 // leaves the browser. allowed, when not nil, is asked about each page load in the tab and its frames, redirects
 // included, and one it refuses fails too, so robots.txt holds however the tab got there. The returned function
-// removes the guard.
+// removes the guard. Close the tab before calling it, so nothing the page sends meanwhile gets out.
 func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func(), error) {
 	var id atomic.Value
 	id.Store("")
-	d.Conn.OnBeforeRequestSent(func(e bidi.BeforeRequestSent) {
+	off := d.Conn.OnBeforeRequestSent(func(e bidi.BeforeRequestSent) {
 		mine := id.Load().(string)
 		if !e.IsBlocked || mine == "" || !slices.Contains(e.Intercepts, mine) {
 			return
@@ -109,17 +109,21 @@ func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func
 		}()
 	})
 	if err := d.Conn.Subscribe(ctx, []string{"network.beforeRequestSent"}, d.CX); err != nil {
+		off()
 		return nil, err
 	}
 	in, err := d.Conn.AddInterceptInContexts(ctx, []string{d.CX}, "beforeRequestSent")
 	if err != nil {
+		off()
 		return nil, err
 	}
 	id.Store(in)
+	// The handler goes too, so a sweep that guards a tab for every page doesn't pile handlers up on the connection.
 	return func() {
 		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 		defer cancel()
 		_ = d.Conn.RemoveIntercept(cctx, in)
+		off()
 	}, nil
 }
 
