@@ -639,6 +639,8 @@ func (r *Report) robotsAllows(ctx context.Context, cfg Config, raw string) (bool
 	return true, ""
 }
 
+// sweepScheme launches the browser in one colour scheme and text size, guards its tab, and tests every page at
+// every viewport in it.
 func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, rep *Report) error {
 	args, prefs, err := ColourSchemeLaunch(cfg.Browser, scheme)
 	if err != nil {
@@ -763,6 +765,7 @@ type axeOut struct {
 	Incomplete []axeRule `json:"incomplete"`
 }
 
+// testPage loads u in the guarded tab cx at viewport vp and runs every check cfg asks for on it.
 func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u string, vp Viewport, scheme string, textScale int, rep *Report) (res PageResult) {
 	started := time.Now()
 	res = PageResult{URL: u, Browser: cfg.Browser, Viewport: vp.Name, Width: vp.Width, Scheme: scheme, TextScale: textScaleField(textScale), Violations: []Finding{}, NeedsReview: []Finding{}}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -142,6 +143,53 @@ func TestSweepTabSendsNoWritesWithPreviewAccess(t *testing.T) {
 			}
 			if rep.Results[0].RequestsStopped < 1 {
 				t.Errorf("requests_stopped is %d, want the load's POST", rep.Results[0].RequestsStopped)
+			}
+		})
+	}
+}
+
+// TestSweepTabKeepsToRobots sweeps a page whose frame loads an address robots.txt disallows, once straight and once
+// through a redirect. With --respect-robots neither may reach the server, and the page's result counts both.
+func TestSweepTabKeepsToRobots(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var private atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case strings.HasPrefix(r.URL.Path, "/private"):
+			private.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		case r.URL.Path == "/offer":
+			http.Redirect(w, r, "/private/offer", http.StatusFound)
+		default:
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Robots</title></head><body><main>
+<h1>Robots</h1><iframe src="/private/frame" title="Account"></iframe><iframe src="/offer" title="Offer"></iframe></main></body></html>`)
+		}
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			private.Store(0)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, RespectRobots: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(rep.Results) != 1 || rep.Results[0].Error != "" {
+				t.Fatalf("results: %+v", rep.Results)
+			}
+			if n := private.Load(); n != 0 {
+				t.Errorf("a disallowed address was loaded %d times", n)
+			}
+			if rep.Results[0].RequestsStopped < 2 {
+				t.Errorf("requests_stopped is %d, want both frames' loads", rep.Results[0].RequestsStopped)
 			}
 		})
 	}

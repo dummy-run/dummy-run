@@ -85,6 +85,8 @@ func (g *failureGuard) close() {
 	g.wg.Wait()
 }
 
+// handle decides one request in the probe's tab. A write, a page load robots.txt disallows and, once the probe is
+// failing them, a data request all fail. Everything else goes on through cont.
 func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
 	mine, _ := g.id.Load().(string)
 	if !e.IsBlocked || mine == "" || !slices.Contains(e.Intercepts, mine) {
@@ -178,6 +180,8 @@ func failureCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp
 	res.FailureProbe = p
 }
 
+// probeFailures opens a guarded tab, loads u in it as normal and then with its data requests failing, and returns
+// what the page announced each time. cont sends on the requests the guard lets through.
 func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, identify bool, cont func(context.Context, bidi.BeforeRequestSent) error, allowed func(string) (bool, string)) (*FailureProbe, error) {
 	cx, err := conn.CreateContext(ctx)
 	if err != nil {
