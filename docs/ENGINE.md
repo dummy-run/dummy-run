@@ -933,7 +933,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - Writes. The browser the sweep opens sends nothing but GET and HEAD, in its own tabs, in the tab Lighthouse
   loads the page in and in any tab a page opens. A request a page's script sends with any other method, such as a
   form or an API call made as the page loads or when a check presses a control, fails before it leaves the
-  browser. With `--respect-robots`, no tab loads a page robots.txt disallows either. A tab the page opens itself,
+  browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A tab the page opens itself,
   with `window.open` or a link to a new window, is closed as soon as it opens, so it can't take focus from the page
   under test. Each page's `requests_stopped` counts what was stopped while the page was tested, except in the
   journeys' tab, which isn't counted, and the failure probe's tab, which counts its own in `failure_probe.stopped`.
@@ -1081,8 +1081,9 @@ control whose test was already true, that something else covers, that a click di
 within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
 form's submit button are never picked, and nor is anything holding one. Nor are text fields and comboboxes, where
 Enter sends the form or the arrow keys do the work, or a tab that the arrow keys reach while another tab in its list
-takes Tab. A control's own script can still navigate when it's clicked, but a request it sends with any method
-but GET or HEAD fails before it leaves the browser, as the [Writes](#the-accessibility-sweep) item says. A page
+takes Tab. A control's own script can still navigate when it's clicked, unless `--respect-robots` is set and
+robots.txt disallows the address. A request it sends with any method but GET or HEAD fails before it leaves the
+browser, as the [Writes](#the-accessibility-sweep) item says. A page
 that never takes keyboard focus shows as an error.
 
 While it tries each control, the sweep also measures how long the page takes to respond, with Google's
