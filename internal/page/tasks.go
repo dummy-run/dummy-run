@@ -75,6 +75,10 @@ func taskCall(ctx context.Context, conn *bidi.Conn, cx, op string, arg, out any)
 	return conn.CallFunctionJSONIn(ctx, cx, tasksSandbox, tasksJS, out, op, arg)
 }
 
+// focusTries is how many Tab presses load gives focus to come back into the page. Firefox's own controls take more
+// than ten stops in a desktop-width window, and the walk can leave focus anywhere among them.
+const focusTries = 40
+
 // load opens the page afresh, so each try starts from the same state.
 func load(ctx context.Context, conn *bidi.Conn, cx, url string) error {
 	if _, err := conn.Navigate(ctx, cx, url); err != nil {
@@ -99,7 +103,7 @@ func load(ctx context.Context, conn *bidi.Conn, cx, url string) error {
 			}
 			break
 		}
-		if i == 10 {
+		if i == focusTries {
 			return errors.New("the page never took keyboard focus")
 		}
 		if err := conn.PressKey(ctx, cx, tab); err != nil {
