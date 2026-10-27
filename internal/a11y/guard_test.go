@@ -301,3 +301,59 @@ func TestLighthouseSendsNoWrites(t *testing.T) {
 		t.Errorf("requests_stopped is %d, want the sweep's POST and Lighthouse's", r.RequestsStopped)
 	}
 }
+
+// TestComparisonTabKeepsToRobots sweeps a page whose menu button also sends the page to an address robots.txt
+// disallows, with --respect-robots and the keyboard checks on. The comparison presses the button, and the navigation
+// it starts must not reach the server.
+func TestComparisonTabKeepsToRobots(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var private, clicked atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case r.URL.Path == "/clicked":
+			clicked.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		case strings.HasPrefix(r.URL.Path, "/private"):
+			private.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Account</title></head><body><main>
+<h1>Account</h1><button id="menu" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { location.assign('/private/account'); })">Your account</button>
+</main></body></html>`)
+		}
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			private.Store(0)
+			clicked.Store(0)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, Keyboard: true, RespectRobots: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Results[0]
+			if r.Error != "" {
+				t.Fatalf("error: %s", r.Error)
+			}
+			// The button tells the server it was pressed before it navigates, so the navigation was tried.
+			if clicked.Load() == 0 {
+				t.Fatalf("the button was never pressed, so the test proves nothing: %+v", r.Tasks)
+			}
+			if n := private.Load(); n != 0 {
+				t.Errorf("a disallowed address was loaded %d times", n)
+			}
+			if r.RequestsStopped < 1 {
+				t.Errorf("requests_stopped is %d, want the comparison's navigation", r.RequestsStopped)
+			}
+		})
+	}
+}
