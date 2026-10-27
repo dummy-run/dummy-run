@@ -113,6 +113,8 @@ func longPage() string {
 	return b.String()
 }
 
+// TestKeyboardAgainstMouseInBrowser sweeps pages of controls, skip links and forms with the keyboard and mouse
+// comparison on, and checks its verdict on each page in every browser.
 func TestKeyboardAgainstMouseInBrowser(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
