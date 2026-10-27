@@ -681,7 +681,9 @@ func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 						t.Errorf("%s reached the server %d times: %v", k, n, seen)
 					}
 				}
-				if r.RequestsStopped < 1 {
+				// In Chrome the press stays in the guarded tab, which stops it. Firefox gets no root guard: the press
+				// opens a tab, and the opened-tab guard can close it before its first request is even sent.
+				if browser == "chrome" && r.RequestsStopped < 1 {
 					t.Errorf("requests_stopped is %d, want the press", r.RequestsStopped)
 				}
 			})
