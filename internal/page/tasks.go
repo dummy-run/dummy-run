@@ -128,16 +128,20 @@ func sleep(ctx context.Context, d time.Duration) error {
 // once focus has left a page for the browser's own controls, as it does at the end of a Tab walk, Firefox no longer
 // runs Enter's default action in that tab. Nothing that would leave the page or send a form is tried, but a click
 // handler can still send a request, so don't call it when the browser is signed in. ready, if not nil, runs after
-// each load and before anything is pressed.
+// each load, and again just before each click and each key that can activate a control, after the mouse has moved
+// there, so it also sees what the page built since the load.
 func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int, ready func(context.Context) error) (*Tasks, error) {
+	guard := func() error {
+		if ready == nil {
+			return nil
+		}
+		return ready(ctx)
+	}
 	fresh := func() error {
 		if err := load(ctx, conn, cx, url); err != nil {
 			return err
 		}
-		if ready != nil {
-			return ready(ctx)
-		}
-		return nil
+		return guard()
 	}
 	if err := fresh(); err != nil {
 		return nil, fmt.Errorf("tasks: %w", err)
@@ -153,12 +157,12 @@ func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int, r
 	space, _ := bidi.Key("Space")
 	out := &Tasks{Tasks: []Task{}}
 	for _, t := range found {
-		if err := tryTask(ctx, conn, cx, fresh, &t, tab, enter, space, &out.Responses); err != nil {
+		if err := tryTask(ctx, conn, cx, fresh, guard, &t, tab, enter, space, &out.Responses); err != nil {
 			return nil, err
 		}
 		out.Tasks = append(out.Tasks, t)
 	}
-	sk, err := trySkip(ctx, conn, cx, fresh, tab, enter)
+	sk, err := trySkip(ctx, conn, cx, fresh, guard, tab, enter)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +170,7 @@ func TryTasks(ctx context.Context, conn *bidi.Conn, cx, url string, limit int, r
 	return out, nil
 }
 
-func tryTask(ctx context.Context, conn *bidi.Conn, cx string, fresh func() error, t *Task, tab, enter, space string, responses *[]Response) error {
+func tryTask(ctx context.Context, conn *bidi.Conn, cx string, fresh, guard func() error, t *Task, tab, enter, space string, responses *[]Response) error {
 	spec, err := json.Marshal(struct {
 		Selector string `json:"selector"`
 		Kind     string `json:"kind"`
@@ -213,7 +217,14 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx string, fresh func() error
 		return nil
 	}
 	markINP(ctx, conn, cx)
-	if err := conn.Click(ctx, cx, float64(st.X), float64(st.Y)); err != nil {
+	// The mouse moves first, so the guard also sees whatever the page builds as the pointer comes over it.
+	if err := conn.MoveMouse(ctx, cx, float64(st.X), float64(st.Y)); err != nil {
+		return fmt.Errorf("tasks: click: %w", err)
+	}
+	if err := guard(); err != nil {
+		return fmt.Errorf("tasks: %w", err)
+	}
+	if err := conn.PressMouse(ctx, cx); err != nil {
 		return fmt.Errorf("tasks: click: %w", err)
 	}
 	if t.Mouse, err = check("click"); err != nil {
@@ -266,6 +277,9 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx string, fresh func() error
 		return nil
 	}
 	for i, key := range []string{enter, space} {
+		if err := guard(); err != nil {
+			return fmt.Errorf("tasks: %w", err)
+		}
 		markINP(ctx, conn, cx)
 		if err := conn.PressKey(ctx, cx, key); err != nil {
 			return fmt.Errorf("tasks: %w", err)
@@ -279,7 +293,7 @@ func tryTask(ctx context.Context, conn *bidi.Conn, cx string, fresh func() error
 
 // trySkip presses Tab once on a fresh load. If focus is on a skip link with a shown target, it presses Enter and Tab
 // and says whether focus then landed inside the target or after it. It gives no verdict when Tab alone gets there.
-func trySkip(ctx context.Context, conn *bidi.Conn, cx string, fresh func() error, tab, enter string) (*SkipTry, error) {
+func trySkip(ctx context.Context, conn *bidi.Conn, cx string, fresh, guard func() error, tab, enter string) (*SkipTry, error) {
 	// First Tab alone from the link. If that already lands in or after the target, as it does when the link sits
 	// just before it, the test can't tell a working link from one that does nothing.
 	sk, err := armSkip(ctx, conn, cx, fresh, tab)
@@ -287,13 +301,13 @@ func trySkip(ctx context.Context, conn *bidi.Conn, cx string, fresh func() error
 		return nil, err
 	}
 	var plain bool
-	if err := pressAndCheck(ctx, conn, cx, sk.Target, &plain, tab); err != nil || plain {
+	if err := pressAndCheck(ctx, conn, cx, guard, sk.Target, &plain, tab); err != nil || plain {
 		return nil, err
 	}
 	if sk, err = armSkip(ctx, conn, cx, fresh, tab); err != nil || sk == nil {
 		return nil, err
 	}
-	if err := pressAndCheck(ctx, conn, cx, sk.Target, &sk.Moved, enter, tab); err != nil {
+	if err := pressAndCheck(ctx, conn, cx, guard, sk.Target, &sk.Moved, enter, tab); err != nil {
 		return nil, err
 	}
 	return sk, nil
@@ -323,9 +337,12 @@ func armSkip(ctx context.Context, conn *bidi.Conn, cx string, fresh func() error
 	return sk, nil
 }
 
-// pressAndCheck presses keys in turn, then says whether focus is in or after target.
-func pressAndCheck(ctx context.Context, conn *bidi.Conn, cx, target string, past *bool, keys ...string) error {
+// pressAndCheck presses keys in turn, with guard before each, then says whether focus is in or after target.
+func pressAndCheck(ctx context.Context, conn *bidi.Conn, cx string, guard func() error, target string, past *bool, keys ...string) error {
 	for _, key := range keys {
+		if err := guard(); err != nil {
+			return fmt.Errorf("tasks: %w", err)
+		}
 		if err := conn.PressKey(ctx, cx, key); err != nil {
 			return fmt.Errorf("tasks: %w", err)
 		}

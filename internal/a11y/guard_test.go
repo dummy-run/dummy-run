@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/access"
+	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/lighthouse"
 	"github.com/dummy-run/dummy-run/internal/policy"
 )
@@ -553,6 +554,59 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 	}
 }
 
+// TestOpenedTabsAreCounted opens a tab from a page that has no one-tab script, so the tab really opens. The guard
+// must count it, or the zero the closed-root test expects would prove nothing.
+func TestOpenedTabsAreCounted(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><title>Shop</title><main><h1>Shop</h1></main></html>`)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(b.Close)
+			opened, err := guardOpenedTabs(ctx, b.Conn, Config{}, func(string) (bool, string) { return true, "" })
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer opened.close()
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+				t.Fatal(err)
+			}
+			if err := b.Conn.Call(ctx, "script.callFunction", map[string]any{
+				"functionDeclaration": "() => { window.open('/next'); }",
+				"target":              map[string]any{"context": cx},
+				"awaitPromise":        true,
+				"userActivation":      true,
+			}, nil); err != nil {
+				t.Fatal(err)
+			}
+			deadline := time.Now().Add(10 * time.Second)
+			for opened.Opened() == 0 && time.Now().Before(deadline) {
+				time.Sleep(50 * time.Millisecond)
+			}
+			opened.settle(10 * time.Second)
+			if n := opened.Opened(); n != 1 {
+				t.Errorf("counted %d opened tabs, want 1", n)
+			}
+		})
+	}
+}
+
 // TestSameTabKeepsTrustedTypes sweeps a page that enforces Trusted Types and sets a script's src from a trusted value.
 // The one-tab script wraps setAttribute, so it must pass values for other attributes through untouched, or the page's
 // own script throws.
@@ -622,7 +676,8 @@ if (!window.trustedTypes) {
 // comparison goes on to its keyboard try, where Tab reaches the link and Enter follows it. On the nested page the
 // link is in a closed root inside the control's closed root. The hostile page also
 // breaks addEventListener on shadow roots and WeakSet's has before the guard reaches its root, and the decoy page
-// makes document.documentElement return an empty element, to hide its roots from the guard. The address must
+// makes document.documentElement return an empty element, to hide its roots from the guard. The late page builds
+// its closed root only as the mouse comes over the control, after the load. The address must
 // never be loaded and the form must never arrive, in Chrome as in Firefox.
 func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
@@ -642,6 +697,14 @@ WeakSet.prototype.has = function (x) { return x instanceof ShadowRoot || has.cal
 		"/decoy": {inside: `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`, pressed: "GET /clicked",
 			script: `var decoy = document.createElement('html');
 Object.defineProperty(document, 'documentElement', {get: function () { return decoy; }});`},
+		"/late": {pressed: "GET /clicked",
+			script: `var late = document.createElement('span');
+late.setAttribute('style', 'position:absolute;inset:0');
+menu.appendChild(late);
+document.addEventListener('mousemove', function built() {
+	document.removeEventListener('mousemove', built);
+	late.setHTMLUnsafe('<shop-panel style="position:absolute;inset:0"><template shadowrootmode="closed"><a href="/private/account" target="_blank" ` + fill + `>Account page</a></template></shop-panel>');
+});`},
 		"/nested": {inside: `<shop-inner style="position:absolute;inset:0"><template shadowrootmode="closed"><a href="/private/account" target="_blank" ` + fill + `>Account page</a></template></shop-inner>`,
 			pressed: "GET /clicked"},
 		"/keyboard": {inside: `<a href="/private/account" target="_blank" style="position:absolute;right:0;top:0;width:20px;height:20px">Account page</a>`,
@@ -709,7 +772,7 @@ menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('
 					t.Errorf("the press opened %d tabs, want none", n)
 				}
 				if r.RequestsStopped < 1 {
-					t.Errorf("requests_stopped is %d, want the press", r.RequestsStopped)
+					t.Errorf("requests_stopped is %d, want the press: %v", r.RequestsStopped, seen)
 				}
 			})
 		}
