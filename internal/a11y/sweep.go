@@ -1087,7 +1087,7 @@ func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 			return nil, 0, err
 		}
 	}
-	t, err = page.TryTasks(ctx, conn, tab, u, page.MaxTasks, func(ctx context.Context) error { return guardClosedRoots(ctx, conn, tab, cfg.Browser) })
+	t, err = page.TryTasks(ctx, conn, tab, u, page.MaxTasks, func(ctx context.Context) error { return guardClosedRoots(ctx, conn, tab) })
 	return t, guard.Stopped(), err
 }
 

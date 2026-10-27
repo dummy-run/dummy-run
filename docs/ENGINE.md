@@ -938,7 +938,7 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   is sent to the page's own tab, where the guard decides it. That holds when the page's own script sets the target
   as the link is clicked or the form sent. A frame the target names is still used, one beside the
   form's own frame included. A cross-origin frame's name can't be read, so a target that names one goes to the form's
-  own frame instead. In Chrome, links and forms inside a closed shadow root are guarded too after each load of the
+  own frame instead. Links and forms inside a closed shadow root are guarded too after each load of the
   keyboard and mouse comparison, before it activates a control, even when no script on the page can reach that root. Chrome never
   reports the first request of a new tab to the guard, so without this a form sent to a new window would arrive. A
   tab that opens all the same is closed at once, so it can't take focus from the page under test. GET and HEAD still

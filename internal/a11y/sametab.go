@@ -2,9 +2,7 @@ package a11y
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
@@ -105,100 +103,98 @@ const sameTab = `() => {
 // shadow root to sameTab's guard.
 const guardRoot = "__dummyrunGuardRoot"
 
-// cdpNode is the part of a DevTools DOM node that guardClosedRoots walks.
-type cdpNode struct {
-	NodeID          int       `json:"nodeId"`
-	ShadowRootType  string    `json:"shadowRootType"`
-	Children        []cdpNode `json:"children"`
-	ShadowRoots     []cdpNode `json:"shadowRoots"`
-	ContentDocument *cdpNode  `json:"contentDocument"`
+// domNode is the part of a WebDriver BiDi node remote value that guardClosedRoots walks.
+type domNode struct {
+	SharedID string `json:"sharedId"`
+	Value    struct {
+		Mode       string    `json:"mode"`
+		Children   []domNode `json:"children"`
+		ShadowRoot *domNode  `json:"shadowRoot"`
+	} `json:"value"`
 }
 
-// guardClosedRoots hands every closed shadow root in the tab to sameTab's guard. No script can reach a closed root
-// the markup declares unless its element's own code asks for it through ElementInternals, so the guard may never see
-// it. A click or key press from the keyboard and mouse comparison can still land on a link or button inside one. In
-// Chrome, the DevTools protocol can see every root, and Chrome is the browser whose first request from a new tab
-// gets past the guards. Firefox has no passthrough, so this does nothing there, and the opened-tab guard stops that
-// request instead. In Chrome, a root the guard can't take is an error, so the comparison stops rather than press a
-// control that could open a window.
-func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx, browser string) error {
-	if browser != "chrome" {
-		return nil
-	}
-	session, err := conn.CDPSession(ctx, cx)
+// guardClosedRoots hands every closed shadow root in the tab and its frames to sameTab's guard. No script can reach
+// a closed root the markup declares unless its element's own code asks for it through ElementInternals, so the
+// guard may never see it. A click or key press from the keyboard and mouse comparison can still land on a link or
+// button inside one, and in Chrome the first request from the tab it opens gets past the request guards. WebDriver
+// BiDi can serialise a page with its closed roots, so each one is found and guarded in every browser. A root the
+// guard can't take is an error, so the comparison stops rather than press a control that could open a window.
+func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx string) error {
+	tree, err := conn.GetTree(ctx)
 	if err != nil {
 		return fmt.Errorf("closed roots: %w", err)
 	}
-	var doc struct {
-		Root cdpNode `json:"root"`
-	}
-	if err := conn.CDP(ctx, session, "DOM.getDocument", map[string]any{"depth": -1, "pierce": true}, &doc); err != nil {
-		return fmt.Errorf("closed roots: %w", err)
-	}
-	var closed []int
-	var walk func(n cdpNode)
-	walk = func(n cdpNode) {
-		for _, r := range n.ShadowRoots {
-			if r.ShadowRootType == "closed" {
-				closed = append(closed, r.NodeID)
+	var contexts []string
+	var frames func(cs []bidi.ContextInfo, in bool)
+	frames = func(cs []bidi.ContextInfo, in bool) {
+		for _, c := range cs {
+			mine := in || c.Context == cx
+			if mine {
+				contexts = append(contexts, c.Context)
 			}
-			walk(r)
-		}
-		for _, c := range n.Children {
-			walk(c)
-		}
-		if n.ContentDocument != nil {
-			walk(*n.ContentDocument)
+			frames(c.Children, mine)
 		}
 	}
-	walk(doc.Root)
-	if len(closed) == 0 {
-		return nil
-	}
-	const group = "dummyrun-closed-roots"
-	defer func() {
-		_ = conn.CDP(ctx, session, "Runtime.releaseObjectGroup", map[string]any{"objectGroup": group}, nil)
-	}()
-	for _, id := range closed {
+	frames(tree, false)
+	for _, c := range contexts {
 		var res struct {
-			Object struct {
-				ObjectID string `json:"objectId"`
-			} `json:"object"`
+			Type   string  `json:"type"`
+			Result domNode `json:"result"`
 		}
-		// A root can go between the two calls, when a script removes its element. Any other failure is an error.
-		if err := conn.CDP(ctx, session, "DOM.resolveNode", map[string]any{"nodeId": id, "objectGroup": group}, &res); err != nil {
-			var ce *bidi.CommandError
-			if errors.As(err, &ce) && strings.Contains(ce.Message, "No node with given id found") {
-				continue
+		if err := conn.Call(ctx, "script.callFunction", map[string]any{
+			"functionDeclaration":  "() => document.documentElement",
+			"target":               map[string]any{"context": c},
+			"awaitPromise":         true,
+			"resultOwnership":      "none",
+			"serializationOptions": map[string]any{"maxDomDepth": nil, "includeShadowTree": "all"},
+		}, &res); err != nil {
+			return fmt.Errorf("closed roots: %w", err)
+		}
+		if res.Type != "success" {
+			return fmt.Errorf("closed roots: reading the page failed")
+		}
+		var closed []string
+		var walk func(n *domNode)
+		walk = func(n *domNode) {
+			if n == nil {
+				return
 			}
-			return fmt.Errorf("closed roots: %w", err)
+			if r := n.Value.ShadowRoot; r != nil {
+				if r.Value.Mode == "closed" {
+					closed = append(closed, r.SharedID)
+				}
+				walk(r)
+			}
+			for i := range n.Value.Children {
+				walk(&n.Value.Children[i])
+			}
 		}
-		if res.Object.ObjectID == "" {
-			continue
-		}
-		var call struct {
-			Result struct {
-				Value bool `json:"value"`
-			} `json:"result"`
-			ExceptionDetails *struct {
-				Text      string `json:"text"`
-				Exception struct {
-					Description string `json:"description"`
-				} `json:"exception"`
-			} `json:"exceptionDetails"`
-		}
-		if err := conn.CDP(ctx, session, "Runtime.callFunctionOn", map[string]any{
-			"objectId":            res.Object.ObjectID,
-			"functionDeclaration": "function () { const guard = window." + guardRoot + "; if (!guard) return false; guard(this); return true; }",
-			"returnByValue":       true,
-		}, &call); err != nil {
-			return fmt.Errorf("closed roots: %w", err)
-		}
-		switch {
-		case call.ExceptionDetails != nil:
-			return fmt.Errorf("closed roots: the guard threw: %s %s", call.ExceptionDetails.Text, call.ExceptionDetails.Exception.Description)
-		case !call.Result.Value:
-			return fmt.Errorf("closed roots: the page has no one-tab guard")
+		walk(&res.Result)
+		for _, id := range closed {
+			var call struct {
+				Type   string `json:"type"`
+				Result struct {
+					Value bool `json:"value"`
+				} `json:"result"`
+				ExceptionDetails struct {
+					Text string `json:"text"`
+				} `json:"exceptionDetails"`
+			}
+			if err := conn.Call(ctx, "script.callFunction", map[string]any{
+				"functionDeclaration": "function () { const guard = window." + guardRoot + "; if (!guard) return false; guard(this); return true; }",
+				"target":              map[string]any{"context": c},
+				"this":                map[string]any{"sharedId": id},
+				"awaitPromise":        true,
+				"resultOwnership":     "none",
+			}, &call); err != nil {
+				return fmt.Errorf("closed roots: %w", err)
+			}
+			switch {
+			case call.Type == "exception":
+				return fmt.Errorf("closed roots: the guard threw: %s", call.ExceptionDetails.Text)
+			case !call.Result.Value:
+				return fmt.Errorf("closed roots: the page has no one-tab guard")
+			}
 		}
 	}
 	return nil

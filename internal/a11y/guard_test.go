@@ -659,8 +659,8 @@ WeakSet.prototype.has = function (x) { return x instanceof ShadowRoot || has.cal
 <shop-menu role="button" aria-expanded="false" style="display:inline-block;position:relative;width:200px;height:40px">Your account<template shadowrootmode="closed"><slot></slot>`+f.inside+`</template></shop-menu>
 <script>
 var menu = document.querySelector('shop-menu');
-menu.addEventListener('click', function () { fetch('/clicked'); menu.setAttribute('aria-expanded', 'true'); });
-menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('/keyed'); } });
+menu.addEventListener('click', function () { fetch('/clicked', {keepalive: true}); menu.setAttribute('aria-expanded', 'true'); });
+menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('/keyed', {keepalive: true}); } });
 `+f.script+`</script>
 </main></body></html>`)
 		default:
@@ -695,9 +695,8 @@ menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('
 						t.Errorf("%s reached the server %d times: %v", k, n, seen)
 					}
 				}
-				// In Chrome the press stays in the guarded tab, which stops it. Firefox gets no root guard: the press
-				// opens a tab, and the opened-tab guard can close it before its first request is even sent.
-				if browser == "chrome" && r.RequestsStopped < 1 {
+				// The root was guarded before the press, so the press stays in the guarded tab, which stops it.
+				if r.RequestsStopped < 1 {
 					t.Errorf("requests_stopped is %d, want the press", r.RequestsStopped)
 				}
 			})
