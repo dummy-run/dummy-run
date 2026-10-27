@@ -84,7 +84,7 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 				mu.Lock()
 				seen = nil
 				mu.Unlock()
-				fp, err := probeFailures(ctx, b.Conn, srv.URL+path, Desktop, false, allowAll)
+				fp, err := probeFailures(ctx, b.Conn, srv.URL+path, Desktop, false, unchanged(b.Conn), allowAll)
 				if err != nil {
 					t.Fatalf("%s: %v", path, err)
 				}
@@ -128,7 +128,7 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 			mu.Lock()
 			agents = nil
 			mu.Unlock()
-			if _, err := probeFailures(ctx, b.Conn, srv.URL+"/static", Desktop, true, allowAll); err != nil {
+			if _, err := probeFailures(ctx, b.Conn, srv.URL+"/static", Desktop, true, unchanged(b.Conn), allowAll); err != nil {
 				t.Fatal(err)
 			}
 			mu.Lock()
@@ -145,7 +145,7 @@ func TestFailureProbeSendsNoWrites(t *testing.T) {
 
 			// A page robots.txt disallows never loads.
 			refuse := func(string) (bool, string) { return false, "robots.txt disallows it" }
-			if _, err := probeFailures(ctx, b.Conn, srv.URL+"/silent", Desktop, false, refuse); err == nil {
+			if _, err := probeFailures(ctx, b.Conn, srv.URL+"/silent", Desktop, false, unchanged(b.Conn), refuse); err == nil {
 				t.Error("a disallowed page loaded")
 			}
 			mu.Lock()
@@ -261,5 +261,12 @@ func TestFailureProbeRunsWhenALaterCheckFails(t *testing.T) {
 				t.Error("the probe ran again at the second window size")
 			}
 		})
+	}
+}
+
+// unchanged sends a request on as it is, as the sweep does with no preview access.
+func unchanged(conn *bidi.Conn) func(context.Context, bidi.BeforeRequestSent) error {
+	return func(ctx context.Context, e bidi.BeforeRequestSent) error {
+		return conn.ContinueRequestUnchanged(ctx, e.Request.Request)
 	}
 }

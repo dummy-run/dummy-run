@@ -29,26 +29,29 @@ func journeyCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp
 		res.JourneysError = firstLine(err.Error())
 		return
 	}
-	defer func() {
-		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-		defer cancel()
-		_ = conn.CloseContext(cctx, cx)
-	}()
-	if err := conn.SetViewport(jctx, cx, vp.Width, vp.Height); err != nil {
-		res.JourneysError = firstLine(err.Error())
-		return
-	}
-	// The tab sends nothing but GET and HEAD, and with --respect-robots loads no page robots.txt disallows.
-	d := &journey.Driver{Conn: conn, CX: cx}
+	// The tab sends nothing but GET and HEAD, and with --respect-robots loads no page robots.txt disallows. It closes
+	// before the guard comes off, so nothing it sends on the way out gets through.
+	d := &journey.Driver{Conn: conn, CX: cx, Continue: continueWith(conn, cfg)}
 	unguard, err := d.Guard(jctx, func(raw string) bool {
 		ok, _ := allowed(raw)
 		return ok
 	})
+	defer func() {
+		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer cancel()
+		_ = conn.CloseContext(cctx, cx)
+		if unguard != nil {
+			unguard()
+		}
+	}()
 	if err != nil {
 		res.JourneysError = firstLine(err.Error())
 		return
 	}
-	defer unguard()
+	if err := conn.SetViewport(jctx, cx, vp.Width, vp.Height); err != nil {
+		res.JourneysError = firstLine(err.Error())
+		return
+	}
 	if cfg.Identify {
 		v, err := conn.Evaluate(jctx, cx, "navigator.userAgent")
 		if err == nil {

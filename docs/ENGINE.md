@@ -930,6 +930,17 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 ```
 
 - Protected previews. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` get the sweep past Basic auth or a bypass header, as [Protected previews](#protected-previews) describes.
+- Writes. The browser the sweep opens sends nothing but GET and HEAD, in its own tabs, in the tab Lighthouse
+  loads the page in and in any tab a page opens. A request a page's script sends with any other method, such as a
+  form or an API call made as the page loads or when a check presses a control, fails before it leaves the
+  browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A tab the page opens itself
+  with `window.open` or a link to a new window is closed as soon as it opens. It can't take focus from the page under
+  test. In Chrome, the first load of such a tab is the one request that gets past the guard, because Chrome doesn't
+  report it. A form a script sends to a new window can still arrive that way. Later requests from that tab go
+  through the same checks as any other. GET and HEAD still go through, so a site that changes data on a GET can still be changed. Each page's
+  `requests_stopped` counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure
+  probe's `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused
+  there isn't counted.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.
@@ -1074,10 +1085,12 @@ control whose test was already true, that something else covers, that a click di
 within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
 form's submit button are never picked, and nor is anything holding one. Nor are text fields and comboboxes, where
 Enter sends the form or the arrow keys do the work, or a tab that the arrow keys reach while another tab in its list
-takes Tab. A control's own script can still navigate
-or send a request when it's clicked. On each load the comparison presses Tab up to 40 times to bring focus into
-the page, since the browser's own controls can hold it for many stops first, as Firefox's do once a Tab walk has run
-off the end. A page that never takes keyboard focus in those 40 presses shows as an error.
+takes Tab. A control's own script can still navigate when it's clicked, unless `--respect-robots` is set and
+robots.txt disallows the address. A request it sends with any method but GET or HEAD fails before it leaves the
+browser, as the [Writes](#the-accessibility-sweep) item says. On each load the comparison presses Tab up to 40
+times to bring focus into the page, since the browser's own controls can hold it for many stops first, as Firefox's
+do once a Tab walk has run off the end. A page that never takes keyboard focus in those 40 presses shows as an
+error.
 
 While it tries each control, the sweep also measures how long the page takes to respond, with Google's
 [web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click

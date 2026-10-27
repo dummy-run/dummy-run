@@ -69,6 +69,9 @@ type Driver struct {
 	CX   string
 	// Settle is how long to wait after an action before the success test. Default 800 ms.
 	Settle time.Duration
+	// Continue sends on a request the guard lets through, such as with preview access headers. Nil sends it on
+	// unchanged.
+	Continue func(context.Context, bidi.BeforeRequestSent) error
 	// stopped counts the requests Guard failed.
 	stopped atomic.Int32
 }
@@ -76,43 +79,52 @@ type Driver struct {
 // Guard makes the tab read-only, whatever the page's scripts do: a request other than GET or HEAD fails before it
 // leaves the browser. allowed, when not nil, is asked about each page load in the tab and its frames, redirects
 // included, and one it refuses fails too, so robots.txt holds however the tab got there. The returned function
-// removes the guard.
+// removes the guard. Close the tab before calling it, so nothing the page sends meanwhile gets out.
 func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func(), error) {
 	var id atomic.Value
 	id.Store("")
-	d.Conn.OnBeforeRequestSent(func(e bidi.BeforeRequestSent) {
+	off := d.Conn.OnBeforeRequestSent(func(e bidi.BeforeRequestSent) {
 		mine := id.Load().(string)
 		if !e.IsBlocked || mine == "" || !slices.Contains(e.Intercepts, mine) {
 			return
 		}
 		go func() {
-			cctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
-			defer cancel()
 			m := strings.ToUpper(e.Request.Method)
 			ok := m == "GET" || m == "HEAD"
 			if ok && allowed != nil && e.Navigation != "" {
 				ok = allowed(e.Request.URL)
 			}
+			// The command's time starts after the decision, since the robots check can wait on another origin.
+			cctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
+			defer cancel()
 			if !ok {
 				d.stopped.Add(1)
 				_ = d.Conn.FailRequest(cctx, e.Request.Request)
+				return
+			}
+			if d.Continue != nil {
+				_ = d.Continue(cctx, e)
 				return
 			}
 			_ = d.Conn.ContinueRequestUnchanged(cctx, e.Request.Request)
 		}()
 	})
 	if err := d.Conn.Subscribe(ctx, []string{"network.beforeRequestSent"}, d.CX); err != nil {
+		off()
 		return nil, err
 	}
 	in, err := d.Conn.AddInterceptInContexts(ctx, []string{d.CX}, "beforeRequestSent")
 	if err != nil {
+		off()
 		return nil, err
 	}
 	id.Store(in)
+	// The handler goes too, so a sweep that guards a tab for every page doesn't pile handlers up on the connection.
 	return func() {
 		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 		defer cancel()
 		_ = d.Conn.RemoveIntercept(cctx, in)
+		off()
 	}, nil
 }
 
