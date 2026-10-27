@@ -271,6 +271,8 @@ type Page struct {
 	zoom          int
 	textScale     int
 	screenReader  bool
+	// navBlocked is set when the run refuses a navigation of the page itself during an action.
+	navBlocked bool
 	// ax is Chrome's accessibility tree for this tab, read before each look. It stays off in Firefox.
 	ax axState
 }
@@ -412,13 +414,17 @@ func (p *Page) decide(e bidi.BeforeRequestSent) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	var d Decision
+	nav := isTopNavigation(e, p.cx)
 	if p.hook != nil {
-		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers, Navigation: isTopNavigation(e, p.cx)})
+		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers, Navigation: nav})
 	}
 	if d.Block {
 		p.mu.Lock()
 		p.blockedIDs[e.Request.Request] = true
 		p.blocked = append(p.blocked, fmt.Sprintf("%s %s (%s)", e.Request.Method, redact(e.Request.URL), d.Reason))
+		if e.Context == p.cx && nav {
+			p.navBlocked = true
+		}
 		p.mu.Unlock()
 		_ = p.conn.FailRequest(ctx, e.Request.Request)
 		return
@@ -659,13 +665,51 @@ func (p *Page) act(ctx context.Context, action, target string, fn func(context.C
 	obs := Observation{Action: action, Target: target}
 	actx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+	p.mu.Lock()
+	p.navBlocked = false
+	p.mu.Unlock()
 	if err := fn(actx); err != nil {
 		obs.Error = firstLine(err.Error())
 	}
 	p.settle(actx)
+	p.leaveErrorPage(actx)
 	p.observe(actx, &obs)
 	obs.Duration = time.Since(started)
 	return obs
+}
+
+// leaveErrorPage goes back to the page the action started on when the run refused a navigation and the
+// browser put its own error page in its place, as Chrome does. Firefox keeps the page, so there is nothing to do.
+// Without this, a refused link strands every later step of the run on the error page.
+func (p *Page) leaveErrorPage(ctx context.Context) {
+	p.mu.Lock()
+	blocked := p.navBlocked
+	p.mu.Unlock()
+	if !blocked {
+		return
+	}
+	v, err := p.conn.Evaluate(ctx, p.cx, "location.href")
+	if err != nil {
+		return
+	}
+	if u, _ := v.String(); !strings.HasPrefix(u, "chrome-error:") {
+		return
+	}
+	if p.conn.TraverseHistory(ctx, p.cx, -1) != nil {
+		return
+	}
+	// The command returns once the step back is queued, not once it is done, so the error page can still be there.
+	// The address is read again until it has gone, and a read that fails while the documents swap counts as not yet.
+	deadline := time.Now().Add(settleWait)
+	for time.Now().Before(deadline) && ctx.Err() == nil {
+		if v, err := p.conn.Evaluate(ctx, p.cx, "location.href"); err == nil {
+			if u, _ := v.String(); !strings.HasPrefix(u, "chrome-error:") {
+				break
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	p.settle(ctx)
 }
 
 // settle waits for the page to load and the network to go quiet, for up to settleWait.
