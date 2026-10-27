@@ -613,3 +613,74 @@ if (!window.trustedTypes) {
 		})
 	}
 }
+
+// TestPressedHostKeepsClosedRootsInTab sweeps pages whose control is a custom element with a closed shadow root in
+// its markup, with the keyboard checks on and --respect-robots. Inside the root, covering the whole control, is a
+// link to a disallowed address or a POST form's submit button, each aimed at a new window. No script on the page
+// ever reaches the root, so only the sweep's own click or key press can land on what is inside. The address must
+// never be loaded and the form must never arrive, in Chrome as in Firefox.
+func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	const fill = `style="display:block;position:absolute;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;opacity:0"`
+	pages := map[string]string{
+		"/link": `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
+		"/form": `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
+	}
+	var mu sync.Mutex
+	seen := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.Method+" "+r.URL.Path]++
+		mu.Unlock()
+		inside, ok := pages[r.URL.Path]
+		switch {
+		case r.URL.Path == "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case ok:
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
+<shop-menu role="button" tabindex="0" aria-expanded="false" style="display:inline-block;position:relative;width:200px;height:40px">Your account<template shadowrootmode="closed"><slot></slot>`+inside+`</template></shop-menu>
+<script>document.querySelector('shop-menu').addEventListener('click', function () { fetch('/clicked'); });</script>
+</main></body></html>`)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		for path := range pages {
+			t.Run(browser+path, func(t *testing.T) {
+				mu.Lock()
+				clear(seen)
+				mu.Unlock()
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+				defer cancel()
+				rep, err := Run(ctx, Config{URLs: []string{srv.URL + path}, Browser: browser, Viewports: []Viewport{Desktop},
+					Schemes: []string{Light}, Headless: true, Keyboard: true, RespectRobots: true})
+				if err != nil {
+					t.Fatal(err)
+				}
+				r := rep.Results[0]
+				if r.Error != "" {
+					t.Fatalf("error: %s", r.Error)
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				if seen["GET /clicked"] == 0 {
+					t.Fatalf("the control was never pressed, so the test proves nothing: %v", seen)
+				}
+				for k, n := range seen {
+					if strings.HasPrefix(k, "GET /private") || (!strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ")) {
+						t.Errorf("%s reached the server %d times: %v", k, n, seen)
+					}
+				}
+				if r.RequestsStopped < 1 {
+					t.Errorf("requests_stopped is %d, want the press", r.RequestsStopped)
+				}
+			})
+		}
+	}
+}

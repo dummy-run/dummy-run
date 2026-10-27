@@ -2,6 +2,7 @@ package a11y
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
@@ -85,6 +86,7 @@ const sameTab = `() => {
 	};
 	const attachShadow = Element.prototype.attachShadow;
 	if (attachShadow) Element.prototype.attachShadow = function () { return guard(attachShadow.apply(this, arguments)); };
+	Object.defineProperty(window, "` + guardRoot + `", { value: guard });
 	const internals = typeof ElementInternals !== "undefined" && Object.getOwnPropertyDescriptor(ElementInternals.prototype, "shadowRoot");
 	if (internals && internals.get) Object.defineProperty(ElementInternals.prototype, "shadowRoot", { configurable: true, enumerable: internals.enumerable, get: function () { return guard(internals.get.call(this)); } });
 	const submit = HTMLFormElement.prototype.submit;
@@ -94,6 +96,80 @@ const sameTab = `() => {
 	const click = HTMLElement.prototype.click;
 	HTMLElement.prototype.click = function () { if (this.matches && this.matches("a, area")) { keep(this); bases(); } return click.call(this); };
 }`
+
+// guardRoot is the name of the window property, hidden from enumeration, through which guardClosedRoots hands a
+// shadow root to sameTab's guard.
+const guardRoot = "__dummyrunGuardRoot"
+
+// cdpNode is the part of a DevTools DOM node that guardClosedRoots walks.
+type cdpNode struct {
+	NodeID          int       `json:"nodeId"`
+	ShadowRootType  string    `json:"shadowRootType"`
+	Children        []cdpNode `json:"children"`
+	ShadowRoots     []cdpNode `json:"shadowRoots"`
+	ContentDocument *cdpNode  `json:"contentDocument"`
+}
+
+// guardClosedRoots hands every closed shadow root in the tab to sameTab's guard. No script can reach a closed root
+// the markup declares unless its element's own code asks for it through ElementInternals, so the guard may never see
+// it. A click or key press from the keyboard and mouse comparison can still land on a link or button inside one. In
+// Chrome, the DevTools protocol can see every root, and Chrome is the browser whose first request from a new tab
+// gets past the guards. Firefox has no passthrough, so this does nothing there, and the opened-tab guard stops that
+// request instead.
+func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx string) error {
+	session, err := conn.CDPSession(ctx, cx)
+	if err != nil {
+		return nil
+	}
+	var doc struct {
+		Root cdpNode `json:"root"`
+	}
+	if err := conn.CDP(ctx, session, "DOM.getDocument", map[string]any{"depth": -1, "pierce": true}, &doc); err != nil {
+		return fmt.Errorf("closed roots: %w", err)
+	}
+	var closed []int
+	var walk func(n cdpNode)
+	walk = func(n cdpNode) {
+		for _, r := range n.ShadowRoots {
+			if r.ShadowRootType == "closed" {
+				closed = append(closed, r.NodeID)
+			}
+			walk(r)
+		}
+		for _, c := range n.Children {
+			walk(c)
+		}
+		if n.ContentDocument != nil {
+			walk(*n.ContentDocument)
+		}
+	}
+	walk(doc.Root)
+	if len(closed) == 0 {
+		return nil
+	}
+	const group = "dummyrun-closed-roots"
+	defer func() {
+		_ = conn.CDP(ctx, session, "Runtime.releaseObjectGroup", map[string]any{"objectGroup": group}, nil)
+	}()
+	for _, id := range closed {
+		var res struct {
+			Object struct {
+				ObjectID string `json:"objectId"`
+			} `json:"object"`
+		}
+		// A root can go between the two calls, when a script removes its element.
+		if err := conn.CDP(ctx, session, "DOM.resolveNode", map[string]any{"nodeId": id, "objectGroup": group}, &res); err != nil || res.Object.ObjectID == "" {
+			continue
+		}
+		if err := conn.CDP(ctx, session, "Runtime.callFunctionOn", map[string]any{
+			"objectId":            res.Object.ObjectID,
+			"functionDeclaration": "function () { const guard = window." + guardRoot + "; if (guard) guard(this); }",
+		}, nil); err != nil {
+			return fmt.Errorf("closed roots: %w", err)
+		}
+	}
+	return nil
+}
 
 // keepToOneTab installs sameTab in every page the browser loads from now on.
 func keepToOneTab(ctx context.Context, conn *bidi.Conn) error {
