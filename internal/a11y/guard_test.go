@@ -618,7 +618,8 @@ if (!window.trustedTypes) {
 // its markup, with the keyboard checks on and --respect-robots. Inside the root, covering the whole control, is a
 // link to a disallowed address or a POST form's submit button, each aimed at a new window. No script on the page
 // ever reaches the root, so only the sweep's own click or key press can land on what is inside. The address must
-// never be loaded and the form must never arrive, in Chrome as in Firefox.
+// never be loaded and the form must never arrive, in Chrome as in Firefox. The hostile page also breaks
+// addEventListener on shadow roots before the guard reaches its root.
 func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
@@ -626,9 +627,12 @@ func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 	}
 	const fill = `style="display:block;position:absolute;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;opacity:0"`
 	pages := map[string]string{
-		"/link": `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
-		"/form": `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
+		"/link":    `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
+		"/form":    `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
+		"/hostile": `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
 	}
+	// The hostile page breaks addEventListener on shadow roots, the call the guard makes on each root.
+	hostile := map[string]string{"/hostile": `ShadowRoot.prototype.addEventListener = function () { throw new Error('no'); };`}
 	var mu sync.Mutex
 	seen := map[string]int{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -643,7 +647,7 @@ func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
 <shop-menu role="button" tabindex="0" aria-expanded="false" style="display:inline-block;position:relative;width:200px;height:40px">Your account<template shadowrootmode="closed"><slot></slot>`+inside+`</template></shop-menu>
-<script>document.querySelector('shop-menu').addEventListener('click', function () { fetch('/clicked'); });</script>
+<script>document.querySelector('shop-menu').addEventListener('click', function () { fetch('/clicked'); });`+hostile[r.URL.Path]+`</script>
 </main></body></html>`)
 		default:
 			w.WriteHeader(http.StatusNoContent)

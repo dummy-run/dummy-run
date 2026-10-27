@@ -39,6 +39,7 @@ const sameTab = `() => {
 		if (away(el.getAttribute && el.getAttribute("formtarget"))) el.setAttribute("formtarget", "_self");
 	};
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
+	const listen = EventTarget.prototype.addEventListener;
 	window.open = function () { return null; };
 	const targets = (name) => { const n = String(name).toLowerCase(); return n === "target" || n === "formtarget"; };
 	const same = (name, value) => {
@@ -81,7 +82,7 @@ const sameTab = `() => {
 	document.addEventListener("click", clicked, true);
 	const guarded = new WeakSet();
 	const guard = (root) => {
-		if (root && !guarded.has(root)) { guarded.add(root); root.addEventListener("submit", submitted, true); root.addEventListener("click", clicked, true); }
+		if (root && !guarded.has(root)) { guarded.add(root); listen.call(root, "submit", submitted, true); listen.call(root, "click", clicked, true); }
 		return root;
 	};
 	const attachShadow = Element.prototype.attachShadow;
@@ -115,11 +116,15 @@ type cdpNode struct {
 // it. A click or key press from the keyboard and mouse comparison can still land on a link or button inside one. In
 // Chrome, the DevTools protocol can see every root, and Chrome is the browser whose first request from a new tab
 // gets past the guards. Firefox has no passthrough, so this does nothing there, and the opened-tab guard stops that
-// request instead.
-func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx string) error {
+// request instead. In Chrome, a root the guard can't take is an error, so the comparison stops rather than press a
+// control that could open a window.
+func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx, browser string) error {
+	if browser != "chrome" {
+		return nil
+	}
 	session, err := conn.CDPSession(ctx, cx)
 	if err != nil {
-		return nil
+		return fmt.Errorf("closed roots: %w", err)
 	}
 	var doc struct {
 		Root cdpNode `json:"root"`
@@ -161,11 +166,29 @@ func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx string) error {
 		if err := conn.CDP(ctx, session, "DOM.resolveNode", map[string]any{"nodeId": id, "objectGroup": group}, &res); err != nil || res.Object.ObjectID == "" {
 			continue
 		}
+		var call struct {
+			Result struct {
+				Value bool `json:"value"`
+			} `json:"result"`
+			ExceptionDetails *struct {
+				Text      string `json:"text"`
+				Exception struct {
+					Description string `json:"description"`
+				} `json:"exception"`
+			} `json:"exceptionDetails"`
+		}
 		if err := conn.CDP(ctx, session, "Runtime.callFunctionOn", map[string]any{
 			"objectId":            res.Object.ObjectID,
-			"functionDeclaration": "function () { const guard = window." + guardRoot + "; if (guard) guard(this); }",
-		}, nil); err != nil {
+			"functionDeclaration": "function () { const guard = window." + guardRoot + "; if (!guard) return false; guard(this); return true; }",
+			"returnByValue":       true,
+		}, &call); err != nil {
 			return fmt.Errorf("closed roots: %w", err)
+		}
+		switch {
+		case call.ExceptionDetails != nil:
+			return fmt.Errorf("closed roots: the guard threw: %s %s", call.ExceptionDetails.Text, call.ExceptionDetails.Exception.Description)
+		case !call.Result.Value:
+			return fmt.Errorf("closed roots: the page has no one-tab guard")
 		}
 	}
 	return nil
