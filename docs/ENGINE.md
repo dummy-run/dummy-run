@@ -941,8 +941,8 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   own frame instead. A shadow root holds markup inside an element, apart from the rest of the page, and a closed
   one can't be reached by any other script. Links and forms inside a closed shadow root are guarded too. The
   keyboard and mouse comparison guards them after each load and again just before each click, Enter or Space, so a
-  root the page builds later is covered as well. Chrome never reports the first request of a new tab to the guard, so without this a form sent to a new window would arrive. A
-  tab that opens all the same is closed at once, so it can't take focus from the page under test. GET and HEAD still
+  root the page builds later is covered as well. Chrome never reports the first request of a new tab to the guard,
+  so without this a form sent to a new window would arrive. A tab that opens all the same is closed at once, so it can't take focus from the page under test. GET and HEAD still
   go through, so a site that changes data on a GET can still be changed. Each page's
   `requests_stopped` counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure
   probe's `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused
