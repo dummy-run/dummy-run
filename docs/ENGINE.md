@@ -935,8 +935,10 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   form or an API call made as the page loads or when a check presses a control, fails before it leaves the
   browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A tab the page opens itself,
   with `window.open` or a link to a new window, is closed as soon as it opens, so it can't take focus from the page
-  under test. Each page's `requests_stopped` counts what was stopped while the page was tested, except in the
-  journeys' tab, which isn't counted, and the failure probe's tab, which counts its own in `failure_probe.stopped`.
+  under test. GET and HEAD still go through, so a site that changes data on a GET can still be changed. Each page's
+  `requests_stopped` counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure
+  probe's `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused
+  there isn't counted.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.

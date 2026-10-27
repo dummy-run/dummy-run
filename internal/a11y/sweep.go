@@ -783,7 +783,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	defer func() { res.DurationMS = time.Since(started).Milliseconds() }()
 	if rep.tab != nil {
 		before := rep.tab.Stopped() + rep.opened.Stopped()
-		defer func() { res.RequestsStopped += rep.tab.Stopped() + rep.opened.Stopped() - before }()
+		defer func() {
+			rep.opened.settle(10 * time.Second)
+			res.RequestsStopped += rep.tab.Stopped() + rep.opened.Stopped() - before
+		}()
 	}
 	var cancels []context.CancelFunc
 	defer func() {

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/journey"
@@ -40,6 +41,8 @@ func guardTab(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, allow
 // closed as soon as it opens, so it can't take focus from the page under test.
 type openedTabs struct {
 	stopped atomic.Int32
+	// pending counts the decisions and closes still under way, so a page's count can wait for them.
+	pending atomic.Int32
 	off     []func()
 }
 
@@ -66,7 +69,9 @@ func guardOpenedTabs(ctx context.Context, conn *bidi.Conn, cfg Config, allowed f
 		if write {
 			g.stopped.Add(1)
 		}
+		g.pending.Add(1)
 		go func() {
+			defer g.pending.Add(-1)
 			ok := !write
 			if ok && e.Navigation != "" {
 				if ok, _ = allowed(e.Request.URL); !ok {
@@ -92,7 +97,9 @@ func guardOpenedTabs(ctx context.Context, conn *bidi.Conn, cfg Config, allowed f
 		if json.Unmarshal(params, &c) != nil || c.Parent != "" || c.OriginalOpener == "" {
 			return
 		}
+		g.pending.Add(1)
 		go func() {
+			defer g.pending.Add(-1)
 			cctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
 			defer cancel()
 			_ = conn.CloseContext(cctx, c.Context)
@@ -117,6 +124,18 @@ func (g *openedTabs) Stopped() int {
 		return 0
 	}
 	return int(g.stopped.Load())
+}
+
+// settle waits, for up to wait, until no decision or close is under way, so a robots refusal that a slow robots.txt
+// held up is counted for the page that caused it and not the next one.
+func (g *openedTabs) settle(wait time.Duration) {
+	if g == nil {
+		return
+	}
+	deadline := time.Now().Add(wait)
+	for g.pending.Load() > 0 && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
 }
 
 func (g *openedTabs) close() {
