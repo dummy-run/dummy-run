@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,7 +22,14 @@ func TestRefusedNavigationKeepsThePage(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	// The start page can't be kept, and it is slow after the first load, so the step back is a real load that takes
+	// a while: the run must wait for it, not observe the error page it replaces.
+	var starts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" && starts.Add(1) > 1 {
+			time.Sleep(time.Second)
+		}
+		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Start</title><main><h1>Start</h1>`+
 			`<a href="/away">Leave the site</a> <a href="/next">Next page</a></main></html>`)
@@ -35,6 +43,7 @@ func TestRefusedNavigationKeepsThePage(t *testing.T) {
 	}
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
+			starts.Store(0)
 			ctx := context.Background()
 			octx, cancel := context.WithTimeout(ctx, 90*time.Second)
 			p, err := page.Open(octx, page.Options{Browser: browser, Headless: true, Width: 1200, Height: 800,

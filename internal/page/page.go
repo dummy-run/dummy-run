@@ -695,9 +695,21 @@ func (p *Page) leaveErrorPage(ctx context.Context) {
 	if u, _ := v.String(); !strings.HasPrefix(u, "chrome-error:") {
 		return
 	}
-	if p.conn.TraverseHistory(ctx, p.cx, -1) == nil {
-		p.settle(ctx)
+	if p.conn.TraverseHistory(ctx, p.cx, -1) != nil {
+		return
 	}
+	// The command returns once the step back is queued, not once it is done, so the error page can still be there.
+	// The address is read again until it has gone, and a read that fails while the documents swap counts as not yet.
+	deadline := time.Now().Add(settleWait)
+	for time.Now().Before(deadline) && ctx.Err() == nil {
+		if v, err := p.conn.Evaluate(ctx, p.cx, "location.href"); err == nil {
+			if u, _ := v.String(); !strings.HasPrefix(u, "chrome-error:") {
+				break
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	p.settle(ctx)
 }
 
 // settle waits for the page to load and the network to go quiet, for up to settleWait.
