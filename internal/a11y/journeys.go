@@ -39,7 +39,7 @@ func journeyCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp
 		return
 	}
 	// The tab sends nothing but GET and HEAD, and with --respect-robots loads no page robots.txt disallows.
-	d := &journey.Driver{Conn: conn, CX: cx}
+	d := &journey.Driver{Conn: conn, CX: cx, Continue: continueWith(conn, cfg)}
 	unguard, err := d.Guard(jctx, func(raw string) bool {
 		ok, _ := allowed(raw)
 		return ok

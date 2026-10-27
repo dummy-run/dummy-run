@@ -255,6 +255,10 @@ type PageResult struct {
 	VisualError string  `json:"visual_error,omitempty"`
 	// PDFError says why the page's links to PDFs couldn't be read.
 	PDFError string `json:"pdf_error,omitempty"`
+	// RequestsStopped counts the requests the sweep stopped while it tested the page, in its own tab and in the tab
+	// for the keyboard and mouse comparison: each one other than GET or HEAD, and each page load robots.txt
+	// disallows, with --respect-robots. None of them left the browser.
+	RequestsStopped int `json:"requests_stopped,omitempty"`
 	// Consent says what happened to the page's cookie banner, when the sweep ran --consent.
 	Consent *page.Consent `json:"consent,omitempty"`
 	// LighthouseChecked says Lighthouse audited the page, and LighthouseScores has its category scores from 0 to 1.
@@ -364,6 +368,8 @@ type Report struct {
 	// address of the browser the sweep has open.
 	lighthouseDone map[string]bool
 	debugger       string
+	// tab is the guard on the sweep's own tab, which counts the requests it stopped.
+	tab *journey.Driver
 	// journeysDone holds the URLs whose journeys were tried, so each is tried once.
 	journeysDone map[string]bool
 	// failuresDone holds the URLs the failure probe has loaded, so each is probed once.
@@ -661,6 +667,12 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, 
 	if err != nil {
 		return fmt.Errorf("a11y: open a tab: %w", err)
 	}
+	guard, unguard, err := guardTab(ctx, b.Conn, cx, cfg, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+	if err != nil {
+		return fmt.Errorf("a11y: guard the tab: %w", err)
+	}
+	defer unguard()
+	rep.tab = guard
 	if cfg.Identify {
 		// The browser's own user agent stays in front, so pages render as they do for the browser.
 		v, err := b.Conn.Evaluate(ctx, cx, "navigator.userAgent")
@@ -755,6 +767,10 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	started := time.Now()
 	res = PageResult{URL: u, Browser: cfg.Browser, Viewport: vp.Name, Width: vp.Width, Scheme: scheme, TextScale: textScaleField(textScale), Violations: []Finding{}, NeedsReview: []Finding{}}
 	defer func() { res.DurationMS = time.Since(started).Milliseconds() }()
+	if rep.tab != nil {
+		before := rep.tab.Stopped()
+		defer func() { res.RequestsStopped += rep.tab.Stopped() - before }()
+	}
 	var cancels []context.CancelFunc
 	defer func() {
 		for _, c := range cancels {
@@ -836,7 +852,7 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		if cfg.Access.Active() {
 			res.FailureProbeSkipped = "not run with preview access, which answers the same requests"
 		} else {
-			failureCheck(ctx, conn, u, vp, cfg.Identify, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+			failureCheck(ctx, conn, cfg, u, vp, &res, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
 			res.Advice = append(res.Advice, failureFindings(res.FailureProbe, path, cfg.Allow)...)
 		}
 	}
@@ -936,7 +952,8 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 		// It gets a deadline of its own, since the checks before it have used part of the page's.
 		tctx, tcancel := context.WithTimeout(ctx, 90*time.Second)
 		defer tcancel()
-		t, err := tryTasks(tctx, conn, cx, cfg, u, vp)
+		t, stopped, err := tryTasks(tctx, conn, cx, cfg, u, vp, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+		res.RequestsStopped += stopped
 		if err != nil {
 			res.Error = "keyboard and mouse checks: " + firstLine(err.Error())
 			return
@@ -1019,26 +1036,34 @@ func triesJourneys(cfg Config) bool {
 // tryTasks runs the keyboard and mouse comparison in a tab of its own, set up like the sweep's tab, and closes it.
 // Keys pressed in the sweep's tab can leave focus in the browser's own controls, and the comparison needs a page
 // that has focus.
-func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u string, vp Viewport) (*page.Tasks, error) {
+// The tab is guarded like the sweep's own, since every control it tries runs the page's scripts. stopped counts the
+// requests the guard stopped there.
+func tryTasks(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u string, vp Viewport, allowed func(string) (bool, string)) (t *page.Tasks, stopped int, err error) {
 	tab, err := conn.CreateContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer func() { _ = conn.CloseContext(context.WithoutCancel(ctx), tab) }()
+	guard, unguard, err := guardTab(ctx, conn, tab, cfg, allowed)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer unguard()
 	if err := conn.SetViewport(ctx, tab, vp.Width, vp.Height); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if cfg.Identify {
 		v, err := conn.Evaluate(ctx, cx, "navigator.userAgent")
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		ua, _ := v.String()
 		if err := conn.SetUserAgentOverride(ctx, ua, []string{tab}); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 	}
-	return page.TryTasks(ctx, conn, tab, u, page.MaxTasks)
+	t, err = page.TryTasks(ctx, conn, tab, u, page.MaxTasks)
+	return t, guard.Stopped(), err
 }
 
 // adviceOnly is true for a rule that has none of the WCAG A and AA level tags the sweep tests: a best-practice

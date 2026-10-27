@@ -68,6 +68,8 @@ type failureGuard struct {
 	failed  atomic.Int32
 	stopped atomic.Int32
 	allowed func(string) bool
+	// cont sends on a request the guard lets through, with preview access headers when there are any.
+	cont    func(context.Context, bidi.BeforeRequestSent) error
 	mu      sync.Mutex
 	closed  bool
 	wg      sync.WaitGroup
@@ -120,7 +122,7 @@ func (g *failureGuard) handle(e bidi.BeforeRequestSent) {
 		ctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
 		defer cancel()
 		if !block {
-			if err := g.conn.ContinueRequestUnchanged(ctx, e.Request.Request); err != nil {
+			if err := g.cont(ctx, e); err != nil {
 				g.record(err)
 			}
 			return
@@ -165,10 +167,10 @@ func isDataRequest(r bidi.RequestData) bool {
 // as when its server or API is down. It records whether the page told assistive technology anything. A page that
 // had data requests fail and announced nothing gets advice under WCAG 4.1.3, since a visitor who can't see the
 // page may never learn that something went wrong.
-func failureCheck(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, identify bool, res *PageResult, allowed func(string) (bool, string)) {
+func failureCheck(ctx context.Context, conn *bidi.Conn, cfg Config, u string, vp Viewport, res *PageResult, allowed func(string) (bool, string)) {
 	fctx, cancel := context.WithTimeout(ctx, failureTimeout)
 	defer cancel()
-	p, err := probeFailures(fctx, conn, u, vp, identify, allowed)
+	p, err := probeFailures(fctx, conn, u, vp, cfg.Identify, continueWith(conn, cfg), allowed)
 	if err != nil {
 		res.FailureProbeError = firstLine(err.Error())
 		return
@@ -176,7 +178,7 @@ func failureCheck(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, i
 	res.FailureProbe = p
 }
 
-func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, identify bool, allowed func(string) (bool, string)) (*FailureProbe, error) {
+func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, identify bool, cont func(context.Context, bidi.BeforeRequestSent) error, allowed func(string) (bool, string)) (*FailureProbe, error) {
 	cx, err := conn.CreateContext(ctx)
 	if err != nil {
 		return nil, err
@@ -199,7 +201,7 @@ func probeFailures(ctx context.Context, conn *bidi.Conn, u string, vp Viewport, 
 			return nil, err
 		}
 	}
-	g := &failureGuard{conn: conn, allowed: func(raw string) bool { ok, _ := allowed(raw); return ok }}
+	g := &failureGuard{conn: conn, cont: cont, allowed: func(raw string) bool { ok, _ := allowed(raw); return ok }}
 	g.id.Store("")
 	defer conn.OnBeforeRequestSent(g.handle)()
 	if err := conn.Subscribe(ctx, []string{"network.beforeRequestSent"}, cx); err != nil {

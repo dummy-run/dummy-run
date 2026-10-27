@@ -928,6 +928,13 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 ```
 
 - Protected previews. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` get the sweep past Basic auth or a bypass header, as [Protected previews](#protected-previews) describes.
+- Writes. The sweep's own tab, and the tabs for the keyboard and mouse comparison, the journeys and the failure
+  probe, send nothing but GET and HEAD. A request a page's script sends with any other method, such as a form or
+  an API call made as the page loads or when a check presses a control, fails before it leaves the browser. Each
+  page's `requests_stopped` counts the ones stopped in the sweep's tab and the comparison's tab. With
+  `--respect-robots`, those tabs don't load a page robots.txt disallows either. Lighthouse loads the page over a
+  connection of its own that this doesn't cover, so a page that sends a write as it loads still sends it during the
+  Lighthouse audit.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.
@@ -1072,8 +1079,9 @@ control whose test was already true, that something else covers, that a click di
 within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
 form's submit button are never picked, and nor is anything holding one. Nor are text fields and comboboxes, where
 Enter sends the form or the arrow keys do the work, or a tab that the arrow keys reach while another tab in its list
-takes Tab. A control's own script can still navigate
-or send a request when it's clicked. A page that never takes keyboard focus shows as an error.
+takes Tab. A control's own script can still navigate when it's clicked, but a request it sends with any method
+but GET or HEAD fails before it leaves the browser, as the [Writes](#the-accessibility-sweep) item says. A page
+that never takes keyboard focus shows as an error.
 
 While it tries each control, the sweep also measures how long the page takes to respond, with Google's
 [web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click

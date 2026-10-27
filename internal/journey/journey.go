@@ -69,6 +69,9 @@ type Driver struct {
 	CX   string
 	// Settle is how long to wait after an action before the success test. Default 800 ms.
 	Settle time.Duration
+	// Continue sends on a request the guard lets through, such as with preview access headers. Nil sends it on
+	// unchanged.
+	Continue func(context.Context, bidi.BeforeRequestSent) error
 	// stopped counts the requests Guard failed.
 	stopped atomic.Int32
 }
@@ -96,6 +99,10 @@ func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func
 			if !ok {
 				d.stopped.Add(1)
 				_ = d.Conn.FailRequest(cctx, e.Request.Request)
+				return
+			}
+			if d.Continue != nil {
+				_ = d.Continue(cctx, e)
 				return
 			}
 			_ = d.Conn.ContinueRequestUnchanged(cctx, e.Request.Request)
