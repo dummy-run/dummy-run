@@ -2,7 +2,9 @@ package a11y
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
@@ -39,7 +41,7 @@ const sameTab = `() => {
 		if (away(el.getAttribute && el.getAttribute("formtarget"))) el.setAttribute("formtarget", "_self");
 	};
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
-	const listen = EventTarget.prototype.addEventListener;
+	const listen = EventTarget.prototype.addEventListener, apply = Reflect.apply;
 	window.open = function () { return null; };
 	const targets = (name) => { const n = String(name).toLowerCase(); return n === "target" || n === "formtarget"; };
 	const same = (name, value) => {
@@ -81,8 +83,9 @@ const sameTab = `() => {
 	document.addEventListener("submit", submitted, true);
 	document.addEventListener("click", clicked, true);
 	const guarded = new WeakSet();
+	const has = WeakSet.prototype.has.bind(guarded), add = WeakSet.prototype.add.bind(guarded);
 	const guard = (root) => {
-		if (root && !guarded.has(root)) { guarded.add(root); listen.call(root, "submit", submitted, true); listen.call(root, "click", clicked, true); }
+		if (root && !has(root)) { add(root); apply(listen, root, ["submit", submitted, true]); apply(listen, root, ["click", clicked, true]); }
 		return root;
 	};
 	const attachShadow = Element.prototype.attachShadow;
@@ -162,8 +165,15 @@ func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx, browser string) 
 				ObjectID string `json:"objectId"`
 			} `json:"object"`
 		}
-		// A root can go between the two calls, when a script removes its element.
-		if err := conn.CDP(ctx, session, "DOM.resolveNode", map[string]any{"nodeId": id, "objectGroup": group}, &res); err != nil || res.Object.ObjectID == "" {
+		// A root can go between the two calls, when a script removes its element. Any other failure is an error.
+		if err := conn.CDP(ctx, session, "DOM.resolveNode", map[string]any{"nodeId": id, "objectGroup": group}, &res); err != nil {
+			var ce *bidi.CommandError
+			if errors.As(err, &ce) && strings.Contains(ce.Message, "No node with given id found") {
+				continue
+			}
+			return fmt.Errorf("closed roots: %w", err)
+		}
+		if res.Object.ObjectID == "" {
 			continue
 		}
 		var call struct {

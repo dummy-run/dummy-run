@@ -615,39 +615,50 @@ if (!window.trustedTypes) {
 }
 
 // TestPressedHostKeepsClosedRootsInTab sweeps pages whose control is a custom element with a closed shadow root in
-// its markup, with the keyboard checks on and --respect-robots. Inside the root, covering the whole control, is a
-// link to a disallowed address or a POST form's submit button, each aimed at a new window. No script on the page
-// ever reaches the root, so only the sweep's own click or key press can land on what is inside. The address must
-// never be loaded and the form must never arrive, in Chrome as in Firefox. The hostile page also breaks
-// addEventListener on shadow roots before the guard reaches its root.
+// its markup, with the keyboard checks on and --respect-robots. Inside the root is a link to a disallowed address
+// or a POST form's submit button, each aimed at a new window. No script on the page ever reaches the root, so only
+// the sweep's own click or key press can land on what is inside. On the click pages it covers the whole control,
+// so the mouse try lands on it. On the keyboard page it sits in a corner, so the click opens the control and the
+// comparison goes on to its keyboard try, where Tab reaches the link and Enter follows it. The hostile page also
+// breaks addEventListener on shadow roots and WeakSet's has before the guard reaches its root. The address must
+// never be loaded and the form must never arrive, in Chrome as in Firefox.
 func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
 	const fill = `style="display:block;position:absolute;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;opacity:0"`
-	pages := map[string]string{
-		"/link":    `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
-		"/form":    `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
-		"/hostile": `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
+	type fixture struct{ inside, script, pressed string }
+	pages := map[string]fixture{
+		"/link": {inside: `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`, pressed: "GET /clicked"},
+		"/form": {inside: `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
+			pressed: "GET /clicked"},
+		"/hostile": {inside: `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`, pressed: "GET /clicked",
+			script: `ShadowRoot.prototype.addEventListener = function () { throw new Error('no'); };
+var has = WeakSet.prototype.has;
+WeakSet.prototype.has = function (x) { return x instanceof ShadowRoot || has.call(this, x); };`},
+		"/keyboard": {inside: `<a href="/private/account" target="_blank" style="position:absolute;right:0;top:0;width:20px;height:20px">Account page</a>`,
+			pressed: "GET /keyed"},
 	}
-	// The hostile page breaks addEventListener on shadow roots, the call the guard makes on each root.
-	hostile := map[string]string{"/hostile": `ShadowRoot.prototype.addEventListener = function () { throw new Error('no'); };`}
 	var mu sync.Mutex
 	seen := map[string]int{}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		seen[r.Method+" "+r.URL.Path]++
 		mu.Unlock()
-		inside, ok := pages[r.URL.Path]
+		f, ok := pages[r.URL.Path]
 		switch {
 		case r.URL.Path == "/robots.txt":
 			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
 		case ok:
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
-<shop-menu role="button" tabindex="0" aria-expanded="false" style="display:inline-block;position:relative;width:200px;height:40px">Your account<template shadowrootmode="closed"><slot></slot>`+inside+`</template></shop-menu>
-<script>document.querySelector('shop-menu').addEventListener('click', function () { fetch('/clicked'); });`+hostile[r.URL.Path]+`</script>
+<shop-menu role="button" aria-expanded="false" style="display:inline-block;position:relative;width:200px;height:40px">Your account<template shadowrootmode="closed"><slot></slot>`+f.inside+`</template></shop-menu>
+<script>
+var menu = document.querySelector('shop-menu');
+menu.addEventListener('click', function () { fetch('/clicked'); menu.setAttribute('aria-expanded', 'true'); });
+menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('/keyed'); } });
+`+f.script+`</script>
 </main></body></html>`)
 		default:
 			w.WriteHeader(http.StatusNoContent)
@@ -655,7 +666,7 @@ func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
-		for path := range pages {
+		for path, f := range pages {
 			t.Run(browser+path, func(t *testing.T) {
 				mu.Lock()
 				clear(seen)
@@ -673,8 +684,8 @@ func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
 				}
 				mu.Lock()
 				defer mu.Unlock()
-				if seen["GET /clicked"] == 0 {
-					t.Fatalf("the control was never pressed, so the test proves nothing: %v", seen)
+				if seen[f.pressed] == 0 {
+					t.Fatalf("no %s, so the press the test is about never happened: %v", f.pressed, seen)
 				}
 				for k, n := range seen {
 					if strings.HasPrefix(k, "GET /private") || (!strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ")) {
