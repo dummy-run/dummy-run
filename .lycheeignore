@@ -2,3 +2,6 @@
 # They are checked by hand when the text that cites them changes.
 ^https://eur-lex\.europa\.eu/
 ^https://www\.legislation\.gov\.uk/
+# Vendor documentation that answers automated checks with 403 Forbidden, though it loads in a browser. Checked by
+# hand when the provider table changes.
+^https://www\.scaleway\.com/en/docs/generative-apis/
