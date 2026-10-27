@@ -605,7 +605,9 @@ the threats. Here is what the engine does about prompt injection.
   - the page was a feed or other file
   - the persona's action sent a request the test blocked and the address stayed the same, when the finding
     says something didn't work, was slow, showed an error or couldn't be reached
-  - the persona's action sent a request the test blocked and the browser showed its own error page instead
+  - the persona's action sent a request the test blocked and the browser showed its own error page instead.
+    Chrome does this when the test refuses a page the persona was going to, so the engine then goes back to the
+    page the action started on. The error page shows in a step only when there was no page to go back to.
 
   A request the page sent by itself, such as a beacon while the persona scrolled, doesn't count. A finding
   with at least one cited step that shows the real page is kept. The persona is also told that these limits
