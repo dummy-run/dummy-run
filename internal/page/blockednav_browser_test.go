@@ -21,7 +21,7 @@ func TestRefusedNavigationKeepsThePage(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = io.WriteString(w, `<!doctype html><html lang="en"><title>Start</title><main><h1>Start</h1>`+
 			`<a href="/away">Leave the site</a> <a href="/next">Next page</a></main></html>`)
