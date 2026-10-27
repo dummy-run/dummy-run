@@ -667,6 +667,9 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, 
 			return err
 		}
 	}
+	if err := keepToOneTab(ctx, b.Conn); err != nil {
+		return fmt.Errorf("a11y: keep pages to one tab: %w", err)
+	}
 	// Like the tab guards, this one stays on until the browser closes.
 	opened, err := guardOpenedTabs(ctx, b.Conn, cfg, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
 	if err != nil {
