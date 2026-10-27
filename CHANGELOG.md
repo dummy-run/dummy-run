@@ -56,7 +56,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Unless you set `--viewport` or `--text-scale`, `dummyrun a11y --layout` now adds the 320 px window and a run at 200 percent text, the two settings WCAG 1.4.10 and 1.4.4 name.
 
 ### Fixed
-- In Firefox at desktop width, the keyboard and mouse comparison could fail a page with "the page never took keyboard focus". After a Tab walk runs off the end of a page, Firefox keeps focus in its own controls, and getting back into the page could take more than the ten Tab presses the check allowed. It now allows 40.
+- In Firefox at desktop width, the keyboard and mouse comparison could fail a page with "the page never took keyboard focus". After a Tab walk runs off the end of a page, Firefox keeps focus in its own controls, and getting focus back on the page could take more than the ten Tab presses the check allowed. It now allows 40.
 - In Firefox, the focus pictures came after the Tab walk had moved focus out to the browser's toolbar, so the page drew no focus styles and `dummyrun-focus-not-visible` could report an element whose indicator only the pictures can see, such as one drawn with `::after`. The page now takes focus back first.
 - In Chrome, pages fetched ahead of a click skipped the request interception. A page asks for these with speculation rules, and Chrome can add rules of its own. The requests Chrome made for them carried no run headers and skipped the request policy. Chrome now starts with preloading off.
 - The screen reader stops reading after eight seconds, even when the page stops answering. A persona that gets no screenshots now hears the page even when it may not click. What it says is scanned as visible text, and each phrase is cut at 300 Unicode code points.
