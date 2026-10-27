@@ -933,11 +933,12 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 - Writes. The browser the sweep opens sends nothing but GET and HEAD, in its own tabs, in the tab Lighthouse
   loads the page in and in any tab a page opens. A request a page's script sends with any other method, such as a
   form or an API call made as the page loads or when a check presses a control, fails before it leaves the
-  browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A tab the page opens itself
-  with `window.open` or a link to a new window is closed as soon as it opens. It can't take focus from the page under
-  test. In Chrome, the first load of such a tab is the one request that gets past the guard, because Chrome doesn't
-  report it. A form a script sends to a new window can still arrive that way. Later requests from that tab go
-  through the same checks as any other. GET and HEAD still go through, so a site that changes data on a GET can still be changed. Each page's
+  browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A page can't open a
+  window of its own: `window.open` does nothing and returns null, and a form, link or `<base>` that names a new window
+  is sent to the page's own tab, where the guard decides it. A frame the target names is still used. Chrome never
+  reports the first request of a new tab to the guard, so without this a form sent to a new window would arrive. A
+  tab that opens all the same is closed at once, so it can't take focus from the page under test. GET and HEAD still
+  go through, so a site that changes data on a GET can still be changed. Each page's
   `requests_stopped` counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure
   probe's `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused
   there isn't counted.

@@ -201,9 +201,9 @@ func TestSweepTabKeepsToRobots(t *testing.T) {
 	}
 }
 
-// TestSweepGuardsTabsThePageOpens sweeps a page whose button opens a tab, and the page in that tab sends a form as
-// it loads. The new tab isn't one the sweep made, but its write must not reach the server, and the keyboard check
-// must still have the page's focus: Firefox gives it to the new tab.
+// TestSweepGuardsTabsThePageOpens sweeps a page whose button calls window.open on a page that sends a form as it
+// loads. No write may reach the server, and the keyboard check must keep the page's focus, which Firefox would give
+// to a new tab.
 func TestSweepGuardsTabsThePageOpens(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
@@ -353,6 +353,115 @@ func TestComparisonTabKeepsToRobots(t *testing.T) {
 			}
 			if r.RequestsStopped < 1 {
 				t.Errorf("requests_stopped is %d, want the comparison's navigation", r.RequestsStopped)
+			}
+		})
+	}
+}
+
+// TestFormToNewWindowSendsNoWrite sweeps a page whose button sends a POST form to a new window, with the keyboard
+// checks on. Chrome never reports a new tab's first request to the interception, so the form must stay in the
+// guarded tab, where it fails like any other write.
+func TestFormToNewWindowSendsNoWrite(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var mu sync.Mutex
+	seen := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.Method+" "+r.URL.Path]++
+		mu.Unlock()
+		if r.URL.Path != "/" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
+<form id="order" method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"></form>
+<button id="buy" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('order').submit(); })">Buy now</button>
+</main></body></html>`)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			mu.Lock()
+			clear(seen)
+			mu.Unlock()
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, Keyboard: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := rep.Results[0]
+			if r.Error != "" {
+				t.Fatalf("error: %s", r.Error)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if seen["GET /clicked"] == 0 {
+				t.Fatalf("the button was never pressed, so the test proves nothing: %v", seen)
+			}
+			for k := range seen {
+				if !strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ") {
+					t.Errorf("%s reached the server: %v", k, seen)
+				}
+			}
+			if r.RequestsStopped < 1 {
+				t.Errorf("requests_stopped is %d, want the form", r.RequestsStopped)
+			}
+		})
+	}
+}
+
+// TestOpenedWindowKeepsToRobots sweeps a page whose button opens a new window on an address robots.txt disallows,
+// with --respect-robots and the keyboard checks on. The address must never be loaded, in Chrome as in Firefox.
+func TestOpenedWindowKeepsToRobots(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var private, clicked atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case r.URL.Path == "/clicked":
+			clicked.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		case strings.HasPrefix(r.URL.Path, "/private"):
+			private.Add(1)
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><title>Account</title><main><h1>Account</h1></main></html>`)
+		default:
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main>
+<h1>Shop</h1><button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked');window.open('/private/account')">Your account</button>
+</main></body></html>`)
+		}
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			private.Store(0)
+			clicked.Store(0)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, Keyboard: true, RespectRobots: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r := rep.Results[0]; r.Error != "" {
+				t.Fatalf("error: %s", r.Error)
+			}
+			if clicked.Load() == 0 {
+				t.Fatal("the button was never pressed, so the test proves nothing")
+			}
+			if n := private.Load(); n != 0 {
+				t.Errorf("a disallowed address was loaded %d times", n)
 			}
 		})
 	}
