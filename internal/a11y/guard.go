@@ -59,17 +59,24 @@ func guardOpenedTabs(ctx context.Context, conn *bidi.Conn, cfg Config, allowed f
 				return
 			}
 		}
+		// A write is counted here, before anything else happens, so a check that reads the count as soon as it
+		// finishes, as Lighthouse's does, never misses one.
+		m := strings.ToUpper(e.Request.Method)
+		write := m != "GET" && m != "HEAD"
+		if write {
+			g.stopped.Add(1)
+		}
 		go func() {
-			m := strings.ToUpper(e.Request.Method)
-			ok := m == "GET" || m == "HEAD"
+			ok := !write
 			if ok && e.Navigation != "" {
-				ok, _ = allowed(e.Request.URL)
+				if ok, _ = allowed(e.Request.URL); !ok {
+					g.stopped.Add(1)
+				}
 			}
 			// The command's time starts after the decision, since the robots check can wait on another origin.
 			cctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
 			defer cancel()
 			if !ok {
-				g.stopped.Add(1)
 				_ = conn.FailRequest(cctx, e.Request.Request)
 				return
 			}
