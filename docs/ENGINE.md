@@ -935,7 +935,9 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   form or an API call made as the page loads or when a check presses a control, fails before it leaves the
   browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A page can't open a
   window of its own: `window.open` does nothing and returns null, and a form, link or `<base>` that names a new window
-  is sent to the page's own tab, where the guard decides it. A frame the target names is still used. Chrome never
+  is sent to the page's own tab, where the guard decides it. A frame the target names is still used, one beside the
+  form's own frame included. A cross-origin frame's name can't be read, so a target that names one goes to the form's
+  own frame instead. Chrome never
   reports the first request of a new tab to the guard, so without this a form sent to a new window would arrive. A
   tab that opens all the same is closed at once, so it can't take focus from the page under test. GET and HEAD still
   go through, so a site that changes data on a GET can still be changed. Each page's

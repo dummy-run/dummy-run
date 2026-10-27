@@ -9,9 +9,16 @@ import (
 // sameTab keeps a page from opening a new window. Chrome never reports the first request of a tab a page opens to the
 // request interception, so a form sent to a new window would reach the server before any guard saw it. window.open
 // does nothing and returns null, and a form, submit button, link or base element that names a new window is sent to
-// the page's own tab instead, where the tab's guard decides it. A target that names a frame on the page is left alone.
+// the page's own tab instead, where the tab's guard decides it. A target that names a frame anywhere in the tab is left
+// alone, a sibling of the frame the link or form is in included. A cross-origin frame's name can't be read, so a
+// target that names one is sent to the page's own frame.
 const sameTab = `() => {
-	const frames = (name) => { try { return !!document.querySelector('iframe[name="' + CSS.escape(name) + '"], frame[name="' + CSS.escape(name) + '"]'); } catch (e) { return false; } };
+	const named = (w, name) => {
+		try { if (w.name === name) return true; } catch (e) {}
+		try { for (let i = 0; i < w.frames.length; i++) if (named(w.frames[i], name)) return true; } catch (e) {}
+		return false;
+	};
+	const frames = (name) => named(window.top, name);
 	const away = (t) => { if (!t) return false; const n = String(t).toLowerCase(); return n !== "_self" && n !== "_parent" && n !== "_top" && !frames(t); };
 	const keep = (el) => {
 		if (!el) return;

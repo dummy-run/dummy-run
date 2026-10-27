@@ -358,19 +358,38 @@ func TestComparisonTabKeepsToRobots(t *testing.T) {
 	}
 }
 
-// TestFormToNewWindowSendsNoWrite sweeps a page whose button sends a POST form to a new window, with the keyboard
-// checks on. Chrome never reports a new tab's first request to the interception, so the form must stay in the
-// guarded tab, where it fails like any other write. The second page names the new window only from a formdata
-// listener, which runs after the script has checked the target.
+// TestFormToNewWindowSendsNoWrite sweeps pages whose button sends a POST form somewhere other than its own frame,
+// with the keyboard checks on. Chrome never reports a new tab's first request to the interception, so a form that
+// names a new window must stay in the guarded tab, where it fails like any other write. Each page reports the target
+// the form ended up with, so the test sees where the script sent it: a new window becomes _self, and a frame on the
+// page, a sibling frame included, keeps its name. The formdata page names the new window only from a listener that
+// runs after the script has checked the target.
 func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	pages := map[string]string{
-		"/target": `<form id="order" method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"></form>`,
-		"/formdata": `<form id="order" method="post" action="/order"><input type="hidden" name="item" value="1"></form>
+	const fields = `method="post" action="/order"><input type="hidden" name="item" value="1">`
+	pages := map[string]struct{ body, press, target, kept string }{
+		"/target": {`<form id="order" target="_blank" ` + fields + `</form>`, "order.submit()", "order.getAttribute('target')", "_self"},
+		"/formdata": {`<form id="order" ` + fields + `</form>
 <script>document.getElementById('order').addEventListener('formdata', function () { this.target = '_blank'; });</script>`,
+			"order.submit()", "", ""},
+		"/formtarget": {`<form id="order" ` + fields + `<button id="send" formtarget="_blank">Send</button></form>`,
+			"document.getElementById('send').click()", "document.getElementById('send').getAttribute('formtarget')", "_self"},
+		"/base": {`<base target="_blank"><form id="order" ` + fields + `</form>`,
+			"order.submit()", "document.querySelector('base').getAttribute('target')", "_self"},
+		"/frame": {`<form id="order" target="result" ` + fields + `</form><iframe name="result" title="Result"></iframe>`,
+			"order.submit()", "order.getAttribute('target')", "result"},
+		"/sibling": {`<iframe id="inner" title="Order" srcdoc="<form id='order' target='result' method='post' action='/order'><input type='hidden' name='item' value='1'></form>"></iframe><iframe name="result" title="Result"></iframe>`,
+			"order.submit()", "order.getAttribute('target')", "result"},
+	}
+	for path, p := range pages {
+		if p.target == "" {
+			continue
+		}
+		p.target = "fetch('/kept/' + encodeURIComponent(" + p.target + "), {keepalive: true})"
+		pages[path] = p
 	}
 	var mu sync.Mutex
 	seen := map[string]int{}
@@ -378,20 +397,24 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 		mu.Lock()
 		seen[r.Method+" "+r.URL.Path]++
 		mu.Unlock()
-		form, ok := pages[r.URL.Path]
+		p, ok := pages[r.URL.Path]
 		if !ok {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+		order := "document.getElementById('order')"
+		if r.URL.Path == "/sibling" {
+			order = "document.getElementById('inner').contentDocument.getElementById('order')"
+		}
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
-`+form+`
-<button id="buy" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('order').submit(); })">Buy now</button>
+`+p.body+`
+<button id="buy" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { var order = `+order+`; `+p.press+`; `+p.target+`; })">Buy now</button>
 </main></body></html>`)
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
-		for path := range pages {
+		for path, p := range pages {
 			t.Run(browser+path, func(t *testing.T) {
 				mu.Lock()
 				clear(seen)
@@ -417,6 +440,9 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 						t.Errorf("%s reached the server: %v", k, seen)
 					}
 				}
+				if p.kept != "" && seen["GET /kept/"+p.kept] == 0 {
+					t.Errorf("the form's target did not end up %q: %v", p.kept, seen)
+				}
 				if r.RequestsStopped < 1 {
 					t.Errorf("requests_stopped is %d, want the form", r.RequestsStopped)
 				}
@@ -425,12 +451,19 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 	}
 }
 
-// TestOpenedWindowKeepsToRobots sweeps a page whose button opens a new window on an address robots.txt disallows,
-// with --respect-robots and the keyboard checks on. The address must never be loaded, in Chrome as in Firefox.
+// TestOpenedWindowKeepsToRobots sweeps pages whose button opens an address robots.txt disallows in a new window,
+// with --respect-robots and the keyboard checks on. The address must never be loaded, in Chrome as in Firefox. On the
+// open page, window.open does nothing. On the link page, the link is sent to the page's own tab, where the robots
+// guard stops it.
 func TestOpenedWindowKeepsToRobots(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	pages := map[string]string{
+		"/open": `<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked');window.open('/private/account')">Your account</button>`,
+		"/link": `<a id="link" href="/private/account" target="_blank">Account page</a>
+<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('link').click(); })">Your account</button>`,
 	}
 	var private, clicked atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -447,31 +480,37 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 		default:
 			w.Header().Set("Content-Type", "text/html")
 			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main>
-<h1>Shop</h1><button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked');window.open('/private/account')">Your account</button>
+<h1>Shop</h1>`+pages[r.URL.Path]+`
 </main></body></html>`)
 		}
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
-		t.Run(browser, func(t *testing.T) {
-			private.Store(0)
-			clicked.Store(0)
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
-				Schemes: []string{Light}, Headless: true, Keyboard: true, RespectRobots: true})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if r := rep.Results[0]; r.Error != "" {
-				t.Fatalf("error: %s", r.Error)
-			}
-			if clicked.Load() == 0 {
-				t.Fatal("the button was never pressed, so the test proves nothing")
-			}
-			if n := private.Load(); n != 0 {
-				t.Errorf("a disallowed address was loaded %d times", n)
-			}
-		})
+		for path := range pages {
+			t.Run(browser+path, func(t *testing.T) {
+				private.Store(0)
+				clicked.Store(0)
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+				defer cancel()
+				rep, err := Run(ctx, Config{URLs: []string{srv.URL + path}, Browser: browser, Viewports: []Viewport{Desktop},
+					Schemes: []string{Light}, Headless: true, Keyboard: true, RespectRobots: true})
+				if err != nil {
+					t.Fatal(err)
+				}
+				r := rep.Results[0]
+				if r.Error != "" {
+					t.Fatalf("error: %s", r.Error)
+				}
+				if clicked.Load() == 0 {
+					t.Fatal("the button was never pressed, so the test proves nothing")
+				}
+				if n := private.Load(); n != 0 {
+					t.Errorf("a disallowed address was loaded %d times", n)
+				}
+				if path == "/link" && r.RequestsStopped < 1 {
+					t.Errorf("requests_stopped is %d, want the link", r.RequestsStopped)
+				}
+			})
+		}
 	}
 }
