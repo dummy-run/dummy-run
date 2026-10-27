@@ -12,9 +12,10 @@ import (
 // page's own tab instead, where the tab's guard decides it. A target in the markup is changed as the link is clicked or
 // the form sent. A script that sets one, through the property, setAttribute or an attribute node, gets _self instead,
 // so a page's own click or submit handler can't put _blank back. _blank always means a new window, whatever a window is
-// named, and so does a name the browser would treat as _blank. Links and forms inside a shadow root are covered too. A
-// target that names a frame anywhere in the tab is left alone, a sibling of the frame the link or form is in included.
-// A cross-origin frame's name can't be read, so a target that names one is sent to the page's own frame.
+// named, and so does a name the browser would treat as _blank. Links and forms inside a shadow root, open or closed,
+// are covered too, and values for other attributes pass through untouched, so a page that enforces Trusted Types still
+// works. A target that names a frame anywhere in the tab is left alone, a sibling of the frame the link or form is in
+// included. A cross-origin frame's name can't be read, so a target that names one is sent to the page's own frame.
 const sameTab = `() => {
 	const named = (w, name) => {
 		try { if (w.name === name) return true; } catch (e) {}
@@ -37,7 +38,11 @@ const sameTab = `() => {
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
 	window.open = function () { return null; };
 	const targets = (name) => { const n = String(name).toLowerCase(); return n === "target" || n === "formtarget"; };
-	const same = (name, value) => { const v = String(value); return targets(name) && away(v) ? "_self" : v; };
+	const same = (name, value) => {
+		if (!targets(name)) return value;
+		const v = String(value);
+		return away(v) ? "_self" : v;
+	};
 	const property = (proto, name) => {
 		const d = proto && Object.getOwnPropertyDescriptor(proto, name);
 		if (!d || !d.set) return;
@@ -72,7 +77,7 @@ const sameTab = `() => {
 	document.addEventListener("submit", submitted, true);
 	document.addEventListener("click", clicked, true);
 	const attachShadow = Element.prototype.attachShadow;
-	if (attachShadow) Element.prototype.attachShadow = function () { const root = attachShadow.apply(this, arguments); root.addEventListener("submit", submitted, true); return root; };
+	if (attachShadow) Element.prototype.attachShadow = function () { const root = attachShadow.apply(this, arguments); root.addEventListener("submit", submitted, true); root.addEventListener("click", clicked, true); return root; };
 	const submit = HTMLFormElement.prototype.submit;
 	HTMLFormElement.prototype.submit = function () { keep(this); bases(); return submit.call(this); };
 	const request = HTMLFormElement.prototype.requestSubmit;

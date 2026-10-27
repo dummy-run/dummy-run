@@ -486,6 +486,9 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 		"/open": `<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked');window.open('/private/account')">Your account</button>`,
 		"/onclick": `<a id="link" href="/private/account" onclick="this.target = '_blank'">Account page</a>
 <button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('link').click(); })">Your account</button>`,
+		"/closed": `<div id="host"></div>
+<script>(function () { var root = document.getElementById('host').attachShadow({mode: 'closed'}); root.innerHTML = '<a href="/private/account" target="_blank">Account page</a>'; window.closedLink = root.querySelector('a'); })();</script>
+<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { window.closedLink.dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true})); })">Your account</button>`,
 		"/shadow": `<div id="host"></div>
 <script>document.getElementById('host').attachShadow({mode: 'open'}).innerHTML = '<a href="/private/account" target="_blank">Account page</a>';</script>
 <button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('host').shadowRoot.querySelector('a').dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true})); })">Your account</button>`,
@@ -539,5 +542,66 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// TestSameTabKeepsTrustedTypes sweeps a page that enforces Trusted Types and sets a script's src from a trusted value.
+// The one-tab script wraps setAttribute, so it must pass values for other attributes through untouched, or the page's
+// own script throws.
+func TestSameTabKeepsTrustedTypes(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var mu sync.Mutex
+	seen := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.URL.Path]++
+		mu.Unlock()
+		switch r.URL.Path {
+		case "/":
+			w.Header().Set("Content-Type", "text/html")
+			w.Header().Set("Content-Security-Policy", "require-trusted-types-for 'script'")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
+<script>
+if (!window.trustedTypes) {
+	fetch('/tt/none');
+} else {
+	var policy = trustedTypes.createPolicy('shop', { createScriptURL: function (s) { return s; } });
+	var s = document.createElement('script');
+	try { s.setAttribute('src', policy.createScriptURL('/tt.js')); fetch('/tt/ok'); } catch (e) { fetch('/tt/error'); }
+}
+</script>
+</main></body></html>`)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			mu.Lock()
+			clear(seen)
+			mu.Unlock()
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r := rep.Results[0]; r.Error != "" {
+				t.Fatalf("error: %s", r.Error)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if seen["/tt/none"] > 0 && seen["/tt/ok"] == 0 && seen["/tt/error"] == 0 {
+				t.Skipf("%s doesn't support Trusted Types", browser)
+			}
+			if seen["/tt/error"] > 0 || seen["/tt/ok"] == 0 {
+				t.Errorf("the page's trusted setAttribute failed: %v", seen)
+			}
+		})
 	}
 }
