@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/access"
+	"github.com/dummy-run/dummy-run/internal/lighthouse"
 	"github.com/dummy-run/dummy-run/internal/policy"
 )
 
@@ -155,7 +156,7 @@ func TestSweepTabKeepsToRobots(t *testing.T) {
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
 	}
-	var private atomic.Int32
+	var private, offers atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/robots.txt":
@@ -164,6 +165,7 @@ func TestSweepTabKeepsToRobots(t *testing.T) {
 			private.Add(1)
 			w.WriteHeader(http.StatusNoContent)
 		case r.URL.Path == "/offer":
+			offers.Add(1)
 			http.Redirect(w, r, "/private/offer", http.StatusFound)
 		default:
 			w.Header().Set("Content-Type", "text/html")
@@ -175,6 +177,7 @@ func TestSweepTabKeepsToRobots(t *testing.T) {
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
 			private.Store(0)
+			offers.Store(0)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
@@ -188,9 +191,113 @@ func TestSweepTabKeepsToRobots(t *testing.T) {
 			if n := private.Load(); n != 0 {
 				t.Errorf("a disallowed address was loaded %d times", n)
 			}
+			if offers.Load() == 0 {
+				t.Error("the frame never asked for /offer, so the redirect wasn't tried")
+			}
 			if rep.Results[0].RequestsStopped < 2 {
 				t.Errorf("requests_stopped is %d, want both frames' loads", rep.Results[0].RequestsStopped)
 			}
 		})
+	}
+}
+
+// TestSweepGuardsTabsThePageOpens sweeps a page whose button opens a tab, and the page in that tab sends a form as
+// it loads. The new tab isn't one the sweep made, but its write must not reach the server, and the keyboard check
+// must still have the page's focus: Firefox gives it to the new tab.
+func TestSweepGuardsTabsThePageOpens(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	var mu sync.Mutex
+	seen := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.Method+" "+r.URL.Path]++
+		mu.Unlock()
+		switch r.URL.Path {
+		case "/":
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
+<button id="offer" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');window.open('/offer')">See the offer</button>
+</main></body></html>`)
+		case "/offer":
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Offer</title></head><body><main><h1>Offer</h1>
+<script>fetch("/claim", {method: "POST", body: "offer=1"}).catch(function () {});</script></main></body></html>`)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			mu.Lock()
+			clear(seen)
+			mu.Unlock()
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
+				Schemes: []string{Light}, Headless: true, Keyboard: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(rep.Results) != 1 || rep.Results[0].Error != "" {
+				t.Fatalf("results: %+v", rep.Results)
+			}
+			// The comparison clicked the button, so window.open ran.
+			if ts := rep.Results[0].Tasks; ts == nil || len(ts.Tasks) != 1 || !ts.Tasks[0].Mouse {
+				t.Fatalf("the button was never pressed, so the test proves nothing: %+v", ts)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			for k := range seen {
+				if !strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ") {
+					t.Errorf("%s reached the server: %v", k, seen)
+				}
+			}
+		})
+	}
+}
+
+// TestLighthouseSendsNoWrites sweeps a page that sends a form as it loads, with Lighthouse on. Lighthouse loads the
+// page in a tab of its own over its own connection, and its write must fail too.
+func TestLighthouseSendsNoWrites(t *testing.T) {
+	if !strings.Contains(os.Getenv("DUMMYRUN_BROWSERS"), "chrome") {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome to run the Lighthouse browser test")
+	}
+	if _, err := lighthouse.Find(); err != nil {
+		t.Skip("lighthouse is not installed: ", err)
+	}
+	var posts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			posts.Add(1)
+		}
+		if r.URL.Path != "/" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Visit</title></head><body><main>
+<h1>Visit</h1><script>fetch("/visit", {method: "POST", body: "seen=1"}).catch(function () {});</script></main></body></html>`)
+	}))
+	defer srv.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+	rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: "chrome", Viewports: []Viewport{Desktop},
+		Schemes: []string{Light}, Headless: true, Lighthouse: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := rep.Results[0]
+	if r.Error != "" || !r.LighthouseChecked {
+		t.Fatalf("error %q, Lighthouse checked %v (%s)", r.Error, r.LighthouseChecked, r.LighthouseError)
+	}
+	if n := posts.Load(); n != 0 {
+		t.Errorf("%d writes reached the server", n)
+	}
+	if r.RequestsStopped < 2 {
+		t.Errorf("requests_stopped is %d, want the sweep's POST and Lighthouse's", r.RequestsStopped)
 	}
 }

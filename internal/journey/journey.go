@@ -89,13 +89,14 @@ func (d *Driver) Guard(ctx context.Context, allowed func(url string) bool) (func
 			return
 		}
 		go func() {
-			cctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
-			defer cancel()
 			m := strings.ToUpper(e.Request.Method)
 			ok := m == "GET" || m == "HEAD"
 			if ok && allowed != nil && e.Navigation != "" {
 				ok = allowed(e.Request.URL)
 			}
+			// The command's time starts after the decision, since the robots check can wait on another origin.
+			cctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
+			defer cancel()
 			if !ok {
 				d.stopped.Add(1)
 				_ = d.Conn.FailRequest(cctx, e.Request.Request)

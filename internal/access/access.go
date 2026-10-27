@@ -43,6 +43,8 @@ type Resolved struct {
 	inScope          func(rawURL string) bool
 	mu               sync.Mutex
 	challengeCounter map[string]int
+	// own is the interception Attach added, once it is live.
+	own atomic.Value
 }
 
 // maxChallenges is how many times one request may be answered. A second challenge means the
@@ -265,13 +267,11 @@ func Attach(ctx context.Context, c *bidi.Conn, r *Resolved) error {
 	if !r.Active() {
 		return nil
 	}
-	var own atomic.Value
-	own.Store("")
 	c.OnBeforeRequestSent(func(e bidi.BeforeRequestSent) {
 		if !e.IsBlocked {
 			return
 		}
-		if id, _ := own.Load().(string); id != "" && (len(e.Intercepts) != 1 || e.Intercepts[0] != id) {
+		if id, _ := r.own.Load().(string); id != "" && (len(e.Intercepts) != 1 || e.Intercepts[0] != id) {
 			return
 		}
 		go func() {
@@ -297,8 +297,17 @@ func Attach(ctx context.Context, c *bidi.Conn, r *Resolved) error {
 		return err
 	}
 	id, err := c.AddInterceptPhases(ctx, nil, phases...)
-	own.Store(id)
+	r.own.Store(id)
 	return err
+}
+
+// Owns says whether the interception id is the one Attach added.
+func (r *Resolved) Owns(id string) bool {
+	if r == nil {
+		return false
+	}
+	own, _ := r.own.Load().(string)
+	return own != "" && own == id
 }
 
 // Continue lets a held request through with the headers its URL gets. With no access set up, or for a URL out

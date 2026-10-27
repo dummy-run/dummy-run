@@ -928,13 +928,13 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 ```
 
 - Protected previews. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` get the sweep past Basic auth or a bypass header, as [Protected previews](#protected-previews) describes.
-- Writes. The sweep's own tab, and the tabs for the keyboard and mouse comparison, the journeys and the failure
-  probe, send nothing but GET and HEAD. A request a page's script sends with any other method, such as a form or
-  an API call made as the page loads or when a check presses a control, fails before it leaves the browser. Each
-  page's `requests_stopped` counts the ones stopped in the sweep's tab and the comparison's tab. With
-  `--respect-robots`, those tabs don't load a page robots.txt disallows either. Lighthouse loads the page over a
-  connection of its own that this doesn't cover, so a page that sends a write as it loads still sends it during the
-  Lighthouse audit.
+- Writes. The browser the sweep opens sends nothing but GET and HEAD, in its own tabs, in the tab Lighthouse
+  loads the page in and in any tab a page opens. A request a page's script sends with any other method, such as a
+  form or an API call made as the page loads or when a check presses a control, fails before it leaves the
+  browser. With `--respect-robots`, no tab loads a page robots.txt disallows either. A tab the page opens itself,
+  with `window.open` or a link to a new window, is closed as soon as it opens, so it can't take focus from the page
+  under test. Each page's `requests_stopped` counts what was stopped while the page was tested, except in the
+  journeys' tab, which isn't counted, and the failure probe's tab, which counts its own in `failure_probe.stopped`.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.

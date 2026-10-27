@@ -370,6 +370,8 @@ type Report struct {
 	debugger       string
 	// tab is the guard on the sweep's own tab, which counts the requests it stopped.
 	tab *journey.Driver
+	// opened guards the tabs pages open themselves, and counts what it stopped in them.
+	opened *openedTabs
 	// journeysDone holds the URLs whose journeys were tried, so each is tried once.
 	journeysDone map[string]bool
 	// failuresDone holds the URLs the failure probe has loaded, so each is probed once.
@@ -665,6 +667,12 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, 
 			return err
 		}
 	}
+	// Like the tab guards, this one stays on until the browser closes.
+	opened, err := guardOpenedTabs(ctx, b.Conn, cfg, func(raw string) (bool, string) { return rep.robotsAllows(ctx, cfg, raw) })
+	if err != nil {
+		return fmt.Errorf("a11y: guard the tabs pages open: %w", err)
+	}
+	rep.opened = opened
 	cx, err := b.Conn.CreateContext(ctx)
 	if err != nil {
 		return fmt.Errorf("a11y: open a tab: %w", err)
@@ -696,8 +704,11 @@ func sweepScheme(ctx context.Context, cfg Config, scheme string, textScale int, 
 			}
 			res := testPage(ctx, b.Conn, cx, cfg, u, vp, scheme, textScale, rep)
 			if res.Error != "" && res.SchemeActual == "" && ctx.Err() == nil {
-				// A page can stall once on a busy machine. One more try separates that from a real fault.
+				// A page can stall once on a busy machine. One more try separates that from a real fault. What the first
+				// try stopped was still stopped, so it counts too.
+				stopped := res.RequestsStopped
 				res = testPage(ctx, b.Conn, cx, cfg, u, vp, scheme, textScale, rep)
+				res.RequestsStopped += stopped
 			}
 			rep.Results = append(rep.Results, res)
 			if cfg.Log != nil {
@@ -771,8 +782,8 @@ func testPage(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, u str
 	res = PageResult{URL: u, Browser: cfg.Browser, Viewport: vp.Name, Width: vp.Width, Scheme: scheme, TextScale: textScaleField(textScale), Violations: []Finding{}, NeedsReview: []Finding{}}
 	defer func() { res.DurationMS = time.Since(started).Milliseconds() }()
 	if rep.tab != nil {
-		before := rep.tab.Stopped()
-		defer func() { res.RequestsStopped += rep.tab.Stopped() - before }()
+		before := rep.tab.Stopped() + rep.opened.Stopped()
+		defer func() { res.RequestsStopped += rep.tab.Stopped() + rep.opened.Stopped() - before }()
 	}
 	var cancels []context.CancelFunc
 	defer func() {
