@@ -414,14 +414,15 @@ func (p *Page) decide(e bidi.BeforeRequestSent) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	var d Decision
+	nav := isTopNavigation(e, p.cx)
 	if p.hook != nil {
-		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers, Navigation: isTopNavigation(e, p.cx)})
+		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers, Navigation: nav})
 	}
 	if d.Block {
 		p.mu.Lock()
 		p.blockedIDs[e.Request.Request] = true
 		p.blocked = append(p.blocked, fmt.Sprintf("%s %s (%s)", e.Request.Method, redact(e.Request.URL), d.Reason))
-		if e.Context == p.cx && e.Navigation != "" {
+		if e.Context == p.cx && nav {
 			p.navBlocked = true
 		}
 		p.mu.Unlock()
