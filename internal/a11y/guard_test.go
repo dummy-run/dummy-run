@@ -374,13 +374,19 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 		"/target": {`<form id="order" target="_blank" ` + fields + `</form>`, "order.submit()", "order.getAttribute('target')", "_self"},
 		"/formdata": {`<form id="order" ` + fields + `</form>
 <script>document.getElementById('order').addEventListener('formdata', function () { this.target = '_blank'; });</script>`,
-			"order.submit()", "", ""},
+			"order.submit()", "order.getAttribute('target')", "_self"},
 		"/formtarget": {`<form id="order" ` + fields + `<button id="send" formtarget="_blank">Send</button></form>`,
 			"document.getElementById('send').click()", "document.getElementById('send').getAttribute('formtarget')", "_self"},
 		"/base": {`<base target="_blank"><form id="order" ` + fields + `</form>`,
 			"order.submit()", "document.querySelector('base').getAttribute('target')", "_self"},
 		"/frame": {`<form id="order" target="result" ` + fields + `</form><iframe name="result" title="Result"></iframe>`,
 			"order.submit()", "order.getAttribute('target')", "result"},
+		"/onsubmit": {`<form id="order" onsubmit="this.target = '_blank'" ` + fields + `<button id="send">Send</button></form>`,
+			"document.getElementById('send').click()", "order.getAttribute('target')", "_self"},
+		"/setattribute": {`<form id="order" onsubmit="this.setAttribute('target', '_blank')" ` + fields + `<button id="send">Send</button></form>`,
+			"document.getElementById('send').click()", "order.getAttribute('target')", "_self"},
+		"/named": {`<script>window.name = '_blank';</script><form id="order" target="_blank" ` + fields + `</form>`,
+			"order.submit()", "order.getAttribute('target')", "_self"},
 		"/sibling": {`<iframe id="inner" title="Order" srcdoc="<form id='order' target='result' method='post' action='/order'><input type='hidden' name='item' value='1'></form>"></iframe><iframe name="result" title="Result"></iframe>`,
 			"order.submit()", "order.getAttribute('target')", "result"},
 	}
@@ -462,6 +468,8 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 	}
 	pages := map[string]string{
 		"/open": `<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked');window.open('/private/account')">Your account</button>`,
+		"/onclick": `<a id="link" href="/private/account" onclick="this.target = '_blank'">Account page</a>
+<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('link').click(); })">Your account</button>`,
 		"/link": `<a id="link" href="/private/account" target="_blank">Account page</a>
 <button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('link').click(); })">Your account</button>`,
 	}
@@ -507,7 +515,7 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 				if n := private.Load(); n != 0 {
 					t.Errorf("a disallowed address was loaded %d times", n)
 				}
-				if path == "/link" && r.RequestsStopped < 1 {
+				if path != "/open" && r.RequestsStopped < 1 {
 					t.Errorf("requests_stopped is %d, want the link", r.RequestsStopped)
 				}
 			})

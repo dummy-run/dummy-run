@@ -9,7 +9,10 @@ import (
 // sameTab keeps a page from opening a new window. Chrome never reports the first request of a tab a page opens to the
 // request interception, so a form sent to a new window would reach the server before any guard saw it. window.open
 // does nothing and returns null, and a form, submit button, link or base element that names a new window is sent to
-// the page's own tab instead, where the tab's guard decides it. A target that names a frame anywhere in the tab is left
+// the page's own tab instead, where the tab's guard decides it. A target in the markup is changed as the link is
+// clicked or the form sent. A script that sets one, through the property, setAttribute or an attribute node, gets
+// _self instead, so a page's own click or submit handler can't put _blank back. _blank always means a new window,
+// whatever a window is named. A target that names a frame anywhere in the tab is left
 // alone, a sibling of the frame the link or form is in included. A cross-origin frame's name can't be read, so a
 // target that names one is sent to the page's own frame.
 const sameTab = `() => {
@@ -19,7 +22,12 @@ const sameTab = `() => {
 		return false;
 	};
 	const frames = (name) => named(window.top, name);
-	const away = (t) => { if (!t) return false; const n = String(t).toLowerCase(); return n !== "_self" && n !== "_parent" && n !== "_top" && !frames(t); };
+	const away = (t) => {
+		if (t === null || t === undefined) return false;
+		const n = String(t).toLowerCase();
+		if (n === "" || n === "_self" || n === "_parent" || n === "_top") return false;
+		return n === "_blank" || !frames(String(t));
+	};
 	const keep = (el) => {
 		if (!el) return;
 		if (away(el.getAttribute && el.getAttribute("target"))) el.setAttribute("target", "_self");
@@ -27,6 +35,30 @@ const sameTab = `() => {
 	};
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
 	window.open = function () { return null; };
+	const targets = (name) => { const n = String(name).toLowerCase(); return n === "target" || n === "formtarget"; };
+	const same = (name, value) => (targets(name) && away(value) ? "_self" : value);
+	const property = (proto, name) => {
+		const d = proto && Object.getOwnPropertyDescriptor(proto, name);
+		if (!d || !d.set) return;
+		Object.defineProperty(proto, name, { configurable: true, enumerable: d.enumerable, get: d.get, set: function (v) { d.set.call(this, away(v) ? "_self" : v); } });
+	};
+	[HTMLFormElement, HTMLAnchorElement, HTMLAreaElement, HTMLBaseElement].forEach((c) => property(c.prototype, "target"));
+	[HTMLButtonElement, HTMLInputElement].forEach((c) => property(c.prototype, "formTarget"));
+	const setAttribute = Element.prototype.setAttribute;
+	Element.prototype.setAttribute = function (name, value) { return setAttribute.call(this, name, same(name, value)); };
+	const setAttributeNS = Element.prototype.setAttributeNS;
+	Element.prototype.setAttributeNS = function (ns, name, value) { return setAttributeNS.call(this, ns, name, ns ? value : same(String(name).split(":").pop(), value)); };
+	const attr = (a) => { if (a && !a.namespaceURI && targets(a.name) && away(a.value)) a.value = "_self"; return a; };
+	["value", "nodeValue", "textContent"].forEach((name) => {
+		const proto = name === "value" ? Attr.prototype : Node.prototype;
+		const d = Object.getOwnPropertyDescriptor(proto, name);
+		if (!d || !d.set) return;
+		Object.defineProperty(proto, name, { configurable: true, enumerable: d.enumerable, get: d.get, set: function (v) { d.set.call(this, this instanceof Attr && !this.namespaceURI ? same(this.name, v) : v); } });
+	});
+	[[Element.prototype, "setAttributeNode"], [Element.prototype, "setAttributeNodeNS"], [NamedNodeMap.prototype, "setNamedItem"], [NamedNodeMap.prototype, "setNamedItemNS"]].forEach(([proto, name]) => {
+		const f = proto[name];
+		if (f) proto[name] = function (a) { return f.call(this, attr(a)); };
+	});
 	document.addEventListener("submit", (e) => { keep(e.target); keep(e.submitter); bases(); }, true);
 	document.addEventListener("click", (e) => { const el = e.target && e.target.closest ? e.target.closest("a, area") : null; keep(el); bases(); }, true);
 	const submit = HTMLFormElement.prototype.submit;
