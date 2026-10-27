@@ -400,6 +400,9 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 		"/shadow": {`<div id="host"></div>
 <script>document.getElementById('host').attachShadow({mode: 'open'}).innerHTML = '<form id="order" target="_blank" method="post" action="/order"><input type="hidden" name="item" value="1"><button id="send">Send</button></form>';</script>`,
 			"order.querySelector('button').dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true}))", "order.getAttribute('target')", "_self"},
+		"/declarative": {`<shop-order><template shadowrootmode="closed"><form id="order" target="_blank" method="post" action="/order"><input type="hidden" name="item" value="1"><button>Send</button></form></template></shop-order>
+<script>customElements.define('shop-order', class extends HTMLElement { constructor() { super(); this.internals = this.attachInternals(); } });</script>`,
+			"order.querySelector('button').dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true}))", "order.getAttribute('target')", "_self"},
 		"/sibling": {`<iframe id="inner" title="Order" srcdoc="<form id='order' target='result' method='post' action='/order'><input type='hidden' name='item' value='1'></form>"></iframe><iframe name="result" title="Result"></iframe>`,
 			"order.submit()", "order.getAttribute('target')", "result"},
 	}
@@ -427,6 +430,8 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 			order = "document.getElementById('inner').contentDocument.getElementById('order')"
 		case "/shadow":
 			order = "document.getElementById('host').shadowRoot.getElementById('order')"
+		case "/declarative":
+			order = "document.querySelector('shop-order').internals.shadowRoot.getElementById('order')"
 		}
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
@@ -486,6 +491,9 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 		"/open": `<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked');window.open('/private/account')">Your account</button>`,
 		"/onclick": `<a id="link" href="/private/account" onclick="this.target = '_blank'">Account page</a>
 <button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('link').click(); })">Your account</button>`,
+		"/declarative": `<shop-account><template shadowrootmode="closed"><a href="/private/account" target="_blank">Account page</a></template></shop-account>
+<script>customElements.define('shop-account', class extends HTMLElement { constructor() { super(); this.internals = this.attachInternals(); } });</script>
+<button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.querySelector('shop-account').internals.shadowRoot.querySelector('a').dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true})); })">Your account</button>`,
 		"/closed": `<div id="host"></div>
 <script>(function () { var root = document.getElementById('host').attachShadow({mode: 'closed'}); root.innerHTML = '<a href="/private/account" target="_blank">Account page</a>'; window.closedLink = root.querySelector('a'); })();</script>
 <button id="account" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { window.closedLink.dispatchEvent(new MouseEvent('click', {bubbles: true, composed: true})); })">Your account</button>`,

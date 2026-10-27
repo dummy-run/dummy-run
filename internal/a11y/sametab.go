@@ -13,9 +13,11 @@ import (
 // the form sent. A script that sets one, through the property, setAttribute or an attribute node, gets _self instead,
 // so a page's own click or submit handler can't put _blank back. _blank always means a new window, whatever a window is
 // named, and so does a name the browser would treat as _blank. Links and forms inside a shadow root, open or closed,
-// are covered too, and values for other attributes pass through untouched, so a page that enforces Trusted Types still
-// works. A target that names a frame anywhere in the tab is left alone, a sibling of the frame the link or form is in
-// included. A cross-origin frame's name can't be read, so a target that names one is sent to the page's own frame.
+// are covered too. A closed root declared in the markup is guarded once its element's own code reaches it through
+// ElementInternals, the only way a script can, and the sweep never presses a control inside one itself. Values for
+// other attributes pass through untouched, so a page that enforces Trusted Types still works. A target that names a
+// frame anywhere in the tab is left alone, a sibling of the frame the link or form is in included. A cross-origin
+// frame's name can't be read, so a target that names one is sent to the page's own frame.
 const sameTab = `() => {
 	const named = (w, name) => {
 		try { if (w.name === name) return true; } catch (e) {}
@@ -76,8 +78,15 @@ const sameTab = `() => {
 	};
 	document.addEventListener("submit", submitted, true);
 	document.addEventListener("click", clicked, true);
+	const guarded = new WeakSet();
+	const guard = (root) => {
+		if (root && !guarded.has(root)) { guarded.add(root); root.addEventListener("submit", submitted, true); root.addEventListener("click", clicked, true); }
+		return root;
+	};
 	const attachShadow = Element.prototype.attachShadow;
-	if (attachShadow) Element.prototype.attachShadow = function () { const root = attachShadow.apply(this, arguments); root.addEventListener("submit", submitted, true); root.addEventListener("click", clicked, true); return root; };
+	if (attachShadow) Element.prototype.attachShadow = function () { return guard(attachShadow.apply(this, arguments)); };
+	const internals = typeof ElementInternals !== "undefined" && Object.getOwnPropertyDescriptor(ElementInternals.prototype, "shadowRoot");
+	if (internals && internals.get) Object.defineProperty(ElementInternals.prototype, "shadowRoot", { configurable: true, enumerable: internals.enumerable, get: function () { return guard(internals.get.call(this)); } });
 	const submit = HTMLFormElement.prototype.submit;
 	HTMLFormElement.prototype.submit = function () { keep(this); bases(); return submit.call(this); };
 	const request = HTMLFormElement.prototype.requestSubmit;
