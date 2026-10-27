@@ -360,11 +360,17 @@ func TestComparisonTabKeepsToRobots(t *testing.T) {
 
 // TestFormToNewWindowSendsNoWrite sweeps a page whose button sends a POST form to a new window, with the keyboard
 // checks on. Chrome never reports a new tab's first request to the interception, so the form must stay in the
-// guarded tab, where it fails like any other write.
+// guarded tab, where it fails like any other write. The second page names the new window only from a formdata
+// listener, which runs after the script has checked the target.
 func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 	v := os.Getenv("DUMMYRUN_BROWSERS")
 	if v == "" {
 		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	pages := map[string]string{
+		"/target": `<form id="order" method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"></form>`,
+		"/formdata": `<form id="order" method="post" action="/order"><input type="hidden" name="item" value="1"></form>
+<script>document.getElementById('order').addEventListener('formdata', function () { this.target = '_blank'; });</script>`,
 	}
 	var mu sync.Mutex
 	seen := map[string]int{}
@@ -372,47 +378,50 @@ func TestFormToNewWindowSendsNoWrite(t *testing.T) {
 		mu.Lock()
 		seen[r.Method+" "+r.URL.Path]++
 		mu.Unlock()
-		if r.URL.Path != "/" {
+		form, ok := pages[r.URL.Path]
+		if !ok {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
-<form id="order" method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"></form>
+`+form+`
 <button id="buy" aria-expanded="false" onclick="this.setAttribute('aria-expanded','true');fetch('/clicked').finally(function () { document.getElementById('order').submit(); })">Buy now</button>
 </main></body></html>`)
 	}))
 	defer srv.Close()
 	for _, browser := range strings.Split(v, ",") {
-		t.Run(browser, func(t *testing.T) {
-			mu.Lock()
-			clear(seen)
-			mu.Unlock()
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-			defer cancel()
-			rep, err := Run(ctx, Config{URLs: []string{srv.URL + "/"}, Browser: browser, Viewports: []Viewport{Desktop},
-				Schemes: []string{Light}, Headless: true, Keyboard: true})
-			if err != nil {
-				t.Fatal(err)
-			}
-			r := rep.Results[0]
-			if r.Error != "" {
-				t.Fatalf("error: %s", r.Error)
-			}
-			mu.Lock()
-			defer mu.Unlock()
-			if seen["GET /clicked"] == 0 {
-				t.Fatalf("the button was never pressed, so the test proves nothing: %v", seen)
-			}
-			for k := range seen {
-				if !strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ") {
-					t.Errorf("%s reached the server: %v", k, seen)
+		for path := range pages {
+			t.Run(browser+path, func(t *testing.T) {
+				mu.Lock()
+				clear(seen)
+				mu.Unlock()
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+				defer cancel()
+				rep, err := Run(ctx, Config{URLs: []string{srv.URL + path}, Browser: browser, Viewports: []Viewport{Desktop},
+					Schemes: []string{Light}, Headless: true, Keyboard: true})
+				if err != nil {
+					t.Fatal(err)
 				}
-			}
-			if r.RequestsStopped < 1 {
-				t.Errorf("requests_stopped is %d, want the form", r.RequestsStopped)
-			}
-		})
+				r := rep.Results[0]
+				if r.Error != "" {
+					t.Fatalf("error: %s", r.Error)
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				if seen["GET /clicked"] == 0 {
+					t.Fatalf("the button was never pressed, so the test proves nothing: %v", seen)
+				}
+				for k := range seen {
+					if !strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ") {
+						t.Errorf("%s reached the server: %v", k, seen)
+					}
+				}
+				if r.RequestsStopped < 1 {
+					t.Errorf("requests_stopped is %d, want the form", r.RequestsStopped)
+				}
+			})
+		}
 	}
 }
 
