@@ -414,6 +414,43 @@ func TestLowerFirstKeepsRunesWhole(t *testing.T) {
 	}
 }
 
+func TestWriteCastReplacesTheOldCast(t *testing.T) {
+	rec, _ := personalRecon(t)
+	lib, ps := library(t)
+	dir := t.TempDir()
+	first := Make(context.Background(), rec, Options{Library: ps, Personas: []string{"keyboard-only-user", "screen-reader-user"}, Steps: 12})
+	if err := WriteCast(dir, lib, first, ps); err != nil {
+		t.Fatal(err)
+	}
+	second := Make(context.Background(), rec, Options{Library: ps, Personas: []string{"first-time-visitor"}, Steps: 12})
+	second.Personas[0].Scenario.ID = "another-title"
+	if err := WriteCast(dir, lib, second, ps); err != nil {
+		t.Fatal(err)
+	}
+	ids, err := cast.List(dir)
+	if err != nil || strings.Join(ids, ",") != "first-time-visitor" {
+		t.Errorf("cast lists %v (%v); the earlier plan's personas should be gone", ids, err)
+	}
+	if err := WriteCast(dir, lib, first, ps); err != nil {
+		t.Fatal(err)
+	}
+	entries, _ := os.ReadDir(filepath.Join(dir, "first-time-visitor"))
+	if len(entries) != 0 {
+		t.Errorf("the first-time visitor's folder survived a plan without it")
+	}
+
+	other := t.TempDir()
+	if err := os.WriteFile(filepath.Join(other, "notes.txt"), []byte("mine"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteCast(other, lib, first, ps); err == nil || !strings.Contains(err.Error(), "no plan.json") {
+		t.Errorf("a folder with other things in it should be refused, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(other, "notes.txt")); err != nil {
+		t.Error("the refusal removed the folder's own file")
+	}
+}
+
 func TestWriteCastLoads(t *testing.T) {
 	rec, _ := personalRecon(t)
 	lib, ps := library(t)

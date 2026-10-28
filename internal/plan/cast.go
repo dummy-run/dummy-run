@@ -2,6 +2,7 @@ package plan
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -13,9 +14,13 @@ import (
 )
 
 // WriteCast writes the plan as a cast folder: for each chosen persona its profile.md and prompt.md from
-// lib, and one scenario at scenarios/01-<id>.md. It also writes plan.json at the top of dir. dir may exist;
-// files in it are replaced.
+// lib, and one scenario at scenarios/01-<id>.md. It also writes plan.json at the top of dir. dir may be
+// empty, missing, or a cast an earlier plan wrote: then the personas that plan named are removed first, so
+// the folder holds this plan alone. A folder with other things in it and no plan.json is refused.
 func WriteCast(dir string, lib fs.FS, p *Plan, libPersonas []LibraryPersona) error {
+	if err := clearCast(dir); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return err
 	}
@@ -50,6 +55,42 @@ func WriteCast(dir string, lib fs.FS, p *Plan, libPersonas []LibraryPersona) err
 		return err
 	}
 	return os.WriteFile(filepath.Join(dir, "plan.json"), append(data, '\n'), 0o600)
+}
+
+// clearCast removes what an earlier plan wrote in dir: the folder of each persona its plan.json names, and
+// plan.json itself. It removes nothing it cannot account for, so a folder that is not empty and has no
+// plan.json is an error rather than a loss.
+func clearCast(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, fs.ErrNotExist) || (err == nil && len(entries) == 0) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	planPath := filepath.Join(dir, "plan.json")
+	data, err := os.ReadFile(planPath) //nolint:gosec // the folder is the caller's --out
+	if err != nil {
+		return fmt.Errorf("plan: %s is not empty and has no plan.json; give an empty folder or one that dummyrun plan wrote", dir)
+	}
+	var old struct {
+		Personas []struct {
+			ID string `json:"id"`
+		} `json:"personas"`
+	}
+	if err := json.Unmarshal(data, &old); err != nil {
+		return fmt.Errorf("plan: %s: %w", planPath, err)
+	}
+	for _, pick := range old.Personas {
+		// An id is a folder name under dir and nothing else.
+		if pick.ID == "" || pick.ID != filepath.Base(pick.ID) || pick.ID == "." || pick.ID == ".." {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(dir, pick.ID)); err != nil {
+			return err
+		}
+	}
+	return os.Remove(planPath)
 }
 
 // ScenarioText renders one persona's scenario in the cast format that internal/cast reads.
