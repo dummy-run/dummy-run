@@ -273,6 +273,67 @@
         "respect_robots": {
           "type": "boolean",
           "description": "True when the run fetched the target's robots.txt and blocked the paths it disallows for DummyRun. Left out when false"
+        },
+        "tech": {
+          "type": "array",
+          "description": "What the site is built with, read from the first page: its scripts, globals, meta tags, markup and cookies. A page can hide or fake a marker, so treat it as a hint",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "category",
+              "source",
+              "evidence"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "enum": [
+                  "shop",
+                  "cms",
+                  "site-builder",
+                  "framework",
+                  "search",
+                  "booking",
+                  "forms",
+                  "payments",
+                  "consent",
+                  "other"
+                ]
+              },
+              "source": {
+                "enum": [
+                  "dummyrun",
+                  "webappanalyzer"
+                ],
+                "description": "dummyrun for Dummy Run's own fingerprints, webappanalyzer for ones read from the user's copy of webappanalyzer"
+              },
+              "evidence": {
+                "type": "string",
+                "description": "The first marker that matched, such as window.Shopify.shop"
+              }
+            }
+          }
+        },
+        "journeys": {
+          "type": "array",
+          "description": "Journeys the technologies suggest, such as basket and checkout for a shop",
+          "items": {
+            "enum": [
+              "search",
+              "basket",
+              "checkout",
+              "booking",
+              "contact form"
+            ]
+          }
+        },
+        "tech_error": {
+          "type": "string",
+          "description": "Why the technologies could not be read. Left out when they were"
         }
       }
     },
@@ -628,6 +689,67 @@
           "reason": {
             "type": "string",
             "description": "Why the reviewer set the verdict. Required by dummyrun review for a rejection and optional for a confirmation"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "evidence_kind",
+              "engines",
+              "check",
+              "on_journey"
+            ],
+            "description": "The facts the engine recorded about the finding. Severity is a rule over them and confidence is a table lookup on them. Written by the engine, never by the model. Absent in records from before inputs existed",
+            "properties": {
+              "evidence_kind": {
+                "enum": [
+                  "measurement",
+                  "ax-fact",
+                  "engine-rule",
+                  "task-verdict",
+                  "model-only"
+                ],
+                "description": "What the finding rests on: a measurement made in the browser, a fact read from the accessibility tree, a rule engine's result, a task the engine tried and could not complete, or the persona's own report with no check behind it"
+              },
+              "engines": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]+$"
+                },
+                "description": "The rule engines that report the problem, by short name (axe, ibm, htmlcs, alfa). Empty when none does",
+                "maxItems": 8,
+                "uniqueItems": true
+              },
+              "check": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The ID of the check behind the finding: an axe rule, a dummyrun-* rule, or the symptom when only the persona reports it"
+              },
+              "on_journey": {
+                "type": "boolean",
+                "description": "True when the finding sits on a journey a persona was trying to complete"
+              },
+              "reproduced": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "runs",
+                  "of"
+                ],
+                "description": "How many of the runs that visited where the problem is also found it. Absent when there was only one such run",
+                "properties": {
+                  "runs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "of": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -713,9 +835,10 @@
               "suspected_injection",
               "off_origin_blocked",
               "uncited_finding",
+              "harness_limit_finding",
               "provider_filtered"
             ],
-            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. provider_filtered: the model provider's content filter refused a call"
+            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. harness_limit_finding: a finding was dropped because every step it cited shows the test's own limits, such as a blocked request, a failed tool or a page the browser could not read, not the site. provider_filtered: the model provider's content filter refused a call"
           },
           "step": {
             "type": "integer",

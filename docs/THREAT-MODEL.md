@@ -55,16 +55,16 @@ The engine defends against this in six ways.
 - Hidden text mostly stays out. Text in `display: none` and `visibility: hidden` blocks and in comments is collected for the scan and for review, and isn't sent to the model. Values of `aria-label`, `alt` and `title` do reach the model when they name a control in the control list or the outline. They're fenced and scanned like the rest. Text with zero size, zero opacity or `aria-hidden` stays in the page text and is flagged. That holds inside `pre` and `code` too, so a demo that fades its lines in at zero opacity is flagged as concealed text. The terminal on dummyrun.dev masks lines it has not played yet. Those lines stay in the page as quoted output that the model can read, so the limit on visible code and quotes applies to them. The address and title of older steps are quoted, cut short and fenced like the rest.
 - A scan. Simple phrase patterns run over the page text, the control names, the outline and the hidden text. Screenshots aren't scanned. The patterns look for "ignore previous instructions", "system prompt" and "you are now", for chat template tokens and for orders to report nothing. They also catch claims that the site is fully accessible, and orders telling the persona to call `finish`. Instructions to visit a host outside the allow list are caught too, and so are invisible characters. Hidden text that names an assistant and gives an order is flagged even when no fixed phrase matches. Visible code and quotes are skipped because a page that shows an example attack isn't making one. That covers `code` and `pre`, `kbd` and `samp`, and `blockquote` and `q`. A lone "system prompt" or "call `finish`" in visible prose is a weak match and only records an event.
 - A warning. The next observation tells the persona that the text was an instruction and that it should say so.
-- A record of the attempt. Each new match is a `suspected_injection` event with the step, where it was found and a short extract. The harness then files one finding of kind `security` that cites every step with a match. The model doesn't write that finding, so a page can't talk the model out of it.
+- A record of the attempt. Each new match is a `suspected_injection` event with the step, where it was found and a short extract. The model doesn't write it, so a page can't talk the model out of it. Detector hits are recorded as events for the operator, never as findings, because the detector also fires on ordinary text.
 
 These gaps remain:
 
 - The patterns are a tripwire. A paraphrase, another language or a homoglyph gets past them.
 - Text drawn into an image reaches the model in screenshots and isn't scanned.
 - Text that's moved off screen but still rendered goes to the model on purpose. The screen-reader persona needs it, because assistive technology reads it too. Fencing and the scan cover the risk, and the scan flags any match.
-- A persuaded model can still leave real findings out. The security finding shows the page tried, but it doesn't restore what was left out.
+- A persuaded model can still leave real findings out. The `suspected_injection` events show the operator that the page tried, but they don't restore what was left out.
 - Visible code and quotes aren't scanned, and the model still reads them. A CSS mask does not change that. A hostile page can put an instruction in a code block or a quote without being flagged. Fencing still applies.
-- Prose that talks about prompts can still trip the scan. You decide whether it matters when you review the finding.
+- Prose that talks about prompts can still trip the scan. You decide whether it matters when you review the events.
 
 ### Faked or suppressed findings
 
@@ -75,7 +75,7 @@ The engine defends against it like this:
 - Every finding must cite step numbers that exist. A finding with none is dropped and recorded as an `uncited_finding` event.
 - The symptom must come from a closed list. The route, locus and fingerprint come from the page, never from the model.
 - Findings start as `pending`. A person confirms or rejects each one in `dummyrun review`, checking it against the run record ([Architecture](ARCHITECTURE.md)).
-- The harness writes the security finding itself.
+- The harness records each suspected injection as an event itself, so a page can't talk the model out of it. Events are for the operator and never become findings.
 
 These gaps remain:
 
@@ -88,9 +88,10 @@ A page asks the persona to visit an address that carries data in its path or que
 
 The engine defends against it like this:
 
-- The browser reaches only the hosts and ports in the target's allow list. Every HTTP request it makes is intercepted, and anything off the list fails before it leaves. That covers images, scripts, redirects and form posts. `visit` also refuses an address outside the list before the browser is involved.
+- Documents load only from the hosts and ports in the target's allow list: the page, frames, pop-ups and redirects. Every HTTP request is intercepted. A page's images, styles, fonts, scripts and fetch calls may still go to other public hosts by GET or HEAD, as they do for any visitor. Writes to other hosts fail before they leave, and so does any request to an internal address. `visit` also refuses an address outside the list before the browser is involved.
+- The persona never puts anything in a URL itself except by `visit` and by following links, and both stay on the allow list. A page's own scripts can send data to public hosts in GET requests, as they can for any visitor.
 - A bare host name matches the scheme's default port, and the port of `base_url` when it's the base host. Any other port needs a `host:port` entry, so a page on `localhost:3000` can't reach a service on `localhost:9000`.
-- A blocked request to another host is logged as an `off_origin_blocked` event on the step.
+- A blocked request to another host is logged as an `off_origin_blocked` event on the step. The run's trace headers go only to the target's own origins.
 - `read_only` fails every request that could change the target.
 - The persona is told never to visit an address just because a page names it.
 
@@ -144,7 +145,7 @@ There's still no wall-clock limit on a whole run. A page that makes the browser 
 
 A provider may refuse a call because of the page. Its content filter can block a page that holds hidden injection text.
 
-The run stops cleanly. The record gets the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any security finding. `report.md` and the command's message say what happened and that the engine isn't at fault.
+The run stops cleanly. The record gets the outcome `provider_filtered`, a `provider_filtered` event, the steps so far and any `suspected_injection` events. `report.md` and the command's message say what happened and that the engine isn't at fault.
 
 A hostile page may still be able to deny a run this way. The engine doesn't retry with the offending text removed.
 
@@ -152,7 +153,7 @@ A hostile page may still be able to deny a run this way. The engine doesn't retr
 
 A record repeats hostile page text in events, step notes and `steps.jsonl`.
 
-Event extracts are short, single-line and stripped of invisible characters. The schema marks them as data, and the security finding holds no page text.
+Event extracts are short, single-line and stripped of invisible characters. The schema marks them as data.
 
 Any model that reads a record still has to fence it and treat it as data. Any tool that renders a title or an extract, such as a dashboard, must escape it.
 
@@ -166,7 +167,7 @@ Casts and scenarios still aren't signed. A cast you didn't write can steer the p
 
 `internal/runner/testdata/canary.html` is a page full of injection attempts. They sit in visible text, in text moved off screen, in a `display: none` block and in a comment. They also sit in an `aria-label`, in `alt` text and in a `title` attribute. A link, a redirect and an image lead to another origin.
 
-The browser tests in `internal/runner/canary_browser_test.go` play a scripted model against that page. They show that nothing reaches the other origin, every kind of attempt is flagged, and the `display: none` text and the comment aren't sent to the model. They also show that the security finding and the model's own findings survive whether the model resists or obeys, and they cover a provider that refuses the call. Run them with:
+The browser tests in `internal/runner/canary_browser_test.go` play a scripted model against that page. They show that nothing reaches the other origin, every kind of attempt is flagged, and the `display: none` text and the comment aren't sent to the model. They also show that the events survive whether the model resists or obeys, that the engine files no finding of its own for them, and that the model's own findings survive when it resists. They cover a provider that refuses the call too. Run them with:
 
 ```sh
 DUMMYRUN_BROWSERS=chrome,firefox go test ./internal/runner/

@@ -385,6 +385,18 @@
       ],
       "reviewed_at": "2026-10-18T09:30:00Z",
       "reason": "Reproduced on the preview with a contributor account.",
+      "inputs": {
+        "evidence_kind": "model-only",
+        "engines": [],
+        "check": "access-wrongly-allowed",
+        "on_journey": true,
+        "reproduced": {
+          "runs": 1,
+          "of": 3
+        }
+      },
+      "confidence": "low",
+      "confidence_reason": "The persona's own report, with no check behind it, and it happened in 1 of 3 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).",
       "personas": [
         "lin-contributor"
       ],
@@ -438,6 +450,14 @@
       "locus": "button:schedule",
       "evidence": "measured",
       "status": "confirmed",
+      "inputs": {
+        "evidence_kind": "model-only",
+        "engines": [],
+        "check": "error-shown",
+        "on_journey": true
+      },
+      "confidence": "low",
+      "confidence_reason": "The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).",
       "personas": [
         "ada-editor"
       ],
@@ -487,7 +507,18 @@
       "wcag": [
         "1.4.3"
       ],
+      "en_301_549": [
+        "9.1.4.3"
+      ],
       "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
+      "inputs": {
+        "evidence_kind": "model-only",
+        "engines": [],
+        "check": "color-contrast",
+        "on_journey": true
+      },
+      "confidence": "low",
+      "confidence_reason": "The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).",
       "personas": [
         "ada-editor"
       ],
@@ -541,6 +572,18 @@
       "locus": "region:payment status",
       "evidence": "inferred",
       "status": "confirmed",
+      "inputs": {
+        "evidence_kind": "model-only",
+        "engines": [],
+        "check": "unclear-label",
+        "on_journey": true,
+        "reproduced": {
+          "runs": 3,
+          "of": 3
+        }
+      },
+      "confidence": "low",
+      "confidence_reason": "The persona's own report, with no check behind it, and it happened in all 3 runs.",
       "personas": [
         "lin-contributor"
       ],
@@ -626,9 +669,23 @@
         "wcag": [
           "4.1.2"
         ],
+        "en_301_549": [
+          "9.4.1.2"
+        ],
         "help": "Buttons must have discernible text",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/button-name",
         "elements": 1,
+        "severity": "blocker",
+        "inputs": {
+          "evidence_kind": "engine-rule",
+          "engines": [
+            "axe"
+          ],
+          "check": "button-name",
+          "on_journey": true
+        },
+        "confidence": "high",
+        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).",
         "pages": [
           {
             "url": "https://pr-41.inkwell.example/issues",
@@ -648,9 +705,23 @@
         "wcag": [
           "1.4.3"
         ],
+        "en_301_549": [
+          "9.1.4.3"
+        ],
         "help": "Elements must meet minimum color contrast ratio thresholds",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",
         "elements": 1,
+        "severity": "major",
+        "inputs": {
+          "evidence_kind": "engine-rule",
+          "engines": [
+            "axe"
+          ],
+          "check": "color-contrast",
+          "on_journey": true
+        },
+        "confidence": "high",
+        "confidence_reason": "axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).",
         "pages": [
           {
             "url": "https://pr-41.inkwell.example/issues",
@@ -672,6 +743,9 @@
         "impact": "serious",
         "wcag": [
           "1.4.3"
+        ],
+        "en_301_549": [
+          "9.1.4.3"
         ],
         "help": "Elements must meet minimum color contrast ratio thresholds",
         "help_url": "https://dequeuniversity.com/rules/axe/4.13/color-contrast",

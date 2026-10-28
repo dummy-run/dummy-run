@@ -1,0 +1,1790 @@
+[
+ {
+  "id": "act-23a2a8-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 23a2a8 (Image has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-23a2a8-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 23a2a8 (Image has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-23a2a8-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 23a2a8 (Image has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-23a2a8-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 23a2a8 (Image has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-23a2a8-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 23a2a8 (Image has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-24afc2-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 24afc2 (Important letter spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-24afc2-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 24afc2 (Important letter spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-24afc2-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 24afc2 (Important letter spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-24afc2-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 24afc2 (Important letter spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-24afc2-fp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": false,
+  "source": "ACT rule 24afc2 (Important letter spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-24afc2-fp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": false,
+  "source": "ACT rule 24afc2 (Important letter spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-2779a5-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "document-title"
+  },
+  "true": true,
+  "source": "ACT rule 2779a5 (HTML page has non-empty title), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-2779a5-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "document-title"
+  },
+  "true": true,
+  "source": "ACT rule 2779a5 (HTML page has non-empty title), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-2779a5-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "document-title"
+  },
+  "true": true,
+  "source": "ACT rule 2779a5 (HTML page has non-empty title), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-2779a5-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "document-title"
+  },
+  "true": true,
+  "source": "ACT rule 2779a5 (HTML page has non-empty title), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-2779a5-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "document-title"
+  },
+  "true": true,
+  "source": "ACT rule 2779a5 (HTML page has non-empty title), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-2779a5-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "document-title"
+  },
+  "true": true,
+  "source": "ACT rule 2779a5 (HTML page has non-empty title), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-4e8ab6-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-attr"
+  },
+  "true": true,
+  "source": "ACT rule 4e8ab6 (Element with role attribute has required states and properties), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-4e8ab6-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-attr"
+  },
+  "true": true,
+  "source": "ACT rule 4e8ab6 (Element with role attribute has required states and properties), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-4e8ab6-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-attr"
+  },
+  "true": true,
+  "source": "ACT rule 4e8ab6 (Element with role attribute has required states and properties), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-4e8ab6-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-attr"
+  },
+  "true": true,
+  "source": "ACT rule 4e8ab6 (Element with role attribute has required states and properties), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-4e8ab6-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-attr"
+  },
+  "true": true,
+  "source": "ACT rule 4e8ab6 (Element with role attribute has required states and properties), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-59796f-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "input-image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 59796f (Image button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-59796f-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "input-image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 59796f (Image button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-59796f-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "input-image-alt"
+  },
+  "true": true,
+  "source": "ACT rule 59796f (Image button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-5c01ea-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-allowed-attr"
+  },
+  "true": true,
+  "source": "ACT rule 5c01ea (ARIA state or property is permitted), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-5c01ea-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-allowed-attr"
+  },
+  "true": true,
+  "source": "ACT rule 5c01ea (ARIA state or property is permitted), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-5f99a7-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr"
+  },
+  "true": true,
+  "source": "ACT rule 5f99a7 (ARIA attribute is defined in WAI-ARIA), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-5f99a7-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr"
+  },
+  "true": true,
+  "source": "ACT rule 5f99a7 (ARIA attribute is defined in WAI-ARIA), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-674b10-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-roles"
+  },
+  "true": true,
+  "source": "ACT rule 674b10 (Role attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-674b10-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-roles"
+  },
+  "true": true,
+  "source": "ACT rule 674b10 (Role attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6a7281-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr-value"
+  },
+  "true": true,
+  "source": "ACT rule 6a7281 (ARIA state or property has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6a7281-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr-value"
+  },
+  "true": true,
+  "source": "ACT rule 6a7281 (ARIA state or property has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6a7281-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr-value"
+  },
+  "true": true,
+  "source": "ACT rule 6a7281 (ARIA state or property has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6a7281-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr-value"
+  },
+  "true": true,
+  "source": "ACT rule 6a7281 (ARIA state or property has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6a7281-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr-value"
+  },
+  "true": true,
+  "source": "ACT rule 6a7281 (ARIA state or property has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6a7281-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr-value"
+  },
+  "true": true,
+  "source": "ACT rule 6a7281 (ARIA state or property has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6a7281-tp7",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-valid-attr-value"
+  },
+  "true": true,
+  "source": "ACT rule 6a7281 (ARIA state or property has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6cfa84-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-hidden-focus"
+  },
+  "true": true,
+  "source": "ACT rule 6cfa84 (Element with aria-hidden has no content in sequential focus navigation), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6cfa84-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-hidden-focus"
+  },
+  "true": true,
+  "source": "ACT rule 6cfa84 (Element with aria-hidden has no content in sequential focus navigation), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6cfa84-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-hidden-focus"
+  },
+  "true": true,
+  "source": "ACT rule 6cfa84 (Element with aria-hidden has no content in sequential focus navigation), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6cfa84-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-hidden-focus"
+  },
+  "true": true,
+  "source": "ACT rule 6cfa84 (Element with aria-hidden has no content in sequential focus navigation), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-6cfa84-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-hidden-focus"
+  },
+  "true": true,
+  "source": "ACT rule 6cfa84 (Element with aria-hidden has no content in sequential focus navigation), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp7",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp8",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp9",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-73f2c2-tp10",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "autocomplete-valid"
+  },
+  "true": true,
+  "source": "ACT rule 73f2c2 (Autocomplete attribute has valid value), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-78fd32-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 78fd32 (Important line height in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-78fd32-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 78fd32 (Important line height in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-78fd32-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 78fd32 (Important line height in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-78fd32-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 78fd32 (Important line height in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-78fd32-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 78fd32 (Important line height in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-78fd32-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 78fd32 (Important line height in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-7d6734-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "svg-img-alt"
+  },
+  "true": true,
+  "source": "ACT rule 7d6734 (SVG element with explicit role has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-7d6734-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "svg-img-alt"
+  },
+  "true": true,
+  "source": "ACT rule 7d6734 (SVG element with explicit role has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-7d6734-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "svg-img-alt"
+  },
+  "true": true,
+  "source": "ACT rule 7d6734 (SVG element with explicit role has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-7d6734-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "svg-img-alt"
+  },
+  "true": true,
+  "source": "ACT rule 7d6734 (SVG element with explicit role has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-8fc3b6-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "object-alt"
+  },
+  "true": true,
+  "source": "ACT rule 8fc3b6 (Object element rendering non-text content has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-8fc3b6-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "object-alt"
+  },
+  "true": true,
+  "source": "ACT rule 8fc3b6 (Object element rendering non-text content has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-8fc3b6-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "object-alt"
+  },
+  "true": true,
+  "source": "ACT rule 8fc3b6 (Object element rendering non-text content has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-8fc3b6-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "object-alt"
+  },
+  "true": true,
+  "source": "ACT rule 8fc3b6 (Object element rendering non-text content has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-8fc3b6-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "object-alt"
+  },
+  "true": true,
+  "source": "ACT rule 8fc3b6 (Object element rendering non-text content has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-8fc3b6-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "object-alt"
+  },
+  "true": true,
+  "source": "ACT rule 8fc3b6 (Object element rendering non-text content has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-97a4e1-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "button-name"
+  },
+  "true": true,
+  "source": "ACT rule 97a4e1 (Button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-97a4e1-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "button-name"
+  },
+  "true": true,
+  "source": "ACT rule 97a4e1 (Button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-97a4e1-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "button-name"
+  },
+  "true": true,
+  "source": "ACT rule 97a4e1 (Button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-97a4e1-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "button-name"
+  },
+  "true": true,
+  "source": "ACT rule 97a4e1 (Button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-97a4e1-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "button-name"
+  },
+  "true": true,
+  "source": "ACT rule 97a4e1 (Button has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-9e45ec-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 9e45ec (Important word spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-9e45ec-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 9e45ec (Important word spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-9e45ec-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 9e45ec (Important word spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-9e45ec-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": true,
+  "source": "ACT rule 9e45ec (Important word spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-9e45ec-fp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": false,
+  "source": "ACT rule 9e45ec (Important word spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-9e45ec-fp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": false,
+  "source": "ACT rule 9e45ec (Important word spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-9e45ec-fp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "avoid-inline-spacing"
+  },
+  "true": false,
+  "source": "ACT rule 9e45ec (Important word spacing in style attributes is wide enough), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-a25f45-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "td-headers-attr"
+  },
+  "true": true,
+  "source": "ACT rule a25f45 (Headers attribute specified on a cell refers to cells in the same table element), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-a25f45-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "td-headers-attr"
+  },
+  "true": true,
+  "source": "ACT rule a25f45 (Headers attribute specified on a cell refers to cells in the same table element), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-a25f45-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "td-headers-attr"
+  },
+  "true": true,
+  "source": "ACT rule a25f45 (Headers attribute specified on a cell refers to cells in the same table element), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-a25f45-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "td-headers-attr"
+  },
+  "true": true,
+  "source": "ACT rule a25f45 (Headers attribute specified on a cell refers to cells in the same table element), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b4f0c3-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-viewport"
+  },
+  "true": true,
+  "source": "ACT rule b4f0c3 (Meta viewport allows for zoom), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b4f0c3-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-viewport"
+  },
+  "true": true,
+  "source": "ACT rule b4f0c3 (Meta viewport allows for zoom), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b4f0c3-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-viewport"
+  },
+  "true": true,
+  "source": "ACT rule b4f0c3 (Meta viewport allows for zoom), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b4f0c3-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-viewport"
+  },
+  "true": true,
+  "source": "ACT rule b4f0c3 (Meta viewport allows for zoom), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b4f0c3-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-viewport"
+  },
+  "true": true,
+  "source": "ACT rule b4f0c3 (Meta viewport allows for zoom), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b5c3f8-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-has-lang"
+  },
+  "true": true,
+  "source": "ACT rule b5c3f8 (HTML page has lang attribute), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b5c3f8-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-has-lang"
+  },
+  "true": true,
+  "source": "ACT rule b5c3f8 (HTML page has lang attribute), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b5c3f8-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-has-lang"
+  },
+  "true": true,
+  "source": "ACT rule b5c3f8 (HTML page has lang attribute), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b5c3f8-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-has-lang"
+  },
+  "true": true,
+  "source": "ACT rule b5c3f8 (HTML page has lang attribute), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-b5c3f8-fp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-has-lang"
+  },
+  "true": false,
+  "source": "ACT rule b5c3f8 (HTML page has lang attribute), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp7",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp8",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc4a75-tp9",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-children"
+  },
+  "true": true,
+  "source": "ACT rule bc4a75 (ARIA required owned elements), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc659a-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-refresh"
+  },
+  "true": true,
+  "source": "ACT rule bc659a (Meta element has no refresh delay), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc659a-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-refresh"
+  },
+  "true": true,
+  "source": "ACT rule bc659a (Meta element has no refresh delay), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc659a-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-refresh"
+  },
+  "true": true,
+  "source": "ACT rule bc659a (Meta element has no refresh delay), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bc659a-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "meta-refresh"
+  },
+  "true": true,
+  "source": "ACT rule bc659a (Meta element has no refresh delay), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bf051a-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-lang-valid"
+  },
+  "true": true,
+  "source": "ACT rule bf051a (HTML page `lang` attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bf051a-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-lang-valid"
+  },
+  "true": true,
+  "source": "ACT rule bf051a (HTML page `lang` attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bf051a-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-lang-valid"
+  },
+  "true": true,
+  "source": "ACT rule bf051a (HTML page `lang` attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-bf051a-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "html-lang-valid"
+  },
+  "true": true,
+  "source": "ACT rule bf051a (HTML page `lang` attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp7",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp8",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp9",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp10",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-c487ae-tp11",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "link-name"
+  },
+  "true": true,
+  "source": "ACT rule c487ae (Link has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-cae760-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "frame-title"
+  },
+  "true": true,
+  "source": "ACT rule cae760 (Iframe element has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-cae760-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "frame-title"
+  },
+  "true": true,
+  "source": "ACT rule cae760 (Iframe element has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-cae760-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "frame-title"
+  },
+  "true": true,
+  "source": "ACT rule cae760 (Iframe element has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-cae760-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "frame-title"
+  },
+  "true": true,
+  "source": "ACT rule cae760 (Iframe element has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp7",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp8",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-de46e4-tp9",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "valid-lang"
+  },
+  "true": true,
+  "source": "ACT rule de46e4 (Element with lang attribute has valid language tag), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp5",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp6",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp7",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp8",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-e086e5-tp9",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "label"
+  },
+  "true": true,
+  "source": "ACT rule e086e5 (Form field has non-empty accessible name), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-ff89c9-tp1",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-parent"
+  },
+  "true": true,
+  "source": "ACT rule ff89c9 (ARIA required context role), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-ff89c9-tp2",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-parent"
+  },
+  "true": true,
+  "source": "ACT rule ff89c9 (ARIA required context role), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-ff89c9-tp3",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-parent"
+  },
+  "true": true,
+  "source": "ACT rule ff89c9 (ARIA required context role), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ },
+ {
+  "id": "act-ff89c9-tp4",
+  "inputs": {
+   "evidence_kind": "engine-rule",
+   "engines": [
+    "axe"
+   ],
+   "check": "aria-required-parent"
+  },
+  "true": true,
+  "source": "ACT rule ff89c9 (ARIA required context role), engine 0.1.3 with axe-core alone, scored by code on 2026-10-21"
+ }
+]

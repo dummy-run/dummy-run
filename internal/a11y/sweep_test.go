@@ -2,16 +2,21 @@ package a11y
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/dummy-run/dummy-run/internal/colour"
+	"github.com/dummy-run/dummy-run/internal/robots"
 )
 
 //nolint:misspell // the axe rule ID
@@ -148,6 +153,9 @@ func TestConformanceSweepFixture(t *testing.T) {
 						t.Errorf("button-name target %q does not name the button", f.Nodes[0].Target)
 					}
 				}
+				if f, ok := got[ruleContrast]; ok {
+					checkContrastColours(t, r.Viewport+"/"+r.Scheme, f)
+				}
 				if r.Failing() != 2 {
 					t.Errorf("%s/%s: want 2 failing nodes (button-name, contrast), got %d", r.Viewport, r.Scheme, r.Failing())
 				}
@@ -203,11 +211,17 @@ func TestRobotsSiteWideDisallowStartsNoBrowser(t *testing.T) {
 	if !strings.Contains(rep.Results[0].Skipped, "robots.txt") {
 		t.Errorf("skipped %q", rep.Results[0].Skipped)
 	}
+	// A sweep that stops here still says when it ran, for the test reports.
+	start, err1 := time.Parse(time.RFC3339, rep.StartedAt)
+	end, err2 := time.Parse(time.RFC3339, rep.EndedAt)
+	if err1 != nil || err2 != nil || end.Before(start) {
+		t.Errorf("started %q, ended %q", rep.StartedAt, rep.EndedAt)
+	}
 }
 
 func TestFilterRobotsSkipsOnlyDisallowedPages(t *testing.T) {
 	srv := robotsServer(t, "User-agent: *\nDisallow: /private\n")
-	ok, skipped, err := filterRobots(context.Background(), Config{URLs: []string{srv.URL + "/", srv.URL + "/private/x", srv.URL + "/blog"}, Identify: true})
+	ok, skipped, err := filterRobots(context.Background(), Config{URLs: []string{srv.URL + "/", srv.URL + "/private/x", srv.URL + "/blog"}, Identify: true}, map[string]*robots.Result{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,5 +272,50 @@ func TestIdentifyAndRobotsInBrowser(t *testing.T) {
 				t.Error("the disallowed page was requested")
 			}
 		})
+	}
+}
+
+func TestBestPracticeRulesAreAdviceNotFailures(t *testing.T) {
+	for _, c := range []struct {
+		tags []string
+		want bool
+	}{
+		{[]string{"cat.keyboard", "best-practice"}, true},                         // region: advice
+		{[]string{"cat.semantics", "wcag2aaa", "wcag249", "best-practice"}, true}, // AAA only: advice
+		{[]string{"cat.text-alternatives", "wcag2a", "wcag111"}, false},           // image-alt: a failure
+		{[]string{"cat.color", "wcag2aa", "wcag143", "best-practice"}, false},
+	} {
+		if got := adviceOnly(c.tags); got != c.want {
+			t.Errorf("adviceOnly(%v) = %v, want %v", c.tags, got, c.want)
+		}
+	}
+	var args []string
+	if err := json.Unmarshal([]byte(tagsArg()), &args); err != nil || !slices.Contains(args, "best-practice") || !slices.Contains(args, "wcag22aa") {
+		t.Errorf("the sweep should run the WCAG and best-practice tags: %v (%v)", args, err)
+	}
+	r := &Report{Results: []PageResult{{URL: "https://x.test/", Advice: []Finding{{Rule: "region", Nodes: []Node{{Target: "p"}, {Target: "div"}}}}}}}
+	r.summarise(Config{})
+	if r.Summary.Advice != 2 || r.Summary.Failing != 0 || r.Failed() {
+		t.Errorf("advice must not fail the sweep: %+v", r.Summary)
+	}
+}
+
+// checkContrastColours checks a contrast failure records the colours axe measured, with a text colour that meets
+// the ratio on the same background.
+func checkContrastColours(t *testing.T, where string, f Finding) {
+	t.Helper()
+	c := f.Nodes[0].Colours
+	if c == nil {
+		t.Errorf("%s: contrast failure has no colours", where)
+		return
+	}
+	if c.Ratio >= c.Need || c.TextFix == "" || !strings.Contains(f.Nodes[0].Detail, c.TextFix) {
+		t.Errorf("%s: colours %+v, detail %q", where, c, f.Nodes[0].Detail)
+		return
+	}
+	fg, err1 := colour.Parse(c.TextFix)
+	bg, err2 := colour.Parse(c.Background)
+	if err1 != nil || err2 != nil || colour.Ratio(fg, bg) < c.Need {
+		t.Errorf("%s: %s on %s does not meet %g:1", where, c.TextFix, c.Background, c.Need)
 	}
 }

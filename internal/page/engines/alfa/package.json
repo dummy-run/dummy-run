@@ -1,0 +1,18 @@
+{
+  "name": "dummyrun-alfa-bundle",
+  "private": true,
+  "description": "Builds alfa.min.js, the Siteimprove Alfa rules as one script the sweep injects into the page",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "esbuild entry.mjs --bundle --minify --format=iife --platform=browser --legal-comments=eof --outfile=../alfa.min.js"
+  },
+  "devDependencies": {
+    "@siteimprove/alfa-act": "0.120.0",
+    "@siteimprove/alfa-device": "0.120.0",
+    "@siteimprove/alfa-dom": "0.120.0",
+    "@siteimprove/alfa-http": "0.120.0",
+    "@siteimprove/alfa-rules": "0.120.0",
+    "@siteimprove/alfa-web": "0.120.0",
+    "esbuild": "0.25.11"
+  }
+}

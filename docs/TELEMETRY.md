@@ -43,7 +43,8 @@ to stay in one market, host the backend there.
 | `service.version` | The Dummy Run version |
 | `service.namespace` | Optional. Set it to the target app's name to group runs by app |
 
-The optional record fields `target.identify`, `target.respect_robots` and `outcome_reason` aren't exported.
+The optional record fields `target.identify`, `target.respect_robots`, `target.tech`, `target.journeys`,
+`target.tech_error` and `outcome_reason` aren't exported.
 
 ## Traces
 
@@ -57,9 +58,13 @@ The IDs are derived from the run ID, so exporting a run twice writes the same tr
 - The root span ID is the first 8 bytes of SHA-256 of `dummyrun.span:<id>:root`.
 - The span ID of step `n` is the first 8 bytes of SHA-256 of `dummyrun.span:<id>:step:<n>`.
 
-Each request the browser makes during a step carries a `traceparent` with the run's trace ID and that
-step's span ID, so your app's spans become children of the step. If the page's own instrumentation has
-already set a `traceparent`, the engine keeps it and adds only the baggage.
+The engine adds a `traceparent` to each request the browser sends to the target's own origins during a step,
+when the request doesn't already have one. It carries the run's trace ID and that step's span ID, so your app's
+spans become children of the step. If the page's own instrumentation has already set a `traceparent`, the
+engine keeps it, so that request carries the page's trace and not the run's, and only the baggage is added.
+The `baggage` header goes to the same requests. Requests to other hosts, such as a CDN's images, get neither.
+The one request the sign-in gate lets through also gets them, and it always goes to the target's own sign-in
+form.
 
 Root span attributes:
 
@@ -92,7 +97,9 @@ Root span attributes:
 | `dummyrun.steps.count` | The number of entries in `steps` |
 
 The root span's status is `ERROR` when the outcome is `errored`, `blocked` or `provider_filtered`, and
-`OK` otherwise. A record's `events` list isn't exported.
+`OK` otherwise. A record's `events` list isn't exported, including the `harness_limit_finding` events for
+findings the engine dropped because they showed only the test's own limits. Records written before that kind
+existed stay valid. A reader built from an earlier copy of the schema rejects a record that has one.
 
 Every step span has `dummyrun.step.n`, `dummyrun.step.action` and `dummyrun.step.target`. When the step
 has them, it also gets `url.full` and `http.response.status_code`, plus
@@ -118,7 +125,9 @@ finding's first step, or at the run's start when the finding cites no step. Secu
 
 The verdict is whatever the record holds when you export it, so review with `dummyrun review` first
 and export afterwards. Review also adds `reviewer`, `reviewed_at` and `reason` to the record. The
-exporter reads those fields but doesn't send them.
+exporter reads those fields but doesn't send them. The same goes for each finding's `inputs` block (its
+evidence kind, engines, check, journey and reproduction), which the engine writes and a report turns into a
+confidence band. The block is optional in the schema, so records from before it existed still load.
 
 Exporting a reviewed record again won't update what Grafana already holds. The trace IDs stay the same,
 but Loki keeps the repeated log lines and Prometheus counts the run again, as the exporter guide explains. Panels that count confirmed findings

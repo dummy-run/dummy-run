@@ -50,21 +50,33 @@ type LayoutOverflow struct {
 	} `json:"culprits"`
 }
 
-// LayoutClipped is an interactive element whose text is cut off.
+// LayoutClipped is an element whose text is partly cut off by a box that hides its overflow. When the text is in a
+// control, the element is the control and Control is true.
 type LayoutClipped struct {
 	LayoutElement
-	Detail string    `json:"detail"`
-	Box    LayoutBox `json:"box"`
+	Control bool      `json:"control,omitempty"`
+	Detail  string    `json:"detail"`
+	Box     LayoutBox `json:"box"`
 }
 
-// LayoutOverlap is a pair of interactive elements whose boxes intersect.
+// LayoutOverlap is a pair of controls where B is painted over A: at Covered of the Sampled points on A's text, or on
+// its whole box when Text is false, the browser says B is on top.
 type LayoutOverlap struct {
-	A LayoutElement `json:"a"`
-	B LayoutElement `json:"b"`
-	// Width and Height are the size of the shared area in CSS pixels.
-	Width  float64   `json:"width"`
-	Height float64   `json:"height"`
-	Box    LayoutBox `json:"box"`
+	A       LayoutElement `json:"a"`
+	B       LayoutElement `json:"b"`
+	Covered int           `json:"covered"`
+	Sampled int           `json:"sampled"`
+	Text    bool          `json:"text"`
+	Box     LayoutBox     `json:"box"`
+}
+
+// LayoutObscured is a control that, once it has focus, is entirely hidden by By, an opaque element (WCAG 2.4.11).
+// ByPosition is By's CSS position, such as sticky or fixed for a header that stays on screen.
+type LayoutObscured struct {
+	LayoutElement
+	By         LayoutElement `json:"by"`
+	ByPosition string        `json:"by_position"`
+	Box        LayoutBox     `json:"box"`
 }
 
 // LayoutSmall is an interactive element below the minimum target size.
@@ -81,11 +93,21 @@ type Layout struct {
 	RootFontPx float64         `json:"root_font_px"`
 	Controls   int             `json:"controls"`
 	Overflow   *LayoutOverflow `json:"overflow"`
-	Clipped    []LayoutClipped `json:"clipped"`
-	Overlaps   []LayoutOverlap `json:"overlaps"`
-	OverlapN   int             `json:"overlap_count"`
-	Small      []LayoutSmall   `json:"small"`
-	SmallN     int             `json:"small_count"`
+	// ReflowExempt counts elements past the window that WCAG 1.4.10 lets keep a two-dimensional layout, such as a
+	// data table. When they are the only ones, Overflow is nil.
+	ReflowExempt int             `json:"reflow_exempt"`
+	Clipped      []LayoutClipped `json:"clipped"`
+	ClippedN     int             `json:"clipped_count"`
+	Overlaps     []LayoutOverlap `json:"overlaps"`
+	OverlapN     int             `json:"overlap_count"`
+	Small        []LayoutSmall   `json:"small"`
+	SmallN       int             `json:"small_count"`
+	// FocusChecked says focus was moved to each control (at most 150) to look for WCAG 2.4.11 failures, and
+	// Focused how many took it.
+	FocusChecked bool             `json:"focus_checked"`
+	Focused      int              `json:"focused"`
+	Obscured     []LayoutObscured `json:"obscured"`
+	ObscuredN    int              `json:"obscured_count"`
 }
 
 // Problems is the number of things wrong: sideways overflow counts once.
@@ -93,7 +115,7 @@ func (l *Layout) Problems() int {
 	if l == nil {
 		return 0
 	}
-	n := len(l.Clipped) + l.OverlapN + l.SmallN
+	n := l.ClippedN + l.OverlapN + l.SmallN + l.ObscuredN
 	if l.Overflow != nil {
 		n++
 	}
@@ -101,10 +123,12 @@ func (l *Layout) Problems() int {
 }
 
 // MeasureLayout runs the geometry checks in the tab and returns what they found. The page should
-// have settled first. Elements that carry a data-dummyrun-ref from the last look keep that @number.
-func MeasureLayout(ctx context.Context, conn *bidi.Conn, cx string) (*Layout, error) {
+// have settled first. Elements that carry a data-dummyrun-ref from the last look keep that @number. With focus, it
+// also moves focus to each control to look for focus hidden behind something else, which a page can react to, so a
+// persona's look never asks for it.
+func MeasureLayout(ctx context.Context, conn *bidi.Conn, cx string, focus bool) (*Layout, error) {
 	var out Layout
-	if err := conn.CallFunctionJSON(ctx, cx, layoutJS, &out, LayoutMaxItems, MinTargetPx, LayoutTolerancePx); err != nil {
+	if err := conn.CallFunctionJSON(ctx, cx, layoutJS, &out, LayoutMaxItems, MinTargetPx, LayoutTolerancePx, focus); err != nil {
 		return nil, fmt.Errorf("measure layout: %w", err)
 	}
 	return &out, nil
@@ -115,11 +139,11 @@ func MeasureLayout(ctx context.Context, conn *bidi.Conn, cx string) (*Layout, er
 type LayoutNote struct {
 	// OverflowPx is how far the page is wider than the window, 0 when it is not.
 	OverflowPx int `json:"overflow_px,omitempty"`
-	// Overlaps counts pairs of controls whose boxes intersect.
+	// Overlaps counts pairs of controls where one is painted over the other's text.
 	Overlaps int `json:"overlaps,omitempty"`
 	// OverlapRefs lists some of those pairs as "@4 @7" for controls that have an @number.
 	OverlapRefs []string `json:"overlap_refs,omitempty"`
-	// Clipped counts controls whose text is cut off.
+	// Clipped counts controls whose text is cut off. Text cut off outside a control is left out.
 	Clipped int `json:"clipped,omitempty"`
 	// ClippedRefs lists the @numbers of some of them.
 	ClippedRefs []string `json:"clipped_refs,omitempty"`
@@ -134,7 +158,7 @@ func (l *Layout) Note() *LayoutNote {
 	if l == nil {
 		return nil
 	}
-	n := &LayoutNote{Overlaps: l.OverlapN, Clipped: len(l.Clipped)}
+	n := &LayoutNote{Overlaps: l.OverlapN}
 	if l.Overflow != nil {
 		n.OverflowPx = int(l.Overflow.Excess + 0.5)
 	}
@@ -144,6 +168,10 @@ func (l *Layout) Note() *LayoutNote {
 		}
 	}
 	for _, c := range l.Clipped {
+		if !c.Control {
+			continue
+		}
+		n.Clipped++
 		if len(n.ClippedRefs) < 5 && refPattern.MatchString(c.Ref) {
 			n.ClippedRefs = append(n.ClippedRefs, "@"+c.Ref)
 		}
@@ -156,7 +184,7 @@ func (l *Layout) Note() *LayoutNote {
 
 // addLayout adds the layout facts to a snapshot. A page that cannot be measured keeps the rest.
 func (p *Page) addLayout(ctx context.Context, snap *Snapshot) {
-	l, err := MeasureLayout(ctx, p.conn, p.cx)
+	l, err := MeasureLayout(ctx, p.conn, p.cx, false)
 	if err != nil {
 		return
 	}

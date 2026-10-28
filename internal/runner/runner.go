@@ -28,6 +28,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
+	"github.com/dummy-run/dummy-run/internal/tech"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
@@ -97,6 +98,10 @@ type entry struct {
 }
 
 type run struct {
+	// tech, journeys and techErr are what the first page showed the site is built with. See detectTech.
+	tech     []record.Tech
+	journeys []string
+	techErr  string
 	cfg      Config
 	id       string
 	dir      string
@@ -117,6 +122,8 @@ type run struct {
 	log      io.Writer
 	// finishRetries counts how often finish was sent back for a symptom outside the closed list.
 	finishRetries int
+	// offSiteNoted is true once an observation has said that the test stops requests to other sites.
+	offSiteNoted bool
 	// minSteps is how many steps the persona must take before finish is accepted. earlyFinishes counts
 	// the finish calls sent back for coming sooner.
 	minSteps      int
@@ -272,15 +279,20 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		if r.gate.Take(req.Method, req.URL) {
 			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
 		}
-		switch v := r.cfg.Target.Decide(req.Method, req.URL); v {
+		switch v := r.cfg.Target.DecideRequest(req.Method, req.URL, policy.KindOf(req.Navigation)); v {
 		case policy.Allow:
+			// The run headers carry the run and persona IDs, so they go only to the target's own origins.
+			if !r.cfg.Target.TargetOrigin(req.URL) {
+				return page.Decision{}
+			}
 			return page.Decision{Set: telemetry.Headers(req.Headers, r.id, cfg.Persona.ID, r.trace.Traceparent())}
 		default:
 			return page.Decision{Block: true, Reason: v.String()}
 		}
 	}
 	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: disp.CSSWidth, Height: disp.CSSHeight,
-		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Access: r.access, Launch: cfg.Launch})
+		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Access: r.access, Launch: cfg.Launch,
+		ScreenReader: readsAloud(cfg.Persona)})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open browser: %w", err)
 	}
@@ -305,6 +317,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	r.opening = true
 	first := r.execute(ctx, provider.ToolCall{Name: "visit", Args: json.RawMessage(`{"url":""}`)})
 	r.opening = false
+	r.detectTech(ctx)
 	r.entries = append(r.entries, entry{role: provider.RoleUser, step: first,
 		text: "Begin. This is what you see now.\n\n"})
 
@@ -397,6 +410,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 					}
 					fmt.Fprintf(r.log, "finish: %d finding(s) dropped, their symptom was not in the closed list\n", f.DropInvalid())
 				}
+				r.dropHarnessOnly(&f)
 				r.finishStep(ctx, f)
 				return &f, r.patience.GaveUp(), nil
 			}
@@ -406,6 +420,17 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		}
 	}
 	return nil, r.patience.GaveUp(), errors.New("the model made too many calls without finishing")
+}
+
+// offSite counts the requests to other hosts that the policy stopped.
+func offSite(blocked []string) int {
+	n := 0
+	for _, b := range blocked {
+		if strings.HasSuffix(b, "(host not allowed)") {
+			n++
+		}
+	}
+	return n
 }
 
 // execute runs one tool and records the step.
@@ -487,6 +512,10 @@ func (r *run) finishExecute(obs page.Observation, controlsBefore []page.Control,
 	step := &Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: sig != r.lastSig, Refusal: refusal}
 	r.lastSig = sig
 	step.Hits = r.inspect(step)
+	if n := offSite(obs.Blocked); n > 0 && !r.offSiteNoted {
+		r.offSiteNoted = true
+		step.OffSiteNote = fmt.Sprintf("the test stops pages and writes on other sites by its own rule, here %d request(s); later steps do not repeat this. It is not a fault of the site", n)
+	}
 	r.patience.Note(step.N, obs.URL, obs.Action, obs.Target, controlsBefore, obs.Error != "" || !step.PageChanged)
 	if obs.Snapshot != nil {
 		r.controls = obs.Snapshot.Controls
@@ -777,6 +806,8 @@ func (r *run) systemPrompt() string {
 	fmt.Fprintf(&b, "- Patience: you have %d actions. After three failed tries at the same thing, give up and report where you got stuck, as a real user would.\n", r.budget)
 	b.WriteString("- Look, then act. Use the numbered controls (@12) from the latest result. Type an address only when the scenario says to.\n")
 	b.WriteString("- Evidence or it did not happen: every finding names the step numbers that show it.\n")
+	b.WriteString("- A control shown as \"(no name)\" is only a candidate. Before you report a missing name, run the accessibility check on that page, and report it only when the check confirms it with a rule such as link-name, button-name, label, select-name, image-alt or input-image-alt. A control marked \"(hidden)\" is hidden from screen readers on purpose and is not a finding. Controls inside a closed menu or a collapsed section are not listed at all until you open it.\n")
+	b.WriteString("- The test's own limits are not the site's faults: requests the test blocks (other sites, anything that would send or change data), read-only refusals, failed or timed-out tools, a page the browser could not read, and files that are not web pages, such as feeds and PDFs. Never report them as findings. Say in your report if one stopped you.\n")
 	b.WriteString("- Likely, not certain: write \"possible bug\" and \"I think\". A reviewer and a person decide.\n")
 	b.WriteString("- Never copy a person's name, email address or other personal data from the site into your report. Describe what you saw.\n")
 	b.WriteString("- Stop on harm: anything that could reach a real person (email, payment, someone else's account) ends the run with verdict blocked.\n")
@@ -793,7 +824,7 @@ func (r *run) systemPrompt() string {
 		"After each call you get the page as text with numbered controls, and a screenshot for the newest steps; older steps are shortened to one line. " +
 		"\"Actions left\" is your budget. If the page did not change after an action, the result says so: do not repeat it, try something else or give up. " +
 		"Step numbers in your report are the harness's own (\"step N\" in each result). When you are done, or have given up, call finish with your verdict, " +
-		"your report, your findings and your observations. Findings are problems only: something wrong, missing or confusing. Each one has its kind, severity, symptom (chosen from the list in the tool), title, the steps that show it, " +
+		"your report, your findings and your observations. Findings are problems only: something wrong, missing or confusing. Each one has its kind, symptom (chosen from the list in the tool), title, the steps that show it, " +
 		"whether you measured it or inferred it and, when it is about one control, that control's @number. Observations are things that worked and neutral notes, each with the steps that show it. " +
 		"A finding: \"The search box has no label, so a screen reader user cannot tell what it is for.\" An observation: \"The home page accessibility check found no violations.\" " +
 		"Never report something that worked as a finding. Say in goal_met whether you did what you came to do.\n")
@@ -861,9 +892,8 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 		rec.Observations = RecordObservations(*finish)
 		rec.Scenario.GoalMet = finish.GoalMet
 	}
-	// The harness files this finding, not the model, so a page that talks the model out of reporting
-	// anything cannot hide that it tried.
-	rec.Findings = r.addInjectionFinding(rec.Findings, loc)
+	// Suspected injection is in the events for the operator and is never a finding: the detector also fires
+	// on ordinary text, and a site owner cannot act on a guess about what the page meant.
 	rec.Events = r.events
 	rec.Usage.CostUSD = price.Cost(rec.Provider.Model, rec.Usage.InputTokens, rec.Usage.CachedInputTokens, rec.Usage.OutputTokens)
 	return rec
@@ -937,7 +967,36 @@ func (r *run) target() record.Target {
 	if t.Commit == "" && r.build != "" {
 		t.Commit, t.BuildHash = r.build, r.build
 	}
+	t.Tech, t.Journeys, t.TechError = r.tech, r.journeys, r.techErr
 	return t
+}
+
+// detectTech reads what the site is built with from the first page, for the record. It never stops the run.
+func (r *run) detectTech(ctx context.Context) {
+	prints := tech.Own
+	if extra, err := tech.FromEnv(); err != nil {
+		r.techErr = strings.SplitN(err.Error(), "\n", 2)[0]
+	} else if len(extra) > 0 {
+		prints = append(slices.Clone(tech.Own), extra...)
+	}
+	tctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	found, err := tech.Detect(tctx, r.page.Conn(), r.page.Context(), prints)
+	if err != nil {
+		r.techErr = strings.SplitN(err.Error(), "\n", 2)[0]
+		return
+	}
+	for _, f := range found {
+		r.tech = append(r.tech, record.Tech{Name: f.Name, Category: f.Category, Source: f.Source, Evidence: f.Evidence})
+	}
+	r.journeys = tech.Journeys(found)
+	if len(found) > 0 {
+		names := make([]string, len(found))
+		for i, f := range found {
+			names[i] = f.Name
+		}
+		fmt.Fprintf(r.log, "tech: %s; journeys: %s\n", strings.Join(names, ", "), strings.Join(r.journeys, ", "))
+	}
 }
 
 // dimensions records what varied for this run. The engine emulates the device, the zoom, the text size and the persona's
@@ -975,4 +1034,11 @@ func CountRepeats(dir, batch, persona, scenario, model, self string) int {
 		}
 	}
 	return n
+}
+
+// readsAloud says whether each look carries what a screen reader says: for a persona that gets no screenshots,
+// whatever else it may not do. AT names one modality, so a persona that can neither click nor see the screen is
+// keyboard-only there, but it still works without seeing the page.
+func readsAloud(p *cast.Persona) bool {
+	return !p.Allows("screenshot")
 }

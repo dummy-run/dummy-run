@@ -1,0 +1,557 @@
+# How to fix each rule that Dummy Run's own checks report. The report joins an entry to every finding with the same
+# rule ID. Keep each step to one action a person can take, and say who usually takes it: content, design or
+# development. Sources are the W3C or GOV.UK pages the advice follows.
+
+- rule: dummyrun-reflow
+  owner: development
+  summary: Let the page fit a narrow window without scrolling sideways.
+  steps:
+    - Find the element named in the finding and give it a flexible width, such as max-width 100%, in place of a fixed one.
+    - Let long words, links and code wrap, for example with overflow-wrap anywhere.
+    - Let wide tables and diagrams scroll inside their own box, so the rest of the page still fits.
+  example:
+    before: ".panel { width: 960px; }"
+    after: ".panel { max-width: 100%; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/reflow.html
+
+- rule: dummyrun-overlap
+  owner: development
+  summary: Stop one control drawing on top of another control's text.
+  steps:
+    - Remove fixed heights and widths from the controls named in the finding, so they grow with their text.
+    - Swap absolute positioning for normal flow, flexbox or grid where the content can grow.
+    - Check again with text at 200 percent.
+  example:
+    before: ".card { height: 120px; overflow: visible; }"
+    after: ".card { min-height: 120px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html
+
+- rule: dummyrun-clipped-text
+  owner: development
+  summary: Stop text being cut off when it gets bigger.
+  steps:
+    - Remove fixed heights and overflow hidden from the box named in the finding.
+    - Use min-height in place of height, so the box can grow.
+    - Check again with text at 200 percent.
+  example:
+    before: ".label { height: 1.2em; overflow: hidden; }"
+    after: ".label { min-height: 1.2em; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html
+
+- rule: dummyrun-target-size
+  owner: design
+  summary: Make each control at least 24 by 24 CSS pixels, or leave room round a smaller one.
+  steps:
+    - Give the control named in the finding a width and height of at least 24 CSS pixels, with padding if the icon must stay small.
+    - If it has to stay small, leave enough space round it that a 24 pixel circle centred on it overlaps no other control and no other small control's circle.
+    - Inline links in a sentence, and controls whose size the browser sets, are exceptions and need no change.
+  example:
+    before: ".close { width: 16px; height: 16px; }"
+    after: ".close { display: inline-block; min-width: 24px; min-height: 24px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html
+
+- rule: dummyrun-focus-obscured
+  owner: development
+  summary: Keep a control in view when it gets keyboard focus, so a sticky header or banner never hides it completely.
+  steps:
+    - Set scroll-padding-top on the page to the height of the sticky header named in the finding, so the browser scrolls focused controls clear of it.
+    - Do the same at the bottom with scroll-padding-bottom for a sticky footer or a cookie banner.
+    - Check by pressing Tab and Shift and Tab through the page with the header in place.
+  example:
+    before: "header { position: sticky; top: 0; height: 80px; }"
+    after: "html { scroll-padding-top: 88px; } header { position: sticky; top: 0; height: 80px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html
+
+- rule: dummyrun-focus-not-visible
+  owner: design
+  summary: Show clearly which control has keyboard focus.
+  steps:
+    - Remove outline none from the control named in the finding, or replace it with a focus style of your own.
+    - Use the focus-visible selector, so the style shows for keyboard users without changing how a mouse click looks.
+    - Make the indicator contrast with the colours on both sides of it.
+  example:
+    before: "button:focus { outline: none; }"
+    after: "button:focus-visible { outline: 3px solid #0b0c0c; outline-offset: 2px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+    - https://design-system.service.gov.uk/get-started/focus-states/
+
+- rule: dummyrun-focus-low-contrast
+  owner: design
+  summary: Make the focus indicator stand out from the colours around it.
+  steps:
+    - Use a focus colour with a contrast ratio of at least 3:1 against the background next to the control and against the control itself.
+    - A pale grey outline or a slight change of background colour isn't enough. A solid outline of 2 pixels or more in a dark or strong colour usually is.
+    - Check it in every colour scheme your site has.
+  example:
+    before: "button:focus-visible { outline: 2px solid #e6e6e6; }"
+    after: "button:focus-visible { outline: 3px solid #0b0c0c; outline-offset: 2px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+    - https://design-system.service.gov.uk/get-started/focus-states/
+
+- rule: dummyrun-focus-appearance
+  owner: design
+  summary: Make the focus indicator at least as big as a 2 pixel line round the control.
+  steps:
+    - Use an outline or border of at least 2 CSS pixels all the way round, rather than a 1 pixel line or an underline.
+    - Keep the contrast between the focused and unfocused colours at 3:1 or more.
+  example:
+    before: "a:focus-visible { outline: 1px solid #0b0c0c; }"
+    after: "a:focus-visible { outline: 3px solid #0b0c0c; outline-offset: 2px; }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html
+
+- rule: dummyrun-focus-hidden
+  owner: development
+  summary: Do not let keyboard focus land on something that cannot be seen.
+  steps:
+    - If the element named in the finding should be hidden, hide it from everyone, for example with the hidden attribute or display none, so Tab skips it.
+    - If it is off screen on purpose, such as a skip link, move it into view when it gets focus.
+    - For a closed menu or drawer, set inert on it while it is closed, and remove inert when it opens.
+  example:
+    before: "<nav class=\"drawer closed\" style=\"left:-300px\">…</nav>"
+    after: "<nav class=\"drawer closed\" style=\"left:-300px\" inert>…</nav>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+
+- rule: dummyrun-keyboard-trap
+  owner: development
+  summary: Let keyboard users leave every part of the page.
+  steps:
+    - Find the script that moves focus between the elements named in the finding.
+    - Make Tab and Shift Tab leave the group at its ends, or make Escape close it and return focus to the control that opened it.
+    - A modal dialog may keep focus inside while it is open, but it must have a way to close from the keyboard.
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html
+
+- rule: dummyrun-skip-link-broken
+  owner: development
+  summary: Make the skip link go to the main content.
+  steps:
+    - Give the main content an id that matches the skip link's href, for example main-content.
+    - Make sure the target is shown on the page, so focus has somewhere to land.
+    - If the target is not a link or control, add tabindex -1 so it can take focus.
+  example:
+    before: "<a href=\"#main\">Skip to content</a> ... <main>"
+    after: "<a href=\"#main\">Skip to content</a> ... <main id=\"main\" tabindex=\"-1\">"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Techniques/general/G1
+    - https://design-system.service.gov.uk/components/skip-link/
+
+- rule: dummyrun-mouse-only
+  owner: development
+  summary: Make the control work from the keyboard as it does with a mouse.
+  steps:
+    - If the element named in the finding does something on the page, make it a real button, which takes focus and responds to Enter and Space on its own. If it goes to another page, make it a link, which responds to Enter.
+    - If it must stay a custom element, give it a role, tabindex 0 and a keydown handler for Enter and Space that does what the click does.
+    - Run the action on click, not on mousedown, so a key press triggers it too.
+  example:
+    before: '<div class="card" onclick="showPrices()">Show prices</div>'
+    after: '<button type="button" class="card" onclick="showPrices()">Show prices</button>'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
+
+- rule: dummyrun-slow-response
+  owner: development
+  summary: Make the page respond to the control within a fifth of a second.
+  steps:
+    - Look at which part of the time the finding names. Handlers that run long are the usual cause.
+    - Show a response first, such as the menu opening or a busy state, and do the slow work after the next frame.
+    - Break long scripts into smaller pieces, or move the work off the main thread, so a press is never kept waiting.
+  sources:
+    - https://web.dev/articles/inp
+    - https://web.dev/articles/optimize-inp
+
+- rule: dummyrun-skip-link-no-focus
+  owner: development
+  summary: Let the skip link move keyboard focus to the main content.
+  steps:
+    - Remove any script that stops the skip link's default action.
+    - Give the target tabindex minus 1 if a script moves focus to it, so it can take focus.
+    - Check by pressing Tab, Enter and Tab again; focus should land in the main content.
+  example:
+    before: "skip.addEventListener('click', (e) => e.preventDefault());"
+    after: '<a href="#main">Skip to content</a> ... <main id="main" tabindex="-1">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html
+
+- rule: dummyrun-label-in-name
+  owner: development
+  summary: Start a control's accessible name with the words it shows.
+  steps:
+    - Compare the visible words of the control named in the finding with its aria-label or aria-labelledby.
+    - Change the name so it contains the visible words, best of all at the start, so a person using voice control can say what they see.
+    - If the visible words are enough on their own, remove the aria-label.
+  example:
+    before: "<button aria-label=\"Submit form\">Send</button>"
+    after: "<button>Send</button>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html
+
+- rule: dummyrun-autocomplete-missing
+  owner: development
+  summary: Tell the browser what each personal-details field is for, so it can fill it in.
+  steps:
+    - Add an autocomplete attribute with the matching field name, such as email, tel, given-name, family-name or postal-code.
+    - Replace off or on with a field name. Off asks the browser not to fill the field in. On lets it guess, but only a field name tells browsers and assistive technology what the field is for.
+    - Leave fields that ask for someone else's details without one.
+  example:
+    before: "<input type=\"email\" name=\"email\">"
+    after: "<input type=\"email\" name=\"email\" autocomplete=\"email\">"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html
+    - https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill
+
+- rule: dummyrun-aria-support
+  owner: development
+  summary: Check the role or ARIA attribute with the screen readers your visitors use, or use a native element.
+  steps:
+    - Look up the role or attribute on the ARIA-AT reports to see which screen readers and browsers fall short and on which tests.
+    - Where a native HTML element does the same job, such as a button, a select or a details element, use it in place of the ARIA pattern.
+    - If you keep the pattern, follow the ARIA Authoring Practices example for it closely and test it with the screen readers named in the finding.
+  sources:
+    - https://aria-at.w3.org/reports
+    - https://www.w3.org/WAI/ARIA/apg/patterns/
+
+- rule: dummyrun-contrast-over-image
+  owner: design
+  summary: Make text over a picture readable against the whole picture behind it.
+  steps:
+    - Put a solid or semi-transparent panel behind the text named in the finding.
+    - Or darken or lighten the picture behind the text with an overlay until the text passes 4.5 to 1, or 3 to 1 for large text.
+    - Or move the text off the picture.
+  example:
+    before: ".hero h1 { color: #fff; }"
+    after: ".hero h1 { color: #fff; background: rgba(0, 0, 0, 0.7); }"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+
+- rule: dummyrun-consent-no-reject
+  owner: content
+  summary: Give the cookie banner a reject option that is as easy to use as accept.
+  steps:
+    - Add a button that rejects non-essential cookies on the banner's first layer, next to the accept button.
+    - Give both buttons the same size and the same prominence.
+    - Check the banner can be used with a keyboard and a screen reader.
+  sources:
+    - https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/cookies-and-similar-technologies/
+
+- rule: dummyrun-plain-reading-ease
+  owner: content
+  summary: Make the main text easier to read.
+  steps:
+    - Use shorter sentences and everyday words.
+    - Put the most important point first.
+    - Break long passages up with headings and lists.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/
+
+- rule: dummyrun-plain-reading-grade
+  owner: content
+  summary: Bring the reading age of the main text down.
+  steps:
+    - Replace long words with short ones where they mean the same.
+    - Split sentences that carry more than one idea.
+    - Explain any term your readers might not know the first time you use it.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/
+
+- rule: dummyrun-plain-long-sentence
+  owner: content
+  summary: Split long sentences.
+  steps:
+    - Find the sentence named in the finding and split it where it changes subject.
+    - Aim for most sentences to be 25 words or fewer.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#sentence-length
+
+- rule: dummyrun-plain-words-to-avoid
+  owner: content
+  summary: Swap the flagged word for a plainer one.
+  steps:
+    - Replace the word named in the finding with the everyday word the finding suggests.
+    - Say what you are doing in place of abstract words such as facilitate or empower.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#words-to-avoid
+
+- rule: dummyrun-plain-latin
+  owner: content
+  summary: Replace Latin phrases with plain English.
+  steps:
+    - Write for example in place of e.g., that is in place of i.e., and and so on in place of etc.
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#eg-etc-and-ie
+
+- rule: dummyrun-content-vague-link
+  owner: content
+  summary: Write link text that says where the link goes.
+  steps:
+    - Replace words such as read more or click here with the name of the page or what the link does.
+    - Make sure the link still makes sense when it is read out on its own, in a list of all the links on the page.
+    - If the design needs a short link, add the rest of the words in text that is hidden visually but read out.
+  example:
+    before: "<a href=\"/opening-times\">Read more</a>"
+    after: "<a href=\"/opening-times\">Opening times</a>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+    - https://www.gov.uk/guidance/content-design/links
+
+- rule: dummyrun-content-url-link
+  owner: content
+  summary: Use the name of the page as the link text, not its address.
+  steps:
+    - Replace the web address with the name of the page or site it goes to.
+    - Keep the address in the text only when people need to type or copy it, such as on a printed page.
+  example:
+    before: "<a href=\"https://example.com/help/contact\">https://example.com/help/contact</a>"
+    after: "<a href=\"https://example.com/help/contact\">Contact us</a>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+
+- rule: dummyrun-content-new-window
+  owner: content
+  summary: Say when a link opens in a new tab, or let it open in the same one.
+  steps:
+    - Decide whether the link needs a new tab at all. Most links don't.
+    - If it does, add opens in a new tab to the link text.
+  example:
+    before: "<a href=\"/terms\" target=\"_blank\">Terms</a>"
+    after: "<a href=\"/terms\" target=\"_blank\">Terms (opens in a new tab)</a>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/change-on-request.html
+    - https://design-system.service.gov.uk/styles/links/#opening-links-in-a-new-tab
+
+- rule: dummyrun-content-document-link
+  owner: content
+  summary: Say what kind of file a link downloads, and how big it is.
+  steps:
+    - Add the file type and size to the link text, such as PDF, 2 MB.
+    - Think about publishing the content as a web page, which is easier to read on a phone and with assistive technology.
+  example:
+    before: "<a href=\"/report.pdf\">Annual report</a>"
+    after: "<a href=\"/report.pdf\">Annual report (PDF, 2 MB)</a>"
+  sources:
+    - https://www.gov.uk/guidance/content-design/links
+    - https://www.gov.uk/guidance/how-to-publish-on-gov-uk/accessible-pdfs
+
+- rule: dummyrun-content-alt-file-name
+  owner: content
+  summary: Replace a file name in alt text with what the image shows.
+  steps:
+    - Write what the image tells a reader who can see it, in a few words.
+    - If the image is only decoration, give it an empty alt attribute so screen readers skip it.
+    - Check your content system doesn't fill in alt text from the file name by itself.
+  example:
+    before: "<img src=\"pier.jpg\" alt=\"IMG_2041.jpg\">"
+    after: "<img src=\"pier.jpg\" alt=\"The pier at sunset\">"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html
+    - https://www.w3.org/WAI/tutorials/images/decision-tree/
+
+- rule: dummyrun-content-alt-redundant
+  owner: content
+  summary: Start alt text with what the image shows.
+  steps:
+    - Remove image of, picture of or photo of from the start of the alt text, since a screen reader already says it is an image.
+    - Keep words such as painting or diagram when the kind of image matters to the reader.
+  example:
+    before: "<img src=\"dog.jpg\" alt=\"Image of a dog on a beach\">"
+    after: "<img src=\"dog.jpg\" alt=\"A dog on a beach\">"
+  sources:
+    - https://www.w3.org/WAI/tutorials/images/tips/
+
+- rule: dummyrun-content-alt-long
+  owner: content
+  summary: Keep alt text short and put a long description in the page.
+  steps:
+    - Cut the alt text down to what a reader needs to follow the page.
+    - For a chart or diagram, give the full details in the text or a table next to it, and say so in the alt text.
+  sources:
+    - https://www.w3.org/WAI/tutorials/images/complex/
+
+- rule: dummyrun-content-fake-heading
+  owner: content
+  summary: Mark up text that works as a heading as a heading.
+  steps:
+    - Change the bold paragraph to a heading of the right level, such as h2 or h3.
+    - Style the heading to look the way you want, rather than choosing a level for its size.
+    - If the text isn't a heading, leave it as it is.
+  example:
+    before: "<p><strong>Opening times</strong></p>"
+    after: "<h2>Opening times</h2>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html
+    - https://www.w3.org/WAI/tutorials/page-structure/headings/
+
+- rule: dummyrun-content-all-caps
+  owner: content
+  summary: Write text in sentence case, not capitals.
+  steps:
+    - Rewrite the text in sentence case. Capitals are harder to read, and some screen readers read them letter by letter.
+    - If you want capitals for the look, use text-transform in CSS with sentence case in the page, and keep it to a few words.
+  example:
+    before: "<p>PLEASE READ THESE TERMS CAREFULLY</p>"
+    after: "<p>Please read these terms carefully</p>"
+  sources:
+    - https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/#capitalisation
+
+- rule: dummyrun-content-underline
+  owner: design
+  summary: Keep underlines for links.
+  steps:
+    - Use bold or a heading for emphasis, not an underline.
+    - Check that every link is still underlined, or marked some other way than colour alone.
+  example:
+    before: "<u>Important</u>"
+    after: "<strong>Important</strong>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html
+
+- rule: dummyrun-html-broken-reference
+  owner: development
+  summary: Point each ID reference at an element that exists and can take it.
+  steps:
+    - Find the attribute named in the finding, such as aria-labelledby, aria-describedby, aria-controls or a label's for.
+    - Give it the ID of an element on the page, or add that ID to the element it is meant to name.
+    - For a label, point for at the form field itself, not at a wrapper or a hidden field.
+  example:
+    before: '<label for="email-field">Email</label> <input id="email">'
+    after: '<label for="email">Email</label> <input id="email">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html
+
+- rule: dummyrun-html-duplicate-id
+  owner: development
+  summary: Give every element its own ID.
+  steps:
+    - Find the ID named in the finding and rename all but one of the elements that use it.
+    - Update any label, aria attribute or link that points at the renamed elements.
+    - If a script or template adds the element more than once, have it make a new ID each time.
+  example:
+    before: '<input id="name"> ... <input id="name">'
+    after: '<input id="first-name"> ... <input id="last-name">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html
+
+- rule: dummyrun-html-nested-interactive
+  owner: development
+  summary: Keep each control separate, never inside another control.
+  steps:
+    - Take the inner link or button out of the outer one named in the finding.
+    - If the whole area should be clickable, make one control and style it, rather than nesting two.
+  example:
+    before: '<button><a href="/basket">Basket</a></button>'
+    after: '<a class="button" href="/basket">Basket</a>'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html
+
+- rule: dummyrun-html-aria
+  owner: development
+  summary: Use only roles and ARIA attributes the element can have, with values they can take.
+  steps:
+    - Check the spelling of the role or attribute named in the finding.
+    - Check the value is one the attribute allows, such as true or false for aria-checked.
+    - Where a native element does the job, such as a button or a checkbox, use it and remove the role.
+  example:
+    before: '<div role="btn-primary">Save</div>'
+    after: '<button type="button">Save</button>'
+  sources:
+    - https://www.w3.org/TR/html-aria/
+
+- rule: dummyrun-html-structure
+  owner: development
+  summary: Write lists, tables and nested tags so the browser builds the structure you meant.
+  steps:
+    - Put only li elements directly inside ul and ol, and only rows and cells inside a table.
+    - Close tags in the order you opened them.
+    - Check the page again, so the structure screen readers report matches the one you wrote.
+  example:
+    before: "<ul><div>Item</div></ul>"
+    after: "<ul><li>Item</li></ul>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html
+
+- rule: dummyrun-html-img-alt
+  owner: content
+  summary: Give every image an alt attribute.
+  steps:
+    - Describe what the image tells the reader in its alt text.
+    - If the image is only decoration, give it an empty alt attribute.
+  example:
+    before: '<img src="chart.png">'
+    after: '<img src="chart.png" alt="Sales rose by a third in 2025">'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html
+
+- rule: dummyrun-lighthouse-
+  owner: development
+  summary: Fix the problem Lighthouse reports.
+  steps:
+    - Read Lighthouse's title and the element in the finding.
+    - Follow the guidance linked from the finding.
+    - Run the sweep again with --lighthouse to check the audit passes.
+  sources:
+    - https://developer.chrome.com/docs/lighthouse/
+
+- rule: dummyrun-journey-keyboard
+  owner: development
+  summary: Make the journey work from the keyboard as well as the mouse.
+  steps:
+    - Start from the top of the page and press Tab until you reach the control the finding names.
+    - If Tab never reaches it, use a real link or button, or give a custom control tabindex 0.
+    - If it gets focus but Enter does nothing, use a button, or handle the keydown for Enter and Space as well as the click.
+    - Run the sweep again with --journeys to check the keyboard verdict is now pass.
+  example:
+    before: '<button onmousedown="openMenu()">Menu</button>'
+    after: '<button onclick="openMenu()">Menu</button>'
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html
+
+- rule: dummyrun-pdf-ua
+  owner: content
+  summary: Make the PDF accessible, or publish the content as a web page.
+  steps:
+    - Ask whether the PDF needs to be a PDF. A web page is easier to read on a phone and with assistive technology.
+    - If it does, export it from the source document with tags turned on, and set the document title and language.
+    - Check the reading order, headings, alt text and table headers in a PDF editor, then check the file again.
+  sources:
+    - https://www.gov.uk/guidance/how-to-publish-on-gov-uk/accessible-pdfs
+    - https://docs.verapdf.org/validation/
+
+- rule: dummyrun-broken-link
+  owner: content
+  summary: Fix or remove links that go nowhere.
+  steps:
+    - Open the link named in the finding and check the address and the status code.
+    - Point the link at the page's new address, or remove the link if the page has gone.
+    - If the page moved on your own site, add a redirect from the old address too.
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html
+
+- rule: dummyrun-failure-silent
+  owner: development
+  summary: Tell everyone when the page's data fails to load, not only people who can see it.
+  steps:
+    - Show an error message that says what failed and what to do next, such as try again later.
+    - Put the message in an element with role="alert", or in a live region that is on the page before the message is added, so screen readers read it out.
+    - Keep anything already on the page usable, and offer a way to try again.
+  example:
+    before: "<div id=\"msg\"></div> <script>fetch(\"/api/items\").catch(() => {})</script>"
+    after: "<div id=\"msg\" role=\"alert\"></div> <script>fetch(\"/api/items\").catch(() => { msg.textContent = \"We couldn't load the items. Try again later.\" })</script>"
+  sources:
+    - https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html
+    - https://www.w3.org/WAI/WCAG22/Techniques/aria/ARIA19
+
+- rule: dummyrun-engines-
+  owner: development
+  summary: Fix the problem two or more rule engines agree on.
+  steps:
+    - Read each engine's message in the finding. They describe the same element against the same WCAG criterion.
+    - Follow the guidance for that criterion, linked from the finding.
+    - Run the sweep again to check the engines no longer agree.

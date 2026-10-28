@@ -74,7 +74,10 @@ const (
 	EventSuspectedInjection = "suspected_injection"
 	EventOffOriginBlocked   = "off_origin_blocked"
 	EventUncitedFinding     = "uncited_finding"
-	EventProviderFiltered   = "provider_filtered"
+	// EventHarnessLimitFinding is a finding the engine dropped because every step it cites shows the test's own
+	// limits (a blocked request, a failed tool, a page it could not read), not the site.
+	EventHarnessLimitFinding = "harness_limit_finding"
+	EventProviderFiltered    = "provider_filtered"
 )
 
 // Event is one thing the engine noticed. For a suspected injection Detail is text from the page, so a
@@ -153,6 +156,19 @@ type Target struct {
 	Identify bool `json:"identify,omitempty"`
 	// RespectRobots is true when the run honoured the target's robots.txt.
 	RespectRobots bool `json:"respect_robots,omitempty"`
+	// Tech is what the site is built with, read from the first page, and Journeys the journeys that suggests.
+	// TechError says why it could not be read.
+	Tech      []Tech   `json:"tech,omitempty"`
+	Journeys  []string `json:"journeys,omitempty"`
+	TechError string   `json:"tech_error,omitempty"`
+}
+
+// Tech is one technology the first page showed, with the marker that showed it.
+type Tech struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+	Source   string `json:"source"`
+	Evidence string `json:"evidence"`
 }
 
 // Provider describes the model that played the persona.
@@ -242,7 +258,54 @@ type Finding struct {
 	Reviewer   string     `json:"reviewer,omitempty"`
 	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
 	Reason     string     `json:"reason,omitempty"`
+	// Inputs are the observable facts the engine recorded about the finding. Severity is a rule over them and
+	// confidence is a table lookup on them, so neither comes from the model. Nil in a record from before inputs.
+	Inputs *FindingInputs `json:"inputs,omitempty"`
 }
+
+// FindingInputs are the facts that decide a finding's severity and confidence. The engine writes them; the
+// model never does.
+type FindingInputs struct {
+	// EvidenceKind says what the finding rests on: measurement, ax-fact, engine-rule, task-verdict or model-only.
+	EvidenceKind string `json:"evidence_kind"`
+	// Engines are the rule engines that report the problem, by short name: axe, ibm, htmlcs, alfa. Empty when
+	// no engine does.
+	Engines []string `json:"engines"`
+	// Check is the ID of the check that produced the finding: an axe rule, a dummyrun-* rule, or the symptom
+	// when only the persona reports it.
+	Check string `json:"check"`
+	// OnJourney is true when the finding sits on a journey a persona was trying to complete.
+	OnJourney bool `json:"on_journey"`
+	// Reproduced says in how many of the runs that could have met the problem it appeared. Nil when there
+	// was only one such run.
+	Reproduced *Reproduced `json:"reproduced,omitempty"`
+}
+
+// Evidence is the evidence kind, with model-only standing in for a missing value.
+func (in FindingInputs) Evidence() string {
+	if in.EvidenceKind == "" {
+		return EvidenceModelOnly
+	}
+	return in.EvidenceKind
+}
+
+// Reproduced counts the runs that found a problem out of those that visited where it is.
+type Reproduced struct {
+	Runs int `json:"runs"`
+	Of   int `json:"of"`
+}
+
+// Evidence kinds, strongest first.
+const (
+	EvidenceMeasurement = "measurement"  // a number measured in the browser, such as a target's size
+	EvidenceAxFact      = "ax-fact"      // a fact read from the accessibility tree, such as a missing name
+	EvidenceEngineRule  = "engine-rule"  // a rule engine's result
+	EvidenceTaskVerdict = "task-verdict" // a task the engine tried and could not complete
+	EvidenceModelOnly   = "model-only"   // the persona's own report, with no check behind it
+)
+
+// EvidenceKinds lists the evidence kinds the schema allows.
+var EvidenceKinds = []string{EvidenceMeasurement, EvidenceAxFact, EvidenceEngineRule, EvidenceTaskVerdict, EvidenceModelOnly}
 
 // Usage is the model usage for the run.
 type Usage struct {

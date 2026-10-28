@@ -144,6 +144,7 @@ func renderCLI(bins *repo.Binaries, root string) (string, error) {
 		{"dummyrun coverage", "Count what a set of run records covers, with the limits of each number. See [COVERAGE.md](COVERAGE.md).", bins.DummyRun, root, []string{"coverage", "-h"}},
 		{"dummyrun report", "Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md) and [BADGES.md](BADGES.md).", bins.DummyRun, root, []string{"report", "-h"}},
 		{"dummyrun review", "Confirm or reject the pending findings in run records. Only confirmed findings reach a report. See [ENGINE.md](ENGINE.md).", bins.DummyRun, root, []string{"review", "-h"}},
+		{"dummyrun calibrate", "Rebuild the confidence table from labelled findings and report how well its bands match them. See [REPORT.md](REPORT.md).", bins.DummyRun, root, []string{"calibrate", "-h"}},
 		{"dummyrun a11y", "Check pages for WCAG 2.2 A and AA failures with no model. `dummyrun audit a11y` is the same command.", bins.DummyRun, root, []string{"a11y", "-h"}},
 		{"dummyrun doctor", "List browsers and profile directories that an earlier run left behind, and stop them with `--stop`.", bins.DummyRun, root, []string{"doctor", "-h"}},
 		{"dummyrun session", "Sign in once through a target's login form and save the session for reuse. See [ENGINE.md](ENGINE.md).", bins.DummyRun, root, []string{"session", "-h"}},

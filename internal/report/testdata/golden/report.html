@@ -64,6 +64,8 @@ h4 { font-size: 1.15rem; }
 h5 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 0.4rem; }
 p, ul, ol, dl, table, figure { margin: 0 0 1rem; }
 p, li { max-width: 68ch; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+pre code { display: block; padding: 0.5em 0.75em; }
 code { font-family: var(--font-mono); font-size: 0.88em; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
 .muted { color: var(--muted); }
 section { padding: 3rem 0 0.5rem; }
@@ -108,6 +110,9 @@ dt.k, .cover-meta dt { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0
 .badge { display: inline-block; border: 1.5px solid; border-radius: 6px; padding: 0 0.55rem; font-size: 0.875rem; font-weight: 700; line-height: 1.6; margin: 0 0.35rem 0.25rem 0; vertical-align: middle; }
 .st-confirmed { background: var(--good-bg); color: var(--good-ink); border-color: var(--good-ink); }
 .st-not-reviewed { background: transparent; color: var(--ink); border: 1.5px dashed var(--muted); }
+ 
+.cf-high, .cf-medium, .cf-low, .cf-unknown { background: transparent; color: var(--ink); border-color: var(--muted); }
+.cf-low, .cf-unknown { border-style: dashed; }
 .bl-new { background: var(--info-bg); color: var(--info-ink); border-color: var(--info); }
 .bl-still-present, .bl-fixed { background: var(--panel); color: var(--ink); border-color: var(--muted); }
 
@@ -337,13 +342,14 @@ footer p { margin: 0 0 0.4rem; }
 <div class="group-head"><h3 id="g-major">Major</h3><span class="count">2 findings</span></div>
 
 <article class="finding f-major" id="f-0" aria-labelledby="f-0-t">
-<p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
+<p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span><span class="badge cf-low">Low confidence</span></p>
 <h4 id="f-0-t">A contributor can open the rates table for all writers</h4>
 <p class="f-where">The Payments page, the Rates link <code>/payments</code></p>
 <dl class="facts">
 <dt>What went wrong</dt><dd>Let in when it should have been blocked</dd>
 <dt>Who hit it</dt><dd>Lin, a contributor, in 1 of 4 runs</dd>
 <dt>Review</dt><dd>Confirmed by example-reviewer on 18 October 2026. Reason: Reproduced on the preview with a contributor account.</dd>
+<dt>How sure</dt><dd>Low confidence. The persona&#39;s own report, with no check behind it, and it happened in 1 of 3 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).</dd>
 </dl>
 <h5>How to reproduce</h5>
 <ol class="steps">
@@ -372,13 +378,14 @@ footer p { margin: 0 0 0.4rem; }
 </article>
 
 <article class="finding f-major" id="f-1" aria-labelledby="f-1-t">
-<p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
+<p class="f-badges"><span class="badge b-major">Major</span><span class="badge st-confirmed">Confirmed by a reviewer</span><span class="badge cf-low">Low confidence</span></p>
 <h4 id="f-1-t">Scheduling an issue for a past date returns a server error</h4>
 <p class="f-where">The Issues page, the Schedule button <code>/issues</code></p>
 <dl class="facts">
 <dt>What went wrong</dt><dd>An error appeared</dd>
 <dt>Who hit it</dt><dd>Ada, an editor, in 1 of 4 runs</dd>
 <dt>Review</dt><dd>Confirmed</dd>
+<dt>How sure</dt><dd>Low confidence. The persona&#39;s own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).</dd>
 </dl>
 <h5>How to reproduce</h5>
 <ol class="steps">
@@ -407,14 +414,16 @@ footer p { margin: 0 0 0.4rem; }
 <div class="group-head"><h3 id="g-minor">Minor</h3><span class="count">1 finding</span></div>
 
 <article class="finding f-minor" id="f-2" aria-labelledby="f-2-t">
-<p class="f-badges"><span class="badge b-minor">Minor</span><span class="badge st-not-reviewed">Not reviewed</span></p>
+<p class="f-badges"><span class="badge b-minor">Minor</span><span class="badge st-not-reviewed">Not reviewed</span><span class="badge cf-low">Low confidence</span></p>
 <h4 id="f-2-t">The hint under the schedule field is too faint to read</h4>
 <p class="f-where">The Issues page, the Schedule form area <code>/issues</code></p>
 <dl class="facts">
 <dt>What went wrong</dt><dd>An automated accessibility check failed (color-contrast)</dd>
 <dt>Who hit it</dt><dd>Ada, an editor, in 1 of 4 runs</dd>
 <dt>WCAG 2.2</dt><dd>1.4.3</dd>
+<dt>EN 301 549</dt><dd>9.1.4.3</dd>
 <dt>Review</dt><dd>Not reviewed. No person has checked this finding.</dd>
+<dt>How sure</dt><dd>Low confidence. The persona&#39;s own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked).</dd>
 <dt>Fix guidance</dt><dd><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">https://dequeuniversity.com/rules/axe/4.13/color-contrast</a></dd>
 </dl>
 <h5>How to reproduce</h5>
@@ -447,13 +456,14 @@ footer p { margin: 0 0 0.4rem; }
 <div class="group-head"><h3 id="g-info">Info</h3><span class="count">1 finding</span></div>
 
 <article class="finding f-info" id="f-3" aria-labelledby="f-3-t">
-<p class="f-badges"><span class="badge b-info">Info</span><span class="badge st-confirmed">Confirmed by a reviewer</span></p>
+<p class="f-badges"><span class="badge b-info">Info</span><span class="badge st-confirmed">Confirmed by a reviewer</span><span class="badge cf-low">Low confidence</span></p>
 <h4 id="f-3-t">The payment status &#39;settled&#39; is unclear to a contributor</h4>
 <p class="f-where">The Payments page, the Payment status area <code>/payments</code></p>
 <dl class="facts">
 <dt>What went wrong</dt><dd>The name does not say what it does</dd>
 <dt>Who hit it</dt><dd>Lin, a contributor, in 3 of 4 runs</dd>
 <dt>Review</dt><dd>Confirmed</dd>
+<dt>How sure</dt><dd>Low confidence. The persona&#39;s own report, with no check behind it, and it happened in all 3 runs.</dd>
 </dl>
 <h5>How to reproduce</h5>
 <ol class="steps">
@@ -489,20 +499,24 @@ footer p { margin: 0 0 0.4rem; }
 <div class="table-wrap" role="region" tabindex="0" aria-label="Rules that failed">
 <table>
 <caption>Rules that failed</caption>
-<thead><tr><th scope="col">Rule</th><th scope="col">Impact</th><th scope="col">WCAG 2.2</th><th scope="col" class="num">Elements</th><th scope="col">Fix guidance</th></tr></thead>
+<thead><tr><th scope="col">Rule</th><th scope="col">Severity</th><th scope="col">Impact</th><th scope="col">WCAG 2.2 and EN 301 549</th><th scope="col" class="num">Elements</th><th scope="col">How sure</th><th scope="col">Fix guidance</th></tr></thead>
 <tbody>
 <tr>
 <th scope="row"><code>button-name</code><br><span class="muted help">Buttons must have discernible text</span></th>
-<td><span class="badge b-blocker">Critical</span></td>
-<td>4.1.2</td>
+<td><span class="badge b-blocker">Blocker</span></td>
+<td>Critical</td>
+<td>4.1.2<br><span class="muted help">EN 301 549 9.4.1.2</span></td>
 <td class="num">1</td>
+<td>High<br><span class="muted help">axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).</span></td>
 <td><a href="https://dequeuniversity.com/rules/axe/4.13/button-name">How to fix button-name</a></td>
 </tr>
 <tr>
 <th scope="row"><code>color-contrast</code><br><span class="muted help">Elements must meet minimum color contrast ratio thresholds</span></th>
-<td><span class="badge b-major">Serious</span></td>
-<td>1.4.3</td>
+<td><span class="badge b-major">Major</span></td>
+<td>Serious</td>
+<td>1.4.3<br><span class="muted help">EN 301 549 9.1.4.3</span></td>
 <td class="num">1</td>
+<td>High<br><span class="muted help">axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked).</span></td>
 <td><a href="https://dequeuniversity.com/rules/axe/4.13/color-contrast">How to fix color-contrast</a></td>
 </tr>
 </tbody>
@@ -532,6 +546,7 @@ footer p { margin: 0 0 0.4rem; }
 </tbody>
 </table>
 </div>
+
 
 
 <h3 class="sub">Pages that could not be tested</h3>
@@ -664,3 +679,4 @@ footer p { margin: 0 0 0.4rem; }
 </div>
 </body>
 </html>
+
