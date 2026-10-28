@@ -809,8 +809,11 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 		switch r.URL.Path {
 		case "/robots.txt":
 			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
-		case "/":
+		case "/", "/tt":
 			w.Header().Set("Content-Type", "text/html")
+			if r.URL.Path == "/tt" {
+				w.Header().Set("Content-Security-Policy", "require-trusted-types-for 'script'")
+			}
 			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body style="margin:0"><main><h1>Shop</h1>
 <div id="spot" style="position:absolute;left:0;top:100px;width:200px;height:40px"></div>
 </main></body></html>`)
@@ -903,8 +906,9 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 		// the page has keeps its name, and markup with nothing to change is left as the page wrote it. An object
 		// whose toString changes between reads gets built from the markup the guard read. A shadow root's own
 		// setHTMLUnsafe and a root nested in another are covered, and so are area and input targets. A Trusted Types
-		// value goes through as the page wrote it, a gap ENGINE.md names. A page that replaces what the guard calls
-		// still has its new window put right.
+		// value goes through as the page wrote it, a gap ENGINE.md names. An SVG element named template doesn't stop
+		// the guard reaching the root after it. A whole document keeps its doctype, language, title and body class.
+		// A page that replaces what the guard calls still has its new window put right.
 		t.Run(browser+"/markup", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
@@ -951,10 +955,18 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 	} else {
 		out.push('_blank', '_blank');
 	}
+	const svg = document.createElement('div');
+	svg.setHTMLUnsafe('<svg><template></template></svg><shop-panel><template shadowrootmode="open"><a id="v" target="_blank" href="/v">V</a></template></shop-panel>');
+	out.push(svg.querySelector('shop-panel').shadowRoot.getElementById('v').target);
+	const whole = Document.parseHTMLUnsafe('<!DOCTYPE html><html lang="cy"><head><title>Siop</title></head><body class="b"><shop-panel><template shadowrootmode="open"><a id="d" target="_blank" href="/d">D</a></template></shop-panel></body></html>');
+	out.push(whole.documentElement.lang, whole.title, whole.body.className, whole.compatMode, whole.querySelector('shop-panel').shadowRoot.getElementById('d').target);
 	RegExp.prototype.test = function () { return false; };
 	String.prototype.toLowerCase = function () { return '_self'; };
 	Element.prototype.getAttribute = function () { return null; };
 	Object.defineProperty(NodeList.prototype, 'length', { get() { return 0; } });
+	RegExp.prototype.exec = function () { return null; };
+	Array.prototype.forEach = function () {};
+	Array.prototype[Symbol.iterator] = function* () {};
 	const tampered = document.createElement('div');
 	spot.append(tampered);
 	tampered.setHTMLUnsafe('<shop-panel><template shadowrootmode="open"><a id="t" target="_blank" href="/t">T</a></template></shop-panel>');
@@ -963,9 +975,47 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 })()`, &got); err != nil {
 				t.Fatal(err)
 			}
-			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self", "_self", "_blank", "_blank", "_self"}
+			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self", "_self", "_blank", "_blank",
+				"_self", "cy", "Siop", "b", "CSS1Compat", "_self", "_self"}
 			if !slices.Equal(got, want) {
 				t.Errorf("the markup came out as %q, want %q", got, want)
+			}
+		})
+		// On a page that enforces Trusted Types, markup the guard can't read as a plain string fails, as it would
+		// without the guard, and builds no root.
+		t.Run(browser+"/trusted-types", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer b.Close()
+			if err := keepToOneTab(ctx, b.Conn); err != nil {
+				t.Fatal(err)
+			}
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/tt"); err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			if err := b.Conn.EvaluateJSON(ctx, cx, `(() => {
+	if (!window.trustedTypes) return ['none'];
+	const spot = document.getElementById('spot');
+	let thrown = 'nothing';
+	try { spot.setHTMLUnsafe('<shop-panel><template shadowrootmode="closed"><a target="_blank" href="/x">X</a></template></shop-panel>'); } catch (e) { thrown = e.name; }
+	return [thrown, String(spot.childElementCount)];
+})()`, &got); err != nil {
+				t.Fatal(err)
+			}
+			if slices.Equal(got, []string{"none"}) {
+				t.Skipf("%s doesn't support Trusted Types", browser)
+			}
+			if want := []string{"TypeError", "0"}; !slices.Equal(got, want) {
+				t.Errorf("got %q, want %q", got, want)
 			}
 		})
 	}
