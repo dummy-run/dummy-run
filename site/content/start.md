@@ -79,7 +79,8 @@ dummyrun try https://your-site
 
 First Dummy Run reads a few of your pages and works out what kind of site it is and what your visitors come to
 do. A personal site usually gets "who is this, read a post, get in touch", and a shop "find a product, check
-delivery, reach the basket". It only asks about prices when you sell something. Then the persona from the library that fits
+delivery, reach the basket". A plan only asks about prices when you sell something. If planning fails, Alex's
+built-in look-around runs instead. That one checks for a price or a plain statement that there is none. Then the persona from the library that fits
 best, usually Alex, a first-time visitor, tries those things for a few minutes and about 15 steps. The browser blocks every
 request that could change data and every request to another host.
 

@@ -235,10 +235,17 @@ func TestReconRefusesARedirectIntoWhatRobotsDisallows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, p := range rec.Pages {
-		if strings.HasSuffix(p.URL, "/latest") && p.Error == "" {
-			t.Errorf("the redirect into /drafts/ was followed: %+v", p)
+	latest := -1
+	for i, p := range rec.Pages {
+		if strings.HasSuffix(p.URL, "/latest") {
+			latest = i
 		}
+	}
+	if latest < 0 {
+		t.Fatalf("discovery did not find /latest, so the redirect was never tried: %+v", rec.Pages)
+	}
+	if rec.Pages[latest].Error == "" {
+		t.Errorf("the redirect into /drafts/ was followed: %+v", rec.Pages[latest])
 	}
 	if atomic.LoadInt32(&draftHits) != 0 || strings.Contains(rec.Summary("x"), "Secret draft") {
 		t.Errorf("a path robots.txt disallows was read through a redirect")
