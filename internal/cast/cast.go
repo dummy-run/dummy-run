@@ -25,7 +25,7 @@
 // home page."); a Zoom or Text scale value has the line to itself. A value that is not valid
 // is an error, never ignored.
 //
-// A "Site: personal site - people who want to know who Joel is" line says what kind of site this is and who it is
+// A "Site: personal site - people who want to know who the author is" line says what kind of site this is and who it is
 // for. The engine gives it to the self-check, which judges each finding against it. The planner writes it.
 package cast
 
