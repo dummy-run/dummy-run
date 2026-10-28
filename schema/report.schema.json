@@ -178,7 +178,7 @@
         "summary": { "type": "string" },
         "intro": { "type": "string" },
         "journeys": {
-          "type": ["array", "null"],
+          "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -187,7 +187,7 @@
           }
         },
         "personas": {
-          "type": ["array", "null"],
+          "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -197,7 +197,7 @@
               "name": { "type": "string" },
               "label": { "type": "string" },
               "why": { "type": "string" },
-              "journeys": { "type": ["array", "null"], "items": { "type": "string" } },
+              "journeys": { "type": "array", "items": { "type": "string" } },
               "text": { "type": "string" }
             }
           }

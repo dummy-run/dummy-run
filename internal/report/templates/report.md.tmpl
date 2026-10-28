@@ -285,7 +285,9 @@ Each run signs one fictional user, called a persona, in to the app in a real bro
 | {{cell .Model}} | {{cell .Kind}} | {{cell .Region}} | {{cell .Runs}} |
 {{- end}}
 {{else}}No persona runs were given. This report holds the axe sweep only.
-{{end}}
+{{if .Scope.Cost.ModelCalls}}
+- Model cost: {{usd .Scope.Cost.USD}} over {{.Scope.Cost.ModelCalls}} model calls ({{.Scope.Cost.InputTokens}} input and {{.Scope.Cost.OutputTokens}} output tokens){{if .Scope.Cost.UnpricedRuns}}. {{.Scope.Cost.UnpricedRuns}} runs used a model with no price, so the cost is a floor{{end}}
+{{end}}{{end}}
 ### Coverage
 
 {{if .Coverage.Available -}}

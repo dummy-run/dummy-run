@@ -673,7 +673,10 @@ footer p { margin: 0 0 0.4rem; }
 </div>
 {{else}}
 <p>No persona runs were given. This report holds the axe sweep only.</p>
-{{end}}
+{{if .Scope.Cost.ModelCalls}}<dl class="facts">
+<dt>Model cost</dt><dd>{{usd .Scope.Cost.USD}} over {{.Scope.Cost.ModelCalls}} model calls ({{.Scope.Cost.InputTokens}} input and {{.Scope.Cost.OutputTokens}} output tokens){{if .Scope.Cost.UnpricedRuns}}. {{.Scope.Cost.UnpricedRuns}} runs used a model with no price, so the cost is a floor{{end}}</dd>
+</dl>
+{{end}}{{end}}
 
 <h3 class="sub" id="coverage">Coverage</h3>
 {{if .Coverage.Available}}

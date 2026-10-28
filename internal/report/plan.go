@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // PlanSection is "What we tested and why": the kind of site, its key journeys and why each persona was sent.
@@ -81,11 +83,15 @@ func LoadPlan(path string) (*PlanSection, PlanUsage, error) {
 	if raw.Version != 1 {
 		return nil, PlanUsage{}, fmt.Errorf("%s: not a plan.json from dummyrun plan (plan_version %d)", path, raw.Version)
 	}
-	ps := &PlanSection{SiteType: raw.SiteType, Audience: raw.Audience, Summary: raw.Summary}
+	// The lists are never nil, so the JSON report has arrays where the schema says arrays.
+	ps := &PlanSection{SiteType: raw.SiteType, Audience: raw.Audience, Summary: raw.Summary, Journeys: []PlanJourney{}, Personas: []PlanPersona{}}
 	for _, j := range raw.Journeys {
 		ps.Journeys = append(ps.Journeys, PlanJourney{ID: j.ID, Name: j.Name, Why: j.Why})
 	}
 	for _, p := range raw.Personas {
+		if p.Journeys == nil {
+			p.Journeys = []string{}
+		}
 		ps.Personas = append(ps.Personas, PlanPersona{ID: p.ID, Name: p.Name, Label: p.Label, Why: p.Why, Journeys: p.Journeys})
 	}
 	ps.write()
@@ -151,12 +157,15 @@ func article(s string) string {
 	return "a"
 }
 
-// lowerFirst lowers the first letter unless the first word looks like a name or an acronym.
+// lowerFirst lowers the first letter unless the first word looks like a name or an acronym, that is, unless an
+// upper-case letter is followed by a lower-case one. It works on runes, so a name in any script is left whole.
 func lowerFirst(s string) string {
-	if len(s) < 2 || strings.ToUpper(s[:2]) == s[:2] {
+	first, n := utf8.DecodeRuneInString(s)
+	second, _ := utf8.DecodeRuneInString(s[n:])
+	if first == utf8.RuneError || !unicode.IsUpper(first) || !unicode.IsLower(second) {
 		return s
 	}
-	return strings.ToLower(s[:1]) + s[1:]
+	return string(unicode.ToLower(first)) + s[n:]
 }
 
 func joinAnd(l []string) string {
@@ -169,12 +178,17 @@ func joinAnd(l []string) string {
 	return strings.Join(l[:len(l)-1], ", ") + " and " + l[len(l)-1]
 }
 
-// addPlanCost adds what planning cost to the report's cost.
+// addPlanCost adds what planning cost to the report's cost. A planning call whose model has no price counts
+// as unpriced, like a run would, so the report says the total is a floor. A fallback plan made no call and
+// adds nothing.
 func addPlanCost(c *Cost, u PlanUsage) {
 	c.ModelCalls += u.ModelCalls
 	c.InputTokens += u.InputTokens
 	c.OutputTokens += u.OutputTokens
-	if u.CostUSD != nil {
+	switch {
+	case u.CostUSD != nil:
 		c.USD += *u.CostUSD
+	case u.ModelCalls > 0:
+		c.UnpricedRuns++
 	}
 }
