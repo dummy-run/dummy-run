@@ -832,7 +832,7 @@
     },
     "self_check": {
       "type": "array",
-      "description": "The self-check's decision on each finding before the record was written: a cheap model pass that compares the finding with its evidence and the kind of site. Left out when the self-check did not run",
+      "description": "The self-check's decision on each finding before the record was written: one more call to the run's model, which compares the finding with its evidence and the kind of site. Left out when the self-check did not run",
       "items": {
         "type": "object",
         "additionalProperties": false,

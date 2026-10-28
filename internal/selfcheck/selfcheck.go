@@ -1,5 +1,5 @@
-// Package selfcheck is a cheap second look at a run's findings before the record is written. One model call
-// compares each finding with its own evidence (the page text and screenshot at the step the engine checked) and
+// Package selfcheck is a second look at a run's findings before the record is written. One more call to the
+// run's model compares each finding with its own evidence (the page text and screenshot at the step the engine checked) and
 // with the kind of site, and decides to keep it, rewrite it more specifically, downgrade it to a note, or drop it.
 package selfcheck
 
@@ -15,7 +15,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/record"
 )
 
-// MaxImages bounds the screenshots one self-check sends, which keeps its cost to a fraction of a penny.
+// MaxImages bounds the screenshots one self-check sends, which bounds what the call costs.
 const MaxImages = 4
 
 // maxContext bounds the page text sent with each finding.

@@ -108,7 +108,7 @@ Usage of run:
   -seed int
     	sampling seed (0 or more), sent to providers that take one; the record shows null where it was not sent (default -1)
   -self-check
-    	after the persona finishes, one cheap model call checks each finding against its evidence and the scenario's Site line, and keeps, rewrites, downgrades or drops it; --self-check=false turns it off (default true)
+    	after the persona finishes, one more call to the run's model checks each finding against its evidence and the scenario's Site line, and keeps, rewrites, downgrades or drops it; --self-check=false turns it off (default true)
   -session string
     	sign in from this saved session file (see "dummyrun session save") instead of the login form
   -steps int

@@ -77,8 +77,8 @@ type Config struct {
 	Access *access.Resolved
 	Log    io.Writer
 	Launch bidi.LaunchOptions
-	// SelfCheck runs one cheap model call after the persona finishes, which compares each finding with its
-	// evidence and the scenario's Site line, and keeps, rewrites, downgrades or drops it.
+	// SelfCheck makes one more call to the run's model after the persona finishes. It compares each finding with
+	// its evidence and the scenario's Site line, and keeps, rewrites, downgrades or drops it.
 	SelfCheck bool
 }
 
