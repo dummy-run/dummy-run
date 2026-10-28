@@ -580,14 +580,14 @@ func (p *Page) Select(ctx context.Context, target, option string) Observation {
 	})
 }
 
-// Press sends one key to whatever has focus.
+// Press sends one key to whatever has focus, with any modifiers named before it held down, as in Shift+Tab.
 func (p *Page) Press(ctx context.Context, key string) Observation {
 	return p.act(ctx, "press", key, func(ctx context.Context) error {
-		code, err := bidi.Key(key)
+		mods, code, err := bidi.Chord(key)
 		if err != nil {
 			return err
 		}
-		return p.conn.PressKey(ctx, p.cx, code)
+		return p.conn.PressChord(ctx, p.cx, mods, code)
 	})
 }
 
