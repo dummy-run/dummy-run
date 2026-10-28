@@ -55,6 +55,45 @@ func Key(name string) (string, error) {
 	return code, nil
 }
 
+// modifierNames maps the modifier names a persona may use (lower case) to codes.
+var modifierNames = map[string]string{
+	"shift": KeyShift, "control": KeyControl, "ctrl": KeyControl, "alt": KeyAlt, "option": KeyAlt,
+	"meta": KeyMeta, "cmd": KeyMeta, "command": KeyMeta,
+}
+
+// ModifierNames lists the modifiers Chord accepts, for help text.
+var ModifierNames = []string{"Shift", "Control", "Alt", "Meta"}
+
+// Chord resolves a key name with any modifiers held before it, joined by +, such as "Shift+Tab" or
+// "Control+Alt+Delete", to the modifiers' codes and the key's code. A key name alone, as Key takes it, is a chord
+// with no modifiers, and "+" on its own, or after a modifier, is the plus key.
+func Chord(name string) (mods []string, key string, err error) {
+	keyName, rest, joined := name, "", false
+	if len(name) > 1 {
+		if i := strings.LastIndex(name[:len(name)-1], "+"); i >= 0 {
+			rest, keyName, joined = name[:i], name[i+1:], true
+		}
+	}
+	if joined {
+		seen := map[string]bool{}
+		for _, m := range strings.Split(rest, "+") {
+			code, ok := modifierNames[strings.ToLower(strings.TrimSpace(m))]
+			if !ok {
+				return nil, "", fmt.Errorf("bidi: unknown modifier %q in %q; use %s", m, name, strings.Join(ModifierNames, ", "))
+			}
+			if seen[code] {
+				return nil, "", fmt.Errorf("bidi: %q holds %s twice", name, strings.TrimSpace(m))
+			}
+			seen[code] = true
+			mods = append(mods, code)
+		}
+	}
+	if key, err = Key(strings.TrimSpace(keyName)); err != nil {
+		return nil, "", err
+	}
+	return mods, key, nil
+}
+
 // Click moves the mouse to (x, y) in the viewport and clicks.
 func (c *Conn) Click(ctx context.Context, context string, x, y float64) error {
 	return c.Call(ctx, "input.performActions", map[string]any{
@@ -112,6 +151,21 @@ func (c *Conn) PressKey(ctx context.Context, context, code string) error {
 		map[string]any{"type": "keyDown", "value": code},
 		map[string]any{"type": "keyUp", "value": code},
 	})
+}
+
+// PressChord holds the modifiers down in order, presses and releases the key, then lets the modifiers go in reverse.
+func (c *Conn) PressChord(ctx context.Context, context string, mods []string, code string) error {
+	acts := make([]any, 0, 2*len(mods)+2)
+	for _, m := range mods {
+		acts = append(acts, map[string]any{"type": "keyDown", "value": m})
+	}
+	acts = append(acts,
+		map[string]any{"type": "keyDown", "value": code},
+		map[string]any{"type": "keyUp", "value": code})
+	for i := len(mods) - 1; i >= 0; i-- {
+		acts = append(acts, map[string]any{"type": "keyUp", "value": mods[i]})
+	}
+	return c.keyActions(ctx, context, acts)
 }
 
 // PressKeyTimes presses one key n times.

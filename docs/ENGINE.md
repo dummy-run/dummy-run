@@ -92,7 +92,7 @@ times and fails each time, it gives up and the run ends.
 | `click` | Click `@12` from the last look, a control's text or `css:selector` |
 | `fill`, `type` | Put text into a field in one go, or key by key for fields that react as you type |
 | `select` | Choose an option in a select by its text |
-| `press` | Press a key such as Enter, Escape or ArrowDown |
+| `press` | Press a key such as Enter, Escape or ArrowDown, alone or with Shift, Control, Alt or Meta held, as in Shift+Tab |
 | `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, or wait up to 15 seconds |
 | `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. The result names up to three failing elements of each rule. Only rule IDs and counts are recorded |
 | `finish` | End the run with a verdict, `goal_met`, a report, and findings and observations that cite step numbers |

@@ -41,6 +41,7 @@ const testPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><ti
 <select id="s" aria-label="Colour"><option>Red</option><option>Green</option></select>
 <script>
 document.getElementById('i').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('h').textContent = 'Entered'; });
+document.addEventListener('keydown', (e) => { if (e.key.length === 1) document.body.dataset.chord = [e.ctrlKey && 'Control', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Meta', e.code].filter(Boolean).join('+'); });
 </script>
 </body></html>`
 
@@ -383,6 +384,34 @@ func TestConformance(t *testing.T) {
 				}
 				waitFor(t, "Enter to be seen", func() bool {
 					return evalString(t, c, cx, "document.getElementById('h').textContent") == "Entered"
+				})
+			})
+			t.Run("input.performActions holds modifiers", func(t *testing.T) {
+				x, y := centre(t, c, cx, "b")
+				if err := c.MoveMouse(ctx, cx, x, y); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := c.Evaluate(ctx, cx, "document.getElementById('b').focus()"); err != nil {
+					t.Fatal(err)
+				}
+				mods, key, err := bidi.Chord("Shift+Tab")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := c.PressChord(ctx, cx, mods, key); err != nil {
+					t.Fatal(err)
+				}
+				waitFor(t, "Shift+Tab to move focus back to the field", func() bool {
+					return evalString(t, c, cx, "document.activeElement.id") == "i"
+				})
+				if mods, key, err = bidi.Chord("Control+Alt+k"); err != nil {
+					t.Fatal(err)
+				}
+				if err := c.PressChord(ctx, cx, mods, key); err != nil {
+					t.Fatal(err)
+				}
+				waitFor(t, "Control and Alt to be held with k", func() bool {
+					return evalString(t, c, cx, "document.body.dataset.chord || ''") == "Control+Alt+KeyK"
 				})
 			})
 			t.Run("browsingContext.captureScreenshot", func(t *testing.T) {
