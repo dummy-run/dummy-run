@@ -143,7 +143,10 @@ func TestFailedChordReleasesHeldKeys(t *testing.T) {
 	if !errors.As(err, &cmdErr) || cmdErr.Message != "the keys stuck" {
 		t.Errorf("the call's own error isn't first to errors.As: %v", err)
 	}
-	got, _ = try(answer{fail: true}, ctx, nil)
+	got, err = try(answer{fail: true}, ctx, nil)
+	if err == nil || !strings.Contains(err.Error(), "the keys stuck") {
+		t.Errorf("error %v, want the call's own", err)
+	}
 	if want := []string{"input.performActions"}; !slices.Equal(got, want) {
 		t.Errorf("a failed key with no modifier sent %q, want %q", got, want)
 	}
