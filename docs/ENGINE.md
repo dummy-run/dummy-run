@@ -40,11 +40,9 @@ machine.
 dummyrun plan https://your-site --out ./cast --personas 1 --identify --respect-robots
 ```
 
-It does three things.
-
 1. **Read.** It reads up to 10 pages over plain HTTP, with no browser and no model. It takes them from the sitemap,
    or the links on the start page, spread across the top-level folders, or from `--pages`. It only sends GET
-   requests and only to the site's own host. From each page it keeps the title, the headings, the menu, the forms
+   requests and only to the site's own hosts. From each page it keeps the title, the headings, the menu, the forms
    and the language. Across all of them it looks for signs of what the site is for. Those are a sign-in form, a
    basket, prices or a pricing page, booking, donations and contact links. It also notes articles, dates, a feed,
    code samples and public-service names. With `--respect-robots` it skips what `robots.txt` disallows.

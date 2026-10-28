@@ -138,6 +138,10 @@ func Run(ctx context.Context, o ReconOptions) (*Recon, error) {
 	if err != nil || start.Host == "" || (start.Scheme != "http" && start.Scheme != "https") {
 		return nil, fmt.Errorf("plan: %q is not a web address", o.StartURL)
 	}
+	// A password in the address would reach the model and plan.json. The error does not repeat the address.
+	if start.User != nil {
+		return nil, errors.New("plan: the start address has a user name or password in it; leave them out and use --basic-auth-env instead")
+	}
 	allowed := o.AllowedHosts
 	if len(allowed) == 0 {
 		allowed = twins(start.Hostname())
@@ -154,9 +158,11 @@ func Run(ctx context.Context, o ReconOptions) (*Recon, error) {
 		return false
 	}
 	ua := telemetry.RequestUserAgent(o.Identify)
-	client := guarded(o.Client, ua, hostOK)
 	rec := &Recon{StartURL: start.String()}
 	rules := robots.AllowAll()
+	// A redirect must land on the site and, once robots.txt is read, on a path it allows. The closure sees the
+	// rules as they are when the redirect happens, so robots.txt itself is fetched while everything is allowed.
+	client := guarded(o.Client, ua, func(u *url.URL) bool { return hostOK(u) && rules.Allowed(u.RequestURI()) })
 	if o.RespectRobots {
 		res, err := robots.Fetch(ctx, client, start.String(), telemetry.RobotsToken, ua)
 		if err != nil {
@@ -214,8 +220,8 @@ func twins(host string) []string {
 	return []string{host, "www." + host}
 }
 
-// guarded copies the client, sets the user agent and refuses a redirect to another host.
-func guarded(c *http.Client, ua string, hostOK func(*url.URL) bool) *http.Client {
+// guarded copies the client, sets the user agent and refuses a redirect to an address allowed does not accept.
+func guarded(c *http.Client, ua string, allowed func(*url.URL) bool) *http.Client {
 	if c == nil {
 		c = &http.Client{Timeout: 20 * time.Second}
 	}
@@ -226,8 +232,8 @@ func guarded(c *http.Client, ua string, hostOK func(*url.URL) bool) *http.Client
 	}
 	cp.Transport = uaTransport{ua: ua, next: next}
 	cp.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		if !hostOK(req.URL) {
-			return fmt.Errorf("redirect to %s is outside the site", req.URL.Host)
+		if !allowed(req.URL) {
+			return fmt.Errorf("redirect to %s is outside the site or what robots.txt allows", req.URL.Host)
 		}
 		if len(via) >= 5 {
 			return errors.New("stopped after 5 redirects")

@@ -202,6 +202,49 @@ func TestReconOnlyReads(t *testing.T) {
 	_ = resp.Body.Close()
 }
 
+func TestReconRefusesAPasswordInTheAddress(t *testing.T) {
+	srv := site(t, personal)
+	withUser := strings.Replace(srv.URL, "http://", "http://sam:hunter2@", 1) + "/"
+	rec, err := Run(context.Background(), ReconOptions{StartURL: withUser})
+	if err == nil || rec != nil || !strings.Contains(err.Error(), "basic-auth-env") {
+		t.Errorf("an address with a password returned %+v, %v", rec, err)
+	}
+	if err != nil && strings.Contains(err.Error(), "hunter2") {
+		t.Errorf("the error repeats the password: %v", err)
+	}
+}
+
+func TestReconRefusesARedirectIntoWhatRobotsDisallows(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /drafts/\n")
+	})
+	mux.HandleFunc("/latest", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/drafts/next", http.StatusFound) })
+	var draftHits int32
+	mux.HandleFunc("/drafts/next", func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&draftHits, 1)
+		_, _ = fmt.Fprint(w, page("en", "Draft", "<h1>Secret draft</h1>"))
+	})
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, page("en", "Home", `<h1>Home</h1><a href="/latest">Latest</a>`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	rec, err := Run(context.Background(), ReconOptions{StartURL: srv.URL + "/", RespectRobots: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range rec.Pages {
+		if strings.HasSuffix(p.URL, "/latest") && p.Error == "" {
+			t.Errorf("the redirect into /drafts/ was followed: %+v", p)
+		}
+	}
+	if atomic.LoadInt32(&draftHits) != 0 || strings.Contains(rec.Summary("x"), "Secret draft") {
+		t.Errorf("a path robots.txt disallows was read through a redirect")
+	}
+}
+
 func TestReconStopsWhenCancelled(t *testing.T) {
 	srv := site(t, personal)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -400,8 +443,8 @@ func TestPriceFilterCoversEveryField(t *testing.T) {
 	if !strings.Contains(p.Personas[0].Why, "pays attention") {
 		t.Errorf("'pays' is not a price word: %q", p.Personas[0].Why)
 	}
-	if strings.Contains(fmt.Sprint(toolSchema(lib, 1)), "Joel") {
-		t.Error("the tool schema names a real person")
+	if schema := fmt.Sprint(toolSchema(lib, 1)); !strings.Contains(schema, "who the author is") || !strings.Contains(schema, "Find out who the author is") {
+		t.Error("the tool schema's examples should speak of the author, not a named person")
 	}
 }
 

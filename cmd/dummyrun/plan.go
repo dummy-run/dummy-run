@@ -30,7 +30,7 @@ Works out what your site is for and writes a cast that fits it, ready for "dummy
 
 First it reads up to 10 pages over plain HTTP, with no browser: titles, headings, menus, forms, and signs such
 as a basket, prices, a sign-in form or a contact link. It only sends GET requests, and only to the site's own
-host. Then one short model call names the kind of site, who it is for and its two to four key journeys, picks
+hosts. Then one short model call names the kind of site, who it is for and its two to four key journeys, picks
 personas from the library that fit them and gives each its journeys, starting pages and what not to do. How
 each persona goes about a journey comes from the persona itself: the keyboard user counts Tab presses, the
 screen reader user moves by headings and landmarks, and each has its own minimum number of steps. It never
