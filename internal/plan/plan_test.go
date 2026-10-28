@@ -362,6 +362,58 @@ func TestMakeFallsBack(t *testing.T) {
 	}
 }
 
+func TestMentionsPriceMatchesWholeWords(t *testing.T) {
+	for s, want := range map[string]bool{
+		"Leave feedback": false, "I want to explain the project": false, "Buy a costume": false, "Repay a friend": false,
+		"Have a coffee": false, "See what it costs": true, "Check the pricing page": true, "Pay for a plan": true,
+		"A ticket is £12": true, "Compare plans": true, "Planning permission": false, "Payment options": true,
+	} {
+		if got := mentionsPrice(s); got != want {
+			t.Errorf("mentionsPrice(%q) = %v, want %v", s, got, want)
+		}
+	}
+}
+
+func TestPriceFilterCoversEveryField(t *testing.T) {
+	rec, base := personalRecon(t)
+	_, lib := library(t)
+	args := fmt.Sprintf(`{"site_type":"personal","audience":"readers","summary":"s",
+	 "journeys":[{"id":"who","name":"Find out who Sam is","why":"Visitors check the price of a visit first.","start_pages":["%[1]s/"],"success":["Can say who Sam is","Knows what it costs"]},
+	   {"id":"read","name":"Read a post","why":"w","start_pages":["%[1]s/blog/"],"success":[]}],
+	 "personas":[{"id":"first-time-visitor","why":"Alex wonders about the fee.","journeys":["who"],"scenario":{"title":"Check the pricing and read a post","given":"g","goal":"Read a post.","start_pages":[],"success":[],"do_not":[],"device":""}},
+	   {"id":"keyboard-only-user","why":"Kit reads by keyboard.","journeys":["who","read"],"scenario":{"title":"Reach a post by keyboard","given":"Kit wants to know what a subscription costs.","goal":"Reach a post.","start_pages":[],"success":[],"do_not":[],"device":""}},
+	   {"id":"screen-reader-user","why":"Sam pays attention to structure.","journeys":["read"],"scenario":{"title":"Read a post by headings","given":"Robin came for the writing.","goal":"Read one post.","start_pages":[],"success":["Heard the post's heading","Heard the price"],"do_not":["Do not pay for anything","Do not send the form"],"device":""}}]}`, base)
+	p := Make(context.Background(), rec, Options{Provider: &fake{args: args}, Library: lib, MaxPersonas: 3, Steps: 12})
+	if p.Source != "model" {
+		t.Fatalf("source = %s (%s)", p.Source, p.FallbackReason)
+	}
+	if p.Journeys[0].Why != "" || strings.Join(p.Journeys[0].Success, ",") != "Can say who Sam is" {
+		t.Errorf("journey why and success should lose their price lines: %+v", p.Journeys[0])
+	}
+	if len(p.Personas) != 1 || p.Personas[0].ID != "screen-reader-user" {
+		t.Fatalf("personas = %+v; a scenario whose title or given asks about prices is dropped", p.Personas)
+	}
+	sc := p.Personas[0].Scenario
+	if strings.Join(sc.Success, ",") != "Heard the post's heading" || len(sc.DoNot) != 1 {
+		t.Errorf("scenario lists kept a price line: %+v", sc)
+	}
+	if !strings.Contains(p.Personas[0].Why, "pays attention") {
+		t.Errorf("'pays' is not a price word: %q", p.Personas[0].Why)
+	}
+	if strings.Contains(fmt.Sprint(toolSchema(lib, 1)), "Joel") {
+		t.Error("the tool schema names a real person")
+	}
+}
+
+func TestLowerFirstKeepsRunesWhole(t *testing.T) {
+	for in, want := range map[string]string{"Read a post": "read a post", "Élan vital": "élan vital", "日本語を読む": "日本語を読む",
+		"NHS services": "NHS services", "iPhone setup": "iPhone setup", "A": "A", "": ""} {
+		if got := lowerFirst(in); got != want {
+			t.Errorf("lowerFirst(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestWriteCastLoads(t *testing.T) {
 	rec, _ := personalRecon(t)
 	lib, ps := library(t)

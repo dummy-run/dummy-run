@@ -8,9 +8,12 @@ import (
 	"io/fs"
 	"net/url"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/inject"
@@ -246,7 +249,7 @@ func toolSchema(lib []LibraryPersona, maxPersonas int) map[string]any {
 		"success":     listSchema("what the visitor sees when it worked", 3),
 	}, "required": []string{"id", "name", "why", "start_pages", "success"}}
 	scenario := map[string]any{"type": "object", "properties": map[string]any{
-		"title":       strSchema("the scenario's title, a short sentence such as 'Find out who Joel is and read a post'"),
+		"title":       strSchema("the scenario's title, a short sentence such as 'Find out who the author is and read a post'"),
 		"given":       strSchema("one or two sentences: who the persona is on this visit and why they came"),
 		"goal":        strSchema("one sentence in the persona's own words: what they want to get done"),
 		"start_pages": listSchema("addresses from the pages read, where the persona can start", 5),
@@ -256,7 +259,7 @@ func toolSchema(lib []LibraryPersona, maxPersonas int) map[string]any {
 	}, "required": []string{"title", "given", "goal", "start_pages", "success", "do_not", "device"}}
 	return map[string]any{"type": "object", "properties": map[string]any{
 		"site_type": map[string]any{"type": "string", "enum": SiteTypes},
-		"audience":  strSchema("who the site is for, in a short phrase, such as 'people who want to know who Joel is and read his posts'"),
+		"audience":  strSchema("who the site is for, in a short phrase, such as 'people who want to know who the author is and read their posts'"),
 		"summary":   strSchema("one sentence: what the site is"),
 		"journeys":  map[string]any{"type": "array", "items": journey, "minItems": 2, "maxItems": MaxJourneys},
 		"personas": map[string]any{"type": "array", "minItems": 1, "maxItems": maxPersonas, "items": map[string]any{
@@ -382,21 +385,25 @@ func cleanList(in []string, n, width int) []string {
 	return out
 }
 
-var priceWords = []string{"price", "pricing", "cost", "plan", "fee", "pay", "subscription", "£", "$", "€"}
+// priceRE matches a word about paying, as a whole word, or a currency sign. Whole words keep "feedback",
+// "explain" and "costume" out of it.
+var priceWordRE = regexp.MustCompile(`(?i)\b(?:prices?|pricing|costs?|plans?|fees?|pay|paying|payment|subscriptions?)\b|[£$€]`)
 
-func mentionsPrice(s string) bool {
-	low := strings.ToLower(s)
-	for _, w := range priceWords {
-		if strings.Contains(low, w) {
-			return true
-		}
+func mentionsPrice(s string) bool { return priceWordRE.MatchString(s) }
+
+// unlessPrice returns s, or "" when the site sells nothing and s mentions a price.
+func unlessPrice(s string, sells bool) string {
+	if !sells && mentionsPrice(s) {
+		return ""
 	}
-	return false
+	return s
 }
 
 // apply checks the model's answer and copies what holds up into p. A persona outside the library, a page
 // outside the site or a price question on a site that sells nothing is left out; an answer with nothing
-// usable left is an error.
+// usable left is an error. On a site that sells nothing, every field of a journey or scenario that reaches
+// the persona or the report is checked for a price: a journey or scenario whose name, title, given or goal
+// asks about one is dropped, and a list entry or reason that does is left out.
 func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 	if !slices.Contains(SiteTypes, a.SiteType) {
 		return fmt.Errorf("the plan named a site type %q that is not in the list", a.SiteType)
@@ -418,8 +425,12 @@ func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 		if !p.Sells && mentionsPrice(j.Name) {
 			continue
 		}
+		j.Why = unlessPrice(j.Why, p.Sells)
 		j.StartPages = keepPages(j.StartPages, known, 3)
 		j.Success = cleanList(j.Success, 3, 160)
+		if !p.Sells {
+			j.Success = slices.DeleteFunc(j.Success, mentionsPrice)
+		}
 		ids[j.ID] = true
 		p.Journeys = append(p.Journeys, j)
 	}
@@ -455,8 +466,8 @@ func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 		sc := ap.Scenario
 		sc.Title = clean(sc.Title, 100)
 		sc.Given, sc.Goal = clean(sc.Given, 300), clean(strings.Trim(sc.Goal, `"“”`), 240)
-		if !p.Sells && mentionsPrice(sc.Goal) {
-			sc.Goal = ""
+		if !p.Sells && (mentionsPrice(sc.Title) || mentionsPrice(sc.Given) || mentionsPrice(sc.Goal)) {
+			continue
 		}
 		if sc.Title == "" || sc.Goal == "" {
 			continue
@@ -476,7 +487,7 @@ func apply(p *Plan, a *answer, rec *Recon, o Options) error {
 		if sc.ID == "" {
 			sc.ID = "explore"
 		}
-		p.Personas = append(p.Personas, Pick{ID: l.ID, Name: l.Name, Label: l.Label, Why: clean(ap.Why, 240), Journeys: js, Scenario: sc})
+		p.Personas = append(p.Personas, Pick{ID: l.ID, Name: l.Name, Label: l.Label, Why: unlessPrice(clean(ap.Why, 240), p.Sells), Journeys: js, Scenario: sc})
 	}
 	// A persona the caller asked for that the answer left out still goes, on every journey.
 	for _, id := range o.Personas {
@@ -558,11 +569,16 @@ func firstPages(rec *Recon, n int) []string {
 	return pages
 }
 
+// lowerFirst lowers the first letter of a sentence so it can follow "I want to". A first word that looks like a
+// name or an acronym, with its second letter not lower-case, keeps its case. It works on runes, so a name in
+// any script is left whole.
 func lowerFirst(s string) string {
-	if len(s) < 2 || strings.ToUpper(s[:2]) == s[:2] {
+	first, n := utf8.DecodeRuneInString(s)
+	second, _ := utf8.DecodeRuneInString(s[n:])
+	if first == utf8.RuneError || !unicode.IsUpper(first) || !unicode.IsLower(second) {
 		return s
 	}
-	return strings.ToLower(s[:1]) + s[1:]
+	return string(unicode.ToLower(first)) + s[n:]
 }
 
 // clampMin keeps at least three of the step budget free after the minimum, as the hosted runner does, and
