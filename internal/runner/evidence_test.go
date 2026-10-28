@@ -137,3 +137,18 @@ func TestRecordFindingsCarriesTheEvidence(t *testing.T) {
 		t.Errorf("%+v", r)
 	}
 }
+
+func TestEvidenceRetryStopsWhenTheBudgetIsSpent(t *testing.T) {
+	if !evidenceRetry(0, "") {
+		t.Error("the first unbacked finish should go back to the model")
+	}
+	if evidenceRetry(maxEvidenceRetries, "") {
+		t.Error("a second retry would be one model call too many")
+	}
+	// The finish that crossed the token budget sets forced before the evidence check runs, so no call follows it.
+	for _, forced := range []string{"the token budget", "the step budget", "patience"} {
+		if evidenceRetry(0, forced) {
+			t.Errorf("a finish forced by %s should not go back to the model", forced)
+		}
+	}
+}

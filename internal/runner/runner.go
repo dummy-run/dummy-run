@@ -183,6 +183,13 @@ const maxFinishRetries = 2
 // becomes an unverified note. Each retry is one more model call, so it is kept to one.
 const maxEvidenceRetries = 1
 
+// evidenceRetry says whether finish goes back to the model for findings the steps do not show. It does not once
+// the engine has forced the finish, nor when the finish itself crossed the token budget: forced says so by then,
+// and another call would spend what the budget said the run could not.
+func evidenceRetry(retries int, forced string) bool {
+	return retries < maxEvidenceRetries && forced == ""
+}
+
 // Run plays the scenario and writes the run record. The record is written
 // even when the run errors, with outcome errored.
 func Run(ctx context.Context, cfg Config) (*Result, error) {
@@ -426,7 +433,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 				}
 				r.dropHarnessOnly(&f)
 				if probs := VerifyEvidence(&f, r.steps); len(probs) > 0 {
-					if r.evidenceRetries < maxEvidenceRetries && force == "" {
+					if evidenceRetry(r.evidenceRetries, r.forced) {
 						r.evidenceRetries++
 						r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID,
 							text: "finish was not accepted: " + strings.Join(probs, "; ") + ". Call finish again with the same report, fixing these findings and keeping the others as they are."})
