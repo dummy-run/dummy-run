@@ -48,8 +48,8 @@ It does three things.
    and the language. Across all of them it looks for signs of what the site is for. Those are a sign-in form, a
    basket, prices or a pricing page, booking, donations and contact links. It also notes articles, dates, a feed,
    code samples and public-service names. With `--respect-robots` it skips what `robots.txt` disallows.
-2. **Plan.** One short model call reads a summary of that, under 4,000 tokens, with the page text fenced as
-   untrusted data. It names the kind of site (personal, blog, shop, software product, docs, public service,
+2. **Plan.** One short model call reads a short summary of that. Each page is cut to its title, eight headings, 20
+   menu items, its forms and 60 words of text, and everything that came from the site is fenced as untrusted data. It names the kind of site (personal, blog, shop, software product, docs, public service,
    organisation, charity, news, local business, education, open-source or other), who it is for and two to four
    key journeys. It picks up to `--personas` personas from the library, or uses the ones you name with `--persona`,
    and gives each its journeys, starting pages, how it knows each worked and what not to do. Each persona brings
@@ -58,8 +58,10 @@ It does three things.
    and link names. Zoom and large-text users check each screenshot for clipped or overlapping content. Every
    persona has its own minimum steps (12 for the keyboard user, 10 for the screen reader user, 6 for most), kept at
    least three below the budget, and `--min-steps` overrides it. The engine checks the answer. It keeps only
-   personas from the library and pages it read, and takes out any question about prices when the site sells nothing. If the call fails or the answer
-   does not hold up, the plan comes from the signs alone and `plan.json` says why. `--no-model` skips the call.
+   personas from the library and pages it read. When the site sells nothing, it drops a journey or scenario whose
+   name, title, given or goal asks about prices and leaves out any list line or reason that does. If the call fails or
+   the answer does not hold up, the plan comes from the signs alone and `plan.json` says why. `--no-model` skips the
+   call. Stopping the command with Ctrl-C writes nothing.
 3. **Write.** `DIR` gets one folder per persona, with its `profile.md` and `prompt.md` copied from the library and
    `scenarios/01-<id>.md`, and `plan.json`. Each scenario has a `Site:` line, says not to send forms, sign in or pay,
    and asks the persona to name the control or quote the words for every finding.
