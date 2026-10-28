@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/policy"
@@ -42,6 +43,9 @@ type Resolved struct {
 	inScope          func(rawURL string) bool
 	mu               sync.Mutex
 	challengeCounter map[string]int
+	// owned holds the interception each Attach added, once it is live. One Resolved can serve several
+	// connections, as a sweep in more than one colour scheme does, so each keeps its own.
+	owned sync.Map
 }
 
 // maxChallenges is how many times one request may be answered. A second challenge means the
@@ -256,23 +260,27 @@ func originKey(raw string) (string, bool) {
 // Attach sets up a connection that has no request hook of its own, as the a11y sweep does: every
 // in-scope request gets the headers, and Basic challenges are answered. It returns once the
 // interception is live. Call it before the first navigation.
+//
+// A request that another interception also holds, such as a tab that blocks writes, is left to that one, which
+// must add the headers with Continue when it lets the request through. Two answers to one request race, and the
+// first one wins, so only one side may answer.
 func Attach(ctx context.Context, c *bidi.Conn, r *Resolved) error {
 	if !r.Active() {
 		return nil
 	}
+	var own atomic.Value
+	own.Store("")
 	c.OnBeforeRequestSent(func(e bidi.BeforeRequestSent) {
 		if !e.IsBlocked {
+			return
+		}
+		if id, _ := own.Load().(string); id != "" && (len(e.Intercepts) != 1 || e.Intercepts[0] != id) {
 			return
 		}
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), bidi.DefaultTimeout)
 			defer cancel()
-			set := r.Headers(e.Request.URL, e.Request.Headers)
-			if len(set) == 0 {
-				_ = c.ContinueRequestUnchanged(ctx, e.Request.Request)
-				return
-			}
-			_ = c.ContinueRequest(ctx, e.Request.Request, e.Request.Headers, set)
+			_ = r.Continue(ctx, c, e)
 		}()
 	})
 	events := []string{"network.beforeRequestSent"}
@@ -291,8 +299,32 @@ func Attach(ctx context.Context, c *bidi.Conn, r *Resolved) error {
 	if err := c.Subscribe(ctx, events); err != nil {
 		return err
 	}
-	_, err := c.AddInterceptPhases(ctx, nil, phases...)
-	return err
+	id, err := c.AddInterceptPhases(ctx, nil, phases...)
+	if err != nil {
+		return err
+	}
+	own.Store(id)
+	r.owned.Store(id, true)
+	return nil
+}
+
+// Owns says whether the interception id is the one Attach added.
+func (r *Resolved) Owns(id string) bool {
+	if r == nil {
+		return false
+	}
+	_, ok := r.owned.Load(id)
+	return ok
+}
+
+// Continue lets a held request through with the headers its URL gets. With no access set up, or for a URL out
+// of scope, the request goes on unchanged.
+func (r *Resolved) Continue(ctx context.Context, c *bidi.Conn, e bidi.BeforeRequestSent) error {
+	set := r.Headers(e.Request.URL, e.Request.Headers)
+	if len(set) == 0 {
+		return c.ContinueRequestUnchanged(ctx, e.Request.Request)
+	}
+	return c.ContinueRequest(ctx, e.Request.Request, e.Request.Headers, set)
 }
 
 // transport adds the access headers to the engine's own HTTP requests (robots.txt, sitemaps, the home

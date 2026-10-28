@@ -4,7 +4,11 @@
 // SARIF or JUnit XML. The wording is in templates/, so the renderers differ only in markup.
 package report
 
-import "github.com/dummy-run/dummy-run/internal/coverage"
+import (
+	"github.com/dummy-run/dummy-run/internal/coverage"
+	"github.com/dummy-run/dummy-run/internal/fixes"
+	"github.com/dummy-run/dummy-run/internal/record"
+)
 
 // ReportVersion is the version of the report's JSON shape. schema/report.schema.json describes it.
 const ReportVersion = 1
@@ -188,16 +192,28 @@ type Finding struct {
 	Reason     string   `json:"reason,omitempty"`
 	// WCAG lists success criteria where known. Persona findings often have none.
 	WCAG []string `json:"wcag,omitempty"`
+	// EN301549 lists the clauses of EN 301 549 V3.2.1 that match the WCAG criteria. A criterion WCAG 2.2 added has
+	// none.
+	EN301549 []string `json:"en_301_549,omitempty"`
 	// HelpURL points to fix guidance where there is some.
 	HelpURL string `json:"help_url,omitempty"`
+	// Fix says how to fix the rule, from Dummy Run's fix library, when the finding is one of its own rules.
+	Fix *fixes.Fix `json:"fix,omitempty"`
 	// Baseline is new or still-present when a baseline report was given.
-	Baseline     string       `json:"baseline,omitempty"`
-	Personas     []string     `json:"personas"`
-	Runs         int          `json:"runs"`
-	OfRuns       int          `json:"of_runs"`
-	Reproduction Reproduction `json:"reproduction"`
-	Screenshots  []Screenshot `json:"screenshots,omitempty"`
-	Instances    []Instance   `json:"instances"`
+	Baseline string `json:"baseline,omitempty"`
+	// Inputs are the facts the finding's severity and confidence rest on: the kind of evidence, the engines that
+	// agree, the check, whether it is on a journey and how often it reproduced. Derived when the record has none.
+	Inputs *record.FindingInputs `json:"inputs,omitempty"`
+	// Confidence is high, medium, low or unknown: how often findings with these inputs have turned out to be
+	// right. ConfidenceReason says in one line what the finding rests on.
+	Confidence       string       `json:"confidence"`
+	ConfidenceReason string       `json:"confidence_reason"`
+	Personas         []string     `json:"personas"`
+	Runs             int          `json:"runs"`
+	OfRuns           int          `json:"of_runs"`
+	Reproduction     Reproduction `json:"reproduction"`
+	Screenshots      []Screenshot `json:"screenshots,omitempty"`
+	Instances        []Instance   `json:"instances"`
 }
 
 // Reproduction is the context and cited steps of one run that found the problem.
@@ -279,15 +295,41 @@ type AxeSection struct {
 
 // AxeRule is one rule that failed (or needs a person to look), folded across pages.
 type AxeRule struct {
-	Fingerprint string    `json:"fingerprint"`
-	Rule        string    `json:"rule"`
-	Impact      string    `json:"impact"`
-	WCAG        []string  `json:"wcag,omitempty"`
-	Help        string    `json:"help"`
-	HelpURL     string    `json:"help_url,omitempty"`
-	Elements    int       `json:"elements"`
-	Baseline    string    `json:"baseline,omitempty"`
-	Pages       []AxePage `json:"pages"`
+	Fingerprint string   `json:"fingerprint"`
+	Rule        string   `json:"rule"`
+	Impact      string   `json:"impact"`
+	WCAG        []string `json:"wcag,omitempty"`
+	// EN301549 is as on a Finding.
+	EN301549 []string `json:"en_301_549,omitempty"`
+	Help     string   `json:"help"`
+	HelpURL  string   `json:"help_url,omitempty"`
+	// Fix is how to fix one of Dummy Run's own rules, when the report has one for it.
+	Fix      *fixes.Fix `json:"fix,omitempty"`
+	Elements int        `json:"elements"`
+	Baseline string     `json:"baseline,omitempty"`
+	// Severity is the rule's severity by the same rule as a persona finding: the impact class, the WCAG level,
+	// whether a persona's journey crossed one of its pages and how many pages it affects. Set for failing rules.
+	Severity string `json:"severity,omitempty"`
+	// Inputs, Confidence and ConfidenceReason are as on a Finding. Set for failing rules.
+	Inputs           *record.FindingInputs `json:"inputs,omitempty"`
+	Confidence       string                `json:"confidence,omitempty"`
+	ConfidenceReason string                `json:"confidence_reason,omitempty"`
+	Pages            []AxePage             `json:"pages"`
+	// Colours, for a colour contrast rule, are each pair of colours that failed, with the nearest colours that
+	// would meet the ratio.
+	Colours []ColourPair `json:"colours,omitempty"`
+}
+
+// ColourPair is one text and background colour pair that fails a contrast rule, and the nearest colours that meet it.
+// TextFix keeps the background and changes the lightness of the text, in OKLCH. BackgroundFix keeps the text.
+type ColourPair struct {
+	Text          string  `json:"text"`
+	Background    string  `json:"background"`
+	Ratio         float64 `json:"ratio"`
+	Need          float64 `json:"need"`
+	TextFix       string  `json:"text_fix,omitempty"`
+	BackgroundFix string  `json:"background_fix,omitempty"`
+	Elements      int     `json:"elements"`
 }
 
 // AxePage lists the elements of one page that failed a rule.

@@ -110,6 +110,7 @@ func renderPage(s Step) string {
 	}
 	b.WriteString(problems(s))
 	b.WriteString(focusLine(p))
+	b.WriteString(spokenLines(p))
 	if p.Tree != "" {
 		fmt.Fprintf(&b, "page outline (landmarks, headings and controls, named as a screen reader names them; act on a control by its @n; what a screen reader cannot reach is left out):\n%s\n", indent(p.Tree))
 	} else {
@@ -330,4 +331,48 @@ func Signature(o page.Observation) uint64 {
 		}
 	}
 	return h.Sum64()
+}
+
+// spokenMax is the most screen reader phrases one observation shows, and spokenPhraseMax the most characters of
+// one phrase. A page decides how long a phrase is, such as an image's alt text.
+const (
+	spokenMax       = 150
+	spokenPhraseMax = 300
+)
+
+func clipPhrase(s string) string {
+	if r := []rune(s); len(r) > spokenPhraseMax {
+		return string(r[:spokenPhraseMax-3]) + "..."
+	}
+	return s
+}
+
+// spokenLines shows what a screen reader says reading the page from the top, for a persona that works without
+// seeing the screen. It is empty for every other persona.
+func spokenLines(p *page.Snapshot) string {
+	if p.SpokenError != "" {
+		return "screen reader: could not read the page aloud (" + p.SpokenError + ")\n"
+	}
+	if p.Spoken == nil {
+		return ""
+	}
+	if len(p.Spoken.Phrases) == 0 {
+		if !p.Spoken.Complete {
+			return "screen reader: the reading stopped before it said anything\n"
+		}
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("screen reader (what it says reading the page from the top, one phrase per line):\n")
+	for i, ph := range p.Spoken.Phrases {
+		if i >= spokenMax {
+			fmt.Fprintf(&b, "  ... %d more phrases\n", len(p.Spoken.Phrases)-spokenMax)
+			break
+		}
+		b.WriteString("  " + clipPhrase(inject.Strip(ph)) + "\n")
+	}
+	if !p.Spoken.Complete {
+		b.WriteString("  ... the reading stopped before the end of the page\n")
+	}
+	return b.String()
 }

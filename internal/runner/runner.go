@@ -28,6 +28,7 @@ import (
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/robots"
 	"github.com/dummy-run/dummy-run/internal/signin"
+	"github.com/dummy-run/dummy-run/internal/tech"
 	"github.com/dummy-run/dummy-run/internal/telemetry"
 )
 
@@ -97,6 +98,10 @@ type entry struct {
 }
 
 type run struct {
+	// tech, journeys and techErr are what the first page showed the site is built with. See detectTech.
+	tech     []record.Tech
+	journeys []string
+	techErr  string
 	cfg      Config
 	id       string
 	dir      string
@@ -286,7 +291,8 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 		}
 	}
 	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: disp.CSSWidth, Height: disp.CSSHeight,
-		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Access: r.access, Launch: cfg.Launch})
+		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Access: r.access, Launch: cfg.Launch,
+		ScreenReader: readsAloud(cfg.Persona)})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open browser: %w", err)
 	}
@@ -311,6 +317,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	r.opening = true
 	first := r.execute(ctx, provider.ToolCall{Name: "visit", Args: json.RawMessage(`{"url":""}`)})
 	r.opening = false
+	r.detectTech(ctx)
 	r.entries = append(r.entries, entry{role: provider.RoleUser, step: first,
 		text: "Begin. This is what you see now.\n\n"})
 
@@ -817,7 +824,7 @@ func (r *run) systemPrompt() string {
 		"After each call you get the page as text with numbered controls, and a screenshot for the newest steps; older steps are shortened to one line. " +
 		"\"Actions left\" is your budget. If the page did not change after an action, the result says so: do not repeat it, try something else or give up. " +
 		"Step numbers in your report are the harness's own (\"step N\" in each result). When you are done, or have given up, call finish with your verdict, " +
-		"your report, your findings and your observations. Findings are problems only: something wrong, missing or confusing. Each one has its kind, severity, symptom (chosen from the list in the tool), title, the steps that show it, " +
+		"your report, your findings and your observations. Findings are problems only: something wrong, missing or confusing. Each one has its kind, symptom (chosen from the list in the tool), title, the steps that show it, " +
 		"whether you measured it or inferred it and, when it is about one control, that control's @number. Observations are things that worked and neutral notes, each with the steps that show it. " +
 		"A finding: \"The search box has no label, so a screen reader user cannot tell what it is for.\" An observation: \"The home page accessibility check found no violations.\" " +
 		"Never report something that worked as a finding. Say in goal_met whether you did what you came to do.\n")
@@ -960,7 +967,36 @@ func (r *run) target() record.Target {
 	if t.Commit == "" && r.build != "" {
 		t.Commit, t.BuildHash = r.build, r.build
 	}
+	t.Tech, t.Journeys, t.TechError = r.tech, r.journeys, r.techErr
 	return t
+}
+
+// detectTech reads what the site is built with from the first page, for the record. It never stops the run.
+func (r *run) detectTech(ctx context.Context) {
+	prints := tech.Own
+	if extra, err := tech.FromEnv(); err != nil {
+		r.techErr = strings.SplitN(err.Error(), "\n", 2)[0]
+	} else if len(extra) > 0 {
+		prints = append(slices.Clone(tech.Own), extra...)
+	}
+	tctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	found, err := tech.Detect(tctx, r.page.Conn(), r.page.Context(), prints)
+	if err != nil {
+		r.techErr = strings.SplitN(err.Error(), "\n", 2)[0]
+		return
+	}
+	for _, f := range found {
+		r.tech = append(r.tech, record.Tech{Name: f.Name, Category: f.Category, Source: f.Source, Evidence: f.Evidence})
+	}
+	r.journeys = tech.Journeys(found)
+	if len(found) > 0 {
+		names := make([]string, len(found))
+		for i, f := range found {
+			names[i] = f.Name
+		}
+		fmt.Fprintf(r.log, "tech: %s; journeys: %s\n", strings.Join(names, ", "), strings.Join(r.journeys, ", "))
+	}
 }
 
 // dimensions records what varied for this run. The engine emulates the device, the zoom, the text size and the persona's
@@ -998,4 +1034,11 @@ func CountRepeats(dir, batch, persona, scenario, model, self string) int {
 		}
 	}
 	return n
+}
+
+// readsAloud says whether each look carries what a screen reader says: for a persona that gets no screenshots,
+// whatever else it may not do. AT names one modality, so a persona that can neither click nor see the screen is
+// keyboard-only there, but it still works without seeing the page.
+func readsAloud(p *cast.Persona) bool {
+	return !p.Allows("screenshot")
 }

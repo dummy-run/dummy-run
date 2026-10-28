@@ -25,6 +25,15 @@ type CheckNode struct {
 type MarkupChecks struct {
 	LabelInName  []CheckNode `json:"labelInName"`
 	Autocomplete []CheckNode `json:"autocomplete"`
+	// ARIAFeatures are the roles and aria-* attributes the page's shown elements use.
+	ARIAFeatures []ARIAFeature `json:"ariaFeatures"`
+}
+
+// ARIAFeature is a role or aria-* attribute in use on a page.
+type ARIAFeature struct {
+	Name     string `json:"name"`
+	Selector string `json:"selector"`
+	Count    int    `json:"count"`
 }
 
 // RunMarkupChecks runs checks.js on the loaded page.
@@ -32,6 +41,32 @@ func RunMarkupChecks(ctx context.Context, conn *bidi.Conn, cx string) (*MarkupCh
 	var out MarkupChecks
 	if err := conn.CallFunctionJSONIn(ctx, cx, "dummyrun-checks", checksJS, &out, ChecksMaxItems); err != nil {
 		return nil, fmt.Errorf("markup checks: %w", err)
+	}
+	return &out, nil
+}
+
+//go:embed content.js
+var contentJS string
+
+// ContentChecks are the results of the checks in content.js, on the words and images a page's authors wrote.
+type ContentChecks struct {
+	VagueLink    []CheckNode `json:"vagueLink"`
+	URLLink      []CheckNode `json:"urlLink"`
+	NewWindow    []CheckNode `json:"newWindow"`
+	DocumentLink []CheckNode `json:"documentLink"`
+	AltFileName  []CheckNode `json:"altFileName"`
+	AltRedundant []CheckNode `json:"altRedundant"`
+	AltLong      []CheckNode `json:"altLong"`
+	FakeHeading  []CheckNode `json:"fakeHeading"`
+	AllCaps      []CheckNode `json:"allCaps"`
+	Underline    []CheckNode `json:"underline"`
+}
+
+// RunContentChecks runs content.js on the loaded page.
+func RunContentChecks(ctx context.Context, conn *bidi.Conn, cx string) (*ContentChecks, error) {
+	var out ContentChecks
+	if err := conn.CallFunctionJSONIn(ctx, cx, "dummyrun-content", contentJS, &out, ChecksMaxItems); err != nil {
+		return nil, fmt.Errorf("content checks: %w", err)
 	}
 	return &out, nil
 }

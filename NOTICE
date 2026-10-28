@@ -18,3 +18,61 @@ LICENSES/BSD-3-Clause.txt).
 This product bundles Siteimprove Alfa 0.120.0 (internal/page/engines/alfa.min.js), Copyright (c) Siteimprove A/S,
 licensed under the MIT licence (see LICENSES/MIT.txt). The bundle includes Color.js, Copyright (c) 2021 Lea Verou and
 Chris Lilley, licensed under the MIT licence. The bundle is built from internal/page/engines/alfa.
+
+This product bundles QualWeb act-rules 0.8.6, wcag-techniques 0.4.9, qw-page 0.3.8 and util 0.7.4
+(internal/page/engines/qualweb), Copyright (c) 2024, FCUL, licensed under the ISC licence (see
+internal/page/engines/qualweb/LICENSE and LICENSES/ISC.txt). The util bundle includes franc-min, trigram-utils,
+n-gram and collapse-white-space (Copyright (c) Titus Wormer), string-pixel-width (Copyright (c) Adam Bisek) and
+lodash.deburr (Copyright JS Foundation and other contributors), licensed under the MIT licence. The act-rules and
+wcag-techniques bundles include code from lodash (Copyright JS Foundation and other contributors), and the act-rules
+bundle includes Color.js (Copyright (c) 2021 Lea Verou and Chris Lilley), both licensed under the MIT licence. The files are
+unmodified and internal/page/engines/qualweb/fetch.sh fetches them.
+
+This product bundles DuckDuckGo autoconsent 16.61.0 (internal/page/consent/autoconsent.playwright.js and
+internal/page/consent/compact-rules.json), Copyright (c) DuckDuckGo, Inc. and the autoconsent contributors, licensed under the Mozilla Public License 2.0
+(see internal/page/consent/LICENSE and LICENSES/MPL-2.0.txt). The rule set is unmodified. In the bundle, one regular
+expression in ACKNOWLEDGE_PATTERNS is modified, as a comment there marks: two redundant alternatives are removed to
+stop exponential backtracking. The modified file is distributed in source form in this repository under the same
+licence. The original source is at https://github.com/duckduckgo/autoconsent.
+
+This product bundles web-vitals 6.2.3 (internal/page/webvitals/web-vitals.attribution.iife.js), Copyright 2020 Google LLC,
+licensed under the Apache License 2.0 (see internal/page/webvitals/LICENSE and LICENSES/Apache-2.0.txt). The source is
+at https://github.com/GoogleChrome/web-vitals.
+
+This product bundles guidepup virtual-screen-reader 0.33.0 (internal/page/screenreader/vsr.min.js), Copyright (c) 2023
+Craig Morten, licensed under the MIT licence (see LICENSES/MIT.txt). Its browser build includes, under the MIT licence:
+@testing-library/dom (Copyright (c) 2017 Kent C. Dodds), @testing-library/user-event (Copyright (c) 2020 Giorgio
+Polvara), dom-accessibility-api (Copyright (c) 2020 Sebastian Silbermann), html-aria (Copyright (c) 2024 Drew Powers),
+lz-string (Copyright (c) 2013 pieroxy), pretty-format and react-is (Copyright (c) Facebook, Inc. and its affiliates),
+ansi-regex and ansi-styles (Copyright (c) Sindre Sorhus) and dequal (Copyright (c) Luke Edwards). It also includes
+aria-query (Copyright (c) Jesse Beach and the A11yance contributors), licensed under the Apache License 2.0 (see
+LICENSES/Apache-2.0.txt). The bundle is built from internal/page/screenreader/build.
+
+This product includes two rules from the Vale Readability style (internal/plain/styles/Readability), Copyright (c) 2026
+Joseph Kato, licensed under the MIT licence (see internal/plain/styles/Readability/LICENSE). The container image
+includes the Vale 3.24.0 program (/opt/vale), Copyright (c) 2016 Joseph Kato, licensed under the MIT licence. Its
+source is at https://github.com/vale-cli/vale.
+
+The test fixtures in testdata/benchmark/accessguru hold the rule names and element markup of 150 cases from the AccessGuru
+dataset, Copyright (c) 2025 Nadeen Fathallah, licensed under the MIT licence (see
+testdata/benchmark/accessguru/LICENSE). The source is at https://github.com/NadeenAhmad/AccessGuruLLM.
+
+internal/a11y/ariaat/features.json holds the ARIA-AT project's test results for each ARIA feature, by screen reader
+and browser, copied unchanged from https://aria-at.w3.org/reports. Copyright © 2026 World Wide Web Consortium,
+licensed under the W3C Document License (see internal/a11y/ariaat/LICENSE and
+https://www.w3.org/copyright/document-license-2023/).
+
+The container image includes the Nu HTML Checker 26.10.12 (/opt/vnu/vnu.jar), Copyright (c) 2007-2016 Mozilla
+Foundation and the validator contributors, licensed under the MIT licence (see /opt/vnu/LICENSE). The jar carries
+the licences of the libraries it includes. Its source is at https://github.com/validator/validator. vnu runs on a
+Java runtime (/opt/vnu/jre) made with jlink from Debian's OpenJDK 21 package, licensed under the GNU General Public
+License version 2 with the Classpath Exception (see /opt/vnu/jre/legal). Its source is in Debian's openjdk-21
+source package.
+
+internal/visual/pixelmatch.go is a Go port of pixelmatch 7.1.0, Copyright (c) 2025, Mapbox, licensed under the ISC
+licence (see LICENSES/ISC.txt). The file carries the licence. The original source is at
+https://github.com/mapbox/pixelmatch.
+
+The container image includes the lychee 0.24.2 program (/opt/lychee/lychee), Copyright (c) 2020 Matthias Endler and
+the lychee contributors, licensed under the MIT licence or the Apache License 2.0, at your option. Its source is at
+https://github.com/lycheeverse/lychee.

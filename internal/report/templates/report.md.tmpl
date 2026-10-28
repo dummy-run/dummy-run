@@ -83,7 +83,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 {{range .Items}}{{$f := .Finding}}#### {{$f.Title}}
 
-{{cap $f.Severity}}. {{statusText $f.Status}}.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
+{{cap $f.Severity}}. {{statusText $f.Status}}. {{cap $f.Confidence}} confidence.{{if $f.Baseline}} {{baselineText $f.Baseline}}.{{end}}
 
 {{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
 
@@ -99,9 +99,23 @@ The findings are sorted by severity, then by the number of runs that found them.
 {{- if $f.WCAG}}
 | WCAG 2.2 | {{cell (join $f.WCAG)}} |
 {{- end}}
+{{- if $f.EN301549}}
+| EN 301 549 | {{cell (join $f.EN301549)}} |
+{{- end}}
 | Review | {{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{cell (join $f.Reviewers)}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{cell $f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding{{end}} |
+| How sure | {{confidenceText $f.Confidence}} {{cell $f.ConfidenceReason}} |
 {{- if $f.HelpURL}}
 | Fix guidance | {{cell $f.HelpURL}} |
+{{- end}}
+{{- with $f.Fix}}
+| How to fix | {{cell .Summary}} Usually done by {{.Owner}}. |
+{{- end}}
+{{- with $f.Fix}}
+
+How to fix:
+
+{{range $n, $s := .Steps}}{{$n | inc}}. {{$s}}
+{{end}}
 {{- end}}
 
 How to reproduce:
@@ -124,10 +138,10 @@ The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} 
 {{if .Axe.Rules -}}
 ### Rules that failed
 
-| Rule | What it checks | Impact | WCAG 2.2 | Elements | Fix guidance |
-|---|---|---|---|---:|---|
+| Rule | What it checks | Severity | Impact | WCAG 2.2 | Elements | How sure | Fix guidance |
+|---|---|---|---|---|---:|---|---|
 {{- range .Axe.Rules}}
-| `{{cell .Rule}}` | {{cell .Help}}{{if .Baseline}} ({{cell (baselineText .Baseline)}}){{end}} | {{if .Impact}}{{cell (cap .Impact)}}{{else}}No impact given{{end}} | {{if .WCAG}}{{cell (join .WCAG)}}{{else}}Not recorded{{end}} | {{cell .Elements}} | {{if .HelpURL}}{{cell .HelpURL}}{{else}}None recorded{{end}} |
+| `{{cell .Rule}}` | {{cell .Help}}{{if .Baseline}} ({{cell (baselineText .Baseline)}}){{end}} | {{cap .Severity}} | {{if .Impact}}{{cell (cap .Impact)}}{{else}}No impact given{{end}} | {{if .WCAG}}{{cell (join .WCAG)}}{{if .EN301549}} (EN 301 549 {{cell (join .EN301549)}}){{end}}{{else}}Not recorded{{end}} | {{cell .Elements}} | {{cap .Confidence}}. {{cell .ConfidenceReason}} | {{if .HelpURL}}{{cell .HelpURL}}{{else}}None recorded{{end}} |
 {{- end}}
 
 ### Where each rule failed
@@ -137,6 +151,25 @@ The sweep ran axe-core {{.Axe.AxeVersion}} with {{.Axe.Tool}} on {{.Axe.Pages}} 
 {{- range $r := .Axe.Rules}}{{range $r.Pages}}
 | `{{cell $r.Rule}}` | {{cell .URL}} | {{range $k, $t := .Targets}}{{if $k}}, {{end}}`{{cell $t}}`{{end}} | {{cell (join .Settings)}} |
 {{- end}}{{end}}
+{{- if colourRules .Axe.Rules}}
+
+### Colours that meet the ratio
+
+For each pair of colours that failed, the nearest text colour that meets the ratio on the same background, and the nearest background that meets it with the same text, where one exists. When none does at that hue, the table says so. Each one changes how light the colour is and keeps its hue. Check the new colour against the rest of your design.
+
+| Rule | Text | Background | Contrast | Needs | Text that meets it | Background that meets it | Elements |
+|---|---|---|---|---|---|---|---|
+{{- range $r := colourRules .Axe.Rules}}{{range $r.Colours}}
+| `{{cell $r.Rule}}` | `{{cell .Text}}` | `{{cell .Background}}` | {{printf "%.2f" .Ratio}}:1 | {{.Need}}:1 | {{if .TextFix}}`{{cell .TextFix}}`{{else}}None at this hue{{end}} | {{if .BackgroundFix}}`{{cell .BackgroundFix}}`{{else}}None at this hue{{end}} | {{cell .Elements}} |
+{{- end}}{{end}}
+{{- end}}
+{{- if fixRules .Axe.Rules}}
+
+### How to fix what failed
+
+Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the elements listed above.
+{{range fixRules .Axe.Rules}}{{template "fix" .}}{{end}}
+{{- end}}
 
 {{else -}}
 No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.
@@ -161,6 +194,13 @@ These are axe's best-practice rules that are not WCAG A or AA rules (a few are W
 |---|---|---|---|
 {{- range .Axe.Advice}}
 | `{{cell .Rule}}` | {{cell .Help}}{{if .HelpURL}} ({{cell .HelpURL}}){{end}} | {{cell .Elements}} | {{range $k, $p := .Pages}}{{if $k}}, {{end}}{{cell $p.URL}}{{end}} |
+{{- end}}
+{{- if fixRules .Axe.Advice}}
+
+### How to act on the advice
+
+Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the pages listed above.
+{{range fixRules .Axe.Advice}}{{template "fix" .}}{{end}}
 {{- end}}
 
 {{end -}}
@@ -267,3 +307,16 @@ Coverage was not computed. {{.Coverage.Unavailable}}
 
 {{range .Limits}}- {{.}}
 {{end}}
+{{- define "fix"}}
+#### `{{inline .Rule}}`
+
+{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.
+
+{{range $n, $s := .Fix.Steps}}{{$n | inc}}. {{$s}}
+{{end}}{{with .Fix.Example}}
+Before: `{{inline .Before}}`
+
+After: `{{inline .After}}`
+{{end}}{{if .Fix.Sources}}
+Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}[{{$u}}]({{$u}}){{end}}
+{{end}}{{end}}

@@ -55,9 +55,12 @@ type Browser struct {
 	Version string
 	// UserAgent is navigator.userAgent of the first context.
 	UserAgent string
-	procs     []*proc
-	tempDirs  []string
-	closeOnce sync.Once
+	// DebuggerAddress is Chrome's DevTools address, such as localhost:9222, as chromedriver reports it, so a tool
+	// such as Lighthouse can use the same browser. It is empty in Firefox.
+	DebuggerAddress string
+	procs           []*proc
+	tempDirs        []string
+	closeOnce       sync.Once
 }
 
 // proc is a started process, its exit watcher and its parent-death guard.
@@ -356,9 +359,7 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	}
 	args = append(args, opts.Args...)
 	chromeOpts := map[string]any{"args": args}
-	if len(opts.ChromePrefs) > 0 {
-		chromeOpts["prefs"] = opts.ChromePrefs
-	}
+	chromeOpts["prefs"] = chromePrefs(opts.ChromePrefs)
 	if chrome != "" {
 		chromeOpts["binary"] = chrome
 	}
@@ -399,6 +400,9 @@ func launchChrome(ctx context.Context, opts LaunchOptions, b *Browser) error {
 	}
 	b.Conn = conn
 	b.Version, _ = v.Value.Capabilities["browserVersion"].(string)
+	if o, ok := v.Value.Capabilities["goog:chromeOptions"].(map[string]any); ok {
+		b.DebuggerAddress, _ = o["debuggerAddress"].(string)
+	}
 	return nil
 }
 
@@ -416,4 +420,11 @@ func waitHTTP(ctx context.Context, url string) error {
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
+}
+
+// chromePrefs adds the preloading switch to the caller's Chrome preferences. Chrome fetches pages ahead of a click
+// when a page asks with speculation rules, or when it adds rules of its own. Those requests skip the request interception, so they would carry no run headers and pass no request
+// policy. Preloading is off, and it is applied last, so no caller preference turns it back on.
+func chromePrefs(user map[string]any) map[string]any {
+	return mergePrefs(user, map[string]any{"net": map[string]any{"network_prediction_options": 2}})
 }

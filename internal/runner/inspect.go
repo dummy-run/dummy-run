@@ -52,6 +52,11 @@ func (r *run) inspect(s *Step) []inject.Hit {
 	}
 	scan(inject.SourceVisible, strings.Join(append(visible, o.ConsoleErrors...), "\n"))
 	scan(inject.SourceLabel, strings.Join(append(controlLabels(p.Controls), focusName(p), p.Tree), "\n"))
+	if p.Spoken != nil {
+		// What the screen reader says is the page's text as well as its names and labels, so it is scanned as
+		// visible text: a page about prompts that reads "system prompt" aloud is a weak sign, as it is on screen.
+		scan(inject.SourceVisible, strings.Join(p.Spoken.Phrases, "\n"))
+	}
 	for _, h := range p.Hidden {
 		scan(inject.SourceHidden, h)
 	}

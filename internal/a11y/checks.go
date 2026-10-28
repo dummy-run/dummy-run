@@ -1,6 +1,9 @@
 package a11y
 
-import "github.com/dummy-run/dummy-run/internal/page"
+import (
+	"github.com/dummy-run/dummy-run/internal/page"
+	"github.com/dummy-run/dummy-run/internal/record"
+)
 
 // Rule IDs of the markup checks. They sit beside axe's rule IDs in the report and the allow-list.
 const (
@@ -29,9 +32,9 @@ func markupFindings(m *page.MarkupChecks, path string, allow *AllowList) []Findi
 			continue
 		}
 		r := markupRules[id]
-		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Nodes: []Node{}}
+		f := Finding{Rule: id, Impact: r.impact, WCAG: r.wcag, Help: r.help, HelpURL: r.helpURL, Evidence: record.EvidenceAxFact, Nodes: []Node{}}
 		for _, c := range by[id] {
-			n := Node{Target: c.Selector, Detail: c.Detail}
+			n := Node{Target: c.Selector, Detail: c.Detail, Confidence: rate(record.EvidenceAxFact, id, nil)}
 			if e := allow.Match(id, path, n.Target); e != nil {
 				n.Allowed, n.Reason = true, e.Reason
 			}

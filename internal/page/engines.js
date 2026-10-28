@@ -1,16 +1,17 @@
-// Runs IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa on the loaded page, in the sweep's sandbox, and
+// Runs IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb on the loaded page, in the sweep's sandbox, and
 // matches their failures to elements. No model is involved: each result is an engine's own rule outcome.
-// Called as a function expression with (axeJSON, criteriaJSON, max):
+// Called as a function expression with (axeJSON, criteriaJSON, max, engineMs):
 //   axeJSON       [{sc: ["1.1.1"], selector: "img"}] as JSON: axe's failing nodes, so agreement can be counted
 //   criteriaJSON  the WCAG criteria to keep as JSON, such as ["1.1.1", ...]; anything else, such as AAA, is dropped
 //   max       the most groups to return
+//   engineMs  how long each engine that waits may take
 // Returns {ran, errors, axe, groups, omitted}:
 //   ran     the engines that finished
 //   errors  {engine: message} for an engine that threw
 //   axe     for each of axeNodes, the other engines that flagged the same element for a shared criterion
 //   groups  the other failures axe did not report, one per element and criterion, the groups more engines agree on first
 //   omitted how many groups were left out to keep within max
-async (axeJSON, criteriaJSON, max) => {
+async (axeJSON, criteriaJSON, max, engineMs) => {
   const axeNodes = JSON.parse(axeJSON);
   const keep = new Set(JSON.parse(criteriaJSON));
   // Control characters from page text could rewrite a terminal line when the summary prints a message.
@@ -27,13 +28,24 @@ async (axeJSON, criteriaJSON, max) => {
     }
     return s;
   };
+  // The selector names one element: it climbs from the element until it reaches an id or matches nothing else, and
+  // is anchored at body when it climbs that far.
+  const unique = (sel) => {
+    try {
+      return document.querySelectorAll(sel).length === 1;
+    } catch (e) {
+      return false;
+    }
+  };
   const selector = (el) => {
     const parts = [];
-    for (let e = el, d = 0; e && e.nodeType === 1 && e !== document.body && e !== document.documentElement && d < 4; e = e.parentElement, d++) {
+    let e = el;
+    for (; e && e.nodeType === 1 && e !== document.body && e !== document.documentElement; e = e.parentElement) {
       const p = part(e);
       parts.unshift(p);
-      if (p[0] === "#") break;
+      if (p[0] === "#" || (parts.length >= 4 && unique(parts.join(" > ")))) break;
     }
+    if (e === document.body && parts.length && !unique(parts.join(" > "))) parts.unshift("body");
     return parts.join(" > ") || el.tagName.toLowerCase();
   };
   // The page itself: a missing title or language is reported on html, head, body or the document by different engines.
@@ -41,7 +53,9 @@ async (axeJSON, criteriaJSON, max) => {
   const element = (n) => {
     if (!n) return null;
     if (n.nodeType === 9) return PAGE;
-    if (n.nodeType !== 1) n = n.parentElement;
+    // Alfa points some findings at an attribute, such as an aria-checked with a value that isn't allowed.
+    if (n.nodeType === 2) n = n.ownerElement;
+    else if (n.nodeType !== 1) n = n.parentElement;
     if (!n) return null;
     if (["HTML", "HEAD", "BODY", "TITLE", "META"].includes(n.tagName) || n.closest("head")) return PAGE;
     return n;
@@ -56,10 +70,75 @@ async (axeJSON, criteriaJSON, max) => {
   };
   const ran = [];
   const errors = {};
+  // Each engine that waits gets its own time, so one that never finishes is an error for that engine and the others
+  // still report. The time covers the waiting only: the engine's call starts before the timer, so work it does
+  // straight away, without waiting, isn't counted, and QualWeb, which never waits, can't be stopped this way.
+  const within = (p, name) => {
+    let timer;
+    const late = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(name + " took more than " + engineMs / 1000 + " seconds")), engineMs);
+    });
+    return Promise.race([p, late]).finally(() => clearTimeout(timer));
+  };
   const items = []; // {engine, rule, sc, el, message, help}
+  // Text no one can see, such as a button label pushed off the page with text-indent, text set at font-size 0 or
+  // visually hidden text clipped to a pixel, has no contrast a person sees. Engines that measure it anyway report a
+  // false contrast failure. Text counts as seen when more than a pixel square of it is left on the page once every
+  // element that hides its overflow has clipped it. Text that spills out of its element, or that a scrolling box
+  // holds out of view, is still seen: you can see it, or scroll to it.
+  // Only the boxes that contain an element clip it: a fixed element escapes every parent but one that is transformed,
+  // filtered, contained or about to be transformed, and an absolute one escapes the parents between it and the
+  // nearest positioned one.
+  const hides = (o) => o === "hidden" || o === "clip";
+  const holdsFixed = (cs) =>
+    cs.transform !== "none" ||
+    cs.filter !== "none" ||
+    cs.perspective !== "none" ||
+    /paint|layout|strict|content/.test(cs.contain) ||
+    cs.willChange.split(",").some((w) => ["transform", "perspective", "filter"].includes(w.trim()));
+  const seen = (q, t) => {
+    let l = q.left, r = q.right, top = q.top, bot = q.bottom;
+    let skip = ""; // "absolute" or "fixed" while the parents being walked do not contain the text
+    for (let a = t.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      const contains = skip === "" || holdsFixed(cs) || (skip === "absolute" && cs.position !== "static");
+      if (!contains) continue;
+      skip = cs.position === "absolute" || cs.position === "fixed" ? cs.position : "";
+      const x = hides(cs.overflowX), y = hides(cs.overflowY);
+      if (!x && !y) continue;
+      const b = a.getBoundingClientRect();
+      if (x) {
+        l = Math.max(l, b.left);
+        r = Math.min(r, b.right);
+      }
+      if (y) {
+        top = Math.max(top, b.top);
+        bot = Math.min(bot, b.bottom);
+      }
+    }
+    if (r + scrollX <= 0 || bot + scrollY <= 0) return false; // what is left is off the page to the left or top
+    // Fixed text past the window's right or bottom edge stays there however far you scroll.
+    if (skip === "fixed" && (l >= innerWidth || top >= innerHeight)) return false;
+    return r - l > 1 && bot - top > 1;
+  };
+  const unpainted = (el) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let any = false;
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      if (!t.data.trim()) continue;
+      any = true;
+      const r = document.createRange();
+      r.selectNodeContents(t);
+      for (const q of r.getClientRects()) {
+        if (seen(q, t)) return false;
+      }
+    }
+    return any;
+  };
   const add = (engine, rule, sc, node, message, help) => {
     sc = [...new Set(sc)].filter((c) => keep.has(c));
     const el = element(node);
+    if (el && el !== PAGE && sc.includes("1.4.3") && unpainted(el)) sc = sc.filter((c) => c !== "1.4.3");
     if (!sc.length || !el) return;
     items.push({ engine, rule, sc, el, message: squash(message).slice(0, 200), help });
   };
@@ -71,7 +150,7 @@ async (axeJSON, criteriaJSON, max) => {
       if (g.id !== "WCAG_2_2") continue;
       for (const cp of g.checkpoints) for (const r of cp.rules || []) (map[r.id] = map[r.id] || []).push(cp.num);
     }
-    const rep = await checker.check(document, ["WCAG_2_2"]);
+    const rep = await within(checker.check(document, ["WCAG_2_2"]), "IBM Equal Access");
     for (const r of rep.results) {
       if (r.value[0] !== "VIOLATION" || r.value[1] !== "FAIL") continue;
       add("ibm", r.ruleId, map[r.ruleId] || [], byPath(r.path && r.path.dom), r.message,
@@ -83,9 +162,9 @@ async (axeJSON, criteriaJSON, max) => {
   }
 
   try {
-    const msgs = await new Promise((resolve, reject) => {
+    const msgs = await within(new Promise((resolve, reject) => {
       HTMLCS.process("WCAG2AA", document, () => resolve(HTMLCS.getMessages()), reject, "en");
-    });
+    }), "HTML_CodeSniffer");
     for (const m of msgs) {
       if (m.type !== HTMLCS.ERROR) continue;
       const hit = /Guideline\d+_\d+\.(\d+)_(\d+)_(\d+)\./.exec(m.code);
@@ -98,12 +177,56 @@ async (axeJSON, criteriaJSON, max) => {
   }
 
   try {
-    for (const o of await dummyrunAlfa()) {
+    for (const o of await within(dummyrunAlfa(), "Siteimprove Alfa")) {
       add("alfa", o.rule, o.sc, byPath(o.path), "", "https://alfa.siteimprove.com/rules/" + o.rule);
     }
     ran.push("alfa");
   } catch (e) {
     errors.alfa = squash(String(e && e.message || e)).slice(0, 200);
+  }
+
+  // A technique's page on the W3C site, from its ID: G1 is general, H44 html, ARIA6 aria and so on.
+  const techniqueDirs = { G: "general", H: "html", ARIA: "aria", C: "css", F: "failures", SCR: "client-side-script", SVR: "server-side-script", SM: "smil", T: "text", PDF: "pdf" };
+  const qwHelp = (kind, mapping) => {
+    if (!mapping) return "";
+    if (kind === "act") return "https://www.w3.org/WAI/standards-guidelines/act/rules/" + encodeURIComponent(mapping) + "/";
+    const m = /^([A-Z]+)\d+$/.exec(mapping);
+    return m && techniqueDirs[m[1]] ? "https://www.w3.org/WAI/WCAG22/Techniques/" + techniqueDirs[m[1]] + "/" + mapping : "";
+  };
+  const byPointer = (p) => {
+    try {
+      return document.querySelector(p);
+    } catch (e) {
+      return null;
+    }
+  };
+  // QualWeb's ACT rules and its WCAG techniques run apart, so one that throws leaves the other's results. QualWeb
+  // counts as run when either does. The ACT rule that needs the page at another window size (QW-ACT-R40) is left out,
+  // so the window never changes.
+  const qwRunners = [
+    ["act", "ACTRulesRunner", (R) => new R({}, "en").configure({ exclude: ["QW-ACT-R40"] })],
+    ["wcag", "WCAGTechniquesRunner", (R) => new R({}, "en").configure({})],
+  ];
+  const qwLoaded = globalThis.qwPage && globalThis.DomUtils;
+  for (const [kind, name, runner] of qwRunners) {
+    try {
+      const R = globalThis[name];
+      if (!qwLoaded || typeof R !== "function") throw new Error(name + " did not load");
+      const rep = runner(R).test({}).getReport();
+      for (const [code, a] of Object.entries(rep.assertions || {})) {
+        if (!a || !a.metadata || a.metadata.outcome !== "failed") continue;
+        const sc = (a.metadata["success-criteria"] || []).map((c) => c.name);
+        for (const r of a.results || []) {
+          if (r.verdict !== "failed") continue;
+          // A result with no element is about the page as a whole.
+          const els = r.elements && r.elements.length ? r.elements : [{}];
+          for (const e of els) add("qualweb", code, sc, e.pointer ? byPointer(e.pointer) : document, r.description, qwHelp(kind, a.mapping));
+        }
+      }
+      if (!ran.includes("qualweb")) ran.push("qualweb");
+    } catch (e) {
+      if (!errors.qualweb) errors.qualweb = squash(String(e && e.message || e)).slice(0, 200);
+    }
   }
 
   const used = new Set();

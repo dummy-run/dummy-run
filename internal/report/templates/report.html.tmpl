@@ -68,6 +68,8 @@ h4 { font-size: 1.15rem; }
 h5 { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 1.25rem 0 0.4rem; }
 p, ul, ol, dl, table, figure { margin: 0 0 1rem; }
 p, li { max-width: 68ch; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+pre code { display: block; padding: 0.5em 0.75em; }
 code { font-family: var(--font-mono); font-size: 0.88em; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 0.05em 0.35em; overflow-wrap: anywhere; }
 .muted { color: var(--muted); }
 section { padding: 3rem 0 0.5rem; }
@@ -112,6 +114,9 @@ dt.k, .cover-meta dt { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0
 .badge { display: inline-block; border: 1.5px solid; border-radius: 6px; padding: 0 0.55rem; font-size: 0.875rem; font-weight: 700; line-height: 1.6; margin: 0 0.35rem 0.25rem 0; vertical-align: middle; }
 .st-confirmed { background: var(--good-bg); color: var(--good-ink); border-color: var(--good-ink); }
 .st-not-reviewed { background: transparent; color: var(--ink); border: 1.5px dashed var(--muted); }
+/* Confidence badges. The band is always written out; the dashed border marks the bands to read as leads. */
+.cf-high, .cf-medium, .cf-low, .cf-unknown { background: transparent; color: var(--ink); border-color: var(--muted); }
+.cf-low, .cf-unknown { border-style: dashed; }
 .bl-new { background: var(--info-bg); color: var(--info-ink); border-color: var(--info); }
 .bl-still-present, .bl-fixed { background: var(--panel); color: var(--ink); border-color: var(--muted); }
 
@@ -384,7 +389,7 @@ footer p { margin: 0 0 0.4rem; }
 <div class="group-head"><h3 id="g-{{$g.Severity}}">{{cap $g.Severity}}</h3><span class="count">{{plural (len $g.Items) "finding" "findings"}}</span></div>
 {{range .Items}}{{$f := .Finding}}{{$i := .Index}}
 <article class="finding f-{{$f.Severity}}" id="f-{{$i}}" aria-labelledby="f-{{$i}}-t">
-<p class="f-badges"><span class="badge b-{{$f.Severity}}">{{cap $f.Severity}}</span><span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span>
+<p class="f-badges"><span class="badge b-{{$f.Severity}}">{{cap $f.Severity}}</span><span class="badge st-{{$f.Status}}">{{statusText $f.Status}}</span><span class="badge cf-{{$f.Confidence}}">{{cap $f.Confidence}} confidence</span>
 {{- if $f.Baseline}}<span class="badge bl-{{$f.Baseline}}">{{baselineText $f.Baseline}}</span>{{end}}</p>
 <h4 id="f-{{$i}}-t">{{$f.Title}}</h4>
 {{- $place := placeText $f.Route $f.Locus}}
@@ -400,9 +405,16 @@ footer p { margin: 0 0 0.4rem; }
 {{- if $f.WCAG}}
 <dt>WCAG 2.2</dt><dd>{{join $f.WCAG}}</dd>
 {{- end}}
+{{- if $f.EN301549}}
+<dt>EN 301 549</dt><dd>{{join $f.EN301549}}</dd>
+{{- end}}
 <dt>Review</dt><dd>{{if eq $f.Status "confirmed"}}Confirmed{{if $f.Reviewers}} by {{join $f.Reviewers}}{{end}}{{if $f.ReviewedAt}} on {{longDate $f.ReviewedAt}}{{end}}{{if $f.Reason}}. Reason: {{$f.Reason}}{{end}}{{else}}Not reviewed. No person has checked this finding.{{end}}</dd>
+<dt>How sure</dt><dd>{{confidenceText $f.Confidence}} {{$f.ConfidenceReason}}</dd>
 {{- if $f.HelpURL}}
 <dt>Fix guidance</dt><dd><a href="{{$f.HelpURL}}">{{$f.HelpURL}}</a></dd>
+{{- end}}
+{{- with $f.Fix}}
+<dt>How to fix</dt><dd>{{.Summary}} Usually done by {{.Owner}}.<ol>{{range .Steps}}<li>{{.}}</li>{{end}}</ol></dd>
 {{- end}}
 </dl>
 <h5>How to reproduce</h5>
@@ -448,15 +460,17 @@ footer p { margin: 0 0 0.4rem; }
 <div class="table-wrap" role="region" tabindex="0" aria-label="Rules that failed">
 <table>
 <caption>Rules that failed</caption>
-<thead><tr><th scope="col">Rule</th><th scope="col">Impact</th><th scope="col">WCAG 2.2</th><th scope="col" class="num">Elements</th><th scope="col">Fix guidance</th></tr></thead>
+<thead><tr><th scope="col">Rule</th><th scope="col">Severity</th><th scope="col">Impact</th><th scope="col">WCAG 2.2 and EN 301 549</th><th scope="col" class="num">Elements</th><th scope="col">How sure</th><th scope="col">Fix guidance</th></tr></thead>
 <tbody>
 {{- range .Axe.Rules}}
 <tr>
 <th scope="row"><code>{{.Rule}}</code><br><span class="muted help">{{.Help}}</span>{{if .Baseline}}<br><span class="badge bl-{{.Baseline}}">{{baselineText .Baseline}}</span>{{end}}</th>
-<td><span class="badge b-{{impactSev .Impact}}">{{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}</span></td>
-<td>{{if .WCAG}}{{join .WCAG}}{{else}}Not recorded{{end}}</td>
+<td><span class="badge b-{{.Severity}}">{{cap .Severity}}</span></td>
+<td>{{if .Impact}}{{cap .Impact}}{{else}}No impact given{{end}}</td>
+<td>{{if .WCAG}}{{join .WCAG}}{{if .EN301549}}<br><span class="muted help">EN 301 549 {{join .EN301549}}</span>{{end}}{{else}}Not recorded{{end}}</td>
 <td class="num">{{.Elements}}</td>
-<td>{{if .HelpURL}}<a href="{{.HelpURL}}">How to fix {{.Rule}}</a>{{else}}None recorded{{end}}</td>
+<td>{{cap .Confidence}}<br><span class="muted help">{{.ConfidenceReason}}</span></td>
+<td>{{if .HelpURL}}<a href="{{.HelpURL}}">How to fix {{.Rule}}</a>{{else if .Fix}}<a href="#fix-{{.Rule}}">How to fix {{.Rule}}</a>, below{{else}}None recorded{{end}}</td>
 </tr>
 {{- end}}
 </tbody>
@@ -474,7 +488,26 @@ footer p { margin: 0 0 0.4rem; }
 </tbody>
 </table>
 </div>
-{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
+{{- if colourRules .Axe.Rules}}
+<h3 class="sub">Colours that meet the ratio</h3>
+<p>For each pair of colours that failed, the nearest text colour that meets the ratio on the same background, and the nearest background that meets it with the same text, where one exists. When none does at that hue, the table says so. Each one changes how light the colour is and keeps its hue. Check the new colour against the rest of your design.</p>
+<div class="table-wrap" role="region" tabindex="0" aria-label="Colours that meet the ratio">
+<table>
+<caption>Colours that meet the ratio</caption>
+<thead><tr><th scope="col">Rule</th><th scope="col">Text</th><th scope="col">Background</th><th scope="col" class="num">Contrast</th><th scope="col" class="num">Needs</th><th scope="col">Text that meets it</th><th scope="col">Background that meets it</th><th scope="col" class="num">Elements</th></tr></thead>
+<tbody>
+{{- range $r := colourRules .Axe.Rules}}{{range $r.Colours}}
+<tr><th scope="row"><code>{{$r.Rule}}</code></th><td><code>{{.Text}}</code></td><td><code>{{.Background}}</code></td><td class="num">{{printf "%.2f" .Ratio}}:1</td><td class="num">{{.Need}}:1</td><td>{{if .TextFix}}<code>{{.TextFix}}</code>{{else}}None at this hue{{end}}</td><td>{{if .BackgroundFix}}<code>{{.BackgroundFix}}</code>{{else}}None at this hue{{end}}</td><td class="num">{{.Elements}}</td></tr>
+{{- end}}{{end}}
+</tbody>
+</table>
+</div>
+{{- end}}
+{{if fixRules .Axe.Rules}}
+<h3 class="sub">How to fix what failed</h3>
+<p>Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the elements listed above.</p>
+{{- range fixRules .Axe.Rules}}{{template "fix" .}}{{end}}
+{{end}}{{else}}<p>No element failed a rule in the settings tested. That is a statement about the sweep and not about the app.</p>{{end}}
 {{if .Axe.NeedsReview}}
 <h3 class="sub">Needs a person to check</h3>
 <p>Axe cannot decide these rules alone. A person has to look.</p>
@@ -499,11 +532,16 @@ footer p { margin: 0 0 0.4rem; }
 <thead><tr><th scope="col">Rule</th><th scope="col">What it checks</th><th scope="col" class="num">Elements</th><th scope="col">Pages</th></tr></thead>
 <tbody>
 {{- range .Axe.Advice}}
-<tr><th scope="row"><code>{{.Rule}}</code></th><td>{{.Help}}{{if .HelpURL}} (<a href="{{.HelpURL}}">how to fix</a>){{end}}</td><td class="num">{{.Elements}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
+<tr><th scope="row"><code>{{.Rule}}</code></th><td>{{.Help}}{{if .HelpURL}} (<a href="{{.HelpURL}}">how to fix</a>){{else if .Fix}} (<a href="#fix-{{.Rule}}">how to fix</a>, below){{end}}</td><td class="num">{{.Elements}}</td><td>{{range $k, $p := .Pages}}{{if $k}}<br>{{end}}{{$p.URL}}{{end}}</td></tr>
 {{- end}}
 </tbody>
 </table>
 </div>
+{{if fixRules .Axe.Advice}}
+<h3 class="sub">How to act on the advice</h3>
+<p>Each rule below is one of Dummy Run's own checks. The steps are general. Check them against the pages listed above.</p>
+{{- range fixRules .Axe.Advice}}{{template "fix" .}}{{end}}
+{{end}}
 {{end}}
 {{if .Axe.Errors}}
 <h3 class="sub">Pages that could not be tested</h3>
@@ -668,3 +706,15 @@ footer p { margin: 0 0 0.4rem; }
 </div>
 </body>
 </html>
+{{define "fix"}}
+<h4 id="fix-{{.Rule}}"><code>{{.Rule}}</code></h4>
+<p>{{.Fix.Summary}} Usually done by {{.Fix.Owner}}.</p>
+<ol>{{range .Fix.Steps}}<li>{{.}}</li>{{end}}</ol>
+{{- with .Fix.Example}}
+<p>Before:</p><pre><code>{{.Before}}</code></pre>
+<p>After:</p><pre><code>{{.After}}</code></pre>
+{{- end}}
+{{- if .Fix.Sources}}
+<p>Guidance: {{range $k, $u := .Fix.Sources}}{{if $k}}, {{end}}<a href="{{$u}}">{{$u}}</a>{{end}}</p>
+{{- end}}
+{{- end}}

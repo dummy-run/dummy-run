@@ -112,6 +112,12 @@ engine works out the finding's route, locus and fingerprint from the page. [COVE
 list and explains what the fingerprint is for. If the model gives a symptom that isn't on the list, it's sent
 back to `finish` up to twice, and after that the finding is dropped.
 
+The persona is never asked for a severity or a confidence. The engine sets the severity from a rule over the
+symptom's impact class and the journey, and records the finding's `inputs`: the kind of evidence, the engines
+that report it, the check and whether it's on a journey. A finding that names an axe rule which the persona's
+own `a11y` check reported rests on that engine result; any other finding is the persona's own report. A report
+turns those inputs into a confidence band. [REPORT.md](REPORT.md) explains both rules.
+
 ## Browser cleanup
 
 You shouldn't find browsers left running after a run. The engine starts the driver and the browser in their
@@ -277,8 +283,18 @@ outline line has a role, a name and sometimes a state:
 - `expanded` or `collapsed` for a disclosure control
 - `off screen` for a control above or below the window
 
-Names and visibility come from one script, `internal/page/names.js`, which the engine splices into the control
-numbering, the outline and the accessibility check, so an element is never named two ways. When axe-core is
+In Chrome, roles, names, states and whether a screen reader can reach an element come from Chrome's own
+accessibility tree. WebDriver BiDi has no command for it, so the engine asks for it over the Chrome DevTools
+Protocol through chromedriver's `goog:cdp` passthrough. It reads `Accessibility.getFullAXTree` before each look
+and each accessibility check. It marks each element the tree gives a role with `data-dummyrun-ax` and hands the
+table of what Chrome says to its sandbox. Chrome leaves some elements out: one in a frame, one added after the
+tree was read and any past the first 3,000. The script below names those. Chrome's names include CSS
+generated content, such as an icon button's `::before` text, which the script can't read. A look in Chrome
+whose tree was read records `names_from: chrome`. On GOV.UK's home page the extra commands add about a tenth of a second to a look.
+
+Firefox refuses the passthrough. In Firefox, and in Chrome when the tree can't be read, names and visibility
+come from one script, `internal/page/names.js`. The engine splices it into the control numbering, the outline and
+the accessibility check, so an element is never named two ways. When axe-core is
 loaded in the page, the script uses axe's own functions: `axe.commons.text.accessibleText` for the name and
 `axe.commons.dom.isVisibleToScreenReaders` for whether a screen reader can reach it. The engine loads its own
 axe into each web page before it reads it. It runs axe and its page scripts in a WebDriver BiDi sandbox, a realm
@@ -288,9 +304,8 @@ Name and Description Computation 1.2 and HTML-AAM for the common cases. That mea
 `aria-label` and the element's `<label>` (buttons and comboboxes included), then `alt` on an image button and a
 button's value. Links and buttons are then named from their rendered content, with image `alt` and SVG
 `title`, and the last resorts are `title` and `placeholder`. A select takes its name from its label. WebDriver
-BiDi has no command that returns the browser's own accessibility tree, and the engine doesn't use the Chrome
-DevTools Protocol, so this is a close approximation of what each browser exposes, the same on Chrome and
-Firefox. Shadow DOM and cross-origin frames are only partly covered.
+BiDi has no command that returns the browser's own accessibility tree, so in Firefox this is a close
+approximation of what the browser exposes. Shadow DOM and cross-origin frames are only partly covered.
 
 Only controls a screen reader user can reach are listed and numbered. Links in a closed `<details>` or a
 collapsed menu, controls under `aria-hidden` or `inert`, and anything not rendered are left out. The
@@ -331,10 +346,43 @@ before writing it. `dummyrun coverage` and the Grafana exporter can still read v
 releases.
 
 A version 2 record adds the fingerprint of each finding and the route of each step. It also adds the
-persona's dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Its cost comes from the price table in
+persona's dimensions, `scenario.goal_met`, `repeat_index` and `seed`. Each finding has an `inputs` block with
+its `evidence_kind`, `engines`, `check` and `on_journey`, and `reproduced` when a batch has repeated runs.
+Records written before inputs existed have none, and a report then reads each of their findings as the
+persona's own report. Its cost comes from the price table in
 `internal/price/prices.json`, and it's null for a model that isn't in the table. If the target has no
 `commit`, the engine makes one from a hash of the home page, fetched with a single GET request outside the
 browser. Findings start with the verdict `pending` until a person reviews them (see [Review](#review)).
+
+### What the site is built with
+
+After the first page loads, the engine reads what the site is built with and keeps it in `target.tech`. It looks
+only at what the page shows: its scripts, its globals, its meta tags, its markup and the cookies it can read. It
+doesn't fetch anything more. Each entry has a `name`, a `category`, the `source` of its fingerprint and the
+`evidence` that matched, such as `window.Shopify.shop`. A page can hide or fake a marker, so treat this as a hint.
+
+The categories suggest journeys worth a persona's time, in `target.journeys`:
+
+| Category | Journeys |
+|---|---|
+| `shop`, such as Shopify, WooCommerce or Magento | `basket`, `checkout` |
+| `payments`, such as Stripe or PayPal | `checkout` |
+| `search`, a search form or Algolia | `search` |
+| `booking`, such as Calendly or OpenTable | `booking` |
+| `forms`, such as HubSpot Forms or Typeform | `contact form` |
+
+The engine's own fingerprints cover about 40 platforms that change what's worth testing. They're written from the
+markers each platform serves, in `internal/tech/tech.go`. For a fuller list, point `DUMMYRUN_WEBAPPANALYZER` at
+your copy of [webappanalyzer](https://github.com/enthec/webappanalyzer), which knows more than 6,000. The engine
+reads its `technologies` files when the run starts and uses the markers a page shows. It leaves out HTTP headers,
+URLs and request patterns, and a global counts when it exists, whatever its value. webappanalyzer is GPL-3.0, so
+Dummy Run doesn't ship it. Its fingerprints come only from your copy. When detection fails, `target.tech_error`
+says why, and the run goes on.
+
+```sh
+git clone https://github.com/enthec/webappanalyzer
+DUMMYRUN_WEBAPPANALYZER="$PWD/webappanalyzer" dummyrun run ...
+```
 
 Next to the record, `report.md` holds the persona's own report. `steps.jsonl` holds the full observation for
 each step, including the page text, so a reviewer can check the persona's quotes.
@@ -532,7 +580,8 @@ the threats. Here is what the engine does about prompt injection.
   fading them out. The scan does not look at CSS masks, so it reads those lines as quoted output.
 - The engine collects that hidden text along with the `aria-label`, `title`, `alt` and `placeholder` values.
   They're saved in `page.hidden` in `steps.jsonl`, for the scan and for the reviewer.
-- A scan runs over the page text, the control names, the outline and the hidden text. It looks for phrases such
+- A scan runs over the page text, the control names, the outline and the hidden text. For a persona with no
+  screenshots it also covers what the screen reader says. It looks for phrases such
   as "ignore previous instructions", "system prompt" and "you are now", and for chat template tokens. It also
   looks for orders to report nothing or to call `finish`, and for claims that the site is fully accessible.
   Instructions to go to a host outside the allow list are flagged, and so are invisible Unicode characters. Hidden text that
@@ -556,7 +605,9 @@ the threats. Here is what the engine does about prompt injection.
   - the page was a feed or other file
   - the persona's action sent a request the test blocked and the address stayed the same, when the finding
     says something didn't work, was slow, showed an error or couldn't be reached
-  - the persona's action sent a request the test blocked and the browser showed its own error page instead
+  - the persona's action sent a request the test blocked and the browser showed its own error page instead.
+    Chrome does this when the test refuses a page the persona was going to, so the engine then goes back to the
+    page the action started on. The error page shows in a step only when there was no page to go back to.
 
   A request the page sent by itself, such as a beacon while the persona scrolled, doesn't count. A finding
   with at least one cited step that shows the real page is kept. The persona is also told that these limits
@@ -879,6 +930,21 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 ```
 
 - Protected previews. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` get the sweep past Basic auth or a bypass header, as [Protected previews](#protected-previews) describes.
+- Writes. The browser the sweep opens sends nothing but GET and HEAD, in its own tabs, in the tab Lighthouse
+  loads the page in and in any tab a page opens. A request a page's script sends with any other method, such as a
+  form or an API call made as the page loads or when a check presses a control, fails before it leaves the
+  browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A page can't open a
+  window of its own: `window.open` does nothing and returns null, and a form, link or `<base>` that names a new window
+  is sent to the page's own tab, where the guard decides it. That holds when the page's own script sets the target
+  as the link is clicked or the form sent. A frame the target names is still used, one beside the
+  form's own frame included. A cross-origin frame's name can't be read, so a target that names one goes to the form's
+  own frame instead. Chrome never
+  reports the first request of a new tab to the guard, so without this a form sent to a new window would arrive. A
+  tab that opens all the same is closed at once, so it can't take focus from the page under test. GET and HEAD still
+  go through, so a site that changes data on a GET can still be changed. Each page's
+  `requests_stopped` counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure
+  probe's `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused
+  there isn't counted.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.
@@ -894,9 +960,22 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   result is listed as "needs review" in the JSON and doesn't fail the run.
 - Output. A short summary on standard output lists each failure once, with the browser, size and scheme where
   it appeared. `--json FILE` (or `-` for standard output) writes every page. Each failure has the rule ID and the
-  impact. It also has the WCAG criteria, the element selector and the help link.
+  impact. It also has the WCAG criteria, the element selector and the help link. For a CI job, `--junit FILE` and `--ctrf FILE`
+  write each failing rule as a failed test, in JUnit XML or the Common Test Report Format. Each output needs
+  its own file. When robots.txt keeps every page out, they are still written, with no tests. The JSON report also records when the sweep started and ended, in `started_at` and `ended_at`.
 - Exit status. 0 when nothing fails. 1 when a violation isn't in the allow-list or a page can't be loaded. 2
   for a usage error. 3 when robots.txt disallows every page (with `--respect-robots`).
+
+To run every check in one go, add `--all`. It turns on the keyboard, markup and content checks, the cookie banner, the other
+rule engines, contrast over images, the HTML check, Lighthouse, the journeys, the link check, the failure probe, the
+layout checks and plain language. Four of them use programs of their own: Vale for plain language, vnu for the HTML check, lychee for
+the links, and Lighthouse, which also needs Chrome. The container image has Vale, vnu and lychee but not Lighthouse.
+A check whose program is missing says so on each page, and the rest of the sweep still runs. Add `--text-scale
+100,200` to test large text in the same run.
+
+```sh
+dummyrun a11y --all --text-scale 100,200 --json report.json https://example.com/
+```
 
 The allow-list holds violations you've accepted, one per line as `rule | page | selector | reason`. The page
 is a URL path, and the selector is matched against the element's selector. A `*` matches anything. The reason
@@ -913,20 +992,49 @@ measure the page in the browser, with no model call, and report each problem as 
 results. A layout finding fails the sweep like an axe violation, and the allow-list can accept it. The checks
 are off by default, so an existing sweep won't turn red until you ask for them.
 
+The checks read the rectangles the browser lays out for elements and lines of text. Where it matters, they also ask
+the browser what is painted on top at a point. A box that merely reaches into another box doesn't count. Only what
+a reader would see goes wrong. The approach follows the geometry scorers in LayoutLens (MIT), written afresh for this
+engine.
+
+Unless you set `--viewport` or `--text-scale` yourself, `--layout` adds the two settings the criteria name. These
+are a 320 px window for WCAG 1.4.10 and text at 200 percent for WCAG 1.4.4. So `--layout` alone tests desktop,
+phone and the 320 px window, each at 100 and 200 percent text. Set `--viewport` or `--text-scale` to test fewer.
+
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
-| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window | 1.4.10 | serious |
-| `dummyrun-clipped-text` | An interactive element, or an element inside it, hides part of its text with `overflow` or an ellipsis, or a parent that clips hides part of the element | 1.4.4 | serious |
-| `dummyrun-overlap` | Two visible links, buttons or inputs have boxes that intersect by more than 2 px in both directions. The finding lists both selectors, with an ampersand between them | 1.4.4, 1.4.10 | serious |
-| `dummyrun-target-size` | A visible, enabled interactive element is under 24 by 24 CSS px | 2.5.8 | moderate |
+| `dummyrun-reflow` | The page is wider than the window, so it scrolls sideways. Each node is an outermost element that reaches past the window on the side the text runs towards. Content past the other edge, such as a skip link waiting off screen, can't be scrolled to | 1.4.10 | serious |
+| `dummyrun-clipped-text` | A line of text reaches past the edge of a box that hides its overflow, while part of the text is still inside that box | 1.4.4 | serious |
+| `dummyrun-overlap` | Where two controls meet, the browser has one of them on top of the other's text, at two or more points. A control with no text counts when most of its box is covered | 1.4.4, 1.4.10 | serious |
+| `dummyrun-target-size` | A visible, enabled control is under 24 by 24 CSS px, and none of the measurable exceptions apply | 2.5.8 | moderate |
+| `dummyrun-focus-obscured` | A control that takes focus is entirely hidden by something opaque, such as a sticky header, once the browser has scrolled it into view | 2.4.11 | serious |
 
-The checks approximate what a person sees, and each node's `detail` says so. Overlap skips a control inside
-another control, a pair that something else covers where they meet, and a fixed bar against content below the
-window. Target size follows the two exceptions in WCAG 2.5.8 that can be measured. A link inside a sentence is
-exempt, and so is a small target with room around it: a 24 px circle on its centre must meet no other target
-and no other small target's circle. A checkbox or radio counts as large as its label. Disabled controls are
-skipped, and so are elements 1 px or smaller, which pages use to hide text from the eye. Overlap and clipping
-are the strongest signals, so check a target size finding by eye before you act on it.
+What doesn't count, because WCAG allows it or a person wouldn't see a problem:
+
+- For reflow, WCAG 1.4.10 lets some content keep a two-dimensional layout, so it can be wider than the window. That
+  covers data tables, images, maps, video and toolbars. When those are the only elements past the edge, there's no
+  finding, and `reflow_exempt` in the layout result counts them.
+- For clipped text, the other slides of a carousel don't count: text with no line inside the box is hidden by
+  it. A box of 1 px or less, or one with `clip` or `clip-path`, hides text from the eye on purpose. A box
+  that scrolls, and has something to scroll to, lets the reader reach the rest, and so does a box that hides overflow around one that scrolls on the
+  same axis, such as a terminal window with a scrolling line inside a rounded frame. Only words are measured, so the
+  spaces that hang past the edge of a `pre-wrap` line don't count. Text that's moving, because it or a box
+  around it has a CSS animation or transition running, is left out, since its box shows where it is mid-flight
+  rather than where it comes to rest. Text shortened with an ellipsis or a line clamp counts only inside a
+  control, where the missing words are the control's name.
+- For overlap, a control inside another control doesn't count. Nor do boxes that meet without covering any text,
+  such as transparent padding.
+- For target size, the exceptions are a link inside a sentence and a small target with room around it. A button,
+  input, select or text area the page leaves at the browser's own size is exempt too. Room around it means a 24 px circle on its centre meets no
+  other target and no other small target's circle. A checkbox or radio counts as large as its label. The
+  equivalent-control and essential exceptions need a person, so check a target size finding by eye before you
+  act on it.
+- For focus obscured, a control only partly hidden doesn't count, because WCAG 2.4.11 allows it at level AA. An
+  image, video or canvas counts as cover only when its pixels are solid. One whose pixels can't be read, such as
+  an image from another site, never counts. Focus moves to at most 150 controls on a page. The check runs only in a sweep, never during a persona's run, because a
+  page can react to focus.
+
+Disabled controls are skipped, and so are elements 1 px or smaller.
 
 Each result in the JSON has `text_scale` (left out at 100) and `layout_checked`. Each node can have a `detail` and a
 `screenshot`. `--screenshots DIR` writes a PNG crop of each flagged element to `DIR`, up to 12 for each page and
@@ -939,16 +1047,78 @@ dummyrun a11y --text-scale 100,200 --viewport phone --screenshots shots https://
 
 ### Keyboard checks
 
-To check the page by keyboard, add `--keyboard`. The sweep clicks nothing. It presses Tab from the top of the page, up to 80
-times and records where focus goes. It then reports what it measured. There is no model call. The checks are off by default.
+To check the page by keyboard, add `--keyboard`. The sweep presses Tab from the top of the page, up to 80
+times and records where focus goes. It also clicks up to 5 controls on each page to compare mouse and keyboard, as
+described below. It then reports what it measured. There is no model call. The checks are off by default.
 The pixel comparison covers no more than the first 30 stops that need it. The walk ends at the first loop or repeated stop, so later stops go unchecked. When that happens the page's result says `keyboard_partial`, so a page with no keyboard findings is not read as one that was checked all the way through.
 
 | Rule ID | Fails when | WCAG | Impact |
 |---|---|---|---|
 | `dummyrun-focus-not-visible` | An element that takes focus looks the same, in the pixels around it, with and without focus. An element whose outline or style changes is never checked, so a focus ring drawn another way passes only if it changes the picture | 2.4.7 | serious |
+| `dummyrun-focus-low-contrast` | Pixels change when an element gets focus, but no pixel's colour with focus has a contrast ratio of 3:1 with its colour without focus, as with a pale grey outline or a faint change of background | 1.4.11 | serious |
 | `dummyrun-focus-hidden` | Focus lands on an element with no size, hidden, or outside the window | 2.4.7 | serious |
 | `dummyrun-keyboard-trap` | Focus keeps cycling through the same few elements, outside any dialog, and Escape and more Tab presses do not get it out | 2.1.2 | critical |
 | `dummyrun-skip-link-broken` | The first Tab stop is a "skip to content" link whose target is not on the page or is not shown | 2.4.1 | serious |
+| `dummyrun-skip-link-no-focus` | The skip link's target is there, but after Enter on the link the next Tab lands before the target, so focus never moved | 2.4.1 | serious |
+| `dummyrun-mouse-only` | A click on a control does what it's for, but from the keyboard Tab never reaches it, or Enter and Space do nothing | 2.1.1 | serious |
+
+For the focus rules, the sweep takes two pictures of each element and the 6 pixels round it, one with focus and
+one without. It waits for the page to draw and for any transition to end, up to half a second, before each picture.
+The pictures cover the first 30 stops with no focus style the walk can read, and another 30 with one. From them it
+measures the indicator the way WCAG 2.4.13 does. It counts the pixels that change and how much their contrast
+changes. It also works out the area of a line 2 CSS pixels thick round the element. Fewer than 6 changed screenshot pixels
+don't count as an indicator, since a blinking caret can change that many. Each stop's `appearance` in the JSON
+gives `changed` and `area`, the pixels that change by 3:1 or more, in square CSS pixels. It also gives `need`, the
+area of that 2 pixel line, and `contrast`, the biggest change.
+
+An indicator with enough contrast but less area than that line is advice, `dummyrun-focus-appearance` (WCAG
+2.4.13). Level AAA asks for that area, and AA doesn't, so it never fails the sweep. A one pixel outline is a common
+example. The picture shows only 6 pixels round the element, so an outline set further out than that isn't seen. A control wider than 588 or taller than 288 CSS pixels doesn't fit in the picture, so its indicator isn't measured.
+
+The last two rules come from trying controls and seeing what happens. For up to 5 controls on each page, the
+sweep picks ones it can test. These are a control with `aria-expanded`, one whose `aria-controls` names a hidden
+element, a closed `<details>`, an unselected tab, a custom checkbox or switch, and something that shows the hand
+pointer but isn't a control. Each has a success test that the page computes, such as "`aria-expanded` became true"
+or, for the last kind, "the address, the words or the shown elements changed".
+
+For each control, the sweep loads the page afresh and checks the test is false. It clicks the control with the
+mouse and checks the test is now true. On another fresh load, it presses Tab until the control has focus, then
+Enter, then Space, and checks the test again. Tab stops once focus has come back round to where it started, or has
+stayed outside the page for three presses. A control counts only when the click worked and the keyboard didn't. A
+control whose test was already true, that something else covers, that a click didn't change, or that Tab didn't reach
+within 80 stops has no verdict, and its `skipped` says why. A link to another page, a `javascript:` link and a
+form's submit button are never picked, and nor is anything holding one. Nor are text fields and comboboxes, where
+Enter sends the form or the arrow keys do the work, or a tab that the arrow keys reach while another tab in its list
+takes Tab. A control's own script can still navigate when it's clicked, unless `--respect-robots` is set and
+robots.txt disallows the address. A request it sends with any method but GET or HEAD fails before it leaves the
+browser, as the [Writes](#the-accessibility-sweep) item says. On each load the comparison presses Tab up to 40
+times to bring focus into the page, since the browser's own controls can hold it for many stops first, as Firefox's
+do once a Tab walk has run off the end. A page that never takes keyboard focus in those 40 presses shows as an
+error.
+
+While it tries each control, the sweep also measures how long the page takes to respond, with Google's
+[web-vitals](https://github.com/GoogleChrome/web-vitals) library and its INP measure. INP is the time from a click
+or a key press to the next frame that shows the result, and stands for Interaction to Next Paint. After each click, Enter and Space, the page's result lists
+the response in `tasks.responses`. It gives the time in milliseconds, web-vitals' rating, and where the time went:
+`input_delay` before the page's handlers start, `processing` in them, and `presentation` drawing the result. INP is
+the slowest response on the page so far. Past 50 interactions, web-vitals leaves out one of the slowest for every
+50, so it is then close to the slowest. It can describe an earlier interaction on the same load, such as a Tab
+press on the way to the control, and the response then has `earlier: true`. A control whose slowest response to
+the sweep's own click, Enter or Space is over 500 ms, which web-vitals rates poor, is advice,
+`dummyrun-slow-response`. No WCAG criterion sets a
+time, but a slow response leaves people unsure whether anything happened, and they may press again. The sweep
+reports the measurements and leaves any judgement of how steady they are across runs to you.
+
+The skip link is tried the same way. The sweep presses Tab on a fresh load. If focus is on a skip link whose target
+is shown, it presses Enter and then Tab. Focus must then land inside the target or after it. When Tab alone gets
+there, as it does when the link sits just before its target, the check gives no verdict.
+
+When the sweep is signed in, with a session or preview access, it tries nothing: no controls and no skip link. Any
+click or Enter could run a script that sends a request and changes the account or signs it out.
+
+This loads each page a dozen times or so, so it runs once for each page and window size, on the first colour
+scheme and text size. It runs in a tab of its own, so the rest of the sweep is unchanged. The results are in
+`tasks` in each page's JSON.
 
 Focus that moves into a frame or a media player is followed no further, so the walk counts as partial. A dialog that keeps focus inside itself is not a trap, even when it has only one control. A page with nothing that takes focus counts as fully walked. If the trap test cannot finish, the page shows an error instead of a clean result.
 
@@ -963,19 +1133,98 @@ Add `--markup` for two checks on the page's markup that axe leaves out by defaul
 
 These findings fail the sweep like axe rules, and you can accept one with the allow-list. When the markup checks finish on a page, its JSON result has `markup_checked: true`, so a page with no markup findings is known to have been checked.
 
+### ARIA snapshots
+
+A site you check again and again needs to show what changed. Add `--aria-snapshots DIR` and the sweep writes an
+ARIA snapshot of each page in each setting to DIR. It lists landmarks, headings and controls in page order, as
+YAML. Each line gives a role, an accessible name and any states. A landmark's contents sit under it:
+
+```yaml
+- banner:
+  - link "Home"
+- main:
+  - heading "Shop" [level=1]
+  - button "Buy" [disabled]
+  - checkbox "Gift wrap" [checked]
+```
+
+Hidden elements are left out, and so is plain text: words that aren't a heading or the name of a control or
+landmark. The snapshot also leaves out the focused element and the persona's @numbers. So a new paragraph or an edited sentence leaves the snapshot as it was. A changed heading, a renamed
+button or a new link changes it. Names come from the spec
+computation alone. The snapshot is still taken after axe and the page's other checks, so a page where axe or
+an earlier check fails has no snapshot. A page keeps up to 2,000 lines, and
+`aria_snapshot_omitted` counts any more.
+
+If DIR already holds a snapshot for the page and setting, the sweep compares the two first. The result's
+`aria_changes` lists up to 50 lines added and 50 removed, and counts them all. The terminal shows a `CHANGED`
+line for each page with the lines that changed. Then the new snapshot replaces the old one. Each file name comes
+from the page's address and setting, with a short hash, such as `example.com_shop--chrome_desktop_light-1a2b3c4d.yaml`.
+With `--repeat`, only the first repeat compares and writes the snapshots, so the comparison is always with the
+sweep before and never with an earlier repeat. A change is never a failure. A new button or a renamed heading may be just what you meant to ship, so read the
+changes and decide.
+
+```sh
+dummyrun a11y --aria-snapshots snapshots https://example.com/
+```
+The markup checks also list the roles and `aria-*` attributes the page's shown elements use, and look each one up
+in the results of [ARIA-AT](https://aria-at.w3.org/reports). That's the W3C community group that tests how JAWS,
+NVDA and VoiceOver handle each ARIA pattern. When one screen reader and browser pair passes
+under 60 percent of the tests for a role or attribute, the sweep reports advice, `dummyrun-aria-support`. The advice names the first element that
+uses it, how many use it, and each pair's share, such as "NVDA with Chrome 18% (9 of 50)". For a role
+attribute that lists fallbacks, the first role ARIA defines counts, since that's the one the browser uses.
+
+ARIA-AT tests whole patterns, such as a tab list or a grid. A low figure means that screen reader and browser
+passed few of ARIA-AT's tests of the patterns that use the role or attribute. Your page may still be right. Most roles and attributes have a pair below 90 percent. The line is drawn
+at 60 so the advice is about clearly weak support. The figures were fetched on 2026-10-26 and ship with the engine.
+`internal/a11y/ariaat/fetch.sh` fetches them again.
+### Content checks
+
+Some barriers are in the words and images a page's authors write: a link called "read more", alt text that is a
+file name, or bold text standing in for a heading. Add `--content` for ten checks on them. They
+run in the browser with no model call, and only on what a visitor can see.
+
+| Rule ID | Reports | Related to |
+|---|---|---|
+| `dummyrun-content-alt-file-name` | An image whose alt text is a file name, such as `IMG_2041.jpg` or `hero-banner.png` | WCAG 1.1.1 |
+| `dummyrun-content-vague-link` | A link whose whole name is a phrase such as "click here", "read more" or "learn more" | WCAG 2.4.4 |
+| `dummyrun-content-fake-heading` | A short paragraph set entirely in bold, with no full stop, followed by a paragraph, list or table | WCAG 1.3.1 |
+| `dummyrun-content-document-link` | A link to a PDF, Word, Excel, PowerPoint, OpenDocument, RTF or CSV file whose name doesn't say that kind of file. "Download" isn't enough, and nor is the wrong kind | GOV.UK content design |
+| `dummyrun-content-new-window` | A link that opens a new tab and whose name doesn't say "new tab" or "new window" | WCAG 3.2.5 |
+| `dummyrun-content-url-link` | A link whose name is a web address of more than 30 characters | WCAG 2.4.4 |
+| `dummyrun-content-alt-redundant` | Alt text that starts "image of", "picture of" or "photo of" | W3C images tutorial |
+| `dummyrun-content-alt-long` | Alt text of more than 150 characters | W3C images tutorial |
+| `dummyrun-content-all-caps` | A block of text with more than 30 letters, all in capitals, typed or set by `text-transform` | GOV.UK style guide |
+| `dummyrun-content-underline` | Underlined text that isn't a link, a button, an abbreviation or inserted text | WCAG 1.4.1 |
+
+Each of these usually makes a page harder to use, but each can be right in context. A "read more" link inside a
+sentence about the story it opens can meet WCAG 2.4.4, for example. So every result is advice, never fails the
+sweep, and the allow-list can accept it. A link's name is its `aria-labelledby` or `aria-label`, or else its text and
+the `alt` of its images and the `aria-label` of its icons, leaving out anything a screen reader skips, so a link that adds words for screen readers isn't reported. A `title` doesn't count, since few people see it and few screen readers read it. The checks that match
+English phrases run only on a page whose language is English or isn't set. The checks on file names, addresses,
+length, bold, capitals and underlines run on every page. When the checks finish on a page, its JSON result has
+`content_checked: true`.
+
 ### Other rule engines
 
-Each rule engine catches things the others miss, and each has its own false alarms. Add `--engines` to run three
-more beside axe-core on every page: IBM Equal Access, HTML_CodeSniffer and Siteimprove Alfa. They run inside the
-page, in a sandbox of their own, so the page's scripts can't see them or change them. Only their WCAG 2.2 A and AA
-failures are kept. Their warnings, AAA rules and "check this by hand" results are left out.
+Each rule engine catches things the others miss, and each has its own false alarms. Add `--engines` to run four
+more beside axe-core on every page: IBM Equal Access, HTML_CodeSniffer, Siteimprove Alfa and QualWeb. QualWeb
+brings two sets, its ACT rules and its WCAG techniques. Its one ACT rule that needs the window resized
+(QW-ACT-R40, text clipped when zoomed) is left out, so the window you chose never changes. The two sets run
+apart, so if one fails the other's results are kept, and `engine_errors` says which one failed. They all run
+inside the page, in a sandbox of their own, so the page's scripts can't see them or change them. Only their WCAG 2.2 A and AA
+failures are kept. Their warnings, AAA rules and "check this by hand" results are left out. A contrast
+failure (1.4.3) on text no one can see is left out too. That's text pushed off the page with `text-indent`, text
+set at `font-size: 0` and text that its element or a parent clips away by hiding overflow. A search button's
+hidden label is one, and some engines still measure it. Text that spills out of its element but stays on the page
+is still checked, and so is text a scrolling box holds out of view, since you can scroll to it. A parent only clips what it contains, so fixed or absolutely placed text that sits outside it is still checked too. Fixed text set past the right or bottom edge of the window is left out, since no scrolling brings it into view.
 
 The sweep then matches results by element and WCAG criterion. Two engines agree when they fail the same element
 for the same criterion.
 
 - Each axe violation node gets `engines`, the engines that fail the same element for one criterion axe's rule maps
-  to, and `confidence`. When the rule maps to more than one criterion, the criterion with the most engines counts. Confidence is `high` when two or more engines agree and `single` when axe is alone. An
-  axe violation still fails the sweep either way.
+  to. When the rule maps to more than one criterion, the criterion with the most engines counts. Its `confidence`
+  is rated again with those engines, as [REPORT.md](REPORT.md) describes. An axe violation still fails the sweep
+  either way.
 - A failure axe doesn't report, but two of the other engines agree on, is a violation with the rule ID
   `dummyrun-engines-` and the criterion, such as `dummyrun-engines-1.1.1`. Its impact is serious. It fails the
   sweep and the allow-list can accept it. Its `detail` names each engine's rule, with the engine's message where it
@@ -983,8 +1232,14 @@ for the same criterion.
 - A failure only one engine reports goes to the page's `candidates` list and the summary's `candidate_nodes`. It
   never fails the sweep. Look at the element before you change anything.
 
-Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`,
-the other engines still run and the summary lists it. If none of them runs, the page has an `error` and the sweep
+Every failing element in a sweep carries a `confidence` of `high`, `medium`, `low` or `unknown`, with or without
+`--engines`. Each rule says what kind of `evidence` it is: `engine-rule` for axe and the other engines,
+`measurement` for the layout and keyboard checks and `ax-fact` for the markup checks. `dummyrun-mouse-only` is a
+`task-verdict`, because the sweep tried the control by keyboard and it did not work.
+
+Each result has `engines_ran`. If an engine fails to load or throws on a page, its message goes to `engine_errors`.
+The other engines still run, and the summary lists the error. IBM Equal Access, HTML_CodeSniffer and Alfa each have 25
+seconds on a page, and one that takes longer is an error in the same way. If none of them runs, the page has an `error` and the sweep
 fails, so it never passes on axe alone when you asked for more. A page keeps up to 200 groups of the other engines'
 failures, the ones more engines agree on first, and `engine_groups_omitted` counts any left out. The report's
 `engines` field gives the version of each engine.
@@ -994,6 +1249,490 @@ dummyrun a11y --engines --json report.json https://example.com/
 ```
 
 [Tools we build on](TOOLS.md) lists each engine with its licence.
+
+### Colours that meet the ratio
+
+When axe fails text on `color-contrast`, it records the text colour, the background
+colour, the ratio between them and the ratio the text needs. The sweep keeps those in the element's `colours` and
+works out two colours that would meet the ratio:
+
+- `text_fix`, the nearest text colour that meets it on the same background
+- `background_fix`, the nearest background that meets it with the same text
+
+Each one changes how light the colour is, in the OKLCH colour space, and keeps its hue and, where it can, its
+chroma. So a brand blue stays blue and only gets darker or lighter. The sweep tries darker and lighter and keeps the
+smaller change. If no lightness at that hue meets the ratio, that suggestion is left out. The element's `detail` says
+the same in words, for example "#777777 on #ffffff is 4.48:1, and needs 4.5:1. Text #767676 on the same background
+meets it, or the same text on #060606."
+
+A suggestion is a starting point. Check it against the rest of your design, and against the other colour scheme if
+your site has both. Axe measures only text on a flat colour, so text on an image or a gradient has no suggestion.
+Use `--image-contrast` for that.
+
+### Contrast over images
+
+axe-core can't judge the contrast of text that sits on a photo or a gradient, so it lists that text under
+`needs_review`. Add `--image-contrast` and the sweep measures it instead. For each element axe left for review, up to
+20 tries on a page, it hides the text, takes a picture of the box around the words and compares the text colour with
+every pixel behind them. The text colour is the one the browser draws, its fill colour if the page sets one. The box
+is the text's own, so padding and empty space beside a short label don't count. It runs after any cookie banner has
+been answered, so the banner isn't in the picture.
+
+A finding, `dummyrun-contrast-over-image` (WCAG 1.4.3, serious), means most of the text sits on too little contrast.
+The median of the contrast ratios between the text colour and each pixel behind it is below 4.5:1, or 3:1 for large
+text. The figures are rounded down to two places, so a ratio just under the threshold never shows as meeting it. The `detail` gives that figure and the ratio at the worst tenth
+of the pixels, so you can see how much of the text is affected. Text that passes at the median and fails only in its
+worst tenth isn't reported. When the check finishes on a result, the result has `image_contrast_checked`. If it fails, the result has an `error` instead. If the check
+measured anything, `image_contrast` lists every measurement.
+
+`image_contrast_unmeasured` counts the elements it couldn't measure, so check those by eye:
+
+- elements inside a shadow root or a frame
+- text in more than one colour, or that mixes large and smaller text
+- text faded with opacity
+- text with a shadow, since a halo can give the contrast and the picture wouldn't show it
+- text on a page whose content security policy blocks the style that hides it
+- elements it couldn't find or take a picture of, and any past the limit
+
+The picture is taken as the page draws it, so a slideshow that moves on or a video behind the text can give a
+different answer next time. Check a finding by eye before you change the design.
+
+```sh
+dummyrun a11y --consent --image-contrast https://example.com/
+```
+
+### Plain language
+
+Long sentences and vague words make a page harder for everyone, and hardest for people who read slowly, read in a
+second language or listen to a screen reader. Add `--plain-language` and the sweep reads each page's main content
+with [Vale](https://vale.sh), a prose checker that runs on your machine. The main content is the `main` landmark,
+the region a page marks as its main content, and the first one that is displayed when the page has more than one. On a page without one, it's the body. The sweep then leaves out the
+body's header, navigation, footer and asides. Code, scripts and hidden text are left out, including text the
+page's CSS hides with `display`, `visibility` or `opacity`.
+
+| Rule ID | Reports | Based on |
+|---|---|---|
+| `dummyrun-plain-reading-ease` | A Flesch reading ease score below 70 for the page, with the score | Vale's Readability style |
+| `dummyrun-plain-reading-grade` | A Flesch-Kincaid grade above 8 for the page, with the grade | Vale's Readability style |
+| `dummyrun-plain-long-sentence` | Each sentence of more than 25 words, by its first word | The GOV.UK style guide |
+| `dummyrun-plain-words-to-avoid` | Words such as "leverage", "facilitate" and "utilise", with a plainer word | The GOV.UK style guide |
+| `dummyrun-plain-latin` | "e.g.", "i.e." and "etc.", with the English to use instead | The GOV.UK style guide |
+
+The scores count syllables by rule, so treat them as a guide rather than a verdict. The rules from the GOV.UK
+style guide are our own wording of its public advice. They leave out words the guide allows in some senses, such
+as "deliver" for post. Every result goes to `advice`, because plain language at this level isn't a WCAG A or AA
+requirement, so it never fails the sweep. A page that reaches the check has `plain_language_checked`, or
+`plain_language_error` when the check couldn't complete, such as when Vale won't run. A page that fails earlier,
+such as when it won't load, has neither. A main landmark the page hides completely has nothing to check. That includes one with `display: contents`
+inside an element with `display: none` or opacity 0. Vale reads
+the first 200,000 characters of the main content's HTML. When there's more, `plain_language_partial` is true.
+
+The sweep looks for `vale` on your `PATH`, or the program `DUMMYRUN_VALE` names. The container image includes Vale
+3.24.0. Without Vale, the rest of the sweep still runs and each page says why it wasn't checked.
+
+```sh
+dummyrun a11y --plain-language https://example.com/
+```
+
+### HTML errors that change what assistive technology gets
+
+Browsers forgive broken HTML, but they repair it in ways you didn't write, and some mistakes reach assistive
+technology directly. Two elements with the same ID can send a label to the wrong field. A link inside a button may
+be announced as one, the other or neither. Add `--html` and the sweep checks each page with the
+[Nu HTML Checker](https://validator.github.io/validator/) (vnu), the checker behind the W3C's own validator. It
+runs on your machine as a separate program.
+
+The sweep checks two copies of each page in one vnu run:
+
+- the HTML as the server sent it, fetched again from the page with the page's own cookies, which is where parse
+  errors such as tags closed in the wrong order are;
+- the page as the browser built it, with what scripts added, which is where a duplicate ID from a template is.
+
+An error both copies have is reported once. vnu stops reading a document after some errors, such as a `div` inside
+a `table`, so the second copy often finds what the first one couldn't.
+
+Only errors that change what assistive technology gets are kept:
+
+| Rule ID | Reports |
+|---|---|
+| `dummyrun-html-broken-reference` | An `aria-labelledby`, `aria-describedby` or label `for` that points at no element that can take it |
+| `dummyrun-html-duplicate-id` | Two elements with the same ID |
+| `dummyrun-html-nested-interactive` | A link, button or other control inside another one |
+| `dummyrun-html-aria` | A role or `aria-*` attribute the element can't have, or a value it can't take |
+| `dummyrun-html-structure` | A list, table or select with children that don't belong, or tags the browser had to rearrange |
+| `dummyrun-html-img-alt` | An image with no `alt` attribute |
+
+Everything else vnu reports, such as an obsolete `center` element or a stray end tag the browser ignores, is
+counted in `html_ignored` and left out. Every result goes to `advice` and never fails the sweep. WCAG 2.2 dropped
+parsing (4.1.1) as a criterion, and a validator can't tell whether the error also fails another one. axe-core and
+the other engines report many of the same problems as WCAG failures when they do.
+
+The HTML is checked once for each URL, on the first result for the URL that axe could check: the first window size
+and colour scheme you set, desktop and light by default. Scripts can change the HTML at other sizes and schemes, and
+vnu doesn't see those changes. That result has `html_checked` when vnu finished, and `html_source_checked` when the
+source could be fetched again and wasn't empty. It has `html_error` instead when the check couldn't finish: vnu wasn't found,
+the browser's copy of the HTML couldn't be read, vnu failed or took more than 30 seconds, or its output couldn't be
+read. vnu reads the first 2 MB of each copy, and `html_partial` is true when there was more. When vnu hits a fatal
+error, such as bytes that aren't valid in the page's encoding, it stops reading that copy, and `html_stopped` is
+true. An error found in both copies is listed once, and the same error twice in one copy is listed twice. A source line number in a finding counts lines of the HTML as the server sent it.
+
+The sweep looks for `vnu` on your `PATH`, or the program `DUMMYRUN_VNU` names. The container image includes the
+Nu HTML Checker 26.10.12, on a Java runtime cut down to the modules it needs. Without vnu, the rest of the sweep
+still runs and each page says why it wasn't checked. Each check starts Java, which takes a second or two.
+
+```sh
+dummyrun a11y --html https://example.com/
+```
+
+### Lighthouse
+
+Add `--lighthouse` and the sweep runs Google [Lighthouse](https://github.com/GoogleChrome/lighthouse)'s
+accessibility and best-practice audits once for each URL. It uses the Chrome the sweep already has open, through
+the DevTools address chromedriver reports. Lighthouse opens its own tab there and keeps the browser's cookies, so a
+signed-in sweep stays signed in. Throttling is off and the window is the browser's own. Lighthouse sends its own
+user agent, which names Lighthouse. A run takes about 20 seconds, so it's done once for each URL, whatever the window
+sizes and schemes.
+
+Lighthouse's accessibility audits are axe-core rules, run by Lighthouse's own copy of axe-core. Lighthouse never
+counts towards the other rule engines' agreement.
+
+- Where Lighthouse fails an element that our axe also failed, for the same rule, the node gets `lighthouse: true`.
+  `lighthouse_agreed` counts these nodes. The two can differ when the page changes between loads, or because
+  Lighthouse ships a newer axe-core.
+- An accessibility audit that fails where our axe found nothing goes to `candidates`, with the rule ID
+  `dummyrun-lighthouse-` and the audit, such as `dummyrun-lighthouse-image-alt`. It counts in `candidate_nodes` and never
+  fails the sweep.
+- A best-practice audit that fails, such as `paste-preventing-inputs` or `charset`, goes to `advice` with the same
+  kind of rule ID. Where it's about the page rather than an element, such as a deprecated API a script called, each
+  problem is listed on `html` with Lighthouse's message and the script and line it came from.
+
+The first result for each URL has `lighthouse_checked`, the two category scores from 0 to 1 in `lighthouse_scores`,
+and `lighthouse_error` when Lighthouse couldn't run. When its elements can't be matched to axe's,
+`lighthouse_match_error` says why, and its failures on single elements are left out, since some would repeat axe's.
+Its page-wide failures and best-practice advice are kept. Lighthouse runs only in Chrome. In Firefox each page says
+so. The report's `lighthouse` field names the version once Lighthouse has audited a page.
+
+The sweep looks for `lighthouse` on your `PATH`, or the program `DUMMYRUN_LIGHTHOUSE` names. Install it with
+`npm install -g lighthouse`. Lighthouse 13.5.0, which the sweep is written against, asks for Node.js 22.19 or
+later. The container image doesn't include it, since it would need Node.js as well.
+
+```sh
+npm install -g lighthouse
+dummyrun a11y --lighthouse https://example.com/
+```
+
+### Journeys
+
+Add `--journeys` and the sweep finds the journeys each page offers and tries each one by mouse and by keyboard. It
+finds them in the page itself, with no model:
+
+| Journey | How it's found | It worked when |
+|---|---|---|
+| `search` | A search field: `type=search`, a field in a search form or landmark, or one named `q`, `s`, `query` or `search` | The words typed appear in the field. Enter is never pressed |
+| `menu` | A menu or navigation button in the header or `nav` with `aria-expanded="false"` | It reports expanded, or the menu it controls shows its links |
+| `signup` | A link or button labelled sign up, register, create an account or join | The page it leads to has an email or password field |
+| `basket` | A link labelled basket, cart, bag or trolley, or to `/cart`, `/basket` or `/bag` | The page it leads to has basket, cart, bag or trolley in its title or main heading |
+| `booking` | A link or button labelled book, reserve, reservation or appointment | The page it leads to, or a dialog it opens, has a date or time field, a calendar or a booking widget |
+| `contact` | A link labelled contact or get in touch, or to `/contact` | The page it leads to has a form with an email field or a message box, and each of its fields takes text |
+
+Every journey has a success test that must be false when the page loads and true after the action. A journey whose
+test is already true is `already` and proves nothing. Each way of trying starts from a fresh load. The mouse clicks
+the journey's start, after checking nothing covers it. The keyboard presses Tab from the top of the page until the
+start has focus, up to 250 times, then presses Enter or types. The contact journey then fills each field the same
+way, Tab and type or click and type.
+
+Nothing is ever sent. Before each try the sweep stops every form on the page from submitting, Enter is never
+pressed in a form, and a journey never starts from a submit button. The journeys run in a tab of their own, once
+for each URL, at the first window size, after the page's other checks and the cookie banner.
+
+Schema.org data the page publishes marks where a journey came from, but doesn't add one: when the page has a search
+field and a `SearchAction`, or a booking link and a `ReserveAction`, that journey's `source` is `schema.org`. What the
+page is built with (see [What the site is built with](#what-the-site-is-built-with)) can suggest a journey the page
+has no element for: Shopify suggests a basket, Calendly a booking. A journey a technology suggests that the page
+shows no way into is listed as `not found`, which says where to look.
+
+A basket journey never starts from an "add to basket" link, or from a link whose address adds to the basket, since
+following it would change the basket. The journeys' tab sends nothing but GET and HEAD requests: the browser fails
+any other request before it leaves, whatever the page's scripts try. With `--respect-robots`, a journey whose link
+leads to a page robots.txt disallows isn't tried and is `skipped`, and the tab loads no page robots.txt disallows,
+in a frame or by a redirect either. A sweep that is signed in, with a session or preview access, tries no
+journeys, for the same reason it tries no controls: a click could change the account or sign it out.
+
+Each result lists its `journeys`. A journey names its `kind`, its `selector`, `label` and `href`, and its `source`.
+It has a `mouse` and a `keyboard` verdict, each one of `pass`, `fail`, `unreachable`, `already`, `not found`,
+`skipped` or `error`, with a `detail`. `error` means the browser couldn't load the page or carry out the action, or the journeys
+ran out of time, so the page wasn't tested that way. A journey that passes by mouse, and fails or is unreachable by
+keyboard, is a violation, `dummyrun-journey-keyboard` (WCAG 2.1.1, serious). One that fails both ways is recorded and
+isn't reported: the page may simply not work the way the journey expects.
+
+```sh
+dummyrun a11y --journeys https://example.com/
+```
+
+### PDFs
+
+A PDF linked from a page needs to be accessible too. Its tags, reading order and fonts aren't something a page
+check can see. Add `--pdf` and the sweep collects the links to PDFs on the swept sites, up to 10 across the sweep.
+Only links whose path ends in `.pdf`, in any case, count, so a link such as `/download?id=7` that serves a PDF
+isn't checked.
+It checks each one against PDF/UA-1 (ISO 14289-1), the standard for accessible PDF. The check uses
+[veraPDF](https://verapdf.org/), which runs as its own program. It runs once for all the files, after the last
+page.
+
+- Only shown links count, and only to the same host as a URL you swept. A PDF on another site is left out.
+- Each PDF is fetched once with a plain GET and the sweep's user agent, up to 25 MB.
+- A redirect is followed only on the same host and port or to a public address, even from a site on localhost.
+  The address is checked when the connection is made, and the download uses no proxy, so a proxy can't connect
+  in the check's place.
+- With `--respect-robots`, a PDF robots.txt disallows is skipped.
+- A file that isn't a PDF, is too big or can't be read gets an `error` and no verdict.
+- Signed in or behind preview access, PDFs aren't checked, since the download would carry neither.
+
+A PDF that fails is advice, `dummyrun-pdf-ua`, on the first page that links to it. The advice names the link and
+says how many requirements fail, with the first one's clause. The report's `pdfs` lists every PDF with each
+failing rule. Each rule has its clause in ISO 14289-1 and how many places fail it. Machine checks can't judge
+everything in PDF/UA, such as whether alt text is right. So a PDF that passes still needs a person to read it.
+
+`--all` leaves `--pdf` out, since it downloads files. The container image doesn't include veraPDF. Install it
+from [verapdf.org](https://docs.verapdf.org/install/) and put `verapdf` on the PATH, or set `DUMMYRUN_VERAPDF`.
+
+```sh
+dummyrun a11y --pdf https://example.com/
+```
+
+### Broken links
+
+Add `--links` and the sweep checks the links on each page with [lychee](https://lychee.cli.rs/), a link checker
+that runs on your machine as its own program. Every `http` and `https` link in an `a` or `area` element counts,
+without its `#fragment`, up to 300 on a page. `links_omitted` counts any past that. Each link is checked once across
+the sweep, so a menu on every page costs one check per link. Each URL's links are checked once too, whatever the
+window sizes and schemes.
+
+The sweep reports a broken link as advice with the rule ID `dummyrun-broken-link`. A link is broken when it answers
+with an error status such as 404 or 500, or can't be reached at all. Skipped, refused and timed-out links aren't
+broken. Its detail gives the URL and the status code when there is one, such as
+`https://example.com/old: HTTP 404 (Rejected status code: 404 Not Found)`. It never fails the sweep. Some sites
+turn automated checkers away with 401, 403, 429 or 999 while the page works in a browser. Those count in
+`links_refused`. A link that doesn't answer in time counts in `links_timed_out`: lychee waits 20 seconds, and the
+browser, for links behind preview access, waits 15. `links_checked` counts every link looked at. That includes the
+skipped ones: links to private addresses, links robots.txt disallows and links lychee leaves out, such as a
+`.invalid` host. `links_error` says why the check couldn't run.
+
+lychee sends the sweep's user agent, `DummyRun/<version> (+https://dummyrun.dev/scanner/)` with `--identify`. It
+never gets your preview credentials. With [preview access](#protected-previews) on, links on the sites you're
+sweeping, the same scheme and host, are checked from inside the browser instead, which already holds them, and
+lychee only gets the rest. The browser counts a redirect as an answer and doesn't follow it.
+
+A page decides where its links point, so a link to `localhost`, to `169.254.169.254` or to another address on a
+private network would have the checker visit the machine it runs on or the network around it. Those links are
+skipped, both by the sweep, which looks up each host first, and by lychee with `--exclude-all-private`. They're
+checked only when every URL you sweep is itself on `localhost` or a private address, as when you sweep a site on
+your own machine. With `--respect-robots`, a link to a page that robots.txt disallows is skipped too, and isn't
+fetched. The sweep looks for `lychee` on your `PATH`, or the program `DUMMYRUN_LYCHEE` names. The container
+image includes lychee 0.24.2. Without it, the rest of the sweep still runs and each page says why its links weren't
+checked.
+
+```sh
+dummyrun a11y --links https://example.com/
+```
+
+### When the page's data fails to load
+
+Many pages fetch their content after they load, such as search results, a basket or opening times. When that
+request fails, a sighted visitor may see an error message. A visitor using a screen reader hears it only if the
+message is in an alert or a live region. Otherwise they may wait for content that never comes, with no idea why.
+WCAG 4.1.3 asks for status messages like these to be announced.
+
+Add `--failures` and the sweep loads each page twice more, in a tab of its own. The first load is normal. In the
+second, every data request the page makes with `fetch` or `XMLHttpRequest` fails before it leaves the browser, as
+it would if the site's API were down. Page loads, frames, scripts, styles, images, fonts and
+prefetches still load. After each
+load the sweep waits two seconds, then reads the text of every alert and live region, and the page's visible text.
+
+In both loads, a request other than GET or HEAD fails before it leaves the browser, whatever the page's scripts try,
+so the probe sends no form, beacon or other write. The page, its scripts, styles and images, and the normal load's
+GET data requests do reach the server. The failing load's data requests never leave the browser. A page that
+fetches its data with POST, as many GraphQL clients do, has those requests stopped in both loads. Its `failed`
+stays 0 and it gets no advice, since the normal load had no data either. With
+`--respect-robots`, a page load robots.txt disallows fails too, and with `--identify` the tab sends the same user
+agent as the sweep.
+
+The first result for each URL that axe could check gets `failure_probe`, which records:
+
+- `failed`, how many data requests were failed on purpose;
+- `stopped`, how many requests other than GET and HEAD the page tried, none of which left the browser;
+- `announced`, true when an alert or live region held text after the failure that it didn't hold on the normal
+  load, and `announcement`, that text;
+- `changed`, true when the page's visible text differs from the normal load.
+
+A page that had data requests fail and announced nothing gets advice, `dummyrun-failure-silent`. Its detail says
+whether the visible text changed. If it did, the page may show an error that a screen reader doesn't read out. If
+it didn't, the visible text is the same as when the data loaded. A page that fetches nothing when it loads gets no advice. The advice never
+fails the sweep. `failure_probe_error` says why the probe couldn't run.
+
+Each URL is probed once, on the first result for the URL that axe could check, before the checks that can end a
+page early. With preview access the probe doesn't run, since preview access answers requests in every tab, and
+the two could disagree about a request. With `--repeat`, the probe runs in the first repeat whose page gets that
+far, and the merged result keeps it. `failure_probe_skipped` says so.
+
+```sh
+dummyrun a11y --failures https://example.com/
+```
+
+### Cookie banners
+
+A cookie banner covers part of the page, so it can turn up in the layout checks as overlap and cut-off text that
+your visitors only see until they choose. Add `--consent` and the sweep answers the banner the way a careful
+visitor would, by rejecting. It uses DuckDuckGo autoconsent, which knows over a thousand consent platforms and
+falls back on reading the banner's own words.
+
+The rule engines see the banner first, because its own accessibility matters: it's the first thing a visitor has
+to get past. Then autoconsent answers it, and the layout checks measure the page underneath.
+
+Before anything is clicked, autoconsent sorts each button on the banner into one of five kinds. These are reject,
+accept, settings, acknowledge and other. A banner with an accept button and no reject button is reported as
+`dummyrun-consent-no-reject`. Rejecting through a settings page takes more steps than accepting. It also takes more
+reading and more precise clicks. That weighs most on people who tire easily, use a switch or read slowly. The finding
+goes to `advice` because it isn't a WCAG failure, so it never fails the sweep.
+
+A banner that turns up while autoconsent is still looking, in about the first three seconds, is read and answered
+too. When autoconsent reports it found nothing, the sweep moves on at once, so a banner that appears after that isn't
+answered. Otherwise the sweep waits up to 10 seconds for autoconsent to finish before it moves on. If autoconsent is still working when that time is up,
+`settled` is false and it could still click something during the checks that follow. If autoconsent can't start
+on the page at all, `failed` is true and the page has an `error`, so the sweep fails.
+
+Each result has `consent`, which records:
+
+- `popups`, the banners found, with each button's text and kind;
+- `cmp`, the consent platform recognised;
+- `opted_out`, true when autoconsent reports that it rejected;
+- `cleared`, true when every banner it found is gone or out of the window afterwards, measured in the page, and
+  false otherwise;
+- `settled`, true when autoconsent had finished when the sweep moved on. When it's false, autoconsent could still
+  act on the page later;
+- `failed`, true when autoconsent couldn't start or read the page, with the reason in `error`;
+- `steps`, autoconsent's own messages in order.
+
+A banner inside a frame is answered but not read, so it has no buttons in `popups`. Rejecting sets cookies in the
+sweep's browser, so later settings for the same site may show no banner.
+
+```sh
+dummyrun a11y --consent --layout https://example.com/
+```
+
+### Did the page change between sweeps
+
+Two sweeps of one page can disagree because the page changed between them: an A/B test, a banner, or content
+that loads late. Each result whose page loaded has `state` when its state can be read: a fingerprint of the page's
+structure and text. Just
+before the rules run, the sweep describes the page: each element's tag, role and ARIA attributes, the attributes and states that change what
+assistive technology gets, such as `alt`, `hidden`, `required`, `readonly`, `disabled` and `checked`, and the text, in order, including
+open shadow roots. `state.hash` is the SHA-256 of that description and `state.elements` counts the elements.
+
+The description leaves out what changes on every load without changing the page: ids and the attributes that
+point at them, such as `aria-labelledby` and `for`, link addresses, form values including a textarea's text,
+scripts and styles. So a fresh
+session token or a generated id doesn't change the hash, but different text or a menu that starts open does.
+
+When neither description is partial, equal hashes mean the page had the same elements, roles, ARIA, states and text. They don't cover the styles,
+classes, ids or link addresses, so a stylesheet change that alters contrast keeps the hash. The state is read
+once, before the rules start, so a page that changes while they run is hashed as it was. Different hashes mean
+the structure or text changed, and a finding that differs between the two results may come from that change. The
+sweep only records the hash. Comparing hashes across runs is for you or your pipeline to do. A description over 8
+million characters is hashed from its start, and `state.partial` says so. Two partial results can then hash the same though the pages differ past the limit. `state_error` says why the state
+couldn't be read, and the rules still run.
+### Has the page changed since last time
+
+When you sweep the same site again and again, such as on each deploy, add `--visual DIR` to see which pages look
+different from last time. For each page and setting, the sweep takes a picture of the window once the page has
+loaded and, with `--consent`, once the cookie banner is answered. Without `--consent` the banner stays in the
+picture, so a banner that differs between loads shows as changed pixels, and `--mask` can cover it. It compares that picture with the one the last sweep left in `DIR`, then
+puts the new picture in its place. The first sweep has nothing to compare with, so each result says `first`. So
+does a sweep whose earlier picture can't be read, and the new picture replaces it. With `--repeat`, only the
+first repeat compares and keeps its picture, so the comparison is always with the sweep before and never with an
+earlier repeat.
+
+Each result's `visual` records:
+
+- `screen`, the picture this sweep took;
+- `changed` and `total`, how many pixels differ out of all of them. `ratio` is the one over the other. The count
+  comes from a Go port of pixelmatch. It ignores slight shifts in colour and leaves out anti-aliasing at the edges of
+  text and shapes;
+- `hash_distance`, how many of the 64 bits of the two pictures' difference hashes differ. It is 0 for pictures that
+  look the same at a glance, and grows as their shapes and shading change. It still works when the window changed
+  size, which `size_changed` records, and no pixels could be compared;
+- `diff`, a picture beside the screenshot, ending `.diff.png`, with the changed pixels in red and anti-aliasing in
+  yellow over a faded copy of the page. It is written only when a pixel changed, and the one from an earlier sweep
+  is removed when none did;
+- `masked`, how many elements `--mask` covered.
+
+Some parts of a page change on every load, such as a clock, a carousel or an advert. Add `--mask SELECTOR` for each, as a CSS selector. Before it takes the picture, the sweep covers what the selector
+matches with a solid box. It removes the box afterwards. A selector that isn't valid CSS puts the reason in `visual_error`, and so does any other reason the
+picture couldn't be taken.
+
+The counts are facts for you to judge. A sweep never fails because a page changed, and the summary only lists the
+pages that changed, with their counts. Your pipeline can set its own limit, such as a `ratio` above 0.01.
+Keep `DIR` between runs, as a cache in CI. Keep the browser, window and colour scheme the same. A picture from a
+different setting is a different file. `--all` doesn't include it, because it needs a directory.
+
+```sh
+dummyrun a11y --visual screens --mask '.clock' --mask '#ad' https://example.com/
+```
+
+### Run it more than once
+
+Pages don't always come out the same. An advert loads late, an A/B test picks another version, or a carousel has
+moved on. A finding you see once may not be there next time. Add `--repeat N`, up to 10, and the sweep tests every
+page in every setting N times, each time in a fresh browser.
+
+The report still has one result for each page and setting. Each failing element gets `runs`, the number of repeats
+it failed in, so an element in 3 of 3 runs is there every time and one in 1 of 3 comes and goes. An element that
+failed only in a later repeat is still listed. Each result gets `repeats`, how many times its page was tested, and
+`error_runs`, how many of those couldn't test it, with the first reason in `error`. The rest of the result, such as
+which checks ran, comes from the first repeat that could test the page. A URL you give twice, say in the sitemap
+and on the command line, keeps its two results, and each counts once per repeat. The summary shows the counts,
+as in `chrome/desktop/light (2 of 3 runs)`.
+
+The counts are there for you to judge. The sweep doesn't decide which findings are stable, and an element that
+failed in any repeat fails the sweep, as it would have if that repeat had been the only one. The checks that run
+once for each URL, such as the HTML check, Lighthouse, journeys and links, run in the first repeat only, so their
+findings count 1 run and say nothing about whether a problem comes and goes. When the first repeat
+has their results, such as `html_checked` and `lighthouse_scores`, the merged result keeps them, even when that
+page later failed and a later repeat's result is the one kept. When it doesn't, the kept result's own stay.
+
+```sh
+dummyrun a11y --repeat 3 https://example.com/
+```
+
+### Check the sweep against known problems
+
+The benchmark in `internal/benchmark` measures how many known problems the sweep finds. It plants known barriers in
+clean pages and counts the ones the sweep reports. Each planted barrier is one change a visitor would meet: a form field
+with no label, an image with no text alternative, a focus outline removed, a skip link that goes nowhere, or a page that
+traps the Tab key. The clean pages are in `testdata/benchmark/pages`.
+
+Each barrier is planted in every clean page it fits. For each of those pairs the benchmark runs the sweep twice, on the
+clean page and on the changed copy. A barrier counts as found when the copy shows one of its rules and the clean page
+did not, so a rule that fires on the clean page earns nothing. The result is recall for each check: how many of the
+barriers planted for it the sweep found, and which ones it missed. A barrier that lists several rules is found by
+any of them, and counts toward the first rule listed. A pair the browser could not run is counted
+separately, left out of recall, and fails the test.
+
+```sh
+DUMMYRUN_BROWSERS=chrome go test ./internal/benchmark -run TestBenchmark -v
+```
+
+Set `DUMMYRUN_BENCHMARK_OUT` to a file name to keep the scores as JSON. With more than one browser, each gets its own
+file, with the browser's name before the extension. The browsers run one after another, so only one is open at a time.
+
+The same run also tests rule by rule against real markup. `testdata/benchmark/accessguru/cases.json` holds 150 elements
+that axe-core reported on real pages, taken from the AccessGuru dataset (MIT), each with the rule that failed. The
+benchmark puts each element alone in a small clean page and checks that the sweep reports the rule. An element comes
+without its page, so a miss can mean the rule needs the surrounding page, such as a required parent. Look at each miss before you
+decide the check is weak.
+
+To plant a new kind of barrier, add a `Defect` to `internal/benchmark/inject.go` with the rule IDs that should find it.
+A test checks that every defect fits at least one of the clean pages.
 
 ## Troubleshooting
 

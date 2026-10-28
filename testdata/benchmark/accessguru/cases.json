@@ -1,0 +1,902 @@
+[
+ {
+  "id": "input-image-alt-1",
+  "rule": "input-image-alt",
+  "source": "https://www.w3.org/WAI/content-assets/wcag-act-rules/testcases/qt1vmo/bac67a5a2ada971100bbec89961ad3e6c869f268.html",
+  "html": "<!DOCTYPE html>\n<html lang=\"en\">\n <canvas aria-label=\"HTML 5 logo\" height=\"48\" id=\"logo\" width=\"72\">\n </canvas>\n <script>\n  const img = new Image()\n                img.src = '/WAI/content-assets/wcag-act-rules/test-assets/share$\n                img.onload = function() {\n                        const ctx = document.querySelector('#logo').getContext($\n                        ctx.drawImage(img, 0, 0)\n                }\n </script>\n</html>"
+ },
+ {
+  "id": "aria-hidden-focus-1",
+  "rule": "aria-hidden-focus",
+  "source": "https://campus.uni-stuttgart.de/",
+  "html": "<div tabindex=\"0\" class=\"cdk-visually-hidden cdk-focus-trap-anchor\" aria-hidden=\"true\"></div>, <div tabindex=\"0\" class=\"cdk-visually-hidden cdk-focus-trap-anchor\" aria-hidden=\"true\"></div>"
+ },
+ {
+  "id": "frame-title-1",
+  "rule": "frame-title",
+  "source": "https://www.harvard.edu/",
+  "html": "<iframe src=\"https://player.simplecast.com/bd320844-4937-4ed1-bf96-e0e62a736792?dark=false\" width=\"100%\" height=\"200px\"></iframe>"
+ },
+ {
+  "id": "aria-hidden-focus-2",
+  "rule": "aria-hidden-focus",
+  "source": "https://www.epa.gov/",
+  "html": "<li class=\"hero-slideshow__item tns-item tns-normal\" id=\"tns1-item1\" aria-hidden=\"true\" tabindex=\"-1\">, <li class=\"hero-slideshow__item tns-item tns-normal\" id=\"tns1-item2\" aria-hidden=\"true\" tabindex=\"-1\">, <li class=\"hero-slideshow__item tns-item tns-normal tns-slide-cloned\" aria-hidden=\"true\" tabindex=\"-1\">"
+ },
+ {
+  "id": "nested-interactive-1",
+  "rule": "nested-interactive",
+  "source": "https://www.nytimes.com/",
+  "html": "<div role=\"tab\" class=\"css-jsjvin\">, <div role=\"tab\" class=\"css-jsjvin\">, <div role=\"tab\" class=\"css-jsjvin\">, <div role=\"tab\" class=\"css-jsjvin\">"
+ },
+ {
+  "id": "link-name-1",
+  "rule": "link-name",
+  "source": "https://eu.usatoday.com/",
+  "html": "<a id=\"Facebook\" href=\"https://www.facebook.com/usatoday\" on-tap=\"trackClick(this)\">, <a id=\"Twitter\" href=\"https://www.twitter.com/usatoday\" on-tap=\"trackClick(this)\">, <a id=\"Snapchat\" href=\"https://go.snapchat.com/add/usatoday\" on-tap=\"trackClick(this)\">, <a id=\"Linkedin\" href=\"http://www.linkedin.com/company/usa-today\" on-tap=\"trackClick(this)\">, <a id=\"Pinterest\" href=\"https://www.pinterest.com/usatoday/\" on-tap=\"trackClick(this)\">"
+ },
+ {
+  "id": "link-name-2",
+  "rule": "link-name",
+  "source": "https://eu.usatoday.com/",
+  "html": "<a id=\"Facebook\" href=\"https://www.facebook.com/usatoday\" on-tap=\"trackClick(this)\">, <a id=\"Twitter\" href=\"https://www.twitter.com/usatoday\" on-tap=\"trackClick(this)\">, <a id=\"Snapchat\" href=\"https://go.snapchat.com/add/usatoday\" on-tap=\"trackClick(this)\">, <a id=\"Linkedin\" href=\"http://www.linkedin.com/company/usa-today\" on-tap=\"trackClick(this)\">, <a id=\"Pinterest\" href=\"https://www.pinterest.com/usatoday/\" on-tap=\"trackClick(this)\">"
+ },
+ {
+  "id": "button-name-1",
+  "rule": "button-name",
+  "source": "https://www.nbcnews.com/",
+  "html": "<button class=\"share-ex h-h h-w js-share-toggle\" tabindex=\"-1\"><span class=\"share-dot\"></span><svg class=\"share-cl\" viewBox=\"0 0 20 20\"><line x1=\"0\" x2=\"20\" y1=\"0\" y2=\"20\"></line><line x1=\"0\" x2=\"20\" y1=\"20\" y2=\"0\"></line></svg></button>"
+ },
+ {
+  "id": "link-name-3",
+  "rule": "link-name",
+  "source": "https://www.cbsnews.com/",
+  "html": "<a href=\"#search-form:\" class=\"site-nav__anchor site-nav__item--search-link\">\n        <svg viewBox=\"0 0 32 32\" class=\"site-nav__item-icon site-nav__item-icon--type-search\" aria-hidden=\"true\"><use xlink:href=\"#icon-search\"></use></svg></a>, <a href=\"\" class=\"item__anchor\" draggable=\"false\" ondragstart=\"return false;\">"
+ },
+ {
+  "id": "link-name-4",
+  "rule": "link-name",
+  "source": "https://www.cbsnews.com/",
+  "html": "<a href=\"#search-form:\" class=\"site-nav__anchor site-nav__item--search-link\">\n        <svg viewBox=\"0 0 32 32\" class=\"site-nav__item-icon site-nav__item-icon--type-search\" aria-hidden=\"true\"><use xlink:href=\"#icon-search\"></use></svg></a>, <a href=\"\" class=\"item__anchor\" draggable=\"false\" ondragstart=\"return false;\">"
+ },
+ {
+  "id": "label-1",
+  "rule": "label",
+  "source": "https://www.alibaba.com/",
+  "html": "<input class=\"search-bar-input util-ellipsis\" type=\"text\" maxlength=\"50\" value=\"\">"
+ },
+ {
+  "id": "image-alt-1",
+  "rule": "image-alt",
+  "source": "https://www.aliexpress.com/",
+  "html": "<img src=\"https://ae01.alicdn.com/kf/S51c90b927bd94271a6e909ab7f917828d/24x24.png_.webp\">, <img src=\"https://ae01.alicdn.com/kf/S11d71453087a4263986104bebc0e08679/24x24.png_.webp\">, <img src=\"https://ae01.alicdn.com/kf/S1001de74de474357827c2319639ec874C/24x24.png_.webp\">"
+ },
+ {
+  "id": "link-name-5",
+  "rule": "link-name",
+  "source": "https://www.aliexpress.com/",
+  "html": "<a href=\"https://www.aliexpress.com/gcp/300000557/diDJG2c8t3?disableNav=YES&amp;pha_manifest=ssr&amp;_immersiveMode=true\" target=\"_blank\" class=\"choice-card--last--3rGyVWN\"></a>, <a href=\"//msg.aliexpress.com?tracelog=ws_topbar\" class=\"fix-bar--ui-fixed-panel-unit--pbNRFt_\">"
+ },
+ {
+  "id": "link-name-6",
+  "rule": "link-name",
+  "source": "https://www.aliexpress.com/",
+  "html": "<a href=\"https://www.aliexpress.com/gcp/300000557/diDJG2c8t3?disableNav=YES&amp;pha_manifest=ssr&amp;_immersiveMode=true\" target=\"_blank\" class=\"choice-card--last--3rGyVWN\"></a>, <a href=\"//msg.aliexpress.com?tracelog=ws_topbar\" class=\"fix-bar--ui-fixed-panel-unit--pbNRFt_\">"
+ },
+ {
+  "id": "aria-valid-attr-value-1",
+  "rule": "aria-valid-attr-value",
+  "source": "https://www.dailymotion.com/de",
+  "html": "<input type=\"text\" id=\"search\" name=\"search\" value=\"\" placeholder=\"Suchen\" aria-owns=\"search_autocomplete_list\" aria-autocomplete=\"list\">"
+ },
+ {
+  "id": "nested-interactive-2",
+  "rule": "nested-interactive",
+  "source": "https://www.twitch.tv/",
+  "html": "<button data-a-target=\"user-menu-toggle\" data-test-selector=\"user-menu__toggle\" aria-label=\"User Menu\">"
+ },
+ {
+  "id": "frame-title-2",
+  "rule": "frame-title",
+  "source": "https://www.connectedpapers.com/",
+  "html": "<iframe data-v-5d431674=\"\" id=\"testimonialto-connected-papers\" src=\"https://embed-v2.testimonial.to/w/connected-papers?card=small&amp;theme=light&amp;loadMore=on&amp;initialCount=20&amp;randomize=on&amp;hideDate=on\" class=\"no-darkmode\" frameborder=\"0\" scrolling=\"no\" width=\"100%\" style=\"overflow: hidden; height: 139px;\">"
+ },
+ {
+  "id": "image-alt-2",
+  "rule": "image-alt",
+  "source": "https://www.connectedpapers.com/",
+  "html": "<img data-v-2f0b05f6=\"\" class=\"background-image left\" src=\"/static-images/graph_decoration.svg\">, <img data-v-2f0b05f6=\"\" class=\"background-image right\" src=\"/static-images/graph_decoration.svg\">, <img data-v-06c5f957=\"\" src=\"/static-images/SemanticScholar.png\" id=\"S2-logo\" class=\"no-darkmode mx-10\">"
+ },
+ {
+  "id": "link-name-7",
+  "rule": "link-name",
+  "source": "https://www.connectedpapers.com/",
+  "html": "<a data-v-077c8652=\"\" href=\"/\" class=\"router-link-active router-link-exact-active no-underline-link\" aria-current=\"page\">, <a data-v-06c5f957=\"\" href=\"https://www.semanticscholar.org/\" target=\"_blank\"><img data-v-06c5f957=\"\" src=\"/static-images/SemanticScholar.png\" id=\"S2-logo\" class=\"no-darkmode mx-10\"></a>"
+ },
+ {
+  "id": "link-name-8",
+  "rule": "link-name",
+  "source": "https://www.connectedpapers.com/",
+  "html": "<a data-v-077c8652=\"\" href=\"/\" class=\"router-link-active router-link-exact-active no-underline-link\" aria-current=\"page\">, <a data-v-06c5f957=\"\" href=\"https://www.semanticscholar.org/\" target=\"_blank\"><img data-v-06c5f957=\"\" src=\"/static-images/SemanticScholar.png\" id=\"S2-logo\" class=\"no-darkmode mx-10\"></a>"
+ },
+ {
+  "id": "label-2",
+  "rule": "label",
+  "source": "https://www.wordreference.com/",
+  "html": "<input type=\"text\" name=\"w\" id=\"si\" class=\"ac-input\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"none\">"
+ },
+ {
+  "id": "select-name-1",
+  "rule": "select-name",
+  "source": "https://www.wordreference.com/",
+  "html": "<select size=\"1\" name=\"dict\" id=\"fSelect\">"
+ },
+ {
+  "id": "image-alt-3",
+  "rule": "image-alt",
+  "source": "https://scholar.google.com/",
+  "html": "<img id=\"gs_hdr_hp_lgo\" src=\"/intl/de/scholar/images/1x/scholar_logo_64dp.png\" srcset=\"/intl/de/scholar/images/2x/scholar_logo_64dp.png 1.5x\">"
+ },
+ {
+  "id": "button-name-2",
+  "rule": "button-name",
+  "source": "https://mcit.gov.eg/",
+  "html": "<button class=\"search-form_submit \" type=\"submit\"></button>"
+ },
+ {
+  "id": "label-3",
+  "rule": "label",
+  "source": "https://mcit.gov.eg/",
+  "html": "<input class=\"search-form_input\" id=\"txtSearch\" spellcheck=\"false\" type=\"text\" name=\"s\" autocomplete=\"off\" placeholder=\"\">"
+ },
+ {
+  "id": "frame-title-3",
+  "rule": "frame-title",
+  "source": "https://www.australia.gov.au/",
+  "html": "<iframe id=\"main-iframe\" src=\"/_Incapsula_Resource?CWUDNSAI=23&amp;xinfo=62-69020477-0%200NNN%20RT%281720285206871%20370%29%20q%280%20-1%20-1%200%29%20r%280%20-1%29%20B15%284%2c200%2c0%29%20U18&amp;incident_id=1780000080125117517-370198010341360190&amp;edet=15&amp;cinfo=04000000&amp;rpinfo=0&amp;mth=GET\" frameborder=\"0\" width=\"100%\" height=\"100%\" marginheight=\"0px\" marginwidth=\"0px\">"
+ },
+ {
+  "id": "aria-required-children-1",
+  "rule": "aria-required-children",
+  "source": "https://www.plex.tv/",
+  "html": "<nav role=\"menubar\" aria-label=\"Marketing Site\" class=\"fresnel-greaterThanOrEqual-md nav\">"
+ },
+ {
+  "id": "frame-title-4",
+  "rule": "frame-title",
+  "source": "https://www.readtheory.org",
+  "html": "<iframe loading=\"lazy\" src=\"\"></iframe>"
+ },
+ {
+  "id": "tabindex-1",
+  "rule": "tabindex",
+  "source": "https://www.readtheory.org",
+  "html": "<input required=\"\" type=\"email\" placeholder=\"Your E-mail\" \"=\"\" name=\"email\" value=\"\" tabindex=\"1\">, <input type=\"submit\" name=\"submit\" value=\"Tell me more!\" \"=\"\" tabindex=\"2\">"
+ },
+ {
+  "id": "nested-interactive-3",
+  "rule": "nested-interactive",
+  "source": "https://online.berkeley.edu",
+  "html": "<li role=\"tab\" data-ng-repeat=\"tab in productList.tabs\" data-ng-attr-id=\"{{tab.class}}-tab\" ng-class=\"[{'active': tab.active}, tab.class]\" class=\"mb-0 spocc-tab ng-scope active programs\" id=\"programs-tab\">, <li role=\"tab\" data-ng-repeat=\"tab in productList.tabs\" data-ng-attr-id=\"{{tab.class}}-tab\" ng-class=\"[{'active': tab.active}, tab.class]\" class=\"mb-0 spocc-tab ng-scope courses\" id=\"courses-tab\">"
+ },
+ {
+  "id": "tabindex-2",
+  "rule": "tabindex",
+  "source": "https://online.berkeley.edu",
+  "html": "<a href=\"#mainContentContainer\" class=\"skip\" tabindex=\"1\">Skip to main content</a>, <a data-target=\"#contentBlockPG0199\" data-toggle=\"modal\" href=\"#\" tabindex=\"1000\">Cookie Policy</a>, <a href=\"https://extension.berkeley.edu/static/studentservices/student-guidelines/#privacy\" rel=\"noreferrer noopener\" target=\"_blank\" tabindex=\"1001\">Privacy Policy</a>, <a aria-label=\"deny cookies\" role=\"button\" tabindex=\"1002\" class=\"cc-btn cc-deny\">Disable Cookies</a>, <a aria-label=\"allow cookies\" role=\"button\" tabindex=\"1003\" class=\"cc-btn cc-allow\">Accept All Cookies</a>"
+ },
+ {
+  "id": "frame-title-5",
+  "rule": "frame-title",
+  "source": "https://www.cliffsnotes.com",
+  "html": "<iframe id=\"main-iframe\" src=\"/_Incapsula_Resource?CWUDNSAI=23&amp;xinfo=7-54982126-0%20sNNN%20RT%281736907774253%2010495%29%20q%280%20-1%20-1%200%29%20r%280%20-1%29%20B15%2814%2c0%2c0%29%20U24&amp;incident_id=727000150329876350-266718998137603015&amp;edet=15&amp;cinfo=0e000000aedd&amp;rpinfo=659&amp;cip=141.72.244.74&amp;mth=GET\" frameborder=\"0\" width=\"100%\" height=\"100%\" marginheight=\"0px\" marginwidth=\"0px\">"
+ },
+ {
+  "id": "aria-required-children-2",
+  "rule": "aria-required-children",
+  "source": "https://www.ibm.com/training",
+  "html": "<nav class=\"masthead-l1  \" role=\"menu\">"
+ },
+ {
+  "id": "image-alt-4",
+  "rule": "image-alt",
+  "source": "https://www.ibm.com/training",
+  "html": "<img class=\"leadspace-pictogram\" src=\"https://www.ibm.com/training/images/homepage/svg/video--play.svg\">, <img class=\"leadspace-pictogram\" src=\"https://www.ibm.com/training/images/homepage/svg/education.svg\">"
+ },
+ {
+  "id": "select-name-2",
+  "rule": "select-name",
+  "source": "https://www.varsitytutors.com",
+  "html": "<select class=\"mc-country-picker__select\" id=\"mc-country-picker\" style=\"width: 65px;\">\n        <option value=\"en-CA\">Canada - English</option>\n        <option value=\"en-GB\">United Kingdom - English</option>\n        <option value=\"x-default\" selected=\"selected\">US - English</option>\n      </select>"
+ },
+ {
+  "id": "svg-img-alt-1",
+  "rule": "svg-img-alt",
+  "source": "https://www.varsitytutors.com",
+  "html": "<svg role=\"img\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 301 50\" class=\"vt-logo vt-logo--horizontal\">"
+ },
+ {
+  "id": "aria-allowed-attr-1",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "aria-allowed-attr-2",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "aria-allowed-attr-3",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "aria-allowed-attr-4",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "aria-allowed-attr-5",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "aria-allowed-attr-6",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "aria-allowed-attr-7",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "aria-allowed-attr-8",
+  "rule": "aria-allowed-attr",
+  "source": "https://www.coursera.org",
+  "html": "<div id=\"react-autowhatever-1\" class=\"react-autosuggest__suggestions-container\" aria-label=\"Autocomplete results\"></div>"
+ },
+ {
+  "id": "image-alt-5",
+  "rule": "image-alt",
+  "source": "https://www.code.org",
+  "html": "<img class=\"video-play-icon\" src=\"/shared/images/fit-48/play-button.png\">, <img class=\"col-50 lazyload\" data-src=\"/shared/images/gallery/fit-750/gallery_thumbnails_2019a.jpg\" height=\"120\" width=\"750\">, <img class=\"col-50 lazyload\" data-src=\"/shared/images/gallery/fit-750/gallery_thumbnails_2019b.jpg\" height=\"120\" width=\"750\">, <img class=\"lazyload\" data-src=\"/images/fit-320/avatars/flag_sphere.png\" style=\"width: 256px; height: 256px;\">"
+ },
+ {
+  "id": "select-name-3",
+  "rule": "select-name",
+  "source": "https://www.code.org",
+  "html": "<select class=\"default\" name=\"set_locale\" onchange=\"this.form.submit();\" style=\"color: black; width: 100%; max-width: 162.5px;\">, <select class=\"default\" name=\"set_locale\" onchange=\"this.form.submit();\" style=\"color: black; width: 100%; max-width: 162.5px;\">"
+ },
+ {
+  "id": "empty-heading-1",
+  "rule": "empty-heading",
+  "source": "https://www.codechef.com",
+  "html": "<h2></h2>"
+ },
+ {
+  "id": "image-alt-6",
+  "rule": "image-alt",
+  "source": "https://www.bookwidgets.com",
+  "html": "<img class=\"img-fluid\" src=\"/img/home1-c$080f3b0a65be77c6.png\" style=\"height:auto; max-width:100%;\">, <img class=\"img-responsive %}\" src=\"/img/home2-c$35b47eedc58e4dcc.png\">, <img class=\"img-responsive %}\" src=\"/img/home3-c$08af1bf572604e02.png\">, <img class=\"img-responsive %}\" src=\"/img/home4-c$c1be8d7b6a3df4df.png\">, <img class=\"img-responsive %}\" src=\"/img/home5-c$4d64f3ee7b819951.png\">, <img class=\"img-responsive %}\" src=\"/img/lms-c$d1d1c013f30256c9.png\">, <img class=\"img-responsive %}\" src=\"/img/home7-c$5b80c960015dade4.png\">"
+ },
+ {
+  "id": "aria-dialog-name-1",
+  "rule": "aria-dialog-name",
+  "source": "https://www.classdojo.com",
+  "html": "<div role=\"dialog\" aria-modal=\"true\">"
+ },
+ {
+  "id": "image-redundant-alt-1",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "image-redundant-alt-2",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "image-redundant-alt-3",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "image-redundant-alt-4",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "image-redundant-alt-5",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "image-redundant-alt-6",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "image-redundant-alt-7",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "image-redundant-alt-8",
+  "rule": "image-redundant-alt",
+  "source": "https://www.kodable.com",
+  "html": "<img src=\"https://cdn.prod.website-files.com/62f10984b7ece0cd68b339a1/65ca11f5b931cdebe3b867a5_icon-x.svg\" loading=\"lazy\" alt=\"X\" class=\"social-icon\">"
+ },
+ {
+  "id": "listitem-1",
+  "rule": "listitem",
+  "source": "https://www.slideshare.net",
+  "html": "<li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">"
+ },
+ {
+  "id": "nested-interactive-4",
+  "rule": "nested-interactive",
+  "source": "https://www.nearpod.com",
+  "html": "<button class=\"location--selector\" id=\"buttonLocation\">"
+ },
+ {
+  "id": "aria-hidden-focus-3",
+  "rule": "aria-hidden-focus",
+  "source": "https://www.pluralsight.com",
+  "html": "<div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">, <div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">, <div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">"
+ },
+ {
+  "id": "aria-hidden-focus-4",
+  "rule": "aria-hidden-focus",
+  "source": "https://www.pluralsight.com",
+  "html": "<div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">, <div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">, <div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">"
+ },
+ {
+  "id": "aria-hidden-focus-5",
+  "rule": "aria-hidden-focus",
+  "source": "https://www.pluralsight.com",
+  "html": "<div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">, <div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">, <div class=\"flex-open-block section\" style=\"\" aria-hidden=\"true\" tabindex=\"0\">"
+ },
+ {
+  "id": "button-name-3",
+  "rule": "button-name",
+  "source": "https://www.pluralsight.com",
+  "html": "<button role=\"button\" type=\"button\" class=\"menu-a\" data-aa-title=\"PN-Pluralsight Search\" aria-expanded=\"false\">"
+ },
+ {
+  "id": "button-name-4",
+  "rule": "button-name",
+  "source": "https://www.pluralsight.com",
+  "html": "<button role=\"button\" type=\"button\" class=\"menu-a\" data-aa-title=\"PN-Pluralsight Search\" aria-expanded=\"false\">"
+ },
+ {
+  "id": "button-name-5",
+  "rule": "button-name",
+  "source": "https://www.pluralsight.com",
+  "html": "<button role=\"button\" type=\"button\" class=\"menu-a\" data-aa-title=\"PN-Pluralsight Search\" aria-expanded=\"false\">"
+ },
+ {
+  "id": "aria-required-children-3",
+  "rule": "aria-required-children",
+  "source": "https://www.tutorialspoint.com",
+  "html": "<div class=\"tablist\" role=\"tablist\">"
+ },
+ {
+  "id": "button-name-6",
+  "rule": "button-name",
+  "source": "https://www.tutorialspoint.com",
+  "html": "<button style=\"display: block;\" class=\"library-nav__prev-button library-nav__button button-reset\" id=\"scroll_left_btn\" onmousedown=\"initScroll(-1)\" onmouseup=\"stopScrolling()\" onmouseout=\"stopScrolling()\">, <button class=\"library-nav__next-button library-nav__button button-reset\" id=\"scroll_right_btn\" onmousedown=\"initScroll(1)\" onmouseup=\"stopScrolling()\" onmouseout=\"stopScrolling()\">"
+ },
+ {
+  "id": "aria-input-field-name-1",
+  "rule": "aria-input-field-name",
+  "source": "https://www.hackerearth.com",
+  "html": "<div class=\"slick-track\" role=\"listbox\" style=\"opacity: 1; width: 2736px; transform: translate3d(0px, 0px, 0px);\">"
+ },
+ {
+  "id": "button-name-7",
+  "rule": "button-name",
+  "source": "https://www.hackerearth.com",
+  "html": "<button class=\"slide-arrow prev-arrow slick-arrow slick-disabled\" aria-disabled=\"true\" style=\"display: block;\"><img src=\"https://www.hackerearth.com/recruit/homepage-files/assets/images/arrow-left.svg\"></button>, <button class=\"slide-arrow next-arrow slick-arrow\" aria-disabled=\"false\" style=\"display: block;\"><img src=\"https://www.hackerearth.com/recruit/homepage-files/assets/images/arrow-right.svg\"></button>"
+ },
+ {
+  "id": "image-alt-7",
+  "rule": "image-alt",
+  "source": "https://www.hackerearth.com",
+  "html": "<img src=\"https://www.hackerearth.com/recruit/homepage-files/assets/images/arrow-left.svg\">, <img src=\"https://www.hackerearth.com/recruit/homepage-files/assets/images/arrow-right.svg\">"
+ },
+ {
+  "id": "label-4",
+  "rule": "label",
+  "source": "https://www.oreilly.com",
+  "html": "<input class=\"seek-bar\" type=\"range\" value=\"0\" step=\"0.1\" max=\"379.848\">"
+ },
+ {
+  "id": "aria-allowed-role-1",
+  "rule": "aria-allowed-role",
+  "source": "https://www.prezi.com",
+  "html": "<aside class=\"nav_dropdown-toggle w-dropdown-toggle\" id=\"w-dropdown-toggle-0\" aria-controls=\"w-dropdown-list-0\" aria-haspopup=\"menu\" aria-expanded=\"false\" role=\"button\" tabindex=\"0\">"
+ },
+ {
+  "id": "button-name-8",
+  "rule": "button-name",
+  "source": "https://libretexts.org",
+  "html": "<button type=\"submit\" class=\"btn-search-icon\"><i class=\"flaticon-magnifying-glass\"></i></button>"
+ },
+ {
+  "id": "listitem-2",
+  "rule": "listitem",
+  "source": "https://openstax.org",
+  "html": "<li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">"
+ },
+ {
+  "id": "image-alt-8",
+  "rule": "image-alt",
+  "source": "https://www.scratch.mit.edu",
+  "html": "<img src=\"/svgs/intro/video-image.svg\">"
+ },
+ {
+  "id": "aria-allowed-role-2",
+  "rule": "aria-allowed-role",
+  "source": "https://www.noredink.com",
+  "html": "<img decoding=\"async\" src=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg\" srcset=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg 280w, /wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75-150x150.jpg 150w\" alt=\"Jo Rohde photo\" title=\"Jo Rohde photo\" role=\"presentation\">"
+ },
+ {
+  "id": "aria-allowed-role-3",
+  "rule": "aria-allowed-role",
+  "source": "https://www.noredink.com",
+  "html": "<img decoding=\"async\" src=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg\" srcset=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg 280w, /wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75-150x150.jpg 150w\" alt=\"Jo Rohde photo\" title=\"Jo Rohde photo\" role=\"presentation\">"
+ },
+ {
+  "id": "aria-allowed-role-4",
+  "rule": "aria-allowed-role",
+  "source": "https://www.noredink.com",
+  "html": "<img decoding=\"async\" src=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg\" srcset=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg 280w, /wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75-150x150.jpg 150w\" alt=\"Jo Rohde photo\" title=\"Jo Rohde photo\" role=\"presentation\">"
+ },
+ {
+  "id": "aria-allowed-role-5",
+  "rule": "aria-allowed-role",
+  "source": "https://www.noredink.com",
+  "html": "<img decoding=\"async\" src=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg\" srcset=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg 280w, /wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75-150x150.jpg 150w\" alt=\"Jo Rohde photo\" title=\"Jo Rohde photo\" role=\"presentation\">"
+ },
+ {
+  "id": "aria-allowed-role-6",
+  "rule": "aria-allowed-role",
+  "source": "https://www.noredink.com",
+  "html": "<img decoding=\"async\" src=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg\" srcset=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg 280w, /wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75-150x150.jpg 150w\" alt=\"Jo Rohde photo\" title=\"Jo Rohde photo\" role=\"presentation\">"
+ },
+ {
+  "id": "aria-allowed-role-7",
+  "rule": "aria-allowed-role",
+  "source": "https://www.noredink.com",
+  "html": "<img decoding=\"async\" src=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg\" srcset=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg 280w, /wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75-150x150.jpg 150w\" alt=\"Jo Rohde photo\" title=\"Jo Rohde photo\" role=\"presentation\">"
+ },
+ {
+  "id": "aria-allowed-role-8",
+  "rule": "aria-allowed-role",
+  "source": "https://www.noredink.com",
+  "html": "<img decoding=\"async\" src=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg\" srcset=\"/wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75.jpg 280w, /wp-content/uploads/2024/01/JoRohde-993395cabad20733c27fcacda6793d75-150x150.jpg 150w\" alt=\"Jo Rohde photo\" title=\"Jo Rohde photo\" role=\"presentation\">"
+ },
+ {
+  "id": "listitem-3",
+  "rule": "listitem",
+  "source": "https://teamtreehouse.com",
+  "html": "<li class=\"nav-item nav-item-secondary\">, <li class=\"nav-item nav-item-secondary\">, <li class=\"nav-item nav-item-secondary\">, <li class=\"nav-item nav-item-secondary\">, <li class=\"nav-item nav-item-secondary\">"
+ },
+ {
+  "id": "empty-heading-2",
+  "rule": "empty-heading",
+  "source": "https://www.amtrak.com",
+  "html": "<h4 class=\"agr-callout__container_inner_text_subblock\"></h4>"
+ },
+ {
+  "id": "label-5",
+  "rule": "label",
+  "source": "https://www.osmre.gov",
+  "html": "<input class=\"usa-input\" id=\"extended-search-field-small\" type=\"search\" name=\"keys\">"
+ },
+ {
+  "id": "listitem-4",
+  "rule": "listitem",
+  "source": "https://www.osmre.gov",
+  "html": "<li class=\"usa-nav__primary-item\">, <li class=\"usa-nav__primary-item\">, <li class=\"usa-nav__primary-item\">, <li class=\"usa-nav__primary-item\">, <li class=\"usa-nav__primary-item\">"
+ },
+ {
+  "id": "label-6",
+  "rule": "label",
+  "source": "https://www.pnl.gov",
+  "html": "<input class=\"sign-up-bar__textfield\" type=\"email\" name=\"email\" id=\"email\">"
+ },
+ {
+  "id": "aria-valid-attr-value-2",
+  "rule": "aria-valid-attr-value",
+  "source": "https://www.opm.gov",
+  "html": "<a tabindex=\"0\" class=\"\" aria-controls=\"agency services-control-id\" href=\"/services-for-agencies/\"><span>Agency Services</span></a>, <a tabindex=\"0\" class=\"\" aria-controls=\"operating status-control-id\" href=\"/policy-data-oversight/snow-dismissal-procedures/current-status/\"><span>Operating Status</span></a>"
+ },
+ {
+  "id": "tabindex-3",
+  "rule": "tabindex",
+  "source": "https://www.opm.gov",
+  "html": "<a class=\"usa-skipnav skipnav\" href=\"#main-main-content\" tabindex=\"1\">Skip to main content</a>"
+ },
+ {
+  "id": "presentation-role-conflict-1",
+  "rule": "presentation-role-conflict",
+  "source": "https://www.fws.gov",
+  "html": "<button type=\"button\" role=\"presentation\" class=\"owl-prev\"><span aria-label=\"Previous\">‹</span></button>, <button type=\"button\" role=\"presentation\" class=\"owl-next\"><span aria-label=\"Next\">›</span></button>"
+ },
+ {
+  "id": "frame-title-6",
+  "rule": "frame-title",
+  "source": "https://www.navy.mil",
+  "html": "<iframe id=\":1.container\" class=\"VIpgJd-ZVi9od-ORHb-OEVmcd skiptranslate\" frameborder=\"0\" src=\"#\" style=\"visibility:visible\"></iframe>"
+ },
+ {
+  "id": "nested-interactive-5",
+  "rule": "nested-interactive",
+  "source": "https://www.navy.mil",
+  "html": "<button class=\"nhbutton\"><a href=\"/Press-Office/News-Stories/Term/3087/\">MORE NAVY HEADLINES</a></button>"
+ },
+ {
+  "id": "tabindex-4",
+  "rule": "tabindex",
+  "source": "https://www.cdc.gov",
+  "html": "<a class=\"skippy visually-hidden-focusable\" href=\"#content\" tabindex=\"1\">Skip to site content</a>, <a class=\"skippy visually-hidden-focusable\" href=\"#headerSearch\" tabindex=\"2\">Skip to search</a>, <button id=\"animation-toggle\" aria-pressed=\"false\" tabindex=\"3\"><span class=\"visually-hidden\">Pause carousel</span></button>"
+ },
+ {
+  "id": "tabindex-5",
+  "rule": "tabindex",
+  "source": "https://www.cdc.gov",
+  "html": "<a class=\"skippy visually-hidden-focusable\" href=\"#content\" tabindex=\"1\">Skip to site content</a>, <a class=\"skippy visually-hidden-focusable\" href=\"#headerSearch\" tabindex=\"2\">Skip to search</a>, <button id=\"animation-toggle\" aria-pressed=\"false\" tabindex=\"3\"><span class=\"visually-hidden\">Pause carousel</span></button>"
+ },
+ {
+  "id": "tabindex-6",
+  "rule": "tabindex",
+  "source": "https://www.cdc.gov",
+  "html": "<a class=\"skippy visually-hidden-focusable\" href=\"#content\" tabindex=\"1\">Skip to site content</a>, <a class=\"skippy visually-hidden-focusable\" href=\"#headerSearch\" tabindex=\"2\">Skip to search</a>, <button id=\"animation-toggle\" aria-pressed=\"false\" tabindex=\"3\"><span class=\"visually-hidden\">Pause carousel</span></button>"
+ },
+ {
+  "id": "tabindex-7",
+  "rule": "tabindex",
+  "source": "https://www.cdc.gov",
+  "html": "<a class=\"skippy visually-hidden-focusable\" href=\"#content\" tabindex=\"1\">Skip to site content</a>, <a class=\"skippy visually-hidden-focusable\" href=\"#headerSearch\" tabindex=\"2\">Skip to search</a>, <button id=\"animation-toggle\" aria-pressed=\"false\" tabindex=\"3\"><span class=\"visually-hidden\">Pause carousel</span></button>"
+ },
+ {
+  "id": "aria-required-children-4",
+  "rule": "aria-required-children",
+  "source": "https://www.nrc.gov",
+  "html": "<nav class=\"navbar navbar-expand-lg bg-primary\" role=\"menu\">"
+ },
+ {
+  "id": "aria-dialog-name-2",
+  "rule": "aria-dialog-name",
+  "source": "https://www.eeoc.gov",
+  "html": "<div id=\"prefix-overlay-outer\" tabindex=\"0\" role=\"dialog\" aria-describedby=\"prefix-overlay-step1\" style=\"height: 350px;\">"
+ },
+ {
+  "id": "frame-title-7",
+  "rule": "frame-title",
+  "source": "https://www.nrl.navy.mil",
+  "html": "<iframe allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\" allowfullscreen=\"true\" frameborder=\"0\" height=\"450\" scrolling=\"no\" src=\"https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FUSNRL&amp;tabs=timeline&amp;width=290&amp;height=450&amp;small_header=false&amp;adapt_container_width=true&amp;hide_cover=false&amp;show_facepile=true&amp;appId&amp;wmode=transparent\" style=\"border:none;overflow:hidden\" width=\"290\">"
+ },
+ {
+  "id": "aria-hidden-focus-6",
+  "rule": "aria-hidden-focus",
+  "source": "https://www.usgs.gov",
+  "html": "<div class=\"grid-col-4 slick-slide\" style=\"width: 357px;\" data-slick-index=\"3\" aria-hidden=\"true\" tabindex=\"0\">"
+ },
+ {
+  "id": "aria-input-field-name-2",
+  "rule": "aria-input-field-name",
+  "source": "https://www.dhs.gov",
+  "html": "<div id=\"search-block-wrap\" class=\"tablet:grid-col-4\" role=\"searchbox\">"
+ },
+ {
+  "id": "presentation-role-conflict-2",
+  "rule": "presentation-role-conflict",
+  "source": "https://www.dhs.gov",
+  "html": "<input autocomplete=\"off\" type=\"text\" size=\"10\" class=\"gsc-input\" name=\"search\" title=\"search\" aria-label=\"search\" id=\"gsc-i-id1\" dir=\"ltr\" spellcheck=\"false\" style=\"width: 100%; padding: 0px; border: none; margin: -0.0625em 0px 0px; height: 1.25em; outline: none;\" role=\"presentation\">"
+ },
+ {
+  "id": "aria-hidden-focus-7",
+  "rule": "aria-hidden-focus",
+  "source": "https://www.lidl.com",
+  "html": "<div id=\"app\" aria-hidden=\"true\">"
+ },
+ {
+  "id": "empty-heading-3",
+  "rule": "empty-heading",
+  "source": "https://www.snapdeal.com",
+  "html": "<h3></h3>"
+ },
+ {
+  "id": "frame-title-8",
+  "rule": "frame-title",
+  "source": "https://www.snapdeal.com",
+  "html": "<iframe id=\"loginIframe\" src=\"https://www.snapdeal.com:443/iframeLogin#https://www.snapdeal.com/\" onload=\"onloadSignupIframe()\" frameborder=\"0\" name=\"iframeLogin\" marginwidth=\"0\" marginheight=\"0\" seamless=\"seamless\" width=\"0%\" height=\"0%\" style=\"margin:0 auto;\" allowtransparency=\"true\"></iframe>"
+ },
+ {
+  "id": "nested-interactive-6",
+  "rule": "nested-interactive",
+  "source": "https://www.fashionnova.com",
+  "html": "<div data-testid=\"search-bar\" class=\"w-full h-full cursor-text relative\" aria-label=\"Search bar\" role=\"button\" tabindex=\"0\">"
+ },
+ {
+  "id": "listitem-5",
+  "rule": "listitem",
+  "source": "https://www.nike.com",
+  "html": "<li>, <li>, <li>, <li>, <li>"
+ },
+ {
+  "id": "aria-dialog-name-3",
+  "rule": "aria-dialog-name",
+  "source": "https://www.allbirds.com",
+  "html": "<div class=\"ReactModal__Content ReactModal__Content--after-open Modal__content GeofencingShopSelector__modal !max-w-[600px] !p-0 sm:!min-w-[600px]\" tabindex=\"-1\" role=\"dialog\" aria-modal=\"true\">"
+ },
+ {
+  "id": "aria-dialog-name-4",
+  "rule": "aria-dialog-name",
+  "source": "https://www.underarmour.com",
+  "html": "<dialog aria-labelledby=\"on-right-site-title\" role=\"dialog\" data-testid=\"dialog-base\" class=\"\n\t\t\t\t\tDialog_dialog--ua-dialog__tkA1n\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\tWelcomeMatDialog_welcome-mat-modal__0F4ky\n\t\t\t\t Dialog_dialog__mrMWO\" open=\"\" style=\"--dialog-header-height: 0px; --dialog-actions-height: 0px;\">"
+ },
+ {
+  "id": "presentation-role-conflict-3",
+  "rule": "presentation-role-conflict",
+  "source": "https://www.toysrus.com",
+  "html": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 50 50\" aria-labelledby=\"\" role=\"presentation\" fill=\"none\">"
+ },
+ {
+  "id": "role-img-alt-1",
+  "rule": "role-img-alt",
+  "source": "https://www.hp.com",
+  "html": "<hp-image class=\"c-image\" tabindex=\"100\" mode=\"fit\" touch-content=\"videoAutoplay\" data-src=\"@+xs =>, <hp-image class=\"c-image\" tabindex=\"100\" mode=\"fit\" touch-content=\"videoAutoplay\" data-src=\"@+xs =>, <hp-image class=\"c-image\" tabindex=\"100\" mode=\"fit\" touch-content=\"videoAutoplay\" data-src=\"@+xs =>"
+ },
+ {
+  "id": "role-img-alt-2",
+  "rule": "role-img-alt",
+  "source": "https://www.taobao.com",
+  "html": "<a href=\"https://www.taobao.com/\" role=\"img\" class=\"logo-bd clearfix\" style=\"background-image: url(&quot;https://img.alicdn.com/imgextra/i1/O1CN011YZ3P01zMCE6HGyhk_!!6000000006699-2-tps-480-144.png&quot;);\">淘宝网</a>"
+ },
+ {
+  "id": "role-img-alt-3",
+  "rule": "role-img-alt",
+  "source": "https://www.tmall.com",
+  "html": "<a href=\"https://www.tmall.com/\" role=\"img\" class=\"logo-bd clearfix\" style=\"background-image: url(&quot;https://img.alicdn.com/imgextra/i4/O1CN01Se8pZU1ruzNvEEwH9_!!6000000005692-2-tps-480-144.png&quot;);\">天猫</a>"
+ },
+ {
+  "id": "aria-required-children-5",
+  "rule": "aria-required-children",
+  "source": "https://www.samsung.com/us/shop",
+  "html": "<ul class=\"nv00-gnb-v3__l0-menu-list left-menu\" role=\"menubar\">, <ul class=\"nv00-gnb-v3__l0-menu-list right-menu\" role=\"menubar\">"
+ },
+ {
+  "id": "aria-dialog-name-5",
+  "rule": "aria-dialog-name",
+  "source": "https://www.carrefour.com",
+  "html": "<div id=\"onetrust-banner-sdk\" class=\"otCenterRounded default vertical-align-content ot-buttons-fw\" role=\"dialog\" aria-describedby=\"onetrust-policy-text\" tabindex=\"0\">"
+ },
+ {
+  "id": "aria-hidden-focus-8",
+  "rule": "aria-hidden-focus",
+  "source": "https://www.lenovo.com",
+  "html": "<li class=\"carousel__slide\" aria-hidden=\"true\" data-v-3e1d8513=\"\" style=\"width: 33.3333%;\">, <li class=\"carousel__slide\" aria-hidden=\"true\" data-v-3e1d8513=\"\" style=\"width: 33.3333%;\">, <li class=\"carousel__slide\" aria-hidden=\"true\" data-v-3e1d8513=\"\" style=\"width: 33.3333%;\">"
+ },
+ {
+  "id": "aria-valid-attr-value-3",
+  "rule": "aria-valid-attr-value",
+  "source": "https://www.lenovo.com",
+  "html": "<a class=\"utilityLink lazy_href\" href=\"https://www.lenovo.com/de/de/contact/\" tabindex=\"0\" aria-expanded=\"\" aria-haspopup=\"false\" data-index=\"13\">, <a class=\"utilityLink lazy_href\" href=\"https://www.lenovo.com/de/de/rewards/?IPromoID=LEN598336\" tabindex=\"0\" aria-expanded=\"\" aria-haspopup=\"false\" data-index=\"15\">, <a class=\"utilityLink lazy_href\" href=\"https://www.lenovo.com/de/de/cart\" tabindex=\"0\" aria-expanded=\"\" aria-haspopup=\"false\" data-index=\"16\" aria-label=\"Warenkorb\">"
+ },
+ {
+  "id": "tabindex-8",
+  "rule": "tabindex",
+  "source": "https://www.lenovo.com",
+  "html": "<a class=\"header_lenovoLogo logo lazy_href\" aria-label=\"Go to Home\" tabindex=\"1\" href=\"https://www.lenovo.com/de/de/?Redirect=False\"><img src=\"https://p3-ofp.static.pub/fes/cms/2023/03/22/8hjmcte754uauw07ypikjkjtx0m5ib450914.svg\" alt=\"lenovo logo\"></a>, <div class=\"header_skip_main\" role=\"button\" tabindex=\"1\" data-tkey=\"skip.to.main.content\">zum Hauptinhalt springen</div>"
+ },
+ {
+  "id": "aria-required-children-6",
+  "rule": "aria-required-children",
+  "source": "https://www.shein.com",
+  "html": "<a href=\"/user/auth/login?direction=nav\" class=\"j-ipad-prevent-a j-header-username-icon sa_account\" style=\"display:inline-block;\" aria-expanded=\"false\" role=\"listbox\">, <a href=\"javascript:;\" aria-label=\"Currency\" aria-expanded=\"false\" role=\"listbox\">"
+ },
+ {
+  "id": "empty-heading-4",
+  "rule": "empty-heading",
+  "source": "https://www.boohoo.com",
+  "html": "<h3 class=\"b-single_tile-title\"></h3>, <h3 class=\"b-single_tile-title\"></h3>, <h3 class=\"b-single_tile-title\"></h3>, <h3 class=\"b-single_tile-title\"></h3>, <h3 class=\"b-single_tile-title\"></h3>"
+ },
+ {
+  "id": "svg-img-alt-2",
+  "rule": "svg-img-alt",
+  "source": "https://www.boohoo.com",
+  "html": "<svg role=\"img\" class=\"i-icon i-icon-user\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" focusable=\"false\">, <svg role=\"img\" class=\"i-icon i-icon-wishlist\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\">, <svg role=\"img\" class=\"i-icon i-icon-shoppingBag\" xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" focusable=\"false\">"
+ },
+ {
+  "id": "aria-required-children-7",
+  "rule": "aria-required-children",
+  "source": "https://www.vans.com",
+  "html": "<ul class=\"topnav-mainnav drilldown-menu root\" role=\"menubar\">"
+ },
+ {
+  "id": "label-7",
+  "rule": "label",
+  "source": "https://www.vans.com",
+  "html": "<input id=\"newsletterCheckField\" type=\"checkbox\">"
+ },
+ {
+  "id": "listitem-6",
+  "rule": "listitem",
+  "source": "https://www.vans.com",
+  "html": "<li class=\"l1 item-red-highlight topnav-accordion-item\">, <li class=\"l1  topnav-accordion-item has-children\">, <li class=\"l1 l1-light topnav-accordion-item has-children\">, <li class=\"l1 l1-light topnav-accordion-item has-children\">, <li class=\"l1  topnav-accordion-item has-children\">, <li class=\"l1  topnav-accordion-item has-children\">"
+ },
+ {
+  "id": "aria-dialog-name-6",
+  "rule": "aria-dialog-name",
+  "source": "https://www.mytheresa.com",
+  "html": "<div id=\"tc_privacy\" class=\"tc-reset-css tc-privacy-banner tc-privacy-bar tc-privacy-footer\" aria-describedby=\"description\" role=\"dialog\" aria-modal=\"true\">"
+ },
+ {
+  "id": "nested-interactive-7",
+  "rule": "nested-interactive",
+  "source": "https://www.article.com",
+  "html": "<div class=\"help-center-icon-container header-link-help\" role=\"button\" aria-label=\"Contact Us\" aria-expanded=\"false\" tabindex=\"0\" data-v-01cf09f7=\"\" data-v-57b8ac6c=\"\">, <div class=\"account-icon-container\" aria-label=\"Account\" role=\"button\" aria-expanded=\"false\" tabindex=\"0\" data-v-57b8ac6c=\"\" data-v-df439e64=\"\">"
+ },
+ {
+  "id": "select-name-4",
+  "rule": "select-name",
+  "source": "https://www.auchan.com",
+  "html": "<select name=\"locale\" data-request=\"onSwitchLocale\" class=\"form-control text-uppercase\">\n            <option value=\"en\">en</option>\n            <option value=\"fr\" selected=\"\">fr</option>\n    </select>"
+ },
+ {
+  "id": "empty-heading-5",
+  "rule": "empty-heading",
+  "source": "https://www.sephora.com",
+  "html": "<h2><img alt=\"\" src=\"https://community.sephora.com/html/assets/img_community-logo.svg\" width=\"350px\" height=\"auto\"></h2>"
+ },
+ {
+  "id": "listitem-7",
+  "rule": "listitem",
+  "source": "https://www.glossier.com",
+  "html": "<li class=\"collection__item featured-products__list-item js-featured-products-item is-selected full-height\" style=\"position: absolute; left: 0px; transform: translateX(0%);\">"
+ },
+ {
+  "id": "empty-heading-6",
+  "rule": "empty-heading",
+  "source": "https://www.sonyliv.com",
+  "html": "<h3 class=\"text-muted layout-label\"></h3>"
+ },
+ {
+  "id": "empty-heading-7",
+  "rule": "empty-heading",
+  "source": "https://www.paramountplus.com",
+  "html": "<h2 class=\"video-section-title\">                                            </h2>, <h2 class=\"video-section-title\">                                            </h2>"
+ },
+ {
+  "id": "empty-heading-8",
+  "rule": "empty-heading",
+  "source": "https://www.hulu.com",
+  "html": "<h1 class=\"DualCtaMasthead__headline\" id=\"regionMasthead\" data-automationid=\"masthead_headline_primary\">, <h1 class=\"DualCtaMasthead__headline\" id=\"regionMasthead\" data-automationid=\"masthead_headline_secondary\">"
+ },
+ {
+  "id": "select-name-5",
+  "rule": "select-name",
+  "source": "https://www.iheart.com",
+  "html": "<select class=\"\" data-test=\"podcast-selector-select\" name=\"category\" tabindex=\"-1\">"
+ },
+ {
+  "id": "aria-dialog-name-7",
+  "rule": "aria-dialog-name",
+  "source": "https://www.luminarypodcasts.com",
+  "html": "<div role=\"dialog\" aria-describedby=\"onetrust-policy-text\">"
+ },
+ {
+  "id": "select-name-6",
+  "rule": "select-name",
+  "source": "https://www.deezer.com",
+  "html": "<select class=\"lang-select\" id=\"language_select\" data-testid=\"language_select\">"
+ },
+ {
+  "id": "label-8",
+  "rule": "label",
+  "source": "https://www.wetv.vip",
+  "html": "<input type=\"text\" class=\"search-box__input flex-1\" name=\"q\" autocomplete=\"off\" value=\"\">"
+ },
+ {
+  "id": "aria-dialog-name-8",
+  "rule": "aria-dialog-name",
+  "source": "https://www.dailyburn.com",
+  "html": "<div data-controller=\"modal\" class=\"relative z-10\" aria-labelledby=\"modal-title\" role=\"dialog\" aria-modal=\"true\">"
+ },
+ {
+  "id": "aria-required-children-8",
+  "rule": "aria-required-children",
+  "source": "https://www.nba.com/watch",
+  "html": "<div class=\"CarouselDynamic_cd__77Fo_\" data-snap=\"false\" data-contain=\"true\" role=\"list\">"
+ },
+ {
+  "id": "svg-img-alt-3",
+  "rule": "svg-img-alt",
+  "source": "https://www.strava.com",
+  "html": "<svg role=\"img\" viewBox=\"0 0 485 95\" aria-labelledby=\"fdpc-desktop-nav-strava-logo\" class=\"\" xmlns=\"http://www.w3.org/2000/svg\" style=\"display:block;width:95px;height:20px\">"
+ },
+ {
+  "id": "aria-required-parent-1",
+  "rule": "aria-required-parent",
+  "source": "https://www.ibm.com/research",
+  "html": "<a aria-haspopup=\"menu\" aria-expanded=\"false\" class=\"bx--header__menu-item bx--header__menu-title\" data-title=\"focus-areas\" href=\"#\" role=\"menuitem\" tabindex=\"0\" aria-selected=\"false\" aria-label=\"Focus areas\">, <a aria-haspopup=\"menu\" aria-expanded=\"false\" class=\"bx--header__menu-item bx--header__menu-title\" data-title=\"about\" href=\"#\" role=\"menuitem\" tabindex=\"0\" aria-selected=\"false\" aria-label=\"About\">"
+ },
+ {
+  "id": "svg-img-alt-4",
+  "rule": "svg-img-alt",
+  "source": "https://www.spss.com",
+  "html": "<svg focusable=\"false\" preserveAspectRatio=\"xMidYMid meet\" class=\"c4d--footer-logo__logo\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" role=\"img\" aria-labelledby=\"footer-logo\" width=\"157\" height=\"65\" viewBox=\"0 0 157 65\">"
+ },
+ {
+  "id": "select-name-7",
+  "rule": "select-name",
+  "source": "https://www.tehrantimes.com",
+  "html": "<select class=\"view-page\">"
+ },
+ {
+  "id": "aria-valid-attr-value-4",
+  "rule": "aria-valid-attr-value",
+  "source": "https://www.nzherald.co.nz",
+  "html": "<button type=\"button\" class=\"group flex items-center gap-2 border-0 bg-transparent p-0 hover:cursor-pointer\" id=\"menu-open-button\" aria-label=\"Open main menu\" aria-haspopup=\"true\" aria-controls=\"navigation\" data-test-ui=\"header_navigation_toggle_button\">"
+ },
+ {
+  "id": "nested-interactive-8",
+  "rule": "nested-interactive",
+  "source": "https://www.aljazeera.com",
+  "html": "<button class=\"breaking-ticker__close breaking-ticker__action-button\" type=\"button\">"
+ },
+ {
+  "id": "listitem-8",
+  "rule": "listitem",
+  "source": "https://www.sltrib.com",
+  "html": "<li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">, <li class=\" osano-cm-list__list-item osano-cm-list-item \">"
+ },
+ {
+  "id": "svg-img-alt-5",
+  "rule": "svg-img-alt",
+  "source": "https://www.time.com",
+  "html": "<svg role=\"img\" itemprop=\"logo\" width=\"90px\" height=\"100%\" preserveAspectRatio=\"xMinYMin meet\" viewBox=\"0 0 98 32\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">"
+ },
+ {
+  "id": "aria-required-parent-2",
+  "rule": "aria-required-parent",
+  "source": "https://www.thestar.com",
+  "html": "<a class=\"dropdown-item logout-btn\" id=\"logout-2841699\" onclick=\"handleUserLogout2841699()\" rel=\"nofollow\" role=\"menuitem\" aria-label=\"Logout\">\n                                Sign out\n                            </a>"
+ },
+ {
+  "id": "presentation-role-conflict-4",
+  "rule": "presentation-role-conflict",
+  "source": "https://www.thehindu.com",
+  "html": "<button type=\"button\" role=\"presentation\" class=\"owl-prev\"><div class=\"nav-btn prev-slide\"></div></button>, <button type=\"button\" role=\"presentation\" class=\"owl-next\"><div class=\"nav-btn next-slide\"></div></button>"
+ },
+ {
+  "id": "presentation-role-conflict-5",
+  "rule": "presentation-role-conflict",
+  "source": "https://www.allafrica.com",
+  "html": "<button type=\"button\" role=\"presentation\" class=\"owl-prev\"><i class=\"fa fa-angle-left\"></i></button>, <button type=\"button\" role=\"presentation\" class=\"owl-next\"><i class=\"fa fa-angle-right\"></i></button>"
+ },
+ {
+  "id": "svg-img-alt-6",
+  "rule": "svg-img-alt",
+  "source": "https://www.salon.com",
+  "html": "<svg class=\"s_logos s_caret_right_skinny\" role=\"img\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 192 512\">"
+ }
+]

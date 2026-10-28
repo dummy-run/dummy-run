@@ -1,0 +1,24 @@
+# Semgrep's own defaults, kept because this file replaces them.
+node_modules/
+build/
+dist/
+vendor/
+.env/
+.venv/
+.tox/
+*.min.js
+.npm/
+.yarn/
+test/
+tests/
+*_test.go
+.semgrep
+.semgrep_logs/
+
+# Third-party bundles, shipped unmodified under their own licences (see NOTICE). Their findings belong upstream,
+# and the files cannot be changed here without forking them.
+internal/page/axe/
+internal/page/engines/ace.js
+internal/page/engines/HTMLCS.js
+internal/page/engines/qualweb/
+internal/page/consent/

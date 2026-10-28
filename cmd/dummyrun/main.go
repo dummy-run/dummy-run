@@ -59,6 +59,8 @@ func run(args []string) int {
 		return a11yCmd(args[1:])
 	case "coverage":
 		return coverageCmd(args[1:])
+	case "calibrate":
+		return calibrateCmd(args[1:])
 	case "report":
 		return reportCmd(args[1:])
 	case "doctor":
@@ -107,7 +109,8 @@ func usage() {
   dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
       [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
-  dummyrun a11y [--sitemap URL] [URL...] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
+  dummyrun calibrate --labels FILE... [--eval FILE...] [--table FILE] [--out-table FILE] [--report FILE] [--min-samples N]
+  dummyrun a11y [--sitemap URL] [URL...] [--all] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun session save --target CONFIG --role ROLE --out FILE [--browser chrome|firefox] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
@@ -116,7 +119,7 @@ func usage() {
   dummyrun version
 
 First run: "dummyrun browsers install" once, set one model key, then "dummyrun try https://your-site".
-Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun calibrate -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers (leave out --provider and --model to have them chosen from your environment, in this order:
 DUMMYRUN_AZURE_ENDPOINT, OPENAI_API_KEY, ANTHROPIC_API_KEY, then Ollama on OLLAMA_HOST or localhost:11434;
