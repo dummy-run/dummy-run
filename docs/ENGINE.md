@@ -941,12 +941,13 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   root holds markup inside an element, apart from the rest of the page, and a closed one can't be reached by any other
   script. Links and forms inside a closed shadow root are guarded too. The keyboard and mouse comparison guards them
   after each load and again just before each click, Enter or Space, so a root the page builds later is covered as
-  well. Chrome never reports the first request of a new tab to the guard, so without this a form sent to a new window
-  would arrive. A tab that opens all the same is closed at once, so it can't take focus from the page under test. GET
-  and HEAD still go through, so a site that changes data on a GET can still be changed. Each page's `requests_stopped`
-  counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure probe's
-  `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused there
-  isn't counted.
+  well. The one gap left is a root the page builds in the instant between that last guard and the press. In Chrome, a
+  link or form inside it could still reach a new window. Chrome never reports the first request of a new tab to the
+  guard, so without this a form sent to a new window would arrive. A tab that opens all the same is closed at once, so
+  it can't take focus from the page under test. GET and HEAD still go through, so a site that changes data on a GET
+  can still be changed. Each page's `requests_stopped` counts what was stopped while the page was tested. The
+  journeys' tab isn't counted. The failure probe's `failure_probe.stopped` counts the requests it failed for their
+  method. A page load that robots.txt refused there isn't counted.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.
