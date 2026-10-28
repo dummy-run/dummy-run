@@ -15,7 +15,11 @@ import (
 // so a page's own click or submit handler can't put _blank back. _blank always means a new window, whatever a window is
 // named, and so does a name the browser would treat as _blank. Links and forms inside a shadow root, open or closed,
 // are covered too. A closed root declared in the markup is guarded once its element's own code reaches it through
-// ElementInternals, the only way a script can, and the sweep never presses a control inside one itself. Values for
+// ElementInternals, the only way a script can, and the sweep never presses a control inside one itself. A closed
+// root that setHTMLUnsafe or Document.parseHTMLUnsafe declares after the load is built from markup the guard has
+// already put right. The markup is first read into an inert template, where a declared root is still a plain template
+// and nothing runs, and the targets in it are changed as they would be on a click. The root stays closed. Markup with
+// nothing to change, or Trusted Types markup the page enforces, goes through as the page wrote it. Values for
 // other attributes pass through untouched, so a page that enforces Trusted Types still works. A target that names a
 // frame anywhere in the tab is left alone, a sibling of the frame the link or form is in included. A cross-origin
 // frame's name can't be read, so a target that names one is sent to the page's own frame.
@@ -91,6 +95,38 @@ const sameTab = `() => {
 	Object.defineProperty(window, "` + guardRoot + `", { value: guard });
 	const internals = typeof ElementInternals !== "undefined" && Object.getOwnPropertyDescriptor(ElementInternals.prototype, "shadowRoot");
 	if (internals && internals.get) Object.defineProperty(ElementInternals.prototype, "shadowRoot", { configurable: true, enumerable: internals.enumerable, get: function () { return guard(internals.get.call(this)); } });
+	const inner = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+	const declared = (html) => {
+		const s = String(html);
+		if (!inner || !/shadowrootmode/i.test(s)) return html;
+		try {
+			const t = document.createElement("template");
+			inner.set.call(t, s);
+			let changed = false;
+			const visit = (root) => {
+				root.querySelectorAll("a[target], area[target], form[target], button[formtarget], input[formtarget]").forEach((el) => {
+					const before = el.getAttribute("target") + " " + el.getAttribute("formtarget");
+					keep(el);
+					if (el.getAttribute("target") + " " + el.getAttribute("formtarget") !== before) changed = true;
+				});
+				root.querySelectorAll("template").forEach((x) => visit(x.content));
+			};
+			visit(t.content);
+			return changed ? inner.get.call(t) : html;
+		} catch (e) { return html; }
+	};
+	const parses = (f, self) => function (html, ...rest) {
+		const safe = declared(html);
+		if (safe === html) return apply(f, self || this, [html, ...rest]);
+		try { return apply(f, self || this, [safe, ...rest]); } catch (e) {
+			if (!(e instanceof TypeError)) throw e;
+			return apply(f, self || this, [html, ...rest]);
+		}
+	};
+	[Element.prototype, typeof ShadowRoot !== "undefined" && ShadowRoot.prototype].forEach((proto) => {
+		if (proto && Object.prototype.hasOwnProperty.call(proto, "setHTMLUnsafe")) proto.setHTMLUnsafe = parses(proto.setHTMLUnsafe);
+	});
+	if (typeof Document.parseHTMLUnsafe === "function") Document.parseHTMLUnsafe = parses(Document.parseHTMLUnsafe, Document);
 	const submit = HTMLFormElement.prototype.submit;
 	HTMLFormElement.prototype.submit = function () { keep(this); bases(); return submit.call(this); };
 	const request = HTMLFormElement.prototype.requestSubmit;

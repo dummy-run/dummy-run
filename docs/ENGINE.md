@@ -941,9 +941,12 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
   root holds markup inside an element, apart from the rest of the page, and a closed one can't be reached by any other
   script. Links and forms inside a closed shadow root are guarded too. The keyboard and mouse comparison guards them
   after each load and again just before each click, Enter or Space, so a root the page builds later is covered as
-  well. The one gap left is a root the page builds in the instant between that last guard and the press. In Chrome, a
-  link or form inside it could still reach a new window. Chrome never reports the first request of a new tab to the
-  guard, so without this a form sent to a new window would arrive. A tab that opens all the same is closed at once, so
+  well. A root that `setHTMLUnsafe` or `Document.parseHTMLUnsafe` declares is built from markup the guard has already
+  put right, so its links and forms stay in the page's tab, and it stays closed. A few gaps are left, all in the
+  instant between that last guard and the press. One is a root in markup written with `document.write` after the
+  load. Another is a frame the page adds then. The last is markup the page passes as Trusted Types, which the guard
+  can't rewrite. In Chrome, a link or form inside one of these could still reach a new window. Chrome never reports
+  the first request of a new tab to the guard, so without the one-tab rules a form sent to a new window would arrive. A tab that opens all the same is closed at once, so
   it can't take focus from the page under test. GET and HEAD still go through, so a site that changes data on a GET
   can still be changed. Each page's `requests_stopped` counts what was stopped while the page was tested. The
   journeys' tab isn't counted. The failure probe's `failure_probe.stopped` counts the requests it failed for their

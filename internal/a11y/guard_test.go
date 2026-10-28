@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -776,5 +777,166 @@ menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('
 				}
 			})
 		}
+	}
+}
+
+// TestRootBuiltAfterTheScanStaysInTab builds a closed shadow root in the instant between the guard's last scan and
+// the press, the gap the scan alone can't close. The page builds it with setHTMLUnsafe or with
+// Document.parseHTMLUnsafe, the two ways a script can declare a closed root once the page has loaded. Inside it is a
+// link to a disallowed address or a POST form's submit button, each aimed at a new window and filling the spot the
+// mouse then presses. The test drives the scan and the press itself, so the build lands in the gap every time. The
+// address must never be loaded, the form must never arrive and no tab may open, in Chrome as in Firefox.
+func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	const fill = `style="display:block;position:absolute;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;opacity:0"`
+	inside := map[string]string{
+		"link": `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
+		"form": `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
+	}
+	build := map[string]string{
+		"setHTMLUnsafe":   `(html) => { document.getElementById('spot').setHTMLUnsafe(html); }`,
+		"parseHTMLUnsafe": `(html) => { const d = Document.parseHTMLUnsafe('<body>' + html); document.getElementById('spot').append(...d.body.childNodes); }`,
+	}
+	var mu sync.Mutex
+	seen := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.Method+" "+r.URL.Path]++
+		mu.Unlock()
+		switch r.URL.Path {
+		case "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case "/":
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body style="margin:0"><main><h1>Shop</h1>
+<div id="spot" style="position:absolute;left:0;top:100px;width:200px;height:40px"></div>
+</main></body></html>`)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer srv.Close()
+	allowed := func(raw string) (bool, string) { return !strings.Contains(raw, "/private"), "" }
+	for _, browser := range strings.Split(v, ",") {
+		for how, fn := range build {
+			for what, html := range inside {
+				t.Run(browser+"/"+how+"/"+what, func(t *testing.T) {
+					mu.Lock()
+					clear(seen)
+					mu.Unlock()
+					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+					defer cancel()
+					b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer b.Close()
+					if err := keepToOneTab(ctx, b.Conn); err != nil {
+						t.Fatal(err)
+					}
+					opened, err := guardOpenedTabs(ctx, b.Conn, Config{}, allowed)
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer opened.close()
+					cx, err := b.Conn.CreateContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					d, stop, err := guardTab(ctx, b.Conn, cx, Config{}, allowed)
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer stop()
+					if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+						t.Fatal(err)
+					}
+					if err := b.Conn.MoveMouse(ctx, cx, 100, 120); err != nil {
+						t.Fatal(err)
+					}
+					if err := guardClosedRoots(ctx, b.Conn, cx); err != nil {
+						t.Fatal(err)
+					}
+					root := `<shop-panel style="display:block;position:absolute;inset:0"><template shadowrootmode="closed">` + html + `</template></shop-panel>`
+					if err := b.Conn.Call(ctx, "script.callFunction", map[string]any{
+						"functionDeclaration": fn,
+						"arguments":           []any{map[string]any{"type": "string", "value": root}},
+						"target":              map[string]any{"context": cx},
+						"awaitPromise":        true,
+					}, nil); err != nil {
+						t.Fatal(err)
+					}
+					var closed bool
+					if err := b.Conn.EvaluateJSON(ctx, cx, "document.querySelector('shop-panel').shadowRoot === null", &closed); err != nil {
+						t.Fatal(err)
+					}
+					if !closed {
+						t.Fatal("the root isn't closed any more")
+					}
+					if err := b.Conn.PressMouse(ctx, cx); err != nil {
+						t.Fatal(err)
+					}
+					// Give the press time to reach a new tab or the server, as it would before the next step.
+					time.Sleep(2 * time.Second)
+					opened.settle(10 * time.Second)
+					srv.CloseClientConnections()
+					mu.Lock()
+					defer mu.Unlock()
+					for k, n := range seen {
+						if strings.HasPrefix(k, "GET /private") || (!strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ")) {
+							t.Errorf("%s reached the server %d times: %v", k, n, seen)
+						}
+					}
+					if n := opened.Opened(); n != 0 {
+						t.Errorf("the press opened %d tabs, want none", n)
+					}
+					if n := d.Stopped() + opened.Stopped(); n < 1 {
+						t.Errorf("stopped %d requests, want the press: %v", n, seen)
+					}
+				})
+			}
+		}
+		// An open root shows what the guard did to the markup: a new window becomes the page's own tab, a frame
+		// the page has keeps its name, and markup with nothing to change is left as the page wrote it.
+		t.Run(browser+"/markup", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer b.Close()
+			if err := keepToOneTab(ctx, b.Conn); err != nil {
+				t.Fatal(err)
+			}
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			if err := b.Conn.EvaluateJSON(ctx, cx, `(() => {
+	const spot = document.getElementById('spot');
+	spot.insertAdjacentHTML('beforeend', '<iframe name="side"></iframe>');
+	const host = document.createElement('div');
+	spot.append(host);
+	host.setHTMLUnsafe('<shop-panel><template shadowrootmode="open"><a id="a" target="_blank" href="/a">A</a><a id="b" target="side" href="/b">B</a><form id="f" target="_blank"><button id="s" formtarget="_blank">Go</button></form></template></shop-panel>');
+	const r = host.firstElementChild.shadowRoot;
+	const plain = document.createElement('div');
+	plain.setHTMLUnsafe('<p class="x">Hello</p>');
+	return [String(!!r), r.getElementById('a').target, r.getElementById('b').target, r.getElementById('f').target, r.getElementById('s').formTarget, plain.innerHTML];
+})()`, &got); err != nil {
+				t.Fatal(err)
+			}
+			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`}
+			if !slices.Equal(got, want) {
+				t.Errorf("the markup came out as %q, want %q", got, want)
+			}
+		})
 	}
 }
