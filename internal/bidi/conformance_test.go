@@ -413,6 +413,12 @@ func TestConformance(t *testing.T) {
 				waitFor(t, "Control and Alt to be held with k", func() bool {
 					return evalString(t, c, cx, "document.body.dataset.chord || ''") == "Control+Alt+KeyK"
 				})
+				if err := c.PressKey(ctx, cx, "x"); err != nil {
+					t.Fatal(err)
+				}
+				waitFor(t, "both modifiers to be let go before the next key", func() bool {
+					return evalString(t, c, cx, "document.body.dataset.chord || ''") == "KeyX"
+				})
 			})
 			t.Run("browsingContext.captureScreenshot", func(t *testing.T) {
 				data, err := c.CaptureScreenshot(ctx, cx)

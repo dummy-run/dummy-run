@@ -26,6 +26,7 @@ func TestChord(t *testing.T) {
 		key  string
 	}{
 		"Tab":                {nil, KeyTab},
+		" ":                  {nil, " "},
 		"Shift+Tab":          {[]string{KeyShift}, KeyTab},
 		"shift + tab":        {[]string{KeyShift}, KeyTab},
 		"Control+Alt+Delete": {[]string{KeyControl, KeyAlt}, KeyDelete},

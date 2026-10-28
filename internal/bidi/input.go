@@ -88,7 +88,10 @@ func Chord(name string) (mods []string, key string, err error) {
 			mods = append(mods, code)
 		}
 	}
-	if key, err = Key(strings.TrimSpace(keyName)); err != nil {
+	if joined {
+		keyName = strings.TrimSpace(keyName)
+	}
+	if key, err = Key(keyName); err != nil {
 		return nil, "", err
 	}
 	return mods, key, nil
