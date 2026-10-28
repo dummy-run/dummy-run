@@ -14,8 +14,9 @@ Usage:
   dummyrun browsers list
   dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
-  dummyrun plan URL --out DIR [--personas N] [--steps N] [--pages URL]... [--no-model] [--identify] [--respect-robots] \
-      [--provider PROVIDER --model MODEL ...]
+  dummyrun plan URL --out DIR [--personas N | --persona ID...] [--steps N] [--min-steps N] [--pages URL]... [--pages-file FILE] \
+      [--library DIR] [--json FILE] [--no-model] [--signin] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
@@ -63,7 +64,8 @@ Work out what a site is for and write a cast that fits it. See [ENGINE.md](ENGIN
 
 ```text
 Usage: dummyrun plan URL --out DIR [--personas N | --persona ID...] [--steps N] [--min-steps N] [--pages URL]... [--pages-file FILE]
-    [--library DIR] [--json FILE] [--no-model] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...]
+    [--library DIR] [--json FILE] [--no-model] [--signin] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...]
+    [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
 
 Works out what your site is for and writes a cast that fits it, ready for "dummyrun run".
 
@@ -76,13 +78,14 @@ screen reader user moves by headings and landmarks, and each has its own minimum
 asks about prices unless the site sells something.
 
 DIR gets one folder per persona (its profile and prompt, copied from the library, and scenarios/01-<id>.md)
-and plan.json. Play a persona with:
+and plan.json. Give an empty folder or one an earlier plan wrote: its personas are replaced. Play a persona with:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out RUNS ...
 and add --plan DIR/plan.json to "dummyrun report" to show what was tested and why.
 
 If the model call fails, or its answer does not hold up, the plan comes from the signals alone and plan.json says
-why. --no-model skips the call. Exit status: 0 when the cast is written, 2 for a usage error, 3 when robots.txt
-disallows the start page (with --respect-robots).
+why. --no-model skips the call. Exit status: 0 when the cast is written, 2 for a usage error (such as a --persona
+that is not in the library), 3 when robots.txt disallows the start page (with --respect-robots), 130 when
+interrupted; nothing is written then.
 
 Flags:
   --out DIR          where the cast goes (required)
@@ -98,6 +101,11 @@ Flags:
   --signin           the target has test users, so a persona that signs in may be picked
   --identify         name the scanner page in the user agent
   --respect-robots   read robots.txt and skip what it disallows for DummyRun or *
+  --basic-auth-env USER_ENV:PASS_ENV
+                     answer HTTP Basic auth on a protected preview, with the names of two environment variables
+  --header-env 'Name:ENV'
+                     send a request header whose value is in an environment variable, such as
+                     x-vercel-protection-bypass. Repeat for more. Both go only to the site's own hosts
   The model flags are the same as for "dummyrun run".
 ```
 

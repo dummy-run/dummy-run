@@ -227,7 +227,7 @@ func tryPlanned(ctx context.Context, tgt policy.Target, p provider.Provider, ste
 	lib, err := libraryFS("")
 	if err == nil {
 		var pl *plan.Plan
-		pl, err = makePlan(ctx, planInput{URL: tgt.BaseURL, Hosts: tgt.AllowedHosts, Library: lib, Provider: p, Personas: 1, Steps: steps, Out: dir})
+		pl, err = makePlan(ctx, planInput{Target: tgt, Library: lib, Provider: p, Personas: 1, Steps: steps, Out: dir})
 		if err == nil && len(pl.Personas) == 0 {
 			err = errors.New("the plan picked no persona")
 		}

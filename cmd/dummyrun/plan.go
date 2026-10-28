@@ -11,16 +11,20 @@ import (
 	"io/fs"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 
 	"github.com/dummy-run/dummy-run/casts"
+	"github.com/dummy-run/dummy-run/internal/access"
 	"github.com/dummy-run/dummy-run/internal/plan"
+	"github.com/dummy-run/dummy-run/internal/policy"
 	"github.com/dummy-run/dummy-run/internal/provider"
 )
 
 const planHelp = `Usage: dummyrun plan URL --out DIR [--personas N | --persona ID...] [--steps N] [--min-steps N] [--pages URL]... [--pages-file FILE]
-    [--library DIR] [--json FILE] [--no-model] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...]
+    [--library DIR] [--json FILE] [--no-model] [--signin] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...]
+    [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
 
 Works out what your site is for and writes a cast that fits it, ready for "dummyrun run".
 
@@ -33,13 +37,14 @@ screen reader user moves by headings and landmarks, and each has its own minimum
 asks about prices unless the site sells something.
 
 DIR gets one folder per persona (its profile and prompt, copied from the library, and scenarios/01-<id>.md)
-and plan.json. Play a persona with:
+and plan.json. Give an empty folder or one an earlier plan wrote: its personas are replaced. Play a persona with:
   dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out RUNS ...
 and add --plan DIR/plan.json to "dummyrun report" to show what was tested and why.
 
 If the model call fails, or its answer does not hold up, the plan comes from the signals alone and plan.json says
-why. --no-model skips the call. Exit status: 0 when the cast is written, 2 for a usage error, 3 when robots.txt
-disallows the start page (with --respect-robots).
+why. --no-model skips the call. Exit status: 0 when the cast is written, 2 for a usage error (such as a --persona
+that is not in the library), 3 when robots.txt disallows the start page (with --respect-robots), 130 when
+interrupted; nothing is written then.
 
 Flags:
   --out DIR          where the cast goes (required)
@@ -55,6 +60,11 @@ Flags:
   --signin           the target has test users, so a persona that signs in may be picked
   --identify         name the scanner page in the user agent
   --respect-robots   read robots.txt and skip what it disallows for DummyRun or *
+  --basic-auth-env USER_ENV:PASS_ENV
+                     answer HTTP Basic auth on a protected preview, with the names of two environment variables
+  --header-env 'Name:ENV'
+                     send a request header whose value is in an environment variable, such as
+                     x-vercel-protection-bypass. Repeat for more. Both go only to the site's own hosts
   The model flags are the same as for "dummyrun run".`
 
 func planCmd(args []string) int {
@@ -75,6 +85,8 @@ func planCmd(args []string) int {
 	signin := fs.Bool("signin", false, "the target has test users")
 	identify := fs.Bool("identify", false, "name the scanner page in the user agent")
 	respect := fs.Bool("respect-robots", false, "honour robots.txt")
+	var preview authFlags
+	preview.register(fs)
 	pf := addProviderFlags(fs)
 	var target string
 	rest := args
@@ -107,8 +119,19 @@ func planCmd(args []string) int {
 		fmt.Fprintln(os.Stderr, "dummyrun plan:", err)
 		return 2
 	}
+	if tgt.Auth, err = preview.auth(nil); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun plan:", err)
+		return 2
+	}
 	lib, err := libraryFS(*libDir)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun plan:", err)
+		return 2
+	}
+	if people, err := plan.LoadLibrary(lib); err != nil {
+		fmt.Fprintln(os.Stderr, "dummyrun plan:", err)
+		return 2
+	} else if err := knownPersonas(use, people); err != nil {
 		fmt.Fprintln(os.Stderr, "dummyrun plan:", err)
 		return 2
 	}
@@ -120,7 +143,7 @@ func planCmd(args []string) int {
 			return fail(err)
 		}
 	}
-	pl, err := makePlan(ctx, planInput{URL: tgt.BaseURL, Hosts: tgt.AllowedHosts, Pages: pages, Library: lib, Provider: p,
+	pl, err := makePlan(ctx, planInput{Target: tgt, Pages: pages, Library: lib, Provider: p,
 		Personas: *personas, Use: use, Steps: *steps, MinSteps: *minSteps, SignIn: *signin, Identify: *identify, Respect: *respect, Out: *out})
 	if errors.Is(err, plan.ErrRobots) {
 		fmt.Fprintln(os.Stderr, "dummyrun plan: robots.txt disallows DummyRun from the start page, so nothing was read")
@@ -140,8 +163,8 @@ func planCmd(args []string) int {
 
 // planInput is what makePlan needs. try and plan share it.
 type planInput struct {
-	URL      string
-	Hosts    []string
+	// Target gives the start page, the hosts recon may read and the preview access it needs to read them.
+	Target   policy.Target
 	Pages    []string
 	Library  fs.FS
 	Provider provider.Provider
@@ -155,23 +178,47 @@ type planInput struct {
 	Out      string
 }
 
-// makePlan reads the site, plans the scan and writes the cast into in.Out.
+// makePlan reads the site, plans the scan and writes the cast into in.Out. When the caller stops it, it
+// returns the context's error and writes nothing, so no cast comes from a scan that was cut short.
 func makePlan(ctx context.Context, in planInput) (*plan.Plan, error) {
-	rec, err := plan.Run(ctx, plan.ReconOptions{Client: requestClient(in.Identify), StartURL: in.URL, Pages: in.Pages,
-		AllowedHosts: hostsOnly(in.Hosts), Identify: in.Identify, RespectRobots: in.Respect})
+	people, err := plan.LoadLibrary(in.Library)
 	if err != nil {
 		return nil, err
 	}
-	people, err := plan.LoadLibrary(in.Library)
+	// The preview secrets go only to the target's own hosts, as they do for the browser.
+	pa, err := access.Resolve(in.Target.Auth, os.Getenv, access.TargetScope(in.Target))
+	if err != nil {
+		return nil, err
+	}
+	rec, err := plan.Run(ctx, plan.ReconOptions{Client: access.WrapClient(requestClient(in.Identify), pa), StartURL: in.Target.BaseURL,
+		Pages: in.Pages, AllowedHosts: hostsOnly(in.Target.AllowedHosts), Identify: in.Identify, RespectRobots: in.Respect})
 	if err != nil {
 		return nil, err
 	}
 	pl := plan.Make(ctx, rec, plan.Options{Provider: in.Provider, Library: people, MaxPersonas: in.Personas, Personas: in.Use, Steps: in.Steps,
 		MinSteps: in.MinSteps, SignIn: in.SignIn})
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if err := plan.WriteCast(in.Out, in.Library, pl, people); err != nil {
 		return nil, err
 	}
 	return pl, nil
+}
+
+// knownPersonas refuses an id that is not in the library, naming the ones that are, so a typo never turns into
+// a persona the plan chose on its own.
+func knownPersonas(ids []string, lib []plan.LibraryPersona) error {
+	var have []string
+	for _, l := range lib {
+		have = append(have, l.ID)
+	}
+	for _, id := range ids {
+		if !slices.Contains(have, id) {
+			return fmt.Errorf("no persona %q in the library; it has %s", id, strings.Join(have, ", "))
+		}
+	}
+	return nil
 }
 
 // hostsOnly drops ports, since recon compares host names.

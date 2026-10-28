@@ -101,8 +101,9 @@ func usage() {
   dummyrun browsers list
   dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
-  dummyrun plan URL --out DIR [--personas N] [--steps N] [--pages URL]... [--no-model] [--identify] [--respect-robots] \
-      [--provider PROVIDER --model MODEL ...]
+  dummyrun plan URL --out DIR [--personas N | --persona ID...] [--steps N] [--min-steps N] [--pages URL]... [--pages-file FILE] \
+      [--library DIR] [--json FILE] [--no-model] [--signin] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
