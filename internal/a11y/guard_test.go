@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dummy-run/dummy-run/internal/access"
+	"github.com/dummy-run/dummy-run/internal/bidi"
 	"github.com/dummy-run/dummy-run/internal/lighthouse"
 	"github.com/dummy-run/dummy-run/internal/policy"
 )
@@ -553,6 +554,59 @@ func TestOpenedWindowKeepsToRobots(t *testing.T) {
 	}
 }
 
+// TestOpenedTabsAreCounted opens a tab from a page that has no one-tab script, so the tab really opens. The guard
+// must count it, or the zero the closed-root test expects would prove nothing.
+func TestOpenedTabsAreCounted(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><title>Shop</title><main><h1>Shop</h1></main></html>`)
+	}))
+	defer srv.Close()
+	for _, browser := range strings.Split(v, ",") {
+		t.Run(browser, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(b.Close)
+			opened, err := guardOpenedTabs(ctx, b.Conn, Config{}, func(string) (bool, string) { return true, "" })
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer opened.close()
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+				t.Fatal(err)
+			}
+			if err := b.Conn.Call(ctx, "script.callFunction", map[string]any{
+				"functionDeclaration": "() => { window.open('/next'); }",
+				"target":              map[string]any{"context": cx},
+				"awaitPromise":        true,
+				"userActivation":      true,
+			}, nil); err != nil {
+				t.Fatal(err)
+			}
+			deadline := time.Now().Add(10 * time.Second)
+			for opened.Opened() == 0 && time.Now().Before(deadline) {
+				time.Sleep(50 * time.Millisecond)
+			}
+			opened.settle(10 * time.Second)
+			if n := opened.Opened(); n != 1 {
+				t.Errorf("counted %d opened tabs, want 1", n)
+			}
+		})
+	}
+}
+
 // TestSameTabKeepsTrustedTypes sweeps a page that enforces Trusted Types and sets a script's src from a trusted value.
 // The one-tab script wraps setAttribute, so it must pass values for other attributes through untouched, or the page's
 // own script throws.
@@ -611,5 +665,116 @@ if (!window.trustedTypes) {
 				t.Errorf("the page's trusted setAttribute failed: %v", seen)
 			}
 		})
+	}
+}
+
+// TestPressedHostKeepsClosedRootsInTab sweeps pages whose control is a custom element with a closed shadow root in
+// its markup, with the keyboard checks on and --respect-robots. Inside the root is a link to a disallowed address
+// or a POST form's submit button, each aimed at a new window. No script on the page ever reaches the root, so only
+// the sweep's own click or key press can land on what is inside. On the click pages it covers the whole control,
+// so the mouse try lands on it. On the keyboard page it sits in a corner, so the click opens the control and the
+// comparison goes on to its keyboard try, where Tab reaches the link and Enter follows it. On the nested page the
+// link is in a closed root inside the control's closed root. The hostile page also
+// breaks addEventListener on shadow roots and WeakSet's has before the guard reaches its root, and the decoy page
+// makes document.documentElement return an empty element, to hide its roots from the guard. The late page builds
+// its closed root only as the mouse comes over the control, after the load. The address must
+// never be loaded and the form must never arrive, in Chrome as in Firefox.
+func TestPressedHostKeepsClosedRootsInTab(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	const fill = `style="display:block;position:absolute;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;opacity:0"`
+	type fixture struct{ inside, script, pressed string }
+	pages := map[string]fixture{
+		"/link": {inside: `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`, pressed: "GET /clicked"},
+		"/form": {inside: `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
+			pressed: "GET /clicked"},
+		"/hostile": {inside: `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`, pressed: "GET /clicked",
+			script: `ShadowRoot.prototype.addEventListener = function () { throw new Error('no'); };
+var has = WeakSet.prototype.has;
+WeakSet.prototype.has = function (x) { return x instanceof ShadowRoot || has.call(this, x); };`},
+		"/decoy": {inside: `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`, pressed: "GET /clicked",
+			script: `var decoy = document.createElement('html');
+Object.defineProperty(document, 'documentElement', {get: function () { return decoy; }});`},
+		"/late": {pressed: "GET /clicked",
+			script: `var late = document.createElement('span');
+late.setAttribute('style', 'position:absolute;inset:0');
+menu.appendChild(late);
+document.addEventListener('mousemove', function built() {
+	document.removeEventListener('mousemove', built);
+	late.setHTMLUnsafe('<shop-panel style="position:absolute;inset:0"><template shadowrootmode="closed"><a href="/private/account" target="_blank" ` + fill + `>Account page</a></template></shop-panel>');
+});`},
+		"/nested": {inside: `<shop-inner style="position:absolute;inset:0"><template shadowrootmode="closed"><a href="/private/account" target="_blank" ` + fill + `>Account page</a></template></shop-inner>`,
+			pressed: "GET /clicked"},
+		"/keyboard": {inside: `<a href="/private/account" target="_blank" style="position:absolute;right:0;top:0;width:20px;height:20px">Account page</a>`,
+			pressed: "GET /keyed"},
+	}
+	var mu sync.Mutex
+	seen := map[string]int{}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.Method+" "+r.URL.Path]++
+		mu.Unlock()
+		f, ok := pages[r.URL.Path]
+		switch {
+		case r.URL.Path == "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case ok:
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body><main><h1>Shop</h1>
+<shop-menu role="button" aria-expanded="false" style="display:inline-block;position:relative;width:200px;height:40px">Your account<template shadowrootmode="closed"><slot></slot>`+f.inside+`</template></shop-menu>
+<script>
+var menu = document.querySelector('shop-menu');
+menu.addEventListener('click', function () { fetch('/clicked', {keepalive: true}); menu.setAttribute('aria-expanded', 'true'); });
+menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('/keyed', {keepalive: true}); } });
+`+f.script+`</script>
+</main></body></html>`)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	})
+	for _, browser := range strings.Split(v, ",") {
+		for path, f := range pages {
+			t.Run(browser+path, func(t *testing.T) {
+				mu.Lock()
+				clear(seen)
+				mu.Unlock()
+				// Each test has its own server, so closing it waits out any request still in flight.
+				srv := httptest.NewServer(handler)
+				defer srv.Close()
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+				defer cancel()
+				rep, err := Run(ctx, Config{URLs: []string{srv.URL + path}, Browser: browser, Viewports: []Viewport{Desktop},
+					Schemes: []string{Light}, Headless: true, Keyboard: true, RespectRobots: true})
+				// Run closes the browser before it returns, so no request starts after it, and Close returns once
+				// every request that did start has been answered.
+				srv.Close()
+				if err != nil {
+					t.Fatal(err)
+				}
+				r := rep.Results[0]
+				if r.Error != "" {
+					t.Fatalf("error: %s", r.Error)
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				if seen[f.pressed] == 0 {
+					t.Fatalf("no %s, so the press the test is about never happened: %v", f.pressed, seen)
+				}
+				for k, n := range seen {
+					if strings.HasPrefix(k, "GET /private") || (!strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ")) {
+						t.Errorf("%s reached the server %d times: %v", k, n, seen)
+					}
+				}
+				// The root was guarded before the press, so the press stays in the guarded tab, which stops it.
+				if n := rep.opened.Opened(); n != 0 {
+					t.Errorf("the press opened %d tabs, want none", n)
+				}
+				if r.RequestsStopped < 1 {
+					t.Errorf("requests_stopped is %d, want the press: %v", r.RequestsStopped, seen)
+				}
+			})
+		}
 	}
 }
