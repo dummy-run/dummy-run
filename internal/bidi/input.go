@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 // Key codes from the WebDriver spec, section "Keyboard actions". A key action's
@@ -158,16 +159,39 @@ func (c *Conn) PressKey(ctx context.Context, context, code string) error {
 
 // PressChord holds the modifiers down in order, presses and releases the key, then lets the modifiers go in reverse.
 // If the call fails part way, a modifier could stay held for every key after it, so PressChord releases what is
-// held before it returns the error. If that release fails too, the error says so on the same line, since later keys
-// may then come with a modifier still held and a page action reports only an error's first line.
+// held before it returns the error. If that release fails too, the error says so as a chordError, since later keys
+// may then come with a modifier still held.
 func (c *Conn) PressChord(ctx context.Context, context string, mods []string, code string) error {
 	err := c.keyActions(ctx, context, chordActions(mods, code))
 	if err != nil && len(mods) > 0 {
 		if rerr := c.releaseHeld(ctx, context); rerr != nil {
-			err = fmt.Errorf("%w; bidi: release the held keys: %w", err, rerr)
+			err = chordError{press: err, release: rerr}
 		}
 	}
 	return err
+}
+
+// chordError is a failed chord whose held keys failed to release too. A page action reports only the first line of
+// an error, cut to 300 bytes, so Error keeps both parts on one short line. Unwrap still gives the full errors.
+type chordError struct{ press, release error }
+
+func (e chordError) Error() string {
+	return clip(e.press.Error(), 180) + "; bidi: release the held keys: " + clip(e.release.Error(), 80)
+}
+
+func (e chordError) Unwrap() []error { return []error{e.press, e.release} }
+
+// clip puts s on one line and cuts it to at most n bytes without splitting a character.
+func clip(s string, n int) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if len(s) <= n {
+		return s
+	}
+	n -= len("...")
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n] + "..."
 }
 
 // chordActions is the key actions PressChord sends.

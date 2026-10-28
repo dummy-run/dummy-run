@@ -60,7 +60,10 @@ func TestEndedCallLeavesTheConnectionOpen(t *testing.T) {
 // A chord whose input.performActions call fails, or runs out of time, still has its held keys released, and the
 // caller gets the call's own error, with the release's when that fails too. A key with no modifier held needs no release.
 func TestFailedChordReleasesHeldKeys(t *testing.T) {
-	type answer struct{ fail, silent, failRelease bool }
+	type answer struct {
+		fail, silent, failRelease bool
+		message                   string
+	}
 	var mu sync.Mutex
 	var methods []string
 	var perform answer
@@ -93,7 +96,11 @@ func TestFailedChordReleasesHeldKeys(t *testing.T) {
 					continue
 				}
 				if a.fail {
-					reply = map[string]any{"type": "error", "id": cmd.ID, "error": "unknown error", "message": "the keys stuck"}
+					msg := a.message
+					if msg == "" {
+						msg = "the keys stuck"
+					}
+					reply = map[string]any{"type": "error", "id": cmd.ID, "error": "unknown error", "message": msg}
 				}
 			}
 			b, _ := json.Marshal(reply)
@@ -145,6 +152,25 @@ func TestFailedChordReleasesHeldKeys(t *testing.T) {
 	var cmdErr *CommandError
 	if !errors.As(err, &cmdErr) || cmdErr.Message != "the keys stuck" {
 		t.Errorf("the call's own error isn't first to errors.As: %v", err)
+	}
+	// A page action keeps an error's first line, cut to 300 bytes, so the release failure has to fit in that.
+	for name, msg := range map[string]string{
+		"multiline": "the keys stuck\n  at performActions\n  at dispatch",
+		"long":      "the keys stuck " + strings.Repeat("and the browser said more ", 20),
+	} {
+		_, err = try(answer{fail: true, failRelease: true, message: msg}, ctx, []string{KeyShift})
+		if err == nil {
+			t.Errorf("%s: no error", name)
+			continue
+		}
+		if s := err.Error(); strings.Contains(s, "\n") || len(s) > 300 ||
+			!strings.Contains(s, "the keys stuck") || !strings.Contains(s, "release the held keys: ") ||
+			!strings.Contains(s, "the release failed") {
+			t.Errorf("%s: error %q, want both failures on one line of at most 300 bytes", name, s)
+		}
+		if !errors.As(err, &cmdErr) || cmdErr.Message != msg {
+			t.Errorf("%s: the call's own error isn't whole to errors.As: %v", name, err)
+		}
 	}
 	got, err = try(answer{fail: true}, ctx, nil)
 	if err == nil || !strings.Contains(err.Error(), "the keys stuck") {
