@@ -61,3 +61,54 @@ func TestAFindingShowsItsEvidenceInWords(t *testing.T) {
 		}
 	}
 }
+
+// TestEvidenceShownIsTheReproductions checks that when sightings share a fingerprint, the element, the quoted
+// words, the page and the body shown come from the sighting whose steps and screenshot are shown, not from the
+// sighting that gave the title. Another sighting's words could describe a different page state.
+func TestEvidenceShownIsTheReproductions(t *testing.T) {
+	runs := loadFixture(t)
+	var lead, rep *record.Finding
+	for _, run := range runs {
+		for i := range run.Rec.Findings {
+			f := &run.Rec.Findings[i]
+			if f.Fingerprint != "1718b75300702f7b" {
+				continue
+			}
+			switch run.Rec.ID {
+			case "2026-10-16-lin-contributor-002":
+				lead = f
+			case "2026-10-17-lin-contributor-008":
+				rep = f
+			}
+		}
+	}
+	if lead == nil || rep == nil {
+		t.Fatal("the fixture lost the shared finding")
+	}
+	// The earliest sighting has the worst severity, so it gives the title, and is no longer confirmed, so every
+	// sighting counts. The latest is the only one with a screenshot, so it gives the reproduction.
+	lead.Severity, lead.Verdict, lead.Title = "major", record.VerdictPending, "Lead's title"
+	lead.Body, lead.Fix, lead.Element, lead.Quote, lead.URL, lead.EvidenceStep = "lead body", "lead fix", `text "Paid"`, "Paid", "https://example.test/lead/", lead.Steps[0]
+	rep.Severity = "info"
+	rep.Body, rep.Fix, rep.Element, rep.Quote, rep.URL, rep.EvidenceStep = "rep body", "rep fix", `text "Payment pending"`, "Payment pending", "https://example.test/rep/", rep.Steps[0]
+	report, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got *Finding
+	for i := range report.Findings {
+		if report.Findings[i].Fingerprint == "1718b75300702f7b" {
+			got = &report.Findings[i]
+		}
+	}
+	if got == nil || got.Reproduction.Run != "2026-10-17-lin-contributor-008" || got.Title != "Lead's title" {
+		t.Fatalf("lead and reproduction are not as the test expects: %+v", got)
+	}
+	if got.Element != rep.Element || got.Quote != rep.Quote || got.URL != rep.URL || got.Body != rep.Body || got.FixText != rep.Fix {
+		t.Errorf("the evidence shown is not the reproduction's: element %q quote %q url %q body %q fix %q",
+			got.Element, got.Quote, got.URL, got.Body, got.FixText)
+	}
+	if len(got.Reproduction.Steps) == 0 || !got.Reproduction.Steps[0].Evidence {
+		t.Errorf("the reproduction's evidence step is not marked: %+v", got.Reproduction.Steps)
+	}
+}

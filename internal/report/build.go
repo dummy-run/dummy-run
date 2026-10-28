@@ -482,8 +482,7 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 		Fingerprint: key, Title: lead.f.Title, Severity: lead.f.Severity, Kind: lead.f.Kind,
 		Symptom: lead.f.Symptom, Route: lead.f.Route, Locus: lead.f.Locus, State: lead.f.State,
 		Evidence: lead.f.Evidence, Status: status, Personas: []string{}, Instances: []Instance{},
-		OfRuns: total, Body: lead.f.Body, FixText: lead.f.Fix, Element: lead.f.Element, Quote: lead.f.Quote, URL: lead.f.URL,
-		WCAG: lead.f.WCAG,
+		OfRuns: total,
 	}
 	if strings.HasPrefix(key, "unfingerprinted-") {
 		f.Fingerprint = ""
@@ -535,6 +534,9 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 			rep = h
 		}
 	}
+	// The evidence shown is the reproduction's, so the element, the quoted words and the page address describe the
+	// same page state as the steps and the screenshots beside them. Another sighting's words would not.
+	f.Body, f.FixText, f.Element, f.Quote, f.URL, f.WCAG = rep.f.Body, rep.f.Fix, rep.f.Element, rep.f.Quote, rep.f.URL, rep.f.WCAG
 	r := rep.run.Rec
 	f.Reproduction = Reproduction{Run: r.ID, Persona: r.Persona.ID, Role: r.Persona.Role, SignedIn: r.Signin != nil && r.Signin.OK, Device: r.Persona.Device,
 		Zoom: orHundred(r.Persona.Zoom), Browser: strings.TrimSpace(r.Browser.Name + " " + r.Browser.Version), Steps: []StepRef{}}
