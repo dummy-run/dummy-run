@@ -901,8 +901,10 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 		}
 		// An open root shows what the guard did to the markup: a new window becomes the page's own tab, a frame
 		// the page has keeps its name, and markup with nothing to change is left as the page wrote it. An object
-		// whose toString changes between reads gets built from the markup the guard read. A page that replaces what
-		// the guard calls still has its new window put right.
+		// whose toString changes between reads gets built from the markup the guard read. A shadow root's own
+		// setHTMLUnsafe and a root nested in another are covered, and so are area and input targets. A Trusted Types
+		// value goes through as the page wrote it, a gap ENGINE.md names. A page that replaces what the guard calls
+		// still has its new window put right.
 		t.Run(browser+"/markup", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
@@ -936,6 +938,19 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 	const changing = document.createElement('div');
 	changing.setHTMLUnsafe(turncoat);
 	const out = [String(!!r), r.getElementById('a').target, r.getElementById('b').target, r.getElementById('f').target, r.getElementById('s').formTarget, plain.innerHTML, changing.innerHTML];
+	r.setHTMLUnsafe('<shop-outer><template shadowrootmode="open"><shop-inner><template shadowrootmode="open"><map name="m"><area id="ar" target="_blank" href="/ar"></map><form><input id="in" type="submit" formtarget="_blank"></form></template></shop-inner></template></shop-outer>');
+	const deep = r.querySelector('shop-outer').shadowRoot.querySelector('shop-inner').shadowRoot;
+	out.push(deep.getElementById('ar').target, deep.getElementById('in').formTarget);
+	if (window.trustedTypes) {
+		const policy = trustedTypes.createPolicy('shop-test', { createHTML: (s) => s });
+		const kept = '<shop-panel><template shadowrootmode="open"><a id="k" target="_blank" href="/k">K</a></template></shop-panel>';
+		const viaSet = document.createElement('div');
+		viaSet.setHTMLUnsafe(policy.createHTML(kept));
+		const viaParse = Document.parseHTMLUnsafe(policy.createHTML('<body>' + kept));
+		out.push(viaSet.firstElementChild.shadowRoot.getElementById('k').target, viaParse.querySelector('shop-panel').shadowRoot.getElementById('k').target);
+	} else {
+		out.push('_blank', '_blank');
+	}
 	RegExp.prototype.test = function () { return false; };
 	String.prototype.toLowerCase = function () { return '_self'; };
 	Element.prototype.getAttribute = function () { return null; };
@@ -948,7 +963,7 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 })()`, &got); err != nil {
 				t.Fatal(err)
 			}
-			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self"}
+			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self", "_self", "_blank", "_blank", "_self"}
 			if !slices.Equal(got, want) {
 				t.Errorf("the markup came out as %q, want %q", got, want)
 			}
