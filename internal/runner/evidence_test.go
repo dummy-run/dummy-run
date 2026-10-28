@@ -63,6 +63,7 @@ func TestVerifyEvidenceRefusesClaimsTheStepsDoNotShow(t *testing.T) {
 		{Title: "a control the page does not have", Symptom: "unclear-label", Control: "@77", Steps: []int{1}},
 		{Title: "only a harness failure", Symptom: "wrong-outcome", Quote: "Read more", Steps: []int{3}},
 		{Title: "a quote too short to mean anything", Symptom: "unclear-label", Quote: "a", Steps: []int{1}},
+		{Title: "fragments joined by an ellipsis", Symptom: "unclear-label", Quote: "a ... e", Steps: []int{1}},
 		{Title: "the wrong axe rule", Symptom: "a11y", Rule: "color-contrast", Steps: []int{4}},
 	}}
 	probs := VerifyEvidence(&f, evidenceSteps())
@@ -77,7 +78,7 @@ func TestVerifyEvidenceRefusesClaimsTheStepsDoNotShow(t *testing.T) {
 			t.Errorf("%s was backed: %+v", ff.Title, ff)
 		}
 	}
-	if n := DemoteUnverified(&f); n != 6 || len(f.Findings) != 0 || len(f.Observations) != 6 {
+	if n := DemoteUnverified(&f); n != 7 || len(f.Findings) != 0 || len(f.Observations) != 7 {
 		t.Fatalf("demoted %d, %d findings and %d notes left", n, len(f.Findings), len(f.Observations))
 	}
 	for _, o := range f.Observations {

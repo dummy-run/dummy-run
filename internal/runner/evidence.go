@@ -75,7 +75,7 @@ func verifyOne(ff *FinishFinding, steps []Step) string {
 			}
 		}
 	}
-	if q := ff.Quote; runeCount(normalise(q)) >= minQuoteRunes {
+	if q := ff.Quote; quoteLongEnough(q) {
 		for _, s := range read {
 			if s.Obs.Snapshot == nil {
 				continue
@@ -226,6 +226,24 @@ func normalise(s string) string {
 }
 
 func runeCount(s string) int { return len([]rune(s)) }
+
+// quoteLongEnough is true when the quote has at least one part and every part, split at an ellipsis, has at
+// least minQuoteRunes runes. Checking the whole quote would let "a ... e" through: five runes, two of which
+// are on almost every page.
+func quoteLongEnough(q string) bool {
+	found := false
+	for _, part := range strings.Split(normalise(q), "...") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if runeCount(part) < minQuoteRunes {
+			return false
+		}
+		found = true
+	}
+	return found
+}
 
 // measured is true when the engine itself measured the symptom at this step: the failing axe rule, an error status
 // or console error, a failed request, or a step slower than a person would wait.
