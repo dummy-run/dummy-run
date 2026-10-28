@@ -64,8 +64,8 @@ scenario. [ENGINE.md](ENGINE.md) has the full rules.
 | `text_scale: 200` | `large-text-phone` raises the browser's default font size to 200 percent and leaves the window alone, as a larger system text size does. Text set in `rem` or `em` grows, and text set in `px` doesn't. [ENGINE.md](ENGINE.md) compares it with zoom |
 | `signin: editor` | The credentials role the engine signs in as before the run. `none` turns sign-in off. Without the key, the persona's `role` is used when the target has credentials under that name |
 | `tools-denied: click` | `keyboard-only-user` can't click. The engine refuses the call and records a `blocked:` note |
-| Tool limits as a modality | The run record's `persona.dimensions.at` is `keyboard-only`. A persona that can't use `screenshot` records `screen-reader-view`. Other personas record `none` |
-| `tools-denied: screenshot` | `screen-reader-user` gets no screenshots. They're still saved for the reviewer |
+| Tool limits as a modality | A persona that can't click records `keyboard-only` in the run record's `persona.dimensions.at`. One that can't use `screenshot` records `screen-reader-view`, and the rest record `none` |
+| `tools-denied: screenshot` | `screen-reader-user` gets no screenshots. They're still saved for the reviewer. Instead, each look carries what a screen reader says reading the page from the top, one phrase per line, such as `heading, Opening hours, level 2` and `button, Menu, not expanded`. guidepup's virtual screen reader produces it from the page's accessibility semantics as they are at that look, so it changes when the page does. It isn't NVDA, JAWS or VoiceOver, which each have their own habits. The reader is the bundled one, never one the page supplies. A reading stops after eight seconds or 400 phrases, and the persona is sent the first 150. A phrase longer than 300 characters is cut to 297 and ends in three dots. When the reading didn't reach the end of the page, the look says so. A persona that also can't click hears the page too |
 | `Text scale:` in a scenario | Replaces the persona's text size for that scenario. `Text scale: 100` sets it back to normal |
 | `Device:` in a scenario | Runs a persona on another device without a second copy of it |
 | `Sign in as:` in a scenario | Runs a persona as another role, or signed out with `Sign in as: none` |
@@ -79,4 +79,4 @@ personas in the library ask for things the engine can't do, so their prompts wor
 | Persona | What to expect |
 |---|---|
 | `phone-slow-connection` | The engine doesn't throttle the network. The prompt has the persona give up early, but pages load at full speed |
-| `screen-reader-user` | No real screen reader runs. The persona works from the text view, the accessibility outline and `a11y` results. The outline is computed from the page and only approximates what a screen reader would say |
+| `screen-reader-user` | No real screen reader runs. The persona works from the text view, the accessibility outline, guidepup's virtual screen reader and `a11y` results. The virtual reader and the outline are computed from the page's accessibility semantics, so they approximate what NVDA, JAWS or VoiceOver would say |

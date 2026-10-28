@@ -193,11 +193,48 @@
     "warnings": { "type": "array", "items": { "type": "string" } }
   },
   "$defs": {
+    "fix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "summary", "steps"],
+      "description": "How to fix a rule, from Dummy Run's fix library",
+      "properties": {
+        "owner": { "enum": ["content", "design", "development"], "description": "Who usually makes the fix" },
+        "summary": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" } },
+        "example": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["before", "after"],
+          "properties": { "before": { "type": "string" }, "after": { "type": "string" } }
+        },
+        "sources": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "baselineStatus": { "enum": ["new", "still-present", "fixed"] },
+    "confidence": { "enum": ["high", "medium", "low", "unknown"], "description": "How often findings with these inputs have turned out to be right" },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_kind", "engines", "check", "on_journey"],
+      "description": "The facts a finding's severity and confidence rest on, as the run record's inputs block",
+      "properties": {
+        "evidence_kind": { "enum": ["measurement", "ax-fact", "engine-rule", "task-verdict", "model-only"] },
+        "engines": { "type": "array", "items": { "type": "string" }, "maxItems": 8, "uniqueItems": true },
+        "check": { "type": "string" },
+        "on_journey": { "type": "boolean" },
+        "reproduced": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runs", "of"],
+          "properties": { "runs": { "type": "integer" }, "of": { "type": "integer" } }
+        }
+      }
+    },
     "finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["fingerprint", "title", "severity", "kind", "evidence", "status", "personas", "runs", "of_runs", "reproduction", "instances"],
+      "required": ["fingerprint", "title", "severity", "kind", "evidence", "status", "confidence", "confidence_reason", "personas", "runs", "of_runs", "reproduction", "instances"],
       "properties": {
         "fingerprint": { "type": "string", "description": "Empty for a record that has none" },
         "title": { "type": "string" },
@@ -213,13 +250,18 @@
         "reviewed_at": { "type": "string" },
         "reason": { "type": "string" },
         "wcag": { "type": "array", "items": { "type": "string", "pattern": "^[1-4]\\.[0-9]+\\.[0-9]+$" }, "description": "WCAG 2.2 success criteria where known" },
+        "en_301_549": { "type": "array", "items": { "type": "string", "pattern": "^9\\.[1-4]\\.[0-9]+\\.[0-9]+$" }, "description": "Clauses of EN 301 549 V3.2.1 that match the WCAG criteria. A criterion WCAG 2.2 added has none" },
         "help_url": { "type": "string" },
+        "fix": { "$ref": "#/$defs/fix" },
         "body": { "type": "string", "description": "Who the problem affects and why it matters" },
-        "fix": { "type": "string", "description": "What to change, in one sentence" },
+        "fix_text": { "type": "string", "description": "What to change, in one sentence, in the persona's words or the self-check's" },
         "element": { "type": "string", "description": "What the evidence shows, as the engine found it at the cited step: a control as role and name, quoted text, or an axe rule" },
         "quote": { "type": "string", "description": "Words from the page that the engine found at the cited step" },
         "url": { "type": "string", "description": "Address of the page where the evidence is" },
         "baseline": { "enum": ["new", "still-present"] },
+        "inputs": { "$ref": "#/$defs/inputs" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "confidence_reason": { "type": "string", "description": "One line saying what the finding rests on" },
         "personas": { "type": "array", "items": { "type": "string" } },
         "runs": { "type": "integer", "description": "Runs that found the problem" },
         "of_runs": { "type": "integer", "description": "Runs in the report" },
@@ -308,10 +350,16 @@
         "rule": { "type": "string" },
         "impact": { "type": "string" },
         "wcag": { "type": "array", "items": { "type": "string" } },
+        "en_301_549": { "type": "array", "items": { "type": "string", "pattern": "^9\\.[1-4]\\.[0-9]+\\.[0-9]+$" }, "description": "Clauses of EN 301 549 V3.2.1 that match the WCAG criteria. A criterion WCAG 2.2 added has none" },
         "help": { "type": "string" },
         "help_url": { "type": "string" },
+        "fix": { "$ref": "#/$defs/fix" },
         "elements": { "type": "integer" },
         "baseline": { "enum": ["new", "still-present"] },
+        "severity": { "enum": ["blocker", "major", "minor", "info"], "description": "Set for failing rules, by the same rule as a persona finding" },
+        "inputs": { "$ref": "#/$defs/inputs" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "confidence_reason": { "type": "string" },
         "pages": {
           "type": "array",
           "items": {
@@ -322,6 +370,24 @@
               "url": { "type": "string" },
               "targets": { "type": "array", "items": { "type": "string" } },
               "settings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "colours": {
+          "type": "array",
+          "description": "For a colour contrast rule, each failing pair of colours and the nearest colours that meet the ratio, changing only lightness in OKLCH",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "background", "ratio", "need", "elements"],
+            "properties": {
+              "text": { "type": "string" },
+              "background": { "type": "string" },
+              "ratio": { "type": "number" },
+              "need": { "type": "number" },
+              "text_fix": { "type": "string" },
+              "background_fix": { "type": "string" },
+              "elements": { "type": "integer" }
             }
           }
         }

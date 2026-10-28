@@ -440,3 +440,37 @@ func TestSigninBlock(t *testing.T) {
 		t.Error("a run with no sign-in has a signin key")
 	}
 }
+
+func TestFindingInputsAreOptionalAndValidated(t *testing.T) {
+	r := sample()
+	if data, err := Marshal(r); err != nil || bytes.Contains(data, []byte(`"inputs"`)) {
+		t.Fatalf("a record without inputs must be valid and leave the key out: %v", err)
+	}
+	r.Findings[0].Inputs = &FindingInputs{EvidenceKind: EvidenceEngineRule, Engines: []string{"axe"}, Check: "label", OnJourney: true,
+		Reproduced: &Reproduced{Runs: 2, Of: 3}}
+	data, err := Marshal(r)
+	if err != nil {
+		t.Fatalf("valid inputs rejected: %v", err)
+	}
+	if !bytes.Contains(data, []byte(`"evidence_kind": "engine-rule"`)) || !bytes.Contains(data, []byte(`"of": 3`)) {
+		t.Errorf("inputs missing from the output: %s", data)
+	}
+	back, err := Parse(data)
+	if err != nil || back.Findings[0].Inputs == nil || back.Findings[0].Inputs.Reproduced.Of != 3 {
+		t.Errorf("inputs did not round trip: %v %+v", err, back.Findings[0].Inputs)
+	}
+	for name, bad := range map[string]*FindingInputs{
+		"unknown kind": {EvidenceKind: "vibes", Engines: []string{}, Check: "x"},
+		"no check":     {EvidenceKind: EvidenceModelOnly, Engines: []string{}},
+		"nil engines":  {EvidenceKind: EvidenceModelOnly, Check: "x"},
+		"bad repro":    {EvidenceKind: EvidenceModelOnly, Engines: []string{}, Check: "x", Reproduced: &Reproduced{Runs: 1, Of: 0}},
+	} {
+		r.Findings[0].Inputs = bad
+		if _, err := Marshal(r); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	if (FindingInputs{}).Evidence() != EvidenceModelOnly {
+		t.Error("an empty evidence kind reads as model-only")
+	}
+}

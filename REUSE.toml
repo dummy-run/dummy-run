@@ -41,3 +41,81 @@ path = "site/static/social/*.png"
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Joel Merrick"
 SPDX-License-Identifier = "LicenseRef-DummyRun-Brand"
+
+[[annotations]]
+path = "internal/page/engines/ace.js"
+precedence = "override"
+SPDX-FileCopyrightText = "2016- IBM, Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = ["internal/page/engines/HTMLCS.js", "internal/page/engines/HTMLCS.licence.txt"]
+precedence = "override"
+SPDX-FileCopyrightText = "2012 Squiz Pty Ltd (ABN 77 084 670 600)"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "internal/page/engines/alfa.min.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["Siteimprove A/S", "2021 Lea Verou and Chris Lilley"]
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["internal/page/engines/qualweb/qw-page.bundle.js", "internal/page/engines/qualweb/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2024 FCUL"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = "internal/visual/pixelmatch.go"
+precedence = "override"
+SPDX-FileCopyrightText = ["2025 Mapbox", "2026 Joel Merrick and the Dummy Run contributors"]
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = "internal/page/engines/qualweb/act.bundle.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["2024 FCUL", "JS Foundation and other contributors", "2021 Lea Verou and Chris Lilley"]
+SPDX-License-Identifier = "ISC AND MIT"
+
+[[annotations]]
+path = "internal/page/engines/qualweb/wcag.bundle.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["2024 FCUL", "JS Foundation and other contributors"]
+SPDX-License-Identifier = "ISC AND MIT"
+
+[[annotations]]
+path = "internal/page/engines/qualweb/util.bundle.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["2024 FCUL", "Titus Wormer", "Adam Bisek", "JS Foundation and other contributors"]
+SPDX-License-Identifier = "ISC AND MIT"
+
+[[annotations]]
+path = ["internal/page/consent/autoconsent.playwright.js", "internal/page/consent/compact-rules.json", "internal/page/consent/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "DuckDuckGo, Inc. and the autoconsent contributors"
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+path = ["internal/page/webvitals/web-vitals.attribution.iife.js", "internal/page/webvitals/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2020 Google LLC"
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "internal/page/screenreader/vsr.min.js"
+precedence = "override"
+SPDX-FileCopyrightText = ["2023 Craig Morten", "2017 Kent C. Dodds", "2020 Giorgio Polvara", "2020 Sebastian Silbermann", "2024 Drew Powers", "2013 pieroxy", "Facebook, Inc. and its affiliates", "Sindre Sorhus", "Luke Edwards", "Jesse Beach and the A11yance contributors"]
+SPDX-License-Identifier = "MIT AND Apache-2.0"
+
+[[annotations]]
+path = ["internal/plain/styles/Readability/*.yml", "internal/plain/styles/Readability/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Joseph Kato"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["testdata/benchmark/accessguru/cases.json", "testdata/benchmark/accessguru/LICENSE"]
+precedence = "override"
+SPDX-FileCopyrightText = "2025 Nadeen Fathallah"
+SPDX-License-Identifier = "MIT"

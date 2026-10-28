@@ -18,7 +18,7 @@ import (
 var templateFS embed.FS
 
 // Formats lists the output formats.
-var Formats = []string{"html", "md", "json", "sarif", "junit", "badge", "shields"}
+var Formats = []string{"html", "md", "json", "sarif", "junit", "ctrf", "badge", "shields"}
 
 // maxEmbedBytes is the largest screenshot embedded in HTML. A larger file is left out and named.
 const maxEmbedBytes = 4 << 20
@@ -40,6 +40,8 @@ func Render(w io.Writer, rep *Report, format string) error {
 		return RenderShields(w, rep)
 	case "junit":
 		return renderJUnit(w, rep)
+	case "ctrf":
+		return renderCTRF(w, rep)
 	}
 	return fmt.Errorf("unknown format %q: the formats are %s", format, strings.Join(Formats, ", "))
 }
@@ -114,37 +116,40 @@ func baselineText(s string) string {
 
 func commonFuncs() map[string]any {
 	return map[string]any{
-		"cap":          cap1,
-		"join":         func(l []string) string { return strings.Join(l, ", ") },
-		"usd":          func(v float64) string { return fmt.Sprintf("$%.2f", v) },
-		"codes":        codes,
-		"f1":           f1,
-		"f2":           f2,
-		"stepText":     stepText,
-		"statusText":   statusText,
-		"baselineText": baselineText,
-		"severities":   func() []string { return Severities },
-		"sevGroups":    sevGroups,
-		"segments":     segments,
-		"longDate":     longDate,
-		"period":       period,
-		"howSure":      howSure,
-		"impactSev":    impactSeverity,
-		"plural":       plural,
-		"pages":        pagesTested,
-		"upper":        upperFirst,
-		"cell":         mdCell,
-		"inline":       mdInline,
-		"inc":          func(i int) int { return i + 1 },
-		"symptomText":  symptomText,
-		"placeText":    placeText,
-		"whoText":      whoText,
-		"reproSteps":   reproSteps,
-		"whereText":    whereText,
-		"wcagText":     wcagText,
-		"shotCaption":  shotCaption,
-		"lookAt":       lookAt,
-		"lead":         lead,
+		"cap":            cap1,
+		"join":           func(l []string) string { return strings.Join(l, ", ") },
+		"usd":            func(v float64) string { return fmt.Sprintf("$%.2f", v) },
+		"codes":          codes,
+		"f1":             f1,
+		"f2":             f2,
+		"stepText":       stepText,
+		"statusText":     statusText,
+		"confidenceText": confidenceText,
+		"baselineText":   baselineText,
+		"severities":     func() []string { return Severities },
+		"sevGroups":      sevGroups,
+		"segments":       segments,
+		"longDate":       longDate,
+		"period":         period,
+		"howSure":        howSure,
+		"impactSev":      impactSeverity,
+		"plural":         plural,
+		"pages":          pagesTested,
+		"upper":          upperFirst,
+		"cell":           mdCell,
+		"inline":         mdInline,
+		"inc":            func(i int) int { return i + 1 },
+		"fixRules":       fixRules,
+		"colourRules":    colourRules,
+		"symptomText":    symptomText,
+		"placeText":      placeText,
+		"whoText":        whoText,
+		"reproSteps":     reproSteps,
+		"whereText":      whereText,
+		"wcagText":       wcagText,
+		"shotCaption":    shotCaption,
+		"lookAt":         lookAt,
+		"lead":           lead,
 	}
 }
 
@@ -218,4 +223,26 @@ func mdCell(v any) string {
 func mdInline(v any) string {
 	s := fmt.Sprint(v)
 	return strings.NewReplacer("`", "'", "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
+}
+
+// colourRules keeps the failed rules that have colour suggestions, in report order.
+func colourRules(rules []AxeRule) []AxeRule {
+	var out []AxeRule
+	for _, r := range rules {
+		if len(r.Colours) > 0 {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// fixRules keeps the failed rules the fix library has an entry for, in report order.
+func fixRules(rules []AxeRule) []AxeRule {
+	var out []AxeRule
+	for _, r := range rules {
+		if r.Fix != nil {
+			out = append(out, r)
+		}
+	}
+	return out
 }

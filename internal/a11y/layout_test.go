@@ -20,6 +20,15 @@ const layoutHead = `<!doctype html><html lang="en"><head><meta charset="utf-8"><
 
 const layoutTail = `</main></body></html>`
 
+// smoothScroll makes the page glide when scrolled, as many sites do.
+// Two images of one pixel each, in PNG: one fully clear and one solid red.
+const (
+	clearPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII="
+	solidPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGM4oaHxHwAE7AIY0raoogAAAABJRU5ErkJggg=="
+)
+
+const smoothScroll = "html { scroll-behavior: smooth; } " //nolint:misspell // a CSS property name
+
 // layoutPages are fixture pages, each with one known layout problem, and a clean page.
 var layoutPages = map[string]string{
 	"/clean": layoutHead + `<h1>Clean</h1><p>Text in a <a href="/x">sentence link</a> is exempt.</p>
@@ -31,16 +40,20 @@ var layoutPages = map[string]string{
 	"/wrapped": layoutHead + `<h1>Wrapped</h1><p style="width:120px;font-size:20px;line-height:1.6">See <a href="/a">the first long link text</a> and <a href="/b">the second long link text</a> here.</p>
 <details><summary class="btn">More</summary><pre style="height:400px">hidden</pre><button id="hiddentiny" style="width:8px;height:8px;padding:0"></button><button id="hiddentiny2" style="width:8px;height:8px;padding:0"></button></details>
 <button class="btn" id="after">After</button>` + layoutTail,
-	"/overflow": layoutHead + `<h1>Overflow</h1><div id="wide" style="width:640px;height:40px;background:#cde">A fixed-width block</div>
+	"/overflow": layoutHead + `<a href="#a" id="skip" style="position:absolute;left:-999px">Skip</a><h1>Overflow</h1><div id="wide" style="width:640px;height:40px;background:#cde">A fixed-width block</div>
 <button class="btn" id="a">Ok</button>` + layoutTail,
 	"/clipped": layoutHead + `<h1>Clipped</h1>
 <button id="clip" class="btn" style="width:110px;overflow:hidden;white-space:nowrap;padding:8px 0">Subscribe today for updates</button>
 <a href="/y" id="ell" class="btn" style="display:block;width:90px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">A very long link label</a>` + layoutTail,
 	"/overlap": layoutHead + `<h1>Overlap</h1><div style="position:relative;height:120px">
 <button id="one" class="btn" style="position:absolute;left:10px;top:10px;width:140px;height:48px">Buy now</button>
-<button id="two" class="btn" style="position:absolute;left:100px;top:30px;width:140px;height:48px">Save for later</button>
+<button id="two" class="btn" style="position:absolute;left:60px;top:30px;width:140px;height:48px">Save for later</button>
 <button id="touch" class="btn" style="position:absolute;left:250px;top:10px;width:48px;height:48px">Ok</button>
 <button id="touch2" class="btn" style="position:absolute;left:298px;top:10px;width:48px;height:48px">No</button></div>` + layoutTail,
+	// The same overlap far below the fold, on a page that scrolls smoothly: the check has to jump to it, not glide.
+	"/smooth": strings.Replace(layoutHead, "<style>", "<style>"+smoothScroll, 1) + `<h1>Smooth</h1><div style="height:3000px"></div><div style="position:relative;height:120px">
+<button id="one" class="btn" style="position:absolute;left:10px;top:10px;width:140px;height:48px">Buy now</button>
+<button id="two" class="btn" style="position:absolute;left:60px;top:30px;width:140px;height:48px">Save for later</button></div>` + layoutTail,
 	"/small": layoutHead + `<h1>Small</h1>
 <button id="s1" style="width:14px;height:14px;margin:0 2px 20px 8px;padding:0"></button><button id="s2" style="width:14px;height:14px;margin:0;padding:0"></button>
 <button id="ok" class="btn">Fine</button>` + layoutTail,
@@ -48,6 +61,43 @@ var layoutPages = map[string]string{
 	// two meet, so both fail.
 	"/spaced": layoutHead + `<h1>Spaced</h1><div style="margin:40px">
 <button id="pa" style="width:10px;height:10px;padding:0;margin:0 8px 0 0"></button><button id="pb" style="width:10px;height:10px;padding:0;margin:0"></button></div>` + layoutTail,
+	// Decoys with a known answer of nothing wrong: the other slides of a carousel lie wholly outside the box that
+	// clips them, two links' transparent padding boxes meet but neither covers the other's text, a long paragraph
+	// is shortened on purpose with an ellipsis and a line clamp, a data table is wider than the window (WCAG 1.4.10
+	// lets it scroll), and two radio buttons are left at the browser's own size.
+	"/decoys": layoutHead + `<h1>Decoys</h1>
+<div style="width:200px;overflow:hidden;white-space:nowrap"><div style="width:600px"><span style="display:inline-block;width:200px">Slide one</span><span style="display:inline-block;width:200px">Slide two</span><span style="display:inline-block;width:200px">Slide three</span></div></div>
+<p><a href="/p" id="pad1" style="display:inline-block;padding:4px 30px 4px 0">First</a><a href="/q" id="pad2" style="display:inline-block;padding:4px 0 4px 30px;margin-left:-25px">Second</a></p>
+<p id="ell" style="width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">A teaser that runs on far past its box</p>
+<p id="clamp" style="width:150px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2">A longer teaser that runs on over many lines until the clamp stops it after two of them</p>
+<table id="data"><tr><td style="min-width:300px">Wide column one</td><td style="min-width:300px">Wide column two</td></tr></table>
+<p><input type="radio" name="r" id="r1"><input type="radio" name="r" id="r2"></p>
+<style>@keyframes slide { from { transform: translateX(0); } to { transform: translateX(260px); } }</style>
+<div id="slider" style="width:200px;height:40px;overflow:hidden"><span style="display:inline-block;animation:slide 30s linear infinite;animation-delay:-14s">A chip on its way across</span></div>
+<div style="width:200px;overflow:hidden"><pre style="white-space:pre-wrap;margin:0;font:16px monospace">{                                                      
+  "id": "wraps"                                               
+}</pre></div>
+<figure id="term" style="width:300px;overflow:hidden;margin:0"><div tabindex="0" style="overflow-x:auto"><pre style="white-space:pre;margin:0">$ a command whose output line is far wider than the terminal box around it, so it scrolls</pre></div></figure>` + layoutTail,
+	// Text in a box of fixed height that hides overflow: part of the paragraph is cut off.
+	"/cut": layoutHead + `<h1>Cut</h1><div id="note" style="height:44px;overflow:hidden;width:200px"><p style="margin:0">This notice runs on for several lines, so the box of fixed height cuts off its last lines.</p></div>` + layoutTail,
+	// A fixed header 100 px tall, opaque, over a link at the top of the page: with focus the link is entirely
+	// hidden. A second link is only partly under the header, which WCAG 2.4.11 allows.
+	"/sticky": `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sticky</title>
+<style>body { margin: 0; font: 1rem/1.4 sans-serif; } header { position: fixed; top: 0; left: 0; right: 0; height: 100px; background: #fff; }</style></head>
+<body><header><span>Site name</span></header><main style="padding-top:10px">
+<a href="/hidden" id="under" style="display:inline-block;padding:12px">Hidden link</a>
+<p style="margin-top:44px"><a href="/partly" id="partly" style="display:inline-block;padding:12px 12px 40px">Partly hidden link</a></p>
+<h1 style="margin-top:200px">Content</h1><p style="height:1200px">Long page.</p></main></body></html>`,
+	// A box set to scroll sideways that has nothing to scroll sits inside a narrower box that hides overflow, so
+	// the outer box cuts the line off.
+	"/nested": layoutHead + `<h1>Nested</h1><div style="width:100px;overflow:hidden"><div style="width:200px;overflow-x:auto"><span id="line" style="display:inline-block;margin-left:50px;width:150px;white-space:nowrap">A line that runs on</span></div></div>` + layoutTail,
+	// Two images fixed over two links: a clear one, which hides nothing, and a solid one, which hides its link.
+	"/images": `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Images</title>
+<style>body { margin: 0; font: 1rem/1.4 sans-serif; } img { position: fixed; z-index: 1; left: 0; width: 300px; height: 80px; }</style></head>
+<body><img alt="" src="data:image/png;base64,` + clearPNG + `" style="top:0"><img alt="" src="data:image/png;base64,` + solidPNG + `" style="top:100px">
+<a href="/glass" id="glass" style="position:absolute;top:10px;left:10px;padding:12px">Behind clear glass</a>
+<a href="/photo" id="photo" style="position:absolute;top:110px;left:10px;padding:12px">Behind a photo</a>
+<h1 style="margin-top:300px">Content</h1></body></html>`,
 	// Sized in rem and in px: text that follows the default font size grows, the px text does not.
 	"/scale": layoutHead + `<h1>Scale</h1>
 <p id="rem" style="font-size:1rem">Rem text</p><p id="px" style="font-size:16px">Px text</p>
@@ -115,11 +165,17 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 		path, rule, target string
 		wcag               string
 	}{
+		// The skip link waits past the left edge, where it can't widen a page that reads left to right.
 		{"/overflow", RuleReflow, "wide", "1.4.10"},
 		{"/clipped", RuleClippedText, "clip", "1.4.4"},
 		{"/clipped", RuleClippedText, "ell", "1.4.4"},
 		{"/overlap", RuleOverlap, "one", "1.4.10 1.4.4"},
+		{"/smooth", RuleOverlap, "one", "1.4.10 1.4.4"},
 		{"/small", RuleTargetSize, "s1", "2.5.8"},
+		{"/cut", RuleClippedText, "p", "1.4.4"},
+		{"/sticky", RuleFocusObscured, "under", "2.4.11"},
+		{"/nested", RuleClippedText, "line", "1.4.4"},
+		{"/images", RuleFocusObscured, "photo", "2.4.11"},
 	}
 	for _, browser := range strings.Split(v, ",") {
 		t.Run(browser, func(t *testing.T) {
@@ -136,6 +192,9 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 				}
 				if !strings.Contains(targets(f), c.target) {
 					t.Errorf("%s: %s targets %q, want one that names %q", c.path, c.rule, targets(f), c.target)
+				}
+				if c.rule == RuleReflow && strings.Contains(targets(f), "skip") {
+					t.Errorf("%s: the skip link off the left edge was named: %q", c.path, targets(f))
 				}
 				if got := strings.Join(f.WCAG, " "); got != c.wcag {
 					t.Errorf("%s: %s WCAG %q, want %q", c.path, c.rule, got, c.wcag)
@@ -178,6 +237,23 @@ func TestLayoutChecksInBrowser(t *testing.T) {
 			// Two tiny buttons side by side would fail the target size rule if they were on the page.
 			if f := layoutFinding(res, RuleTargetSize); f != nil && strings.Contains(targets(f), "hiddentiny") {
 				t.Errorf("content of a closed details is reported: %s", targets(f))
+			}
+			// Known answer: nothing on the decoy page is a layout failure.
+			res = layoutRun(t, browser, srv.URL+"/decoys", nil, "")[0]
+			for _, rule := range LayoutRules {
+				if f := layoutFinding(res, rule); f != nil {
+					t.Errorf("decoys page has %s: %s (%s)", rule, targets(f), f.Nodes[0].Detail)
+				}
+			}
+			// The partly hidden link is allowed at level AA; only the wholly hidden one fails.
+			res = layoutRun(t, browser, srv.URL+"/sticky", nil, "")[0]
+			if f := layoutFinding(res, RuleFocusObscured); f == nil || len(f.Nodes) != 1 || !strings.Contains(f.Nodes[0].Detail, "(fixed)") {
+				t.Errorf("obscured %v, want only #under, hidden by the fixed header", f)
+			}
+			// The clear image hides nothing, so only the link behind the solid one is reported.
+			res = layoutRun(t, browser, srv.URL+"/images", nil, "")[0]
+			if f := layoutFinding(res, RuleFocusObscured); f == nil || len(f.Nodes) != 1 || strings.Contains(targets(f), "glass") {
+				t.Errorf("obscured %v, want only #photo, behind the solid image", f)
 			}
 			res = layoutRun(t, browser, srv.URL+"/clean", nil, "")[0]
 			for _, rule := range LayoutRules {
@@ -240,8 +316,9 @@ func TestLayoutFindingsFromMeasurements(t *testing.T) {
 	l := &page.Layout{
 		Overflow: &page.LayoutOverflow{ScrollWidth: 640, ClientWidth: 375, Excess: 265},
 		Clipped:  []page.LayoutClipped{{LayoutElement: page.LayoutElement{Selector: "#clip"}, Detail: "text is cut off", Box: page.LayoutBox{X: 1, Y: 2, Width: 3, Height: 4}}},
-		Overlaps: []page.LayoutOverlap{{A: page.LayoutElement{Selector: "#a"}, B: page.LayoutElement{Selector: "#b"}, Width: 40, Height: 18}},
+		Overlaps: []page.LayoutOverlap{{A: page.LayoutElement{Selector: "#a"}, B: page.LayoutElement{Selector: "#b"}, Covered: 6, Sampled: 9, Text: true}},
 		Small:    []page.LayoutSmall{{LayoutElement: page.LayoutElement{Selector: "#s"}, Width: 12, Height: 12}},
+		Obscured: []page.LayoutObscured{{LayoutElement: page.LayoutElement{Selector: "#skip"}, By: page.LayoutElement{Selector: "header"}, ByPosition: "sticky"}},
 	}
 	allow, err := ParseAllowList(strings.NewReader("dummyrun-target-size | /p | #s | Icon buttons are spaced by the design\n"))
 	if err != nil {
@@ -252,14 +329,17 @@ func TestLayoutFindingsFromMeasurements(t *testing.T) {
 	for _, f := range list {
 		rules = append(rules, f.Rule)
 	}
-	if got := strings.Join(rules, " "); got != "dummyrun-reflow dummyrun-clipped-text dummyrun-overlap dummyrun-target-size" {
+	if got := strings.Join(rules, " "); got != "dummyrun-reflow dummyrun-clipped-text dummyrun-overlap dummyrun-target-size dummyrun-focus-obscured" {
 		t.Fatalf("rules %q", got)
 	}
 	if list[0].Nodes[0].Target != "html" || !strings.Contains(list[0].Nodes[0].Detail, "265 px wider than the 375 px window") {
 		t.Errorf("reflow node %+v", list[0].Nodes[0])
 	}
-	if list[2].Nodes[0].Target != "#a & #b" {
-		t.Errorf("overlap target %q", list[2].Nodes[0].Target)
+	if n := list[2].Nodes[0]; n.Target != "#a & #b" || n.Detail != "its text is under #b at 6 of 9 points the browser checked" {
+		t.Errorf("overlap node %+v", n)
+	}
+	if n := list[4].Nodes[0]; n.Target != "#skip" || n.Detail != "with focus, it is entirely hidden by header (sticky)" || list[4].WCAG[0] != "2.4.11" {
+		t.Errorf("obscured node %+v", n)
 	}
 	if n := list[3].Nodes[0]; !n.Allowed || n.Reason == "" {
 		t.Errorf("the allow-list should accept the small target: %+v", n)
@@ -311,11 +391,11 @@ func TestRunRefusesATextScaleOutsideTheRange(t *testing.T) {
 
 func TestSummaryShowsDetailAndScreenshot(t *testing.T) {
 	r := &Report{Browser: "chrome", Results: []PageResult{{URL: "http://x/", Browser: "chrome", Viewport: "phone", Scheme: "light", TextScale: 200,
-		Violations: []Finding{{Rule: RuleOverlap, Impact: "serious", WCAG: []string{"1.4.10", "1.4.4"}, Help: "Interactive elements overlap each other", HelpURL: "https://example.test/h",
-			Nodes: []Node{{Target: "#a & #b", Detail: "the boxes share 40 x 18 px", Screenshot: "/shots/a.png"}}}}}}}
+		Violations: []Finding{{Rule: RuleOverlap, Impact: "serious", WCAG: []string{"1.4.10", "1.4.4"}, Help: "A control is covered by another control", HelpURL: "https://example.test/h",
+			Nodes: []Node{{Target: "#a & #b", Detail: "its text is under #b at 6 of 9 points the browser checked", Screenshot: "/shots/a.png"}}}}}}}
 	var b strings.Builder
 	r.WriteSummary(&b)
-	for _, want := range []string{"dummyrun-overlap (serious, WCAG 1.4.10 1.4.4) at #a & #b", "the boxes share 40 x 18 px", "screenshot /shots/a.png", "chrome/phone/light/text-200"} {
+	for _, want := range []string{"dummyrun-overlap (serious, WCAG 1.4.10 1.4.4) at #a & #b", "its text is under #b at 6 of 9 points the browser checked", "screenshot /shots/a.png", "chrome/phone/light/text-200"} {
 		if !strings.Contains(b.String(), want) {
 			t.Errorf("summary lacks %q:\n%s", want, b.String())
 		}

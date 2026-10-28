@@ -17,6 +17,18 @@ ARG CHROMEDRIVER_SHA256_AMD64=ff08004e6f813c9a9084639b53f8faf0e99fa37afde7ce1c05
 ARG CHROMEDRIVER_SHA256_ARM64=511da4ed4025c7e3f213152d9a701adec84b8372d2e8af542ef67f10d44b8794
 ARG FIREFOX_SHA256_AMD64=42f2c62a562316982ef5a796738c57602bf84a984f5c616e80bcff4627f78fff
 ARG FIREFOX_SHA256_ARM64=73fc3d6f6f4d3fcdeee59db90156568af9959405120ad686e535f572995074d0
+# Vale checks plain language with --plain-language. The version matches plain.ValeVersion in internal/plain.
+ARG VALE_VERSION=3.24.0
+ARG VALE_SHA256_AMD64=867534ddb678abca7f214bc4706ead0922bd5252ffe8035fc227013f66c8b214
+ARG VALE_SHA256_ARM64=104cbd349279e50c4cb40adb70adf345d93cc4a3a0191f9e68bdccb97086b582
+# The Nu HTML Checker checks HTML with --html. The version matches validate.VnuVersion in internal/validate. The jar
+# is the same on both architectures, and it runs on a Java runtime cut down with jlink to the modules it needs.
+ARG VNU_VERSION=26.10.12
+ARG VNU_SHA256=3925f07364f5e5a111cef54a7baefa575b22d05c70f8ced048f0616d4579b7ab
+# lychee checks links with --links. The version matches links.LycheeVersion in internal/links.
+ARG LYCHEE_VERSION=0.24.2
+ARG LYCHEE_SHA256_AMD64=1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
+ARG LYCHEE_SHA256_ARM64=91a7bd65685da41b90ccb9bc867a3d649a7818042dae04ff405e55a25bddee4c
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 RUN apt-get update \
@@ -25,8 +37,8 @@ RUN apt-get update \
 
 # Each download is checked against a hash kept in this file, so a changed file upstream fails the build.
 RUN case "${TARGETARCH}" in \
-      amd64) cft=linux64;     cft_zip=linux64;     ff=linux-x86_64;  chrome_sha="${CHROME_SHA256_AMD64}"; driver_sha="${CHROMEDRIVER_SHA256_AMD64}"; ff_sha="${FIREFOX_SHA256_AMD64}" ;; \
-      arm64) cft=linux-arm64; cft_zip=linux-arm64; ff=linux-aarch64; chrome_sha="${CHROME_SHA256_ARM64}"; driver_sha="${CHROMEDRIVER_SHA256_ARM64}"; ff_sha="${FIREFOX_SHA256_ARM64}" ;; \
+      amd64) cft=linux64;     cft_zip=linux64;     ff=linux-x86_64;  vale=Linux_64-bit; lychee=x86_64;  chrome_sha="${CHROME_SHA256_AMD64}"; driver_sha="${CHROMEDRIVER_SHA256_AMD64}"; ff_sha="${FIREFOX_SHA256_AMD64}"; vale_sha="${VALE_SHA256_AMD64}"; lychee_sha="${LYCHEE_SHA256_AMD64}" ;; \
+      arm64) cft=linux-arm64; cft_zip=linux-arm64; ff=linux-aarch64; vale=Linux_arm64;  lychee=aarch64; chrome_sha="${CHROME_SHA256_ARM64}"; driver_sha="${CHROMEDRIVER_SHA256_ARM64}"; ff_sha="${FIREFOX_SHA256_ARM64}"; vale_sha="${VALE_SHA256_ARM64}"; lychee_sha="${LYCHEE_SHA256_ARM64}" ;; \
       *) echo "unsupported architecture ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
     base="https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING}/${cft}"; \
@@ -35,14 +47,34 @@ RUN case "${TARGETARCH}" in \
     curl -fsSL -o firefox.tar.xz "https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/${ff}/en-US/firefox-${FIREFOX_VERSION}.tar.xz"; \
     echo "${chrome_sha}  chrome.zip" | sha256sum -c -; \
     echo "${driver_sha}  chromedriver.zip" | sha256sum -c -; \
+    curl -fsSL -o vale.tar.gz "https://github.com/vale-cli/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_${vale}.tar.gz"; \
     echo "${ff_sha}  firefox.tar.xz" | sha256sum -c -; \
-    mkdir -p /opt/chrome /opt/chromedriver /opt/firefox; \
+    echo "${vale_sha}  vale.tar.gz" | sha256sum -c -; \
+    curl -fsSL -o lychee.tar.gz "https://github.com/lycheeverse/lychee/releases/download/lychee-v${LYCHEE_VERSION}/lychee-${lychee}-unknown-linux-gnu.tar.gz"; \
+    echo "${lychee_sha}  lychee.tar.gz" | sha256sum -c -; \
+    mkdir -p /opt/chrome /opt/chromedriver /opt/firefox /opt/vale /opt/lychee; \
+    tar -xzf vale.tar.gz -C /opt/vale vale; \
+    tar -xzf lychee.tar.gz -C /opt/lychee --strip-components=1 "lychee-${lychee}-unknown-linux-gnu/lychee"; \
     unzip -q chrome.zip -d /tmp/chrome; \
     mv /tmp/chrome/chrome-*/* /opt/chrome/; \
     unzip -q chromedriver.zip -d /tmp/chromedriver; \
     mv /tmp/chromedriver/chromedriver-*/chromedriver /opt/chromedriver/chromedriver; \
     tar -xJf firefox.tar.xz -C /opt/firefox --strip-components=1; \
     find /opt/chrome/locales -name '*.pak' ! -name 'en-US.pak' -delete
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openjdk-21-jdk-headless binutils \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -fsSL -o vnu.tgz "https://registry.npmjs.org/vnu-jar/-/vnu-jar-${VNU_VERSION}.tgz" \
+ && echo "${VNU_SHA256}  vnu.tgz" | sha256sum -c - \
+ && mkdir -p /opt/vnu/bin /tmp/vnu \
+ && tar -xzf vnu.tgz -C /tmp/vnu \
+ && mv /tmp/vnu/package/build/dist/vnu.jar /opt/vnu/vnu.jar \
+ && mv /tmp/vnu/package/LICENSE /opt/vnu/LICENSE \
+ && jlink --add-modules java.base,java.datatransfer,java.xml,java.prefs,java.desktop,java.logging,java.management,java.security.sasl,java.naming,java.sql,jdk.crypto.ec \
+      --strip-debug --no-man-pages --no-header-files --compress=zip-9 --output /opt/vnu/jre \
+ && printf '#!/bin/sh\nexec /opt/vnu/jre/bin/java -Xss1m -jar /opt/vnu/vnu.jar "$@"\n' > /opt/vnu/bin/vnu \
+ && chmod 0755 /opt/vnu/bin/vnu
 
 FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
 
@@ -63,6 +95,9 @@ RUN apt-get update \
 COPY --from=browsers /opt/chrome /opt/chrome
 COPY --from=browsers /opt/chromedriver /opt/chromedriver
 COPY --from=browsers /opt/firefox /opt/firefox
+COPY --from=browsers /opt/vale /opt/vale
+COPY --from=browsers /opt/vnu /opt/vnu
+COPY --from=browsers /opt/lychee /opt/lychee
 ARG TARGETOS
 ARG TARGETARCH
 COPY --chmod=0755 ${TARGETOS}/${TARGETARCH}/dummyrun /usr/local/bin/dummyrun
@@ -71,6 +106,9 @@ COPY --chmod=0755 ${TARGETOS}/${TARGETARCH}/dummyrun /usr/local/bin/dummyrun
 ENV DUMMYRUN_CHROME=/opt/chrome/chrome \
     DUMMYRUN_CHROMEDRIVER=/opt/chromedriver/chromedriver \
     DUMMYRUN_FIREFOX=/opt/firefox/firefox \
+    DUMMYRUN_VALE=/opt/vale/vale \
+    DUMMYRUN_VNU=/opt/vnu/bin/vnu \
+    DUMMYRUN_LYCHEE=/opt/lychee/lychee \
     DUMMYRUN_NO_SANDBOX=1 \
     HOME=/home/dummyrun
 

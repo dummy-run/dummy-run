@@ -1,0 +1,48 @@
+#!/bin/sh
+# Mutation testing with gremlins (https://github.com/go-gremlins/gremlins).
+#
+# Usage: bin/mutation OUTDIR [SHARD COUNT]
+#
+# Each package runs on its own, with its own tests, and writes OUTDIR/<package>.json. With SHARD and COUNT, only the
+# packages whose name hashes to SHARD out of COUNT run, so CI can split the work between jobs. bin/mutation-summary
+# reads the files. Before each package runs, OUTDIR/<package>.pkg records its import path, so a package that
+# gremlins doesn't finish, even when the job is stopped, has a .pkg file and no report, and the summary lists it.
+# When the shard has been through every package, OUTDIR/shard-SHARD-of-COUNT.done says so.
+#
+# Gremlins gives each mutant the time the package's tests took to gather coverage, times the coefficient. Unit tests
+# run in milliseconds and most of a mutant's time is the build, so the coefficient is high: a lower one counts most
+# mutants as timed out. The benchmark and the confidence table are left out, since their tests check measured numbers
+# rather than code paths. Browser tests skip without DUMMYRUN_BROWSERS, so mutants that only they would catch count
+# as lived or not covered.
+set -eu
+out=${1:?usage: bin/mutation OUTDIR [SHARD COUNT]}
+shard=${2:-0}
+count=${3:-1}
+mkdir -p "$out"
+root=$(pwd)
+# A package gremlins runs on takes the packages under it along, so a package inside a listed one is skipped.
+# The list goes to a file first, so a failing go list stops the script instead of leaving a short list.
+pkgs=$(mktemp)
+trap 'rm -f "$pkgs"' EXIT
+go list -f '{{.Dir}}' ./... >"$pkgs"
+# A shard run again into the same OUTDIR starts unfinished, so an earlier run's marker can't vouch for this one.
+rm -f "$out/shard-$shard-of-$count.done"
+last=
+sed "s|^$root/||" "$pkgs" | sort | while read -r pkg; do
+  case $pkg in internal/confidence* | internal/benchmark*) continue ;; esac
+  case $pkg in "$last"/*) [ -n "$last" ] && continue ;; esac
+  last=$pkg
+  n=$(printf '%s' "$pkg" | cksum | cut -d' ' -f1)
+  [ $((n % count)) -eq "$shard" ] || continue
+  # The checksum keeps names apart that read the same once / and . become _, such as foo_bar and foo/bar.
+  name=$(printf '%s' "$pkg" | tr '/.' '__')-$n
+  echo "gremlins: $pkg"
+  printf '%s\n' "$pkg" >"$out/$name.pkg"
+  rm -f "$out/$name.json"
+  if ! ${GREMLINS:-gremlins} unleash --workers 4 --timeout-coefficient 60 --output-statuses lt \
+    --exclude-files '_test\.go$' --output "$out/$name.json" "./$pkg"; then
+    echo "gremlins: $pkg did not finish"
+    rm -f "$out/$name.json"
+  fi
+done
+: >"$out/shard-$shard-of-$count.done"

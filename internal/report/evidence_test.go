@@ -43,7 +43,7 @@ func TestAFindingShowsItsEvidenceInWords(t *testing.T) {
 			got = &rep.Findings[i]
 		}
 	}
-	if got == nil || got.Body == "" || got.Fix == "" || got.Element == "" || got.URL == "" || len(got.WCAG) != 1 {
+	if got == nil || got.Body == "" || got.FixText == "" || got.Element == "" || got.URL == "" || len(got.WCAG) != 1 {
 		t.Fatalf("the report lost the evidence: %+v", got)
 	}
 	for _, format := range []string{"html", "md"} {

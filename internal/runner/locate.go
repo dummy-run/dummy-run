@@ -50,6 +50,41 @@ func sortedCopy(in []int) []int {
 	return out
 }
 
+// A11yRule reports whether a cited accessibility check reported the axe rule on the element the finding is
+// about, and that rule's impact. The locus is the finding's "role:name" or "region:name" or "page". A finding
+// about a named control matches only when axe listed an element with that name, so a model cannot borrow axe's
+// result for an element axe did not flag. A finding about the page or a region matches any element, since the
+// rule failed on that page.
+func (l *Locator) A11yRule(cited []int, rule, locus string) (impact string, ok bool) {
+	_, name, named := strings.Cut(locus, ":")
+	if strings.HasPrefix(locus, "region:") {
+		named = false
+	}
+	for _, n := range cited {
+		if n < 1 || n > len(l.steps) {
+			continue
+		}
+		s := l.steps[n-1]
+		if s.Obs.Action != "a11y" || s.Obs.Error != "" {
+			continue
+		}
+		for _, v := range s.Obs.A11y {
+			if v.ID != rule {
+				continue
+			}
+			if !named {
+				return v.Impact, true
+			}
+			for _, e := range v.Elements {
+				if identity.NormaliseLocus("x", e.Name, "") == identity.NormaliseLocus("x", name, "") && e.Name != "" {
+					return v.Impact, true
+				}
+			}
+		}
+	}
+	return "", false
+}
+
 // Locus is "role:accessible name" of the control the persona named by @ref, found in the outline of the
 // first cited step that lists it. Without a control, or when the control has no name, it is
 // "region:<nearest heading or landmark>", and "page" when the page has neither.

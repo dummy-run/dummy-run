@@ -176,6 +176,10 @@
               "description": "Reduced-motion setting the run used"
             }
           }
+        },
+        "name": {
+          "type": "string",
+          "description": "The persona's first name from its profile, as the report names it. Left out when the profile has none"
         }
       }
     },
@@ -273,6 +277,67 @@
         "respect_robots": {
           "type": "boolean",
           "description": "True when the run fetched the target's robots.txt and blocked the paths it disallows for DummyRun. Left out when false"
+        },
+        "tech": {
+          "type": "array",
+          "description": "What the site is built with, read from the first page: its scripts, globals, meta tags, markup and cookies. A page can hide or fake a marker, so treat it as a hint",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "category",
+              "source",
+              "evidence"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "enum": [
+                  "shop",
+                  "cms",
+                  "site-builder",
+                  "framework",
+                  "search",
+                  "booking",
+                  "forms",
+                  "payments",
+                  "consent",
+                  "other"
+                ]
+              },
+              "source": {
+                "enum": [
+                  "dummyrun",
+                  "webappanalyzer"
+                ],
+                "description": "dummyrun for Dummy Run's own fingerprints, webappanalyzer for ones read from the user's copy of webappanalyzer"
+              },
+              "evidence": {
+                "type": "string",
+                "description": "The first marker that matched, such as window.Shopify.shop"
+              }
+            }
+          }
+        },
+        "journeys": {
+          "type": "array",
+          "description": "Journeys the technologies suggest, such as basket and checkout for a shop",
+          "items": {
+            "enum": [
+              "search",
+              "basket",
+              "checkout",
+              "booking",
+              "contact form"
+            ]
+          }
+        },
+        "tech_error": {
+          "type": "string",
+          "description": "Why the technologies could not be read. Left out when they were"
         }
       }
     },
@@ -491,6 +556,10 @@
             "type": "string",
             "pattern": "^/",
             "description": "Normalised route of url: path only, numeric, UUID and long hex segments as :id, query reduced to its sorted parameter names. Present on every step that has a url"
+          },
+          "element": {
+            "type": "string",
+            "description": "The control the action used, as role and accessible name such as link \"Read more\", resolved by the engine from the @number. Left out when the action had no control"
           }
         }
       }
@@ -628,6 +697,100 @@
           "reason": {
             "type": "string",
             "description": "Why the reviewer set the verdict. Required by dummyrun review for a rejection and optional for a confirmation"
+          },
+          "body": {
+            "type": "string",
+            "description": "Who the problem affects and why it matters, in the persona's words"
+          },
+          "fix": {
+            "type": "string",
+            "description": "One sentence on what to change"
+          },
+          "wcag": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[1-4]\\.[0-9]{1,2}\\.[0-9]{1,2}$"
+            },
+            "description": "WCAG 2.2 success criteria the problem fails, where one applies. The engine keeps only numbers that exist"
+          },
+          "element": {
+            "type": "string",
+            "description": "The element the evidence shows, as role and accessible name, the quoted text, or an axe selector. Set by the engine from the cited step"
+          },
+          "quote": {
+            "type": "string",
+            "description": "Words copied from the page that show the problem. The engine checks they appear at a cited step"
+          },
+          "url": {
+            "type": "string",
+            "description": "Address of the page at the step whose evidence the engine checked"
+          },
+          "evidence_step": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The cited step where the engine found the control, the quoted words or the measured problem"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "evidence_kind",
+              "engines",
+              "check",
+              "on_journey"
+            ],
+            "description": "The facts the engine recorded about the finding. Severity is a rule over them and confidence is a table lookup on them. Written by the engine, never by the model. Absent in records from before inputs existed",
+            "properties": {
+              "evidence_kind": {
+                "enum": [
+                  "measurement",
+                  "ax-fact",
+                  "engine-rule",
+                  "task-verdict",
+                  "model-only"
+                ],
+                "description": "What the finding rests on: a measurement made in the browser, a fact read from the accessibility tree, a rule engine's result, a task the engine tried and could not complete, or the persona's own report with no check behind it"
+              },
+              "engines": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]+$"
+                },
+                "description": "The rule engines that report the problem, by short name (axe, ibm, htmlcs, alfa). Empty when none does",
+                "maxItems": 8,
+                "uniqueItems": true
+              },
+              "check": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The ID of the check behind the finding: an axe rule, a dummyrun-* rule, or the symptom when only the persona reports it"
+              },
+              "on_journey": {
+                "type": "boolean",
+                "description": "True when the finding sits on a journey a persona was trying to complete"
+              },
+              "reproduced": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "runs",
+                  "of"
+                ],
+                "description": "How many of the runs that visited where the problem is also found it. Absent when there was only one such run",
+                "properties": {
+                  "runs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "of": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -646,7 +809,7 @@
           "text": {
             "type": "string",
             "minLength": 1,
-            "description": "One sentence: what worked or what was neutral"
+            "description": "One sentence: what worked or what was neutral, or the claimed problem for an unverified or downgraded note"
           },
           "steps": {
             "type": "array",
@@ -656,6 +819,56 @@
             },
             "minItems": 1,
             "description": "Step numbers that show it"
+          },
+          "kind": {
+            "enum": [
+              "unverified",
+              "downgraded"
+            ],
+            "description": "Left out for what worked. unverified: a problem the persona claimed whose evidence the engine could not find at the cited steps. downgraded: a problem the self-check judged not worth a finding. Neither is shown as a finding"
+          }
+        }
+      }
+    },
+    "self_check": {
+      "type": "array",
+      "description": "The self-check's decision on each finding before the record was written: a cheap model pass that compares the finding with its evidence and the kind of site. Left out when the self-check did not run",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding",
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "finding": {
+            "type": "string",
+            "description": "The finding's title as the persona wrote it"
+          },
+          "decision": {
+            "enum": [
+              "keep",
+              "rewrite",
+              "observation",
+              "drop",
+              "unchecked"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "The new title, for rewrite"
+          },
+          "body": {
+            "type": "string",
+            "description": "The new body, for rewrite"
+          },
+          "fix": {
+            "type": "string",
+            "description": "The new fix, for rewrite"
           }
         }
       }
@@ -713,9 +926,10 @@
               "suspected_injection",
               "off_origin_blocked",
               "uncited_finding",
+              "harness_limit_finding",
               "provider_filtered"
             ],
-            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. provider_filtered: the model provider's content filter refused a call"
+            "description": "suspected_injection: page text that looks like an instruction to the persona. off_origin_blocked: a request or visit to a host outside the target's allow list was refused. uncited_finding: a finding that cited no step in the run was dropped. harness_limit_finding: a finding was dropped because every step it cited shows the test's own limits, such as a blocked request, a failed tool or a page the browser could not read, not the site. provider_filtered: the model provider's content filter refused a call"
           },
           "step": {
             "type": "integer",

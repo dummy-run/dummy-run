@@ -127,6 +127,9 @@ type Options struct {
 	// Basic auth challenges from them. Nil does neither.
 	Access *access.Resolved
 	Launch bidi.LaunchOptions
+	// ScreenReader adds what guidepup's virtual screen reader says to each look, for a persona that works
+	// without seeing the screen.
+	ScreenReader bool
 }
 
 // Control is one numbered interactive element from the last look.
@@ -176,11 +179,18 @@ type Snapshot struct {
 	Layout *LayoutNote `json:"layout,omitempty"`
 	// Focus is the element that has keyboard focus, nil when nothing does.
 	Focus *Focus `json:"focus"`
+	// Spoken is what a screen reader says reading the page from the top, when the page was opened with ScreenReader.
+	Spoken *Spoken `json:"spoken,omitempty"`
+	// SpokenError says why the page could not be read aloud.
+	SpokenError string `json:"spoken_error,omitempty"`
 	// Tree is the outline of landmarks, headings and interactive elements,
 	// one line each, within TreeTokens.
 	Tree string `json:"tree,omitempty"`
 	// TreeOmitted counts the outline entries cut to fit the budget.
 	TreeOmitted int `json:"tree_omitted,omitempty"`
+	// NamesFrom is "chrome" when the roles, names, states and exposure of the controls and the outline came from
+	// Chrome's own accessibility tree. Empty means the engine worked them out in the page (names.js), as in Firefox.
+	NamesFrom string `json:"names_from,omitempty"`
 	// TreeError is set when focus and the outline could not be read, so that
 	// "no focus" is never reported for a page that was not checked.
 	TreeError string `json:"tree_error,omitempty"`
@@ -260,6 +270,11 @@ type Page struct {
 	controls      []Control
 	zoom          int
 	textScale     int
+	screenReader  bool
+	// navBlocked is set when the run refuses a navigation of the page itself during an action.
+	navBlocked bool
+	// ax is Chrome's accessibility tree for this tab, read before each look. It stays off in Firefox.
+	ax axState
 }
 
 // Browser returns the launched browser.
@@ -305,7 +320,7 @@ func Open(ctx context.Context, opts Options) (*Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, access: opts.Access, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100)}
+	p := &Page{browser: b, conn: b.Conn, hook: opts.RequestHook, access: opts.Access, inflight: map[string]bool{}, blockedIDs: map[string]bool{}, textScale: max(opts.TextScale, 100), screenReader: opts.ScreenReader}
 	if mark, err := lookMark(); err == nil {
 		p.axeName = "__dr_axe_" + mark
 	} else {
@@ -399,13 +414,17 @@ func (p *Page) decide(e bidi.BeforeRequestSent) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	var d Decision
+	nav := isTopNavigation(e, p.cx)
 	if p.hook != nil {
-		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers, Navigation: isTopNavigation(e, p.cx)})
+		d = p.hook(Request{Method: e.Request.Method, URL: e.Request.URL, Headers: e.Request.Headers, Navigation: nav})
 	}
 	if d.Block {
 		p.mu.Lock()
 		p.blockedIDs[e.Request.Request] = true
 		p.blocked = append(p.blocked, fmt.Sprintf("%s %s (%s)", e.Request.Method, redact(e.Request.URL), d.Reason))
+		if e.Context == p.cx && nav {
+			p.navBlocked = true
+		}
 		p.mu.Unlock()
 		_ = p.conn.FailRequest(ctx, e.Request.Request)
 		return
@@ -624,6 +643,7 @@ func (p *Page) A11y(ctx context.Context) Observation {
 		if !loaded {
 			return errors.New("axe-core did not load")
 		}
+		p.ax.read(ctx, p.conn, p.cx)
 		actx, cancel := context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
 		if err := p.conn.CallFunctionJSONIn(actx, p.cx, sandbox, p.withAxe(axeRunJS), &violations); err != nil {
@@ -645,13 +665,51 @@ func (p *Page) act(ctx context.Context, action, target string, fn func(context.C
 	obs := Observation{Action: action, Target: target}
 	actx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+	p.mu.Lock()
+	p.navBlocked = false
+	p.mu.Unlock()
 	if err := fn(actx); err != nil {
 		obs.Error = firstLine(err.Error())
 	}
 	p.settle(actx)
+	p.leaveErrorPage(actx)
 	p.observe(actx, &obs)
 	obs.Duration = time.Since(started)
 	return obs
+}
+
+// leaveErrorPage goes back to the page the action started on when the run refused a navigation and the
+// browser put its own error page in its place, as Chrome does. Firefox keeps the page, so there is nothing to do.
+// Without this, a refused link strands every later step of the run on the error page.
+func (p *Page) leaveErrorPage(ctx context.Context) {
+	p.mu.Lock()
+	blocked := p.navBlocked
+	p.mu.Unlock()
+	if !blocked {
+		return
+	}
+	v, err := p.conn.Evaluate(ctx, p.cx, "location.href")
+	if err != nil {
+		return
+	}
+	if u, _ := v.String(); !strings.HasPrefix(u, "chrome-error:") {
+		return
+	}
+	if p.conn.TraverseHistory(ctx, p.cx, -1) != nil {
+		return
+	}
+	// The command returns once the step back is queued, not once it is done, so the error page can still be there.
+	// The address is read again until it has gone, and a read that fails while the documents swap counts as not yet.
+	deadline := time.Now().Add(settleWait)
+	for time.Now().Before(deadline) && ctx.Err() == nil {
+		if v, err := p.conn.Evaluate(ctx, p.cx, "location.href"); err == nil {
+			if u, _ := v.String(); !strings.HasPrefix(u, "chrome-error:") {
+				break
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	p.settle(ctx)
 }
 
 // settle waits for the page to load and the network to go quiet, for up to settleWait.
@@ -698,6 +756,13 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 		obs.URL = snap.URL
 		p.addOutline(ctx, &snap)
 		p.addLayout(ctx, &snap)
+		if p.screenReader {
+			if sp, err := ReadAloud(ctx, p.conn, p.cx); err != nil {
+				snap.SpokenError = firstLine(err.Error())
+			} else {
+				snap.Spoken = sp
+			}
+		}
 	} else if obs.Error == "" {
 		obs.Error = "could not read the page: " + firstLine(err.Error())
 	}
@@ -732,7 +797,14 @@ func (p *Page) observe(ctx context.Context, obs *Observation) {
 func (p *Page) lookWithAxe(ctx context.Context, snap *Snapshot, mark string) error {
 	var loaded bool
 	_ = p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.loadAxeJS(), &loaded)
-	return p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.withAxe(lookJS), snap, maxControls, textLimit, logLimit, mark)
+	chrome := p.ax.read(ctx, p.conn, p.cx)
+	if err := p.conn.CallFunctionJSONIn(ctx, p.cx, sandbox, p.withAxe(lookJS), snap, maxControls, textLimit, logLimit, mark); err != nil {
+		return err
+	}
+	if chrome {
+		snap.NamesFrom = NamesFromChrome
+	}
+	return nil
 }
 
 // loadAxeJS loads the engine's axe-core into a web page under p.axeName, once per document. Whatever the page had
@@ -913,7 +985,7 @@ const axeRunSrc = `() => window.__DR_AXE__.run(document, { elementRef: true, run
     // and stay unnamed.
     const named = (el) => {
       try {
-        return el && el.nodeType === 1 ? drClip(drSpecName(el, drRole(el)), 60) : "";
+        return el && el.nodeType === 1 ? drClip(drName(el, drRole(el)), 60) : "";
       } catch (e) {
         return "";
       }

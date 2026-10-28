@@ -1,6 +1,6 @@
 // The one list the persona reads: landmarks, headings H1 to H6 with their levels, and the controls with role,
 // accessible name, states and the @number to act on, in page order, plus the element that has keyboard focus.
-// WebDriver BiDi has no command that returns the browser's accessibility tree, so names and exposure come from
+// Names and exposure come from Chrome's accessibility tree where the engine read it (axtree.go), and otherwise from
 // names.js: axe-core's own functions when axe is loaded, and the spec computation otherwise. What assistive
 // technology cannot reach is left out.
 //

@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
+	"unicode"
+
+	"github.com/dummy-run/dummy-run/internal/confidence"
 )
 
 // WriteJSON writes the report as indented JSON.
@@ -43,7 +47,11 @@ func (r *Report) WriteSummary(w io.Writer) {
 					rows[k] = &row{f: f, target: n.Target, detail: n.Detail, shot: n.Screenshot}
 					order = append(order, k)
 				}
-				rows[k].combos = append(rows[k].combos, combo)
+				if p.Repeats > 1 {
+					rows[k].combos = append(rows[k].combos, fmt.Sprintf("%s (%d of %d runs)", combo, n.Runs, p.Repeats))
+				} else {
+					rows[k].combos = append(rows[k].combos, combo)
+				}
 			}
 		}
 	}
@@ -77,14 +85,78 @@ func (r *Report) WriteSummary(w io.Writer) {
 			_, _ = fmt.Fprintf(w, "SKIPPED %s: %s\n", p.URL, p.Skipped)
 		}
 		if p.Error != "" {
-			_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
+			if p.Repeats > 1 {
+				_, _ = fmt.Fprintf(w, "ERROR %s (%s, %d of %d runs): %s\n", p.URL, p.Setting(), *p.ErrorRuns, p.Repeats, p.Error)
+			} else {
+				_, _ = fmt.Fprintf(w, "ERROR %s (%s): %s\n", p.URL, p.Setting(), p.Error)
+			}
+		}
+		for _, e := range sortedKeys(p.EngineErrors) {
+			_, _ = fmt.Fprintf(w, "ENGINE %s %s (%s): %s\n", confidence.EngineName(e), p.URL, p.Setting(), printable(p.EngineErrors[e]))
+		}
+		if p.JourneysError != "" {
+			_, _ = fmt.Fprintf(w, "JOURNEYS %s (%s): %s\n", p.URL, p.Setting(), printable(p.JourneysError))
+		}
+		if p.LinksError != "" {
+			_, _ = fmt.Fprintf(w, "LINKS %s (%s): %s\n", p.URL, p.Setting(), printable(p.LinksError))
+		}
+		for _, c := range checkErrors(p) {
+			_, _ = fmt.Fprintf(w, "%s %s (%s): %s\n", c.check, p.URL, p.Setting(), printable(c.err))
+		}
+		if v := p.Visual; v != nil && v.Change != nil && (v.Changed > 0 || v.SizeChanged) {
+			if v.SizeChanged {
+				_, _ = fmt.Fprintf(w, "SCREEN %s (%s): the window changed size, hash distance %d of 64\n", p.URL, p.Setting(), v.HashDistance)
+			} else {
+				_, _ = fmt.Fprintf(w, "SCREEN %s (%s): %d of %d pixels changed, hash distance %d of 64, %s\n", p.URL, p.Setting(), v.Changed, v.Total, v.HashDistance, v.Diff)
+			}
+		}
+		if p.PDFError != "" {
+			_, _ = fmt.Fprintf(w, "PDF %s (%s): links not read: %s\n", p.URL, p.Setting(), printable(p.PDFError))
+		}
+		if c := p.ARIAChanges; c != nil && c.AddedCount+c.RemovedCount > 0 {
+			_, _ = fmt.Fprintf(w, "CHANGED %s (%s): %d lines added and %d removed in the ARIA snapshot\n", p.URL, p.Setting(), c.AddedCount, c.RemovedCount)
+			for _, l := range c.Removed {
+				_, _ = fmt.Fprintf(w, "     - %s\n", printable(snapshotItem(l)))
+			}
+			for _, l := range c.Added {
+				_, _ = fmt.Fprintf(w, "     + %s\n", printable(snapshotItem(l)))
+			}
+		}
+	}
+	if r.PDFError != "" {
+		_, _ = fmt.Fprintf(w, "PDF %s\n", printable(r.PDFError))
+	}
+	for _, p := range r.PDFs {
+		switch {
+		case p.Error != "":
+			_, _ = fmt.Fprintf(w, "PDF %s: not checked: %s\n", p.URL, printable(p.Error))
+		case !p.Compliant:
+			_, _ = fmt.Fprintf(w, "PDF %s: fails %d PDF/UA-1 requirements (advice)\n", p.URL, len(p.Rules))
 		}
 	}
 	s := r.Summary
 	_, _ = fmt.Fprintf(w, "\n%s %s, axe-core %s: %d pages, %d runs; %d failing, %d allowed, %d need review, %d page errors",
 		r.Browser, r.BrowserVersion, r.AxeVersion, s.Pages, s.Runs, s.Failing, s.Allowed, s.NeedsReview, s.PageErrors)
+	if r.Repeats > 1 {
+		_, _ = fmt.Fprintf(w, ", each run %d times", r.Repeats)
+	}
 	if s.Advice > 0 {
 		_, _ = fmt.Fprintf(w, ", %d elements with best-practice advice (not failures)", s.Advice)
+	}
+	if s.Candidates > 0 {
+		_, _ = fmt.Fprintf(w, ", %d candidates axe did not report (not failures)", s.Candidates)
+	}
+	if n := engineErrorRuns(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", rule engines failed on %d runs (listed above)", n)
+	}
+	if n := journeyErrorPages(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", journeys not tried on %d pages (listed above)", n)
+	}
+	if n := linkErrorPages(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", links not checked on %d pages (listed above)", n)
+	}
+	if n := checkErrorRuns(r); n > 0 {
+		_, _ = fmt.Fprintf(w, ", other checks failed on %d runs (listed above)", n)
 	}
 	if s.Skipped > 0 {
 		_, _ = fmt.Fprintf(w, ", %d pages skipped for robots.txt", s.Skipped)
@@ -95,9 +167,97 @@ func (r *Report) WriteSummary(w io.Writer) {
 	_, _ = fmt.Fprintln(w)
 }
 
+type checkError struct{ check, err string }
+
+// checkErrors lists the optional checks that couldn't run on a page, other than the rule engines and the journeys,
+// which have lines of their own.
+func checkErrors(p PageResult) []checkError {
+	var out []checkError
+	add := func(check, err string) {
+		if err != "" {
+			out = append(out, checkError{check, err})
+		}
+	}
+	add("PLAIN", p.PlainLanguageError)
+	add("HTML", p.HTMLError)
+	add("LIGHTHOUSE", p.LighthouseError)
+	add("LIGHTHOUSE MATCH", p.LighthouseMatchError)
+	add("STATE", p.StateError)
+	add("FAILURES", p.FailureProbeError)
+	add("VISUAL", p.VisualError)
+	add("SNAPSHOT", p.ARIASnapshotError)
+	if p.Consent != nil {
+		add("CONSENT", p.Consent.Error)
+	}
+	return out
+}
+
+// checkErrorRuns counts the runs where an optional check other than the rule engines and the journeys failed.
+func checkErrorRuns(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if len(checkErrors(p)) > 0 {
+			n++
+		}
+	}
+	return n
+}
+
 func orUnknown(s string) string {
 	if s == "" {
 		return "no impact"
 	}
 	return s
+}
+
+// journeyErrorPages counts the pages whose journeys couldn't be tried.
+func journeyErrorPages(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if p.JourneysError != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// linkErrorPages counts the pages whose links couldn't be checked.
+func linkErrorPages(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if p.LinksError != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// printable drops control characters, so a message with text from the page can't move the terminal's cursor.
+func printable(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
+// engineErrorRuns counts the runs on which at least one of the other rule engines failed.
+func engineErrorRuns(r *Report) int {
+	n := 0
+	for _, p := range r.Results {
+		if len(p.EngineErrors) > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+func sortedKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
 }

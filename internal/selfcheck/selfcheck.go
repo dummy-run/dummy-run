@@ -29,13 +29,12 @@ const maxWords = 400
 
 // Item is one finding with the evidence the engine checked.
 type Item struct {
-	Title    string
-	Body     string
-	Fix      string
-	Severity string
-	Kind     string
-	Symptom  string
-	WCAG     []string
+	Title   string
+	Body    string
+	Fix     string
+	Kind    string
+	Symptom string
+	WCAG    []string
 	// Page is the address at the evidence step. Element is what the engine found there.
 	Page    string
 	Element string
@@ -108,7 +107,7 @@ func Review(ctx context.Context, p provider.Provider, in Input) ([]Decision, pro
 	var images []provider.Image
 	for i, it := range in.Items {
 		fmt.Fprintf(&b, "\n## Finding %d\n", i+1)
-		fmt.Fprintf(&b, "Title: %s\nBody: %s\nFix: %s\nSeverity: %s. Kind: %s. Symptom: %s.", it.Title, orNone(it.Body), orNone(it.Fix), it.Severity, it.Kind, it.Symptom)
+		fmt.Fprintf(&b, "Title: %s\nBody: %s\nFix: %s\nKind: %s. Symptom: %s.", it.Title, orNone(it.Body), orNone(it.Fix), it.Kind, it.Symptom)
 		if len(it.WCAG) > 0 {
 			fmt.Fprintf(&b, " WCAG: %s.", strings.Join(it.WCAG, ", "))
 		}

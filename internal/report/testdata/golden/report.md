@@ -60,7 +60,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 #### A contributor can open the rates table for all writers
 
-Major. Confirmed by a reviewer.
+Major. Confirmed by a reviewer. Low confidence.
 
 The Payments page, the Rates link (`/payments`)
 
@@ -69,6 +69,7 @@ The Payments page, the Rates link (`/payments`)
 | What went wrong | Let in when it should have been blocked |
 | Who hit it | Lin, a contributor, in 1 of 4 runs |
 | Review | Confirmed by example-reviewer on 18 October 2026. Reason: Reproduced on the preview with a contributor account. |
+| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in 1 of 3 runs. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |
 
 How to reproduce:
 
@@ -84,7 +85,7 @@ Technical details: run `2026-10-17-lin-contributor-008`, step 7; persona `lin-co
 
 #### Scheduling an issue for a past date returns a server error
 
-Major. Confirmed by a reviewer.
+Major. Confirmed by a reviewer. Low confidence.
 
 The Issues page, the Schedule button (`/issues`)
 
@@ -93,6 +94,7 @@ The Issues page, the Schedule button (`/issues`)
 | What went wrong | An error appeared |
 | Who hit it | Ada, an editor, in 1 of 4 runs |
 | Review | Confirmed |
+| How sure | Low confidence. The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |
 
 How to reproduce:
 
@@ -108,7 +110,7 @@ Technical details: run `2026-10-16-ada-editor-003`, step 7; persona `ada-editor`
 
 #### The hint under the schedule field is too faint to read
 
-Minor. Not reviewed.
+Minor. Not reviewed. Low confidence.
 
 The Issues page, the Schedule form area (`/issues`)
 
@@ -117,7 +119,9 @@ The Issues page, the Schedule form area (`/issues`)
 | What went wrong | An automated accessibility check failed (color-contrast) |
 | Who hit it | Ada, an editor, in 1 of 4 runs |
 | WCAG 2.2 | 1.4.3 Contrast (Minimum) |
+| EN 301 549 | 9.1.4.3 |
 | Review | Not reviewed. No person has checked this finding |
+| How sure | Low confidence. The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |
 | Fix guidance | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
 
 How to reproduce:
@@ -136,7 +140,7 @@ Technical details: run `2026-10-16-ada-editor-003`, step 3; persona `ada-editor`
 
 #### The payment status 'settled' is unclear to a contributor
 
-Info. Confirmed by a reviewer.
+Info. Confirmed by a reviewer. Low confidence.
 
 The Payments page, the Payment status area (`/payments`)
 
@@ -145,6 +149,7 @@ The Payments page, the Payment status area (`/payments`)
 | What went wrong | The name does not say what it does |
 | Who hit it | Lin, a contributor, in 3 of 4 runs |
 | Review | Confirmed |
+| How sure | Low confidence. The persona's own report, with no check behind it, and it happened in all 3 runs. |
 
 How to reproduce:
 
@@ -162,10 +167,10 @@ The sweep ran axe-core 4.13.0 with dummyrun a11y on 2 pages in 3 settings (brows
 
 ### Rules that failed
 
-| Rule | What it checks | Impact | WCAG 2.2 | Elements | Fix guidance |
-|---|---|---|---|---:|---|
-| `button-name` | Buttons must have discernible text | Critical | 4.1.2 | 1 | https://dequeuniversity.com/rules/axe/4.13/button-name |
-| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | Serious | 1.4.3 | 1 | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
+| Rule | What it checks | Severity | Impact | WCAG 2.2 | Elements | How sure | Fix guidance |
+|---|---|---|---|---|---:|---|---|
+| `button-name` | Buttons must have discernible text | Blocker | Critical | 4.1.2 (EN 301 549 9.4.1.2) | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/button-name |
+| `color-contrast` | Elements must meet minimum color contrast ratio thresholds | Major | Serious | 1.4.3 (EN 301 549 9.1.4.3) | 1 | High. axe-core reports it, and no other engine was asked. This check has too few checked findings of its own, so the band comes from all findings axe-core reports together (159 checked). | https://dequeuniversity.com/rules/axe/4.13/color-contrast |
 
 ### Where each rule failed
 

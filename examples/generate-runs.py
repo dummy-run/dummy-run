@@ -11,6 +11,9 @@ Fingerprints follow internal/identity (route|locus|symptom, SHA-256, first 16 he
 internal/price/prices.json. Each environment has one commit, so the runs of one environment can be pooled
 by "dummyrun coverage". The records that use the same persona, scenario and model in a batch get a
 repeat_index of 0, 1, 2.
+
+The optional target fields tech, journeys and tech_error are left out on purpose. The exporter does not
+map them, and the records here are the dataset behind the dashboard figures in the docs.
 """
 import argparse
 import hashlib
@@ -115,10 +118,16 @@ def make_run(rng, start, n, seen):
             if kind == "bug":
                 steps[at - 1]["status"] = 500
                 steps[at - 1]["console_errors"] = 2
+            # The engine records what each finding rests on. A record keeps only the count of violations an a11y step
+            # found, not which rules, so a generated finding can never show that axe reported its rule and every one
+            # is the persona's own report. The check is the axe rule for an a11y symptom and the symptom otherwise.
+            check = symptom.split(":", 1)[1] if symptom.startswith("a11y:") else symptom.split(":")[0]
+            inputs = {"evidence_kind": "model-only", "engines": [], "check": check, "on_journey": True}
             findings.append({"id": fid, "kind": kind, "severity": sev, "title": ftitle, "steps": [at],
                              "evidence": evidence, "verdict": rng.choices(["confirmed", "pending", "rejected"], [7, 2, 1])[0],
                              "class": "problem", "route": froute, "locus": flocus, "symptom": symptom,
-                             "taxonomy_version": TAXONOMY_VERSION, "fingerprint": fingerprint(froute, flocus, symptom)})
+                             "taxonomy_version": TAXONOMY_VERSION, "fingerprint": fingerprint(froute, flocus, symptom),
+                             "inputs": inputs})
 
     roll = rng.random()
     outcome = "completed"

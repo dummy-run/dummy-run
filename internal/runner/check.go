@@ -24,7 +24,7 @@ func (r *run) selfCheck(ctx context.Context, f *Finish) []record.SelfCheck {
 		in.Goal = strings.Trim(strings.TrimSpace(m[1]), `"`)
 	}
 	for _, ff := range f.Findings {
-		it := selfcheck.Item{Title: ff.Title, Body: ff.Body, Fix: ff.Fix, Severity: ff.Severity, Kind: ff.Kind,
+		it := selfcheck.Item{Title: ff.Title, Body: ff.Body, Fix: ff.Fix, Kind: ff.Kind,
 			Symptom: ff.Symptom, WCAG: ff.WCAG, Page: ff.URL, Element: ff.Element, Quote: ff.Quote}
 		if s := stepAt(r.steps, ff.EvidenceStep); s != nil {
 			it.Context = evidenceContext(s, ff.Quote)

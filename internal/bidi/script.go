@@ -181,3 +181,13 @@ func (c *Conn) callFunctionJSON(ctx context.Context, tgt map[string]any, declara
 	}
 	return nil
 }
+
+// AddPreloadScript runs the function declaration in every new document of every browsing context, frames included,
+// before the page's own scripts. It returns the script's ID.
+func (c *Conn) AddPreloadScript(ctx context.Context, declaration string) (string, error) {
+	var out struct {
+		Script string `json:"script"`
+	}
+	err := c.Call(ctx, "script.addPreloadScript", map[string]any{"functionDeclaration": declaration}, &out)
+	return out.Script, err
+}
