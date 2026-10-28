@@ -139,6 +139,9 @@ func TestFailedChordReleasesHeldKeys(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "the keys stuck") || !strings.Contains(err.Error(), "the release failed") {
 		t.Errorf("error %v, want both the call's and the release's", err)
 	}
+	if err != nil && strings.Contains(err.Error(), "\n") {
+		t.Errorf("error %q is on more than one line, and a page action keeps only the first", err)
+	}
 	var cmdErr *CommandError
 	if !errors.As(err, &cmdErr) || cmdErr.Message != "the keys stuck" {
 		t.Errorf("the call's own error isn't first to errors.As: %v", err)

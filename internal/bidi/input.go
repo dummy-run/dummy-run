@@ -2,7 +2,6 @@ package bidi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -159,13 +158,13 @@ func (c *Conn) PressKey(ctx context.Context, context, code string) error {
 
 // PressChord holds the modifiers down in order, presses and releases the key, then lets the modifiers go in reverse.
 // If the call fails part way, a modifier could stay held for every key after it, so PressChord releases what is
-// held before it returns the error. If that release fails too, the error says so, since later keys may then come
-// with a modifier still held.
+// held before it returns the error. If that release fails too, the error says so on the same line, since later keys
+// may then come with a modifier still held and a page action reports only an error's first line.
 func (c *Conn) PressChord(ctx context.Context, context string, mods []string, code string) error {
 	err := c.keyActions(ctx, context, chordActions(mods, code))
 	if err != nil && len(mods) > 0 {
 		if rerr := c.releaseHeld(ctx, context); rerr != nil {
-			err = errors.Join(err, fmt.Errorf("bidi: release the held keys: %w", rerr))
+			err = fmt.Errorf("%w; bidi: release the held keys: %w", err, rerr)
 		}
 	}
 	return err
