@@ -900,7 +900,9 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 			}
 		}
 		// An open root shows what the guard did to the markup: a new window becomes the page's own tab, a frame
-		// the page has keeps its name, and markup with nothing to change is left as the page wrote it.
+		// the page has keeps its name, and markup with nothing to change is left as the page wrote it. An object
+		// whose toString changes between reads gets built from the markup the guard read. A page that replaces what
+		// the guard calls still has its new window put right.
 		t.Run(browser+"/markup", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
@@ -929,11 +931,24 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 	const r = host.firstElementChild.shadowRoot;
 	const plain = document.createElement('div');
 	plain.setHTMLUnsafe('<p class="x">Hello</p>');
-	return [String(!!r), r.getElementById('a').target, r.getElementById('b').target, r.getElementById('f').target, r.getElementById('s').formTarget, plain.innerHTML];
+	let reads = 0;
+	const turncoat = { toString() { return reads++ ? '<shop-panel><template shadowrootmode="open"><a target="_blank" href="/c">C</a></template></shop-panel>' : '<p>Plain</p>'; } };
+	const changing = document.createElement('div');
+	changing.setHTMLUnsafe(turncoat);
+	const out = [String(!!r), r.getElementById('a').target, r.getElementById('b').target, r.getElementById('f').target, r.getElementById('s').formTarget, plain.innerHTML, changing.innerHTML];
+	RegExp.prototype.test = function () { return false; };
+	String.prototype.toLowerCase = function () { return '_self'; };
+	Element.prototype.getAttribute = function () { return null; };
+	Object.defineProperty(NodeList.prototype, 'length', { get() { return 0; } });
+	const tampered = document.createElement('div');
+	spot.append(tampered);
+	tampered.setHTMLUnsafe('<shop-panel><template shadowrootmode="open"><a id="t" target="_blank" href="/t">T</a></template></shop-panel>');
+	out.push(tampered.firstElementChild.shadowRoot.getElementById('t').target);
+	return out;
 })()`, &got); err != nil {
 				t.Fatal(err)
 			}
-			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`}
+			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self"}
 			if !slices.Equal(got, want) {
 				t.Errorf("the markup came out as %q, want %q", got, want)
 			}

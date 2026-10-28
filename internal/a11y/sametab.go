@@ -19,10 +19,11 @@ import (
 // root that setHTMLUnsafe or Document.parseHTMLUnsafe declares after the load is built from markup the guard has
 // already put right. The markup is first read into an inert template, where a declared root is still a plain template
 // and nothing runs, and the targets in it are changed as they would be on a click. The root stays closed. Markup with
-// nothing to change, or Trusted Types markup the page enforces, goes through as the page wrote it. Values for
-// other attributes pass through untouched, so a page that enforces Trusted Types still works. A target that names a
-// frame anywhere in the tab is left alone, a sibling of the frame the link or form is in included. A cross-origin
-// frame's name can't be read, so a target that names one is sent to the page's own frame.
+// nothing to change goes through as the page wrote it, and so does a Trusted Types value, which the guard can't
+// rewrite. The guard keeps its own copies of what it calls there, so a page that replaces one can't turn it off.
+// Values for other attributes pass through untouched, so a page that enforces Trusted Types still works. A target that
+// names a frame anywhere in the tab is left alone, a sibling of the frame the link or form is in included. A
+// cross-origin frame's name can't be read, so a target that names one is sent to the page's own frame.
 const sameTab = `() => {
 	const named = (w, name) => {
 		try { if (w.name === name) return true; } catch (e) {}
@@ -30,12 +31,14 @@ const sameTab = `() => {
 		return false;
 	};
 	const frames = (name) => named(window.top, name);
+	const apply = Reflect.apply, str = String, test = RegExp.prototype.test;
+	const lower = String.prototype.toLowerCase, includes = String.prototype.includes;
 	const away = (t) => {
 		if (t === null || t === undefined) return false;
-		const n = String(t).toLowerCase();
+		const n = apply(lower, str(t), []);
 		if (n === "" || n === "_self" || n === "_parent" || n === "_top") return false;
-		if (/[\t\n\r]/.test(n) && n.includes("<")) return true;
-		return n === "_blank" || !frames(String(t));
+		if (apply(test, /[\t\n\r]/, [n]) && apply(includes, n, ["<"])) return true;
+		return n === "_blank" || !frames(str(t));
 	};
 	const keep = (el) => {
 		if (!el) return;
@@ -43,7 +46,7 @@ const sameTab = `() => {
 		if (away(el.getAttribute && el.getAttribute("formtarget"))) el.setAttribute("formtarget", "_self");
 	};
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
-	const listen = EventTarget.prototype.addEventListener, apply = Reflect.apply;
+	const listen = EventTarget.prototype.addEventListener;
 	window.open = function () { return null; };
 	const targets = (name) => { const n = String(name).toLowerCase(); return n === "target" || n === "formtarget"; };
 	const same = (name, value) => {
@@ -96,32 +99,36 @@ const sameTab = `() => {
 	const internals = typeof ElementInternals !== "undefined" && Object.getOwnPropertyDescriptor(ElementInternals.prototype, "shadowRoot");
 	if (internals && internals.get) Object.defineProperty(ElementInternals.prototype, "shadowRoot", { configurable: true, enumerable: internals.enumerable, get: function () { return guard(internals.get.call(this)); } });
 	const inner = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
-	const declared = (html) => {
-		const s = String(html);
-		if (!inner || !/shadowrootmode/i.test(s)) return html;
+	const create = Document.prototype.createElement;
+	const getAttribute = Element.prototype.getAttribute, select = DocumentFragment.prototype.querySelectorAll;
+	const content = Object.getOwnPropertyDescriptor(HTMLTemplateElement.prototype, "content").get;
+	const count = Object.getOwnPropertyDescriptor(NodeList.prototype, "length").get, item = NodeList.prototype.item;
+	const isHTML = typeof trustedTypes !== "undefined" && trustedTypes.isHTML ? trustedTypes.isHTML.bind(trustedTypes) : () => false;
+	const each = (root, sel, f) => { const list = apply(select, root, [sel]); for (let i = 0, n = apply(count, list, []); i < n; i++) f(apply(item, list, [i])); };
+	const declared = (s) => {
+		if (!inner || !apply(test, /shadowrootmode/i, [s])) return s;
 		try {
-			const t = document.createElement("template");
-			inner.set.call(t, s);
+			const t = apply(create, document, ["template"]);
+			apply(inner.set, t, [s]);
 			let changed = false;
 			const visit = (root) => {
-				root.querySelectorAll("a[target], area[target], form[target], button[formtarget], input[formtarget]").forEach((el) => {
-					const before = el.getAttribute("target") + " " + el.getAttribute("formtarget");
-					keep(el);
-					if (el.getAttribute("target") + " " + el.getAttribute("formtarget") !== before) changed = true;
+				each(root, "a[target], area[target], form[target], button[formtarget], input[formtarget]", (el) => {
+					["target", "formtarget"].forEach((name) => {
+						if (away(apply(getAttribute, el, [name]))) { apply(setAttribute, el, [name, "_self"]); changed = true; }
+					});
 				});
-				root.querySelectorAll("template").forEach((x) => visit(x.content));
+				each(root, "template", (x) => visit(apply(content, x, [])));
 			};
-			visit(t.content);
-			return changed ? inner.get.call(t) : html;
-		} catch (e) { return html; }
+			visit(apply(content, t, []));
+			return changed ? apply(inner.get, t, []) : s;
+		} catch (e) { return s; }
 	};
+	// A Trusted Types value goes through as it is. Anything else is read once, and what the browser builds from is
+	// the string the guard looked at, so an object whose toString changes between reads can't slip a root past it.
 	const parses = (f, self) => function (html, ...rest) {
-		const safe = declared(html);
-		if (safe === html) return apply(f, self || this, [html, ...rest]);
-		try { return apply(f, self || this, [safe, ...rest]); } catch (e) {
-			if (!(e instanceof TypeError)) throw e;
-			return apply(f, self || this, [html, ...rest]);
-		}
+		if (isHTML(html)) return apply(f, self || this, [html, ...rest]);
+		const s = str(html), safe = declared(s);
+		return apply(f, self || this, [safe, ...rest]);
 	};
 	[Element.prototype, typeof ShadowRoot !== "undefined" && ShadowRoot.prototype].forEach((proto) => {
 		if (proto && Object.prototype.hasOwnProperty.call(proto, "setHTMLUnsafe")) proto.setHTMLUnsafe = parses(proto.setHTMLUnsafe);
