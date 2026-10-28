@@ -24,6 +24,12 @@ flowchart LR
 
 [Watch a real run](watch-a-run.md) of this website to see what a persona sees and does at each step.
 
+## What it checks
+
+Each of the first seven is a check you turn on, and `--all` runs them all in one sweep of your pages. The last comes from the screen-reader persona, which runs with the other personas. Each problem comes with its evidence, so you can see it for yourself.
+
+{{< checks >}}
+
 ## Does it replace a scripted suite?
 
 No, and it isn't meant to. A script checks the steps you wrote, the same way every time, which is exactly what you want for regressions. A persona chooses its own path, so it can wander into the journeys nobody wrote a script for. When it finds something you never want to see again, write a test for it. [Beside your scripted suite](for/qa-lead.md) compares the two side by side.

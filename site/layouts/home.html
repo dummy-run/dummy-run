@@ -44,6 +44,19 @@
   <li>OpenTelemetry</li>
 </ul>
 
+{{- $secs := int ((time $r.ended_at).Sub (time $r.started_at)).Seconds -}}
+<section class="band" aria-labelledby="proof-heading">
+  <h2 id="proof-heading" class="u-title-sm">One real run, start to finish</h2>
+  <p class="band-lede">{{ $p.name }} read this website in {{ index (split $r.browser " ") 0 | title }} to decide whether Dummy Run could sit beside a test suite. Here is what that run took.</p>
+  <dl class="stats">
+    <div><dt>Steps</dt><dd>{{ len $r.steps }}</dd></div>
+    <div><dt>In the browser</dt><dd>{{ div $secs 60 }} min {{ mod $secs 60 }} s</dd></div>
+    <div><dt>Things flagged</dt><dd>{{ len $r.findings }}</dd></div>
+    <div><dt>Model calls cost</dt><dd>{{ printf "$%.2f" $r.cost_usd }}</dd></div>
+  </dl>
+  <p class="band-more">Each thing flagged points at its step, its screenshot and the persona&rsquo;s own words, and stays pending until a person confirms or rejects it. <a href="/watch-a-run/">Step through the run</a></p>
+</section>
+
 <section class="band" id="free-scan" aria-labelledby="scan-heading" data-waitlist>
   <div class="panel scan-panel">
     <div class="scan-intro">
@@ -69,64 +82,12 @@
   {{ partial "waitlist-script.html" . }}
 </section>
 
-<section class="band" aria-labelledby="checks-heading">
-  <h2 id="checks-heading" class="u-title-sm">What it checks</h2>
-  <p class="band-lede">Each of the first seven is a check you turn on, and <code>--all</code> runs them all in one sweep of your pages. The last comes from the screen-reader persona, which runs with the other personas. Each problem comes with its evidence, so you can see it for yourself.</p>
-  <ul class="cards cards-checks">
-    <li><div class="card"><h3 class="card-title">Getting round by keyboard</h3><p class="card-text">We press Tab through each page. You find out if the focus can&rsquo;t be seen or disappears, if the skip link goes nowhere, or if a visitor gets stuck.</p></div></li>
-    <li><div class="card"><h3 class="card-title">Forms that fill themselves in</h3><p class="card-text">Fields for a name, email, phone number or postcode should tell the browser what they&rsquo;re for, so it can fill them in. We also check each button&rsquo;s spoken name matches the words on it.</p></div></li>
-    <li><div class="card"><h3 class="card-title">Zoom and bigger text</h3><p class="card-text">Unless you choose your own window or text size, we look at each page in a narrow 320 px window and with the text at twice its size. We look for sideways scrolling, words that overlap or get cut off, and buttons too small to tap.</p></div></li>
-    <li><div class="card"><h3 class="card-title">Text people can read</h3><p class="card-text">Where text is too faint, we suggest the nearest colour that is clear enough and keeps your colour&rsquo;s hue. Where text sits on a photo, we measure its contrast against the picture behind it.</p></div></li>
-    <li><div class="card"><h3 class="card-title">Plain English</h3><p class="card-text">We read your main text for long sentences, hard words and Latin phrases, and give it a reading-ease score. With the content checks on, we also flag alt text that is a file name, bold text standing in for a heading and, on pages in English, links called &ldquo;read more&rdquo;.</p></div></li>
-    <li><div class="card"><h3 class="card-title">Was it the same page?</h3><p class="card-text">Each page we can read gets a fingerprint of its elements and text, so when two sweeps disagree you can see whether the page&rsquo;s content changed in between.</p></div></li>
-    <li><div class="card"><h3 class="card-title">When things go wrong</h3><p class="card-text">We load each page again as if your API were down. Nothing but reads reaches your server, and we check whether an alert or live region tells screen reader users that something failed.</p></div></li>
-    <li><div class="card"><h3 class="card-title">What changed since last time</h3><p class="card-text">Keep a picture of each page between sweeps and we count the pixels that changed, with a picture of where, so you can spot a deploy that moved things. Cover a clock or an advert so it doesn&rsquo;t count.</p></div></li>
-    <li><div class="card"><h3 class="card-title">The same answer twice</h3><p class="card-text">Pages change from one load to the next. Ask us to test each page a few times and each problem from the page checks says how many of the runs it turned up in. We don&rsquo;t judge which problems come and go: you compare the counts. Journeys, links and the other checks that run once for each page are tried in the first run only.</p></div></li>
-    <li><div class="card"><h3 class="card-title">Cookie banners</h3><p class="card-text">We answer your cookie banner by saying no to everything optional, and tell you if it gives visitors no way to refuse.</p></div></li>
-    <li><div class="card"><h3 class="card-title">More than one opinion</h3><p class="card-text">Other accessibility checkers read each page beside axe-core. What axe finds, or two of the others agree on, is a finding. What only one of the others spots goes in the sweep&rsquo;s results as a candidate for you to look at, up to 200 for each page.</p></div></li>
-    <li><div class="card"><h3 class="card-title">What a screen reader says</h3><p class="card-text">The screen-reader persona works from what a screen reader would read out, in order, so you can see where it gets lost.</p></div></li>
-  </ul>
-</section>
-
-<section class="band" aria-labelledby="role-heading">
-  <h2 id="role-heading" class="u-title-sm">Start with your job</h2>
-  <p class="band-lede">Pick the one closest to what you do, and see what Dummy Run gives you.</p>
-  {{ partial "role-tiles.html" (dict "long" false) }}
-</section>
-
 <section class="band" aria-labelledby="how-heading">
   <div class="panel">
     <h2 id="how-heading" class="u-title-sm">How a run works</h2>
     <p class="band-lede">The amber stage is where a model drives the browser. Everything after it is yours to check and share.</p>
     {{ partial "pipeline.html" . }}
-    <p class="band-more"><a href="/how-it-works/">Read how it works</a>, or <a href="/watch-a-run/">watch a real run of this website</a> step by step.</p>
-  </div>
-</section>
-
-<section class="band" aria-labelledby="flow-heading">
-  <h2 id="flow-heading" class="u-title-sm">The whole flow</h2>
-  <p class="band-lede">From a handful of personas to a report you can hand to someone.</p>
-  {{ partial "graphics/flow.html" (dict "compact" true) }}
-  <p class="band-more"><a href="/how-it-works/">See each step</a></p>
-</section>
-
-<section class="band" aria-labelledby="get-heading">
-  <h2 id="get-heading" class="u-title-sm">What you get back</h2>
-  <p class="band-lede">These examples come from Inkwell, a made-up publishing app you can run yourself and try personas on.</p>
-  <div class="trio">
-    <figure>{{ partial "example.html" (dict "name" "persona-card" "who" "sam-author") }}<figcaption>Sam writes for Inkwell from a phone. Sam can draft and reply to reviews, but can&rsquo;t approve or schedule anything.</figcaption></figure>
-    <figure>{{ partial "example.html" (dict "name" "run-timeline") }}<figcaption>Sam spent eleven steps replying to a review. At step 6 the keyboard covered the Submit button.</figcaption></figure>
-    <figure>{{ partial "example.html" (dict "name" "finding-card" "kind" "permission") }}<figcaption>Lin, a contributor, could open the rates table for every writer. A person traced it in the code and confirmed it.</figcaption></figure>
-  </div>
-  <figure class="wide-figure">{{ partial "example.html" (dict "name" "board") }}<figcaption>Five problems the Inkwell personas found, from a contributor seeing every writer&rsquo;s rates to a payment status a contributor couldn&rsquo;t make sense of. A results board like this, gathering every run into pages you host yourself, is coming soon.</figcaption></figure>
-</section>
-
-<section class="band" aria-labelledby="library-heading">
-  <div class="panel">
-    <h2 id="library-heading" class="u-title-sm">Personas for the people on your site</h2>
-    <p class="band-lede">Most sites have screen-reader users, people on phones and people who have never seen them before. The library has a ready-made persona for each of them, so you can start testing today instead of writing your own.</p>
-    {{ partial "library.html" (dict "short" true) }}
-    <p class="band-more"><a href="/personas/">Browse the persona library</a></p>
+    <p class="band-more"><a href="/how-it-works/">Read how it works</a></p>
   </div>
 </section>
 
@@ -134,19 +95,10 @@
   <h2 id="answers-heading" class="u-title-sm">Straight answers</h2>
   <dl class="answers">
     <div><dt>Does it replace our scripted tests?</dt><dd>No, keep them. A script checks the steps you wrote down. A persona wanders off and tries the things nobody thought to script. <a href="/for/qa-lead/">How they work together</a></dd></div>
-    <div><dt>Which browsers does it drive?</dt><dd>Chrome and Firefox, in desktop, tablet or phone-sized windows, with page zoom up to 500 percent and system text size up to 300 percent. <a href="/for/qa-lead/">Browsers and devices</a></dd></div>
+    <div><dt>What does it check?</dt><dd>Keyboard use, zoom and bigger text, contrast, plain English, forms, cookie banners and more, on every page it sweeps. Each problem comes with its evidence. <a href="/how-it-works/#what-it-checks">Every check</a></dd></div>
     <div><dt>Can a persona replace testing with disabled people?</dt><dd>No. A persona simulates a barrier so you catch likely problems early and cheaply. It can&rsquo;t tell you how a disabled person would actually get on. Only testing with disabled people can. <a href="/docs/ethics/">Ethics and limits</a></dd></div>
-    <div><dt>Do screenshots leave our network?</dt><dd>Screenshots go to the model provider you pick, except for the screen-reader persona, which is never sent any. They stay in the folder or bucket where you keep your runs. The telemetry you export to Grafana has no screenshots in it, only things like page addresses and finding titles, which can quote a few words from the page. It goes only to the OpenTelemetry endpoint you set, or the local collector address if you set none. <a href="/for/compliance-and-security/">What goes where</a></dd></div>
-    <div><dt>How do I install it?</dt><dd>One <code>go install</code>, then point a persona at a site in read-only mode. <a href="/start/">Get started</a></dd></div>
+    <div><dt>Do screenshots leave our network?</dt><dd>Screenshots go only to the model provider you pick, and the screen-reader persona never sends any. Runs stay in the folder or bucket where you keep them. <a href="/for/compliance-and-security/">What goes where</a></dd></div>
   </dl>
-</section>
-
-<section class="band" aria-labelledby="grafana-heading">
-  <div class="stage">
-    <h2 id="grafana-heading" class="u-title-sm">Every run in Grafana</h2>
-    <p class="band-lede">Each run arrives as one OpenTelemetry trace, so you can follow a persona step by step next to your own app&rsquo;s traces. Ready-made dashboards come with it. These show example runs against Inkwell. <a href="/docs/grafana/">See the dashboards</a></p>
-    {{ partial "graphics/grafana-stack.html" . }}
-  </div>
 </section>
 
 <section class="band close" aria-labelledby="close-heading">

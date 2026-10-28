@@ -356,6 +356,12 @@ h1, h2, h3, h4, .u-display, .u-display-sm, .u-title, .u-title-sm, .u-subtitle { 
 .answers { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem 2.5rem; margin: 0; }
 @media (min-width: 48em) { .answers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .answers > div { padding-top: 0.9rem; border-top: 2px solid var(--ink); }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 2rem; margin: 0; }
+@media (min-width: 48em) { .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.stats > div { display: flex; flex-direction: column-reverse; gap: 0.25rem; padding-top: 0.9rem; border-top: 2px solid var(--ink); }
+.stats dt { font-size: var(--type-small); color: var(--ink-muted); }
+.stats dd { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: var(--type-title); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (min-width: 48em) { .stats dd { font-size: var(--type-display-sm); } }
 .answers dt { font-family: var(--font-heading); font-weight: 600; font-size: var(--type-lead); line-height: 1.3; }
 .answers dd { margin: 0.4rem 0 0; }
 
@@ -609,19 +615,6 @@ td code, th code { white-space: nowrap; }
 .board .board-title { font-weight: 600; }
 .board .col-sm { display: none; }
 @media (min-width: 48em) { .board .col-sm { display: table-cell; } }
-
-/* grafana showcase */
-.showcase { position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: 1rem; margin-top: 2rem; }
-@media (min-width: 48em) { .showcase { grid-template-columns: repeat(4, minmax(0, 1fr)); perspective: 1600px; gap: 1.25rem; } }
-.showcase-item { margin: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--stage-rule); background: #161616; aspect-ratio: 4 / 5; }
-.showcase-item img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
-@media (min-width: 48em) {
-  .showcase-item:nth-child(1) { transform: rotateY(10deg) translateY(1.5rem); }
-  .showcase-item:nth-child(2) { transform: rotateY(4deg); }
-  .showcase-item:nth-child(3) { transform: rotateY(-4deg); }
-  .showcase-item:nth-child(4) { transform: rotateY(-10deg) translateY(1.5rem); }
-}
-.showcase-item figcaption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 
 /* residency */
 .residency { padding: 1.1rem 1.2rem 1.2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
