@@ -142,10 +142,12 @@ func Run(ctx context.Context, o ReconOptions) (*Recon, error) {
 	if len(allowed) == 0 {
 		allowed = twins(start.Hostname())
 	}
+	// As in the engine's policy, an entry with a port matches that port alone, and a bare host matches the
+	// scheme's default port or the start page's own.
 	hostOK := func(u *url.URL) bool {
-		h := strings.ToLower(u.Hostname())
+		h, port := strings.ToLower(u.Hostname()), u.Port()
 		for _, a := range allowed {
-			if strings.EqualFold(a, h) || strings.EqualFold(a, u.Host) {
+			if strings.EqualFold(a, u.Host) || (strings.EqualFold(a, h) && (port == "" || port == start.Port())) {
 				return true
 			}
 		}
@@ -191,6 +193,11 @@ func Run(ctx context.Context, o ReconOptions) (*Recon, error) {
 		}
 		rec.Pages = append(rec.Pages, p)
 		all = append(all, pf)
+	}
+	// A scan the caller stopped is not a scan of the site: every page after the stop would say "could not be
+	// fetched", and a plan from that would be wrong.
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	rec.Signals = signals(rec.Pages, all, start)
 	return rec, nil
@@ -398,7 +405,7 @@ func parsePage(doc *html.Node, base *url.URL, p *Page) *pageFacts {
 			case atom.Script, atom.Style, atom.Noscript, atom.Template, atom.Svg:
 				return
 			case atom.Html:
-				p.Lang = attr(n, "lang")
+				p.Lang = langTag(attr(n, "lang"))
 			case atom.Title:
 				if p.Title == "" {
 					p.Title = clean(textOf(n), 120)
@@ -433,8 +440,9 @@ func parsePage(doc *html.Node, base *url.URL, p *Page) *pageFacts {
 					pf.contacts = append(pf.contacts, "email link")
 				case strings.HasPrefix(low, "tel:"):
 					pf.contacts = append(pf.contacts, "phone link")
-				case href != "" && !strings.HasPrefix(href, "#") && !strings.HasPrefix(low, "javascript:"):
-					if u, err := base.Parse(href); err == nil {
+				case href != "" && !strings.HasPrefix(href, "#"):
+					// Only web addresses are pages. That leaves out javascript:, data: and every other scheme.
+					if u, err := base.Parse(href); err == nil && (u.Scheme == "http" || u.Scheme == "https") {
 						u.Fragment = ""
 						pf.hrefs = append(pf.hrefs, u.String())
 						if strings.Contains(strings.ToLower(u.Path), "contact") {
@@ -524,6 +532,20 @@ func attr(n *html.Node, key string) string {
 		}
 	}
 	return ""
+}
+
+// langRE is the shape of a BCP 47 language tag: a language of two to eight letters and subtags of up to eight
+// letters or digits, each after a hyphen.
+var langRE = regexp.MustCompile(`^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$`)
+
+// langTag keeps a lang attribute only when it is shaped like a language tag. Anything else is text the site
+// chose, and the summary prints the languages outside the fence, so it is dropped.
+func langTag(s string) string {
+	s = strings.TrimSpace(s)
+	if len(s) > 35 || !langRE.MatchString(s) {
+		return ""
+	}
+	return s
 }
 
 func hasAttr(n *html.Node, key string) bool {
@@ -669,21 +691,23 @@ func signals(pages []Page, all []*pageFacts, start *url.URL) Signals {
 	return s
 }
 
-// Summary is the recon as short text for the model. Page-derived text is fenced as untrusted data with nonce.
+// Summary is the recon as short text for the model. Everything that came from the site is fenced as untrusted
+// data with nonce: the pages and the paths robots.txt named. The signals line outside the fence holds only
+// yes or no, prices matched by a fixed pattern, fixed contact words and language tags checked for shape.
 func (r *Recon) Summary(nonce string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Start page: %s\n", r.StartURL)
 	if r.Robots != "" {
 		fmt.Fprintf(&b, "robots.txt: %s\n", r.Robots)
 	}
-	if len(r.Disallowed) > 0 {
-		fmt.Fprintf(&b, "Paths robots.txt keeps the scan out of: %s\n", strings.Join(r.Disallowed, ", "))
-	}
 	s := r.Signals
 	fmt.Fprintf(&b, "Signals the engine measured: sign-in %s, basket or checkout %s, pricing or plans page %s, prices seen %s, booking %s, donate %s, newsletter %s, contact %s, articles %s, dates on pages %s, feed %s, docs %s, code samples %s, public service %s, languages %s.\n",
 		yes(s.SignIn), yes(s.Basket), yes(s.PlansPage), list(s.Prices), yes(s.Booking), yes(s.Donate), yes(s.Subscribe), list(s.Contact),
 		yes(s.Articles), yes(s.Dates), yes(s.Feed), yes(s.Docs), yes(s.Code), yes(s.PublicService), list(s.Languages))
 	var pages strings.Builder
+	if len(r.Disallowed) > 0 {
+		fmt.Fprintf(&pages, "Paths robots.txt keeps the scan out of: %s\n", strings.Join(r.Disallowed, ", "))
+	}
 	for _, p := range r.Pages {
 		fmt.Fprintf(&pages, "- %s (%d)", p.URL, p.Status)
 		if p.Error != "" {

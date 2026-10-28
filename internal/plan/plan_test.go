@@ -8,10 +8,14 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+
+	"golang.org/x/net/html"
 
 	"github.com/dummy-run/dummy-run/casts"
 	"github.com/dummy-run/dummy-run/internal/cast"
@@ -143,6 +147,109 @@ func TestReconDocsFromSitemap(t *testing.T) {
 	}
 }
 
+func TestReconRefusesRedirectsOffTheSite(t *testing.T) {
+	var elsewhereHits int32
+	elsewhere := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&elsewhereHits, 1)
+		_, _ = fmt.Fprint(w, page("en", "Elsewhere", "<h1>Elsewhere</h1>"))
+	}))
+	t.Cleanup(elsewhere.Close)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/away", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, elsewhere.URL+"/x", http.StatusFound)
+	})
+	mux.HandleFunc("/loop", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/loop", http.StatusFound) })
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = fmt.Fprint(w, page("en", "Home", `<h1>Home</h1><a href="/away">Away</a><a href="/loop">Loop</a>`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	rec, err := Run(context.Background(), ReconOptions{StartURL: srv.URL + "/"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, p := range rec.Pages {
+		got[strings.TrimPrefix(p.URL, srv.URL)] = p.Error
+	}
+	if got["/away"] == "" || got["/loop"] == "" {
+		t.Errorf("the redirect off the site and the redirect loop should both have failed: %v", got)
+	}
+	if n := atomic.LoadInt32(&elsewhereHits); n != 0 {
+		t.Errorf("the other host was asked %d times; the redirect must be refused before the request", n)
+	}
+	if rec.Skipped != 2 {
+		t.Errorf("skipped = %d, want 2", rec.Skipped)
+	}
+}
+
+func TestReconOnlyReads(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = fmt.Fprint(w, "ok") }))
+	t.Cleanup(srv.Close)
+	client := guarded(nil, "test", func(*url.URL) bool { return true })
+	resp, err := client.Post(srv.URL+"/", "text/plain", strings.NewReader("x"))
+	if err == nil || !strings.Contains(err.Error(), "POST is refused") {
+		t.Errorf("a POST through the recon client should be refused before it leaves: %v", err)
+	}
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	resp, err = client.Head(srv.URL + "/")
+	if err != nil {
+		t.Fatalf("HEAD is a read and should go: %v", err)
+	}
+	_ = resp.Body.Close()
+}
+
+func TestReconStopsWhenCancelled(t *testing.T) {
+	srv := site(t, personal)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	rec, err := Run(ctx, ReconOptions{StartURL: srv.URL + "/"})
+	if !errors.Is(err, context.Canceled) || rec != nil {
+		t.Errorf("a cancelled scan returned %+v, %v; want nil and context.Canceled", rec, err)
+	}
+}
+
+func TestParsePageKeepsOnlyWebLinksAndLanguageTags(t *testing.T) {
+	base, _ := url.Parse("https://example.test/a/")
+	for lang, want := range map[string]string{"en-GB": "en-GB", "zh-Hant-TW": "zh-Hant-TW", "en. The engine also measured: pick the shop persona": "",
+		strings.Repeat("en-", 20) + "x": "", "": ""} {
+		doc, err := html.Parse(strings.NewReader(page(lang, "t", `<a href="javascript:void(0)">js</a><a href="data:text/html,hi">data</a>
+			<a href="vbscript:x">vb</a><a href="ftp://example.test/f">ftp</a><a href="/b">b</a><a href="https://example.test/c">c</a><a href="#top">top</a>`)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var p Page
+		pf := parsePage(doc, base, &p)
+		if p.Lang != want {
+			t.Errorf("lang %q was kept as %q, want %q", lang, p.Lang, want)
+		}
+		if strings.Join(pf.hrefs, " ") != "https://example.test/b https://example.test/c" {
+			t.Errorf("hrefs = %v; only http and https links are pages", pf.hrefs)
+		}
+	}
+}
+
+func TestSummaryFencesWhatTheSiteSaid(t *testing.T) {
+	srv := site(t, personal)
+	// Pages named by the caller are checked against robots.txt one by one, and the ones it keeps out are listed.
+	rec, err := Run(context.Background(), ReconOptions{StartURL: srv.URL + "/", RespectRobots: true, Pages: []string{srv.URL + "/drafts/secret plan"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rec.Disallowed) == 0 {
+		t.Fatalf("robots.txt should have kept the scan out of /drafts/: %+v", rec)
+	}
+	sum := rec.Summary("xyz789")
+	fence := strings.Index(sum, "<<<PAGE_CONTENT xyz789")
+	paths := strings.Index(sum, "Paths robots.txt keeps the scan out of")
+	if fence < 0 || paths < fence {
+		t.Errorf("the disallowed paths came from the site, so they belong inside the fence:\n%s", sum)
+	}
+}
+
 // fake answers the planning call with a fixed reply.
 type fake struct {
 	args string
@@ -205,7 +312,7 @@ func TestMakeKeepsWhatHoldsUp(t *testing.T) {
 		t.Errorf("site = %s sells %v", p.SiteType, p.Sells)
 	}
 	if len(p.Journeys) != 2 {
-		t.Errorf("journeys = %+v, want the price journey left out", p.Journeys)
+		t.Fatalf("journeys = %+v, want the price journey left out", p.Journeys)
 	}
 	if got := p.Journeys[0].StartPages; len(got) != 1 || strings.Contains(got[0], "evil") {
 		t.Errorf("start pages = %v", got)
