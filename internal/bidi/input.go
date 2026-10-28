@@ -157,8 +157,14 @@ func (c *Conn) PressKey(ctx context.Context, context, code string) error {
 }
 
 // PressChord holds the modifiers down in order, presses and releases the key, then lets the modifiers go in reverse.
+// If the call fails part way, a modifier could stay held for every key after it, so PressChord releases what is
+// held before it returns the error.
 func (c *Conn) PressChord(ctx context.Context, context string, mods []string, code string) error {
-	return c.keyActions(ctx, context, chordActions(mods, code))
+	err := c.keyActions(ctx, context, chordActions(mods, code))
+	if err != nil && len(mods) > 0 {
+		_ = c.releaseHeld(ctx, context)
+	}
+	return err
 }
 
 // chordActions is the key actions PressChord sends.
@@ -200,4 +206,12 @@ func (c *Conn) keyActions(ctx context.Context, context string, acts []any) error
 // ReleaseActions releases any key or button still held.
 func (c *Conn) ReleaseActions(ctx context.Context, context string) error {
 	return c.Call(ctx, "input.releaseActions", map[string]any{"context": context}, nil)
+}
+
+// releaseHeld releases any key still held after a failed key sequence. Its own deadline outlives the failed call's,
+// so the release is still sent when that call ran out of time.
+func (c *Conn) releaseHeld(parent context.Context, cx string) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), DefaultTimeout)
+	defer cancel()
+	return c.ReleaseActions(ctx, cx)
 }
