@@ -6,8 +6,10 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/dummy-run/dummy-run/internal/cast"
+	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
@@ -55,5 +57,28 @@ func TestSelfCheckRewritesDowngradesAndDrops(t *testing.T) {
 	text := p.req.Turns[0].Text
 	if !strings.Contains(text, "blog - people who read about code") || !strings.Contains(text, "Read one post.") {
 		t.Errorf("the check does not see the site line and goal:\n%s", text)
+	}
+}
+
+// TestEvidenceContextFindsTheQuoteWhateverItsCase checks the text around the quote is found with the case the
+// page used, and that text whose lower-case form is longer in bytes cannot push the window past the end of
+// the text. U+023A is two bytes and its lower-case form, U+2C65, is three.
+func TestEvidenceContextFindsTheQuoteWhateverItsCase(t *testing.T) {
+	s := &Step{Obs: page.Observation{Snapshot: &page.Snapshot{Title: "Blog", Headings: []string{"Latest posts"},
+		Text: strings.Repeat("Ⱥ", 400) + " Read MORE about the thing."}}}
+	got := evidenceContext(s, "read more")
+	if !strings.Contains(got, "Title: Blog") || !strings.Contains(got, "Headings: Latest posts") || !strings.Contains(got, "Read MORE about the thing.") {
+		t.Errorf("context lost the quote or the page's title:\n%s", got)
+	}
+	// Prefix the quote with enough text that the window has to start inside the prefix.
+	s.Obs.Snapshot.Text = strings.Repeat("Ⱥ", 2000) + " Read MORE about the thing."
+	if got := evidenceContext(s, "Read"); !strings.Contains(got, "Read MORE about the thing.") || !utf8.ValidString(got) {
+		t.Errorf("a window into non-ASCII text should still hold the quote and whole runes:\n%s", got)
+	}
+	if got := evidenceContext(s, "nowhere"); !strings.HasPrefix(got, "Title: Blog") || !strings.Contains(got, "Text: Ⱥ") {
+		t.Errorf("a quote that is not on the page should give the start of the text:\n%s", got)
+	}
+	if got := evidenceContext(&Step{}, "x"); got != "" {
+		t.Errorf("a step with no snapshot has no context, got %q", got)
 	}
 }

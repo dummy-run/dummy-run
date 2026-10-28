@@ -88,8 +88,10 @@ func evidenceContext(s *Step, quote string) string {
 	text := strings.Join(strings.Fields(snap.Text), " ")
 	start := 0
 	if q := strings.Fields(quote); len(q) > 0 {
-		if i := strings.Index(strings.ToLower(text), strings.ToLower(q[0])); i >= 0 {
-			start = max(0, i-300)
+		// The match is made on the text itself, not on a lower-cased copy: lower-casing can change a rune's
+		// byte length, so an offset into the copy could run past the end of the text.
+		if loc := regexp.MustCompile(`(?i)` + regexp.QuoteMeta(q[0])).FindStringIndex(text); loc != nil {
+			start = max(0, loc[0]-300)
 		}
 	}
 	end := min(len(text), start+700)
