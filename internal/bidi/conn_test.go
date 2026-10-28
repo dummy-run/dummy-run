@@ -58,9 +58,9 @@ func TestEndedCallLeavesTheConnectionOpen(t *testing.T) {
 }
 
 // A chord whose input.performActions call fails, or runs out of time, still has its held keys released, and the
-// caller gets the call's own error. A key with no modifier held needs no release.
+// caller gets the call's own error, with the release's when that fails too. A key with no modifier held needs no release.
 func TestFailedChordReleasesHeldKeys(t *testing.T) {
-	type answer struct{ fail, silent bool }
+	type answer struct{ fail, silent, failRelease bool }
 	var mu sync.Mutex
 	var methods []string
 	var perform answer
@@ -85,6 +85,9 @@ func TestFailedChordReleasesHeldKeys(t *testing.T) {
 			a := perform
 			mu.Unlock()
 			reply := map[string]any{"type": "success", "id": cmd.ID, "result": map[string]any{}}
+			if cmd.Method == "input.releaseActions" && a.failRelease {
+				reply = map[string]any{"type": "error", "id": cmd.ID, "error": "unknown error", "message": "the release failed"}
+			}
 			if cmd.Method == "input.performActions" {
 				if a.silent {
 					continue
@@ -131,6 +134,14 @@ func TestFailedChordReleasesHeldKeys(t *testing.T) {
 	}
 	if want := []string{"input.performActions", "input.releaseActions"}; !slices.Equal(got, want) {
 		t.Errorf("a chord that ran out of time sent %q, want %q", got, want)
+	}
+	_, err = try(answer{fail: true, failRelease: true}, ctx, []string{KeyShift})
+	if err == nil || !strings.Contains(err.Error(), "the keys stuck") || !strings.Contains(err.Error(), "the release failed") {
+		t.Errorf("error %v, want both the call's and the release's", err)
+	}
+	var cmdErr *CommandError
+	if !errors.As(err, &cmdErr) || cmdErr.Message != "the keys stuck" {
+		t.Errorf("the call's own error isn't first to errors.As: %v", err)
 	}
 	got, _ = try(answer{fail: true}, ctx, nil)
 	if want := []string{"input.performActions"}; !slices.Equal(got, want) {
