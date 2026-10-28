@@ -158,6 +158,11 @@ func (c *Conn) PressKey(ctx context.Context, context, code string) error {
 
 // PressChord holds the modifiers down in order, presses and releases the key, then lets the modifiers go in reverse.
 func (c *Conn) PressChord(ctx context.Context, context string, mods []string, code string) error {
+	return c.keyActions(ctx, context, chordActions(mods, code))
+}
+
+// chordActions is the key actions PressChord sends.
+func chordActions(mods []string, code string) []any {
 	acts := make([]any, 0, 2*len(mods)+2)
 	for _, m := range mods {
 		acts = append(acts, map[string]any{"type": "keyDown", "value": m})
@@ -168,7 +173,7 @@ func (c *Conn) PressChord(ctx context.Context, context string, mods []string, co
 	for i := len(mods) - 1; i >= 0; i-- {
 		acts = append(acts, map[string]any{"type": "keyUp", "value": mods[i]})
 	}
-	return c.keyActions(ctx, context, acts)
+	return acts
 }
 
 // PressKeyTimes presses one key n times.
