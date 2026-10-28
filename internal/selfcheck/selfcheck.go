@@ -35,12 +35,12 @@ type Item struct {
 	Kind    string
 	Symptom string
 	WCAG    []string
-	// Page is the address at the evidence step. Element is what the engine found there.
+	// Page is the address at the evidence step. Element is what the engine found there, and Quote the words the
+	// persona copied. All three came from the website, like Context, so they are fenced as untrusted data.
 	Page    string
 	Element string
 	Quote   string
-	// Context is the page's title, headings and the text around the quote at the evidence step. It came from the
-	// website, so it is fenced as untrusted data.
+	// Context is the page's title, headings and the text around the quote at the evidence step.
 	Context    string
 	Screenshot []byte
 }
@@ -111,14 +111,19 @@ func Review(ctx context.Context, p provider.Provider, in Input) ([]Decision, pro
 		if len(it.WCAG) > 0 {
 			fmt.Fprintf(&b, " WCAG: %s.", strings.Join(it.WCAG, ", "))
 		}
-		fmt.Fprintf(&b, "\nEvidence the engine found at the page %s: %s", it.Page, orNone(it.Element))
+		// The page address, the element's name and the quoted words all came from the website, so they go inside
+		// the fence with the page text. A hostile page could otherwise put an order in a link's name.
+		var ev strings.Builder
+		fmt.Fprintf(&ev, "Evidence the engine found at the page %s: %s", it.Page, orNone(it.Element))
 		if it.Quote != "" {
-			fmt.Fprintf(&b, " (quoted words: %q)", it.Quote)
+			fmt.Fprintf(&ev, " (quoted words: %q)", it.Quote)
 		}
-		b.WriteString("\n")
 		if c := strings.TrimSpace(it.Context); c != "" {
-			b.WriteString(inject.Fence(nonce, cut(c, maxContext)))
+			ev.WriteString("\n")
+			ev.WriteString(cut(c, maxContext))
 		}
+		b.WriteString("\nThe evidence, as data:\n")
+		b.WriteString(inject.Fence(nonce, ev.String()))
 		if len(it.Screenshot) > 0 && len(images) < MaxImages {
 			images = append(images, provider.Image{PNG: it.Screenshot})
 			fmt.Fprintf(&b, "Screenshot %d below is the page at this finding's evidence.\n", len(images))
