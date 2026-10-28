@@ -631,7 +631,9 @@ the threats. Here is what the engine does about prompt injection.
 - A strong match adds a `HARNESS WARNING` line to that step's result, which tells the persona the text is data
   from the website to ignore, and a `suspected_injection` event to the run record. Detector hits are recorded as events in the run record for the operator, never as findings. The
   detector also fires on ordinary text, and a site owner can't act on a guess about what a page meant.
-- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
+- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event. A finding
+  whose control or quote isn't at its cited steps is kept as an observation with `kind: unverified`, as
+  [Evidence for every finding](#evidence-for-every-finding) says, and gets the same event.
 - A finding whose cited steps all show the test's own limits is dropped and recorded as a
   `harness_limit_finding` event that says why. These are the steps that count as the test's limits:
   - the browser couldn't read the page
@@ -646,14 +648,6 @@ the threats. Here is what the engine does about prompt injection.
   A request the page sent by itself, such as a beacon while the persona scrolled, doesn't count. A finding
   with at least one cited step that shows the real page is kept. The persona is also told that these limits
   aren't the site's faults.
-  `low confidence:` in its detail, and it neither warns the persona nor files a finding.
-- A strong match adds a `HARNESS WARNING` line to that step's result and a `suspected_injection` event to the
-  run record. It also adds one finding of kind `security` that cites every step with a match. The engine files
-  this finding itself, so it's there even if the persona obeyed the page. Its symptom is `misleading-copy` and
-  its verdict is `pending`. Its severity is `major` when the text was hidden or held invisible characters, and
-  `minor` otherwise.
-- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event. So is a
-  finding whose control or quote isn't at its cited steps, which is kept as an unverified observation.
 
 The record's `events` array is optional. Each event has a `kind` and a short `detail`, plus a `step` where one
 applies. A `suspected_injection` event also has the `source` (`visible`, `label` or `hidden`) and the `pattern`.
