@@ -35,8 +35,9 @@ var Tools = []provider.Tool{
 		Parameters: object(map[string]any{"target": str("@ref or the field's label"), "text": str("The text")}, "target", "text")},
 	{Name: "select", Description: "Choose an option in a select by its visible text.",
 		Parameters: object(map[string]any{"target": str("@ref or the field's label"), "option": str("The option's text")}, "target", "option")},
-	{Name: "press", Description: "Press a key: " + strings.Join(bidi.KeyNames, ", ") + ".",
-		Parameters: object(map[string]any{"key": str("The key name")}, "key")},
+	{Name: "press", Description: "Press a key: " + strings.Join(bidi.KeyNames, ", ") + ", or a single character. To hold " +
+		strings.Join(bidi.ModifierNames, ", ") + " with it, join them with +, as in Shift+Tab.",
+		Parameters: object(map[string]any{"key": str("The key name, with any modifiers before it, such as Shift+Tab")}, "key")},
 	{Name: "back", Description: "Go back one page."},
 	{Name: "scroll", Description: "Scroll the page by most of a screen.",
 		Parameters: object(map[string]any{"direction": map[string]any{"type": "string", "enum": []string{"up", "down"}}}, "direction")},

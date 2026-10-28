@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 // Key codes from the WebDriver spec, section "Keyboard actions". A key action's
@@ -53,6 +54,48 @@ func Key(name string) (string, error) {
 		return "", fmt.Errorf("bidi: unknown key %q; use one of %s", name, strings.Join(KeyNames, ", "))
 	}
 	return code, nil
+}
+
+// modifierNames maps the modifier names a persona may use (lower case) to codes.
+var modifierNames = map[string]string{
+	"shift": KeyShift, "control": KeyControl, "ctrl": KeyControl, "alt": KeyAlt, "option": KeyAlt,
+	"meta": KeyMeta, "cmd": KeyMeta, "command": KeyMeta,
+}
+
+// ModifierNames lists the modifiers Chord accepts, for help text.
+var ModifierNames = []string{"Shift", "Control", "Alt", "Meta"}
+
+// Chord resolves a key name with any modifiers held before it, joined by +, such as "Shift+Tab" or
+// "Control+Alt+Delete", to the modifiers' codes and the key's code. A key name alone, as Key takes it, is a chord
+// with no modifiers, and "+" on its own, or after a modifier, is the plus key.
+func Chord(name string) (mods []string, key string, err error) {
+	keyName, rest, joined := name, "", false
+	if len(name) > 1 {
+		if i := strings.LastIndex(name[:len(name)-1], "+"); i >= 0 {
+			rest, keyName, joined = name[:i], name[i+1:], true
+		}
+	}
+	if joined {
+		seen := map[string]bool{}
+		for _, m := range strings.Split(rest, "+") {
+			code, ok := modifierNames[strings.ToLower(strings.TrimSpace(m))]
+			if !ok {
+				return nil, "", fmt.Errorf("bidi: unknown modifier %q in %q; use %s", m, name, strings.Join(ModifierNames, ", "))
+			}
+			if seen[code] {
+				return nil, "", fmt.Errorf("bidi: %q holds %s twice", name, strings.TrimSpace(m))
+			}
+			seen[code] = true
+			mods = append(mods, code)
+		}
+	}
+	if joined {
+		keyName = strings.TrimSpace(keyName)
+	}
+	if key, err = Key(keyName); err != nil {
+		return nil, "", err
+	}
+	return mods, key, nil
 }
 
 // Click moves the mouse to (x, y) in the viewport and clicks.
@@ -114,6 +157,58 @@ func (c *Conn) PressKey(ctx context.Context, context, code string) error {
 	})
 }
 
+// PressChord holds the modifiers down in order, presses and releases the key, then lets the modifiers go in reverse.
+// If the call fails part way, a modifier could stay held for every key after it, so PressChord releases what is
+// held before it returns the error. If that release fails too, the error says so as a chordError, since later keys
+// may then come with a modifier still held.
+func (c *Conn) PressChord(ctx context.Context, context string, mods []string, code string) error {
+	err := c.keyActions(ctx, context, chordActions(mods, code))
+	if err != nil && len(mods) > 0 {
+		if rerr := c.releaseHeld(ctx, context); rerr != nil {
+			err = chordError{press: err, release: rerr}
+		}
+	}
+	return err
+}
+
+// chordError is a failed chord whose held keys failed to release too. A page action reports only the first line of
+// an error, cut to 300 bytes, so Error keeps both parts on one short line. Unwrap still gives the full errors.
+type chordError struct{ press, release error }
+
+func (e chordError) Error() string {
+	return clip(e.press.Error(), 180) + "; bidi: release the held keys: " + clip(e.release.Error(), 80)
+}
+
+func (e chordError) Unwrap() []error { return []error{e.press, e.release} }
+
+// clip puts s on one line and cuts it to at most n bytes without splitting a character.
+func clip(s string, n int) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if len(s) <= n {
+		return s
+	}
+	n -= len("...")
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n] + "..."
+}
+
+// chordActions is the key actions PressChord sends.
+func chordActions(mods []string, code string) []any {
+	acts := make([]any, 0, 2*len(mods)+2)
+	for _, m := range mods {
+		acts = append(acts, map[string]any{"type": "keyDown", "value": m})
+	}
+	acts = append(acts,
+		map[string]any{"type": "keyDown", "value": code},
+		map[string]any{"type": "keyUp", "value": code})
+	for i := len(mods) - 1; i >= 0; i-- {
+		acts = append(acts, map[string]any{"type": "keyUp", "value": mods[i]})
+	}
+	return acts
+}
+
 // PressKeyTimes presses one key n times.
 func (c *Conn) PressKeyTimes(ctx context.Context, context, code string, n int) error {
 	acts := make([]any, 0, 2*n)
@@ -138,4 +233,12 @@ func (c *Conn) keyActions(ctx context.Context, context string, acts []any) error
 // ReleaseActions releases any key or button still held.
 func (c *Conn) ReleaseActions(ctx context.Context, context string) error {
 	return c.Call(ctx, "input.releaseActions", map[string]any{"context": context}, nil)
+}
+
+// releaseHeld releases any key still held after a failed key sequence. Its own deadline outlives the failed call's,
+// so the release is still sent when that call ran out of time.
+func (c *Conn) releaseHeld(parent context.Context, cx string) error {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(parent), DefaultTimeout)
+	defer cancel()
+	return c.ReleaseActions(ctx, cx)
 }
