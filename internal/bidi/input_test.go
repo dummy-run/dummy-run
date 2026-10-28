@@ -20,6 +20,8 @@ func TestKey(t *testing.T) {
 	}
 }
 
+// TestChord reads modifiers joined to a key with +, in any case and under any of their names, and refuses an
+// unknown modifier, one held twice or an empty part.
 func TestChord(t *testing.T) {
 	for name, want := range map[string]struct {
 		mods []string
@@ -49,6 +51,8 @@ func TestChord(t *testing.T) {
 	}
 }
 
+// TestChordActionsHoldModifiersAroundTheKey checks the modifiers go down in order before the key and come up in
+// reverse after it.
 func TestChordActionsHoldModifiersAroundTheKey(t *testing.T) {
 	got := chordActions([]string{KeyControl, KeyShift}, KeyTab)
 	want := []string{"keyDown " + KeyControl, "keyDown " + KeyShift, "keyDown " + KeyTab, "keyUp " + KeyTab, "keyUp " + KeyShift, "keyUp " + KeyControl}

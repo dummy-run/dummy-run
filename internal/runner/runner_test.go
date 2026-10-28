@@ -238,6 +238,7 @@ func TestToolsCoverTheSchemaActions(t *testing.T) {
 	}
 }
 
+// TestPressToolNamesTheModifiers checks the press tool tells the model which modifiers it takes and how to join them.
 func TestPressToolNamesTheModifiers(t *testing.T) {
 	for _, tool := range Tools {
 		if tool.Name != "press" {
