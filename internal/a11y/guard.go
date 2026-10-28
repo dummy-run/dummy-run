@@ -41,6 +41,8 @@ func guardTab(ctx context.Context, conn *bidi.Conn, cx string, cfg Config, allow
 // closed as soon as it opens, so it can't take focus from the page under test.
 type openedTabs struct {
 	stopped atomic.Int32
+	// opened counts the tabs pages opened, each closed as soon as it appeared.
+	opened atomic.Int32
 	// pending counts the decisions and closes still under way, so a page's count can wait for them.
 	pending atomic.Int32
 	off     []func()
@@ -97,6 +99,7 @@ func guardOpenedTabs(ctx context.Context, conn *bidi.Conn, cfg Config, allowed f
 		if json.Unmarshal(params, &c) != nil || c.Parent != "" || c.OriginalOpener == "" {
 			return
 		}
+		g.opened.Add(1)
 		g.pending.Add(1)
 		go func() {
 			defer g.pending.Add(-1)
@@ -124,6 +127,14 @@ func (g *openedTabs) Stopped() int {
 		return 0
 	}
 	return int(g.stopped.Load())
+}
+
+// Opened is how many tabs pages opened.
+func (g *openedTabs) Opened() int {
+	if g == nil {
+		return 0
+	}
+	return int(g.opened.Load())
 }
 
 // settle waits, for up to wait, until no decision or close is under way, so a robots refusal that a slow robots.txt

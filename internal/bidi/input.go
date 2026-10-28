@@ -70,6 +70,26 @@ func (c *Conn) Click(ctx context.Context, context string, x, y float64) error {
 	}, nil)
 }
 
+// MoveMouse moves the mouse to (x, y) in the viewport without pressing a button.
+func (c *Conn) MoveMouse(ctx context.Context, context string, x, y float64) error {
+	return c.pointer(ctx, context, map[string]any{"type": "pointerMove", "x": int(x), "y": int(y)})
+}
+
+// PressMouse clicks where the mouse already is.
+func (c *Conn) PressMouse(ctx context.Context, context string) error {
+	return c.pointer(ctx, context, map[string]any{"type": "pointerDown", "button": 0}, map[string]any{"type": "pointerUp", "button": 0})
+}
+
+func (c *Conn) pointer(ctx context.Context, context string, acts ...any) error {
+	return c.Call(ctx, "input.performActions", map[string]any{
+		"context": context,
+		"actions": []any{map[string]any{
+			"type": "pointer", "id": "mouse", "parameters": map[string]any{"pointerType": "mouse"},
+			"actions": acts,
+		}},
+	}, nil)
+}
+
 // TypeText presses and releases one key per character of text. Keys go to
 // whatever has focus.
 func (c *Conn) TypeText(ctx context.Context, context, text string) error {
