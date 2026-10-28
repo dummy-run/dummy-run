@@ -136,15 +136,17 @@ func Review(ctx context.Context, p provider.Provider, in Input) ([]Decision, pro
 		Tools:  []provider.Tool{tool}, ForceTool: tool.Name, MaxOutputTokens: maxOutputTokens,
 	})
 	resp, err := p.Chat(ctx, req)
+	// Chat returns the response by value, so its usage is there on an error too: a failed call may still have cost.
+	usage := resp.Usage
 	if err != nil {
-		return unchecked(in, "the self-check call failed"), resp.Usage, err
+		return unchecked(in, "the self-check call failed"), usage, err
 	}
 	for _, c := range resp.ToolCalls {
 		if c.Name == tool.Name {
-			return parse(in, c.Args), resp.Usage, nil
+			return parse(in, c.Args), usage, nil
 		}
 	}
-	return unchecked(in, "the self-check gave no decision"), resp.Usage, nil
+	return unchecked(in, "the self-check gave no decision"), usage, nil
 }
 
 func parse(in Input, args json.RawMessage) []Decision {
