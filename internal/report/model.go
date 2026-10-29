@@ -35,8 +35,10 @@ type Report struct {
 	Tool          string `json:"tool"`
 	ToolVersion   string `json:"tool_version"`
 	// Basis says which findings are in the report: "confirmed" or "confirmed and not reviewed".
-	Basis    string          `json:"basis"`
-	Summary  Summary         `json:"summary"`
+	Basis   string  `json:"basis"`
+	Summary Summary `json:"summary"`
+	// Plan says what was tested and why, when the cast came from dummyrun plan.
+	Plan     *PlanSection    `json:"plan,omitempty"`
 	Scope    Scope           `json:"scope"`
 	Coverage CoverageSection `json:"coverage"`
 	Findings []Finding       `json:"findings"`

@@ -72,6 +72,19 @@ Personas also reported what went well. A model wrote these notes and no person h
 {{end -}}
 > Read this as a sample. This report tells you what the runs met. It is not a certificate and it does not say the site meets a standard. A problem nobody ran into is not in it. See [What this report is not](#what-this-report-is-not).
 
+{{with .Plan -}}
+## What we tested and why
+
+{{inline .Intro}}
+
+{{range .Journeys -}}
+- **{{inline .Name}}.**{{if .Why}} {{inline .Why}}{{end}}
+{{end}}
+{{range .Personas -}}
+{{inline .Text}}
+
+{{end -}}
+{{end -}}
 ## Findings
 
 The findings are sorted by severity, then by the number of runs that found them. Each is a distinct problem, and one found in several runs appears once.
@@ -283,7 +296,9 @@ Each run signs one fictional user, called a persona, in to the app in a real bro
 | {{cell .Model}} | {{cell .Kind}} | {{cell .Region}} | {{cell .Runs}} |
 {{- end}}
 {{else}}No persona runs were given. This report holds the axe sweep only.
-{{end}}
+{{if .Scope.Cost.ModelCalls}}
+- Model cost: {{usd .Scope.Cost.USD}} over {{.Scope.Cost.ModelCalls}} model calls ({{.Scope.Cost.InputTokens}} input and {{.Scope.Cost.OutputTokens}} output tokens){{if .Scope.Cost.UnpricedRuns}}. {{.Scope.Cost.UnpricedRuns}} runs used a model with no price, so the cost is a floor{{end}}
+{{end}}{{end}}
 ### Coverage
 
 {{if .Coverage.Available -}}

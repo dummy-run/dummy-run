@@ -167,6 +167,44 @@
       }
     },
     "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "plan": {
+      "type": "object",
+      "description": "What was tested and why, when the cast came from dummyrun plan",
+      "additionalProperties": false,
+      "required": ["site_type", "site", "journeys", "personas", "intro"],
+      "properties": {
+        "site_type": { "type": "string" },
+        "site": { "type": "string", "description": "The kind of site in words" },
+        "audience": { "type": "string" },
+        "summary": { "type": "string" },
+        "intro": { "type": "string" },
+        "journeys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name"],
+            "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "why": { "type": "string" } }
+          }
+        },
+        "personas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "journeys", "text"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "label": { "type": "string" },
+              "why": { "type": "string" },
+              "journeys": { "type": "array", "items": { "type": "string" } },
+              "text": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "worked": {
       "type": "array",
       "description": "What personas reported as working. A person has not checked these notes",

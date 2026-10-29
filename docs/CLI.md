@@ -14,6 +14,9 @@ Usage:
   dummyrun browsers list
   dummyrun try URL [--browser chrome|firefox] [--out DIR] [--provider PROVIDER --model MODEL] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
+  dummyrun plan URL --out DIR [--personas N | --persona ID...] [--steps N] [--min-steps N] [--pages URL]... [--pages-file FILE] \
+      [--library DIR] [--json FILE] [--no-model] [--signin] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...] \
+      [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
@@ -21,8 +24,8 @@ Usage:
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
-  dummyrun report --runs DIR [--a11y FILE]... [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] [--include pending] \
-      [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
+  dummyrun report --runs DIR [--a11y FILE]... [--plan FILE] [--title TEXT] [--client TEXT] [--format html|md|json|sarif|junit] \
+      [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
   dummyrun review RUNS_DIR|RECORD... [--list [--json] [--verdict V]] [--confirm ID]... [--reject ID]... [--reason TEXT] [--reviewer NAME]
   dummyrun calibrate --labels FILE... [--eval FILE...] [--table FILE] [--out-table FILE] [--report FILE] [--min-samples N]
   dummyrun a11y [--sitemap URL] [URL...] [--all] [--browser chrome|firefox] [--allow FILE] [--json FILE] [--session FILE] [--identify] [--respect-robots] \
@@ -34,7 +37,7 @@ Usage:
   dummyrun version
 
 First run: "dummyrun browsers install" once, set one model key, then "dummyrun try https://your-site".
-Run "dummyrun try -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun calibrate -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
+Run "dummyrun try -h", "dummyrun plan -h", "dummyrun browsers -h", "dummyrun run -h", "dummyrun coverage -h", "dummyrun report -h", "dummyrun review -h", "dummyrun calibrate -h", "dummyrun a11y -h", "dummyrun session -h", "dummyrun mcp -h" or "dummyrun doctor -h" for every flag. "dummyrun audit a11y" is the same as "dummyrun a11y".
 
 Providers (leave out --provider and --model to have them chosen from your environment, in this order:
 DUMMYRUN_AZURE_ENDPOINT, OPENAI_API_KEY, ANTHROPIC_API_KEY, then Ollama on OLLAMA_HOST or localhost:11434;
@@ -53,6 +56,57 @@ the first line of the output says what was chosen, and docs/PROVIDERS.md lists t
 An API key is read from the environment when the run starts. It is never printed or written to a run record.
 The same holds for the test-user credentials named in a target file's signin block and for the Basic auth and
 header secrets of a protected preview (the auth block, --basic-auth-env and --header-env).
+```
+
+## dummyrun plan
+
+Work out what a site is for and write a cast that fits it. See [ENGINE.md](ENGINE.md).
+
+```text
+Usage: dummyrun plan URL --out DIR [--personas N | --persona ID...] [--steps N] [--min-steps N] [--pages URL]... [--pages-file FILE]
+    [--library DIR] [--json FILE] [--no-model] [--signin] [--identify] [--respect-robots] [--provider PROVIDER --model MODEL ...]
+    [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
+
+Works out what your site is for and writes a cast that fits it, ready for "dummyrun run".
+
+First it reads up to 10 pages over plain HTTP, with no browser: titles, headings, menus, forms, and signs such
+as a basket, prices, a sign-in form or a contact link. It only sends GET requests, and only to the site's own
+hosts. Then one short model call names the kind of site, who it is for and its two to four key journeys, picks
+personas from the library that fit them and gives each its journeys, starting pages and what not to do. How
+each persona goes about a journey comes from the persona itself: the keyboard user counts Tab presses, the
+screen reader user moves by headings and landmarks, and each has its own minimum number of steps. It never
+asks about prices unless the site sells something.
+
+DIR gets one folder per persona (its profile and prompt, copied from the library, and scenarios/01-<id>.md)
+and plan.json. Give an empty folder or one an earlier plan wrote: its personas are replaced. Play a persona with:
+  dummyrun run --cast DIR --persona ID --scenario ID --target CONFIG --out RUNS ...
+and add --plan DIR/plan.json to "dummyrun report" to show what was tested and why.
+
+If the model call fails, or its answer does not hold up, the plan comes from the signals alone and plan.json says
+why. --no-model skips the call. Exit status: 0 when the cast is written, 2 for a usage error (such as a --persona
+that is not in the library), 3 when robots.txt disallows the start page (with --respect-robots), 130 when
+interrupted; nothing is written then.
+
+Flags:
+  --out DIR          where the cast goes (required)
+  --personas N       how many personas to pick, 1 to 4 (default 1)
+  --persona ID       use this library persona instead of letting the plan pick; repeat it for several, in order
+  --steps N          each persona's step budget (default 12)
+  --min-steps N      each persona's minimum steps (default the persona's own, always at least 3 below --steps)
+  --pages URL        a page to read instead of the sitemap; repeat it, up to 10
+  --pages-file FILE  a file of pages to read, one address per line
+  --library DIR      the persona library to choose from (default the one built into the program)
+  --json FILE        also write plan.json here
+  --no-model         plan from the signals alone, with no model call
+  --signin           the target has test users, so a persona that signs in may be picked
+  --identify         name the scanner page in the user agent
+  --respect-robots   read robots.txt and skip what it disallows for DummyRun or *
+  --basic-auth-env USER_ENV:PASS_ENV
+                     answer HTTP Basic auth on a protected preview, with the names of two environment variables
+  --header-env 'Name:ENV'
+                     send a request header whose value is in an environment variable, such as
+                     x-vercel-protection-bypass. Repeat for more. Both go only to the site's own hosts
+  The model flags are the same as for "dummyrun run".
 ```
 
 ## dummyrun run
@@ -152,7 +206,7 @@ Usage of coverage:
 Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md) and [BADGES.md](BADGES.md).
 
 ```text
-Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--title TEXT] [--client TEXT]
+Usage: dummyrun report --runs DIR|FILE [--runs ...] [--a11y FILE]... [--plan FILE] [--title TEXT] [--client TEXT]
     [--format html|md|json|sarif|junit|ctrf|badge|shields] [--include pending] [--baseline FILE] [--build SHA] [--date YYYY-MM-DD] [--out FILE]
 
 Turns run records and accessibility sweep results into an audit report. The default is one self-contained
@@ -161,6 +215,8 @@ marked not reviewed. Rejected findings never appear. The report covers a sample 
 claim of WCAG conformance.
 --format badge writes a small SVG badge and --format shields writes the shields.io endpoint JSON for it.
 Both say how many findings are open and the date of the newest run.
+--plan adds "What we tested and why" from the plan.json that dummyrun plan wrote: the kind of site, the
+journeys that were tried and why each persona was sent.
   -a11y value
     	JSON file from dummyrun a11y --json; repeatable
   -baseline string
@@ -177,6 +233,8 @@ Both say how many findings are open and the date of the newest run.
     	"pending" also includes findings no reviewer has confirmed, marked not reviewed (default: confirmed only)
   -out string
     	write the report to this file instead of standard output
+  -plan string
+    	plan.json from dummyrun plan: adds what was tested and why, and the planning cost
   -runs value
     	directory or file of run records; repeat the flag to read several (record paths may also follow the flags)
   -title string

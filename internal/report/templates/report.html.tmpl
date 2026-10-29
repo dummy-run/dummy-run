@@ -297,6 +297,9 @@ footer p { margin: 0 0 0.4rem; }
 <h2 id="h-contents">Contents</h2>
 <ol>
 <li><a href="#summary">Summary</a></li>
+{{- if .Plan}}
+<li><a href="#tested">What we tested and why</a></li>
+{{- end}}
 <li><a href="#findings">Findings</a>
 {{- if .Findings}}
 <ul class="toc-findings">
@@ -382,7 +385,22 @@ footer p { margin: 0 0 0.4rem; }
 </aside>
 </section>
 
-<section id="findings" aria-labelledby="h-findings">
+{{with .Plan}}<section id="tested" class="flow" aria-labelledby="h-tested">
+<h2 id="h-tested">What we tested and why</h2>
+<p>{{.Intro}}</p>
+{{- if .Journeys}}
+<ul class="worked">
+{{- range .Journeys}}
+<li><strong>{{.Name}}.</strong>{{if .Why}} {{.Why}}{{end}}</li>
+{{- end}}
+</ul>
+{{- end}}
+{{- range .Personas}}
+<p>{{.Text}}</p>
+{{- end}}
+</section>
+
+{{end}}<section id="findings" aria-labelledby="h-findings">
 <h2 id="h-findings">Findings</h2>
 <p>The findings are sorted by severity, then by the number of runs that found them. Each is a distinct problem, and one found in several runs appears once.</p>
 {{if not .Findings}}<p>This report has no persona findings.</p>{{end}}
@@ -668,7 +686,10 @@ footer p { margin: 0 0 0.4rem; }
 </div>
 {{else}}
 <p>No persona runs were given. This report holds the axe sweep only.</p>
-{{end}}
+{{if .Scope.Cost.ModelCalls}}<dl class="facts">
+<dt>Model cost</dt><dd>{{usd .Scope.Cost.USD}} over {{.Scope.Cost.ModelCalls}} model calls ({{.Scope.Cost.InputTokens}} input and {{.Scope.Cost.OutputTokens}} output tokens){{if .Scope.Cost.UnpricedRuns}}. {{.Scope.Cost.UnpricedRuns}} runs used a model with no price, so the cost is a floor{{end}}</dd>
+</dl>
+{{end}}{{end}}
 
 <h3 class="sub" id="coverage">Coverage</h3>
 {{if .Coverage.Available}}
