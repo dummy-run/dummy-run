@@ -32,6 +32,47 @@ Inside a container or a VM, set `DUMMYRUN_NO_SANDBOX=1` to start the browsers wi
 The container image does this already, and so does any run where `CI` is set. Don't set it on your own
 machine.
 
+## Plan
+
+`dummyrun plan` works out what your site is for before anyone visits it, and writes a cast that fits.
+
+```sh
+dummyrun plan https://your-site --out ./cast --personas 1 --identify --respect-robots
+```
+
+1. **Read.** It reads up to 10 pages over plain HTTP, with no browser and no model. It takes them from the sitemap,
+   or the links on the start page, spread across the top-level folders, or from `--pages`. It only sends GET
+   requests and only to the site's own hosts. From each page it keeps the title, the headings, the menu, the forms
+   and the language. Across all of them it looks for signs of what the site is for. Those are a sign-in form, a
+   basket, prices or a pricing page, booking, donations and contact links. It also notes articles, dates, a feed,
+   code samples and public-service names. With `--respect-robots` it skips what `robots.txt` disallows.
+2. **Plan.** One short model call reads a short summary of that. Each page is cut to its title, eight headings, 20
+   menu items, its forms and 60 words of text, and everything that came from the site is fenced as untrusted data. It names the kind of site (personal, blog, shop, software product, docs, public service,
+   organisation, charity, news, local business, education, open-source or other), who it is for and two to four
+   key journeys. It picks up to `--personas` personas from the library, or uses the ones you name with `--persona`,
+   and gives each its journeys, starting pages, how it knows each worked and what not to do. Each persona brings
+   its own way of working. The keyboard user plans its Tab presses, notes the first
+   stops and the skip link, and counts Tab presses per journey. The screen reader user moves by headings, landmarks
+   and link names. Zoom and large-text users check each screenshot for clipped or overlapping content. Every
+   persona has its own minimum steps (12 for the keyboard user, 10 for the screen reader user, 6 for most), kept at
+   least three below the budget, and `--min-steps` overrides it. The engine checks the answer. It keeps only
+   personas from the library and pages it read. When the site sells nothing, it drops a journey or scenario whose
+   name, title, given or goal asks about prices and leaves out any list line or reason that does. If the call fails or
+   the answer does not hold up, the plan comes from the signs alone and `plan.json` says why. `--no-model` skips the
+   call. Stopping the command with Ctrl-C writes nothing.
+3. **Write.** `DIR` gets one folder per persona, with its `profile.md` and `prompt.md` copied from the library and
+   `scenarios/01-<id>.md`, and `plan.json`. Each scenario has a `Site:` line, says not to send forms, sign in or pay,
+   and asks the persona to name the control or quote the words for every finding.
+
+Play the cast with `dummyrun run --cast DIR --persona ID --scenario ID`, and pass `--plan DIR/plan.json` to
+`dummyrun report` for its "What we tested and why" section. `dummyrun try` plans one persona this way first, and
+falls back to its built-in look-around when planning fails. On `gpt-5-4-mini` a plan costs about half a penny.
+
+<!-- doctest -->
+```sh
+dummyrun plan -h
+```
+
 ## Run
 
 To run a persona against your app, sign in to your model provider and point the engine at a cast and a
@@ -92,7 +133,7 @@ times and fails each time, it gives up and the run ends.
 | `click` | Click `@12` from the last look, a control's text or `css:selector` |
 | `fill`, `type` | Put text into a field in one go, or key by key for fields that react as you type |
 | `select` | Choose an option in a select by its text |
-| `press` | Press a key such as Enter, Escape or ArrowDown |
+| `press` | Press a key such as Enter, Escape or ArrowDown. To hold a modifier, join it to the key with `+`, as in `Shift+Tab`. The modifiers are Shift, Control, Alt and Meta |
 | `back`, `scroll`, `wait` | Go back one page, scroll by most of a screen, or wait up to 15 seconds |
 | `a11y` | Run axe-core 4.13.0 with the WCAG 2.2 A and AA rules. The result names up to three failing elements of each rule. Only rule IDs and counts are recorded |
 | `finish` | End the run with a verdict, `goal_met`, a report, and findings and observations that cite step numbers |
@@ -931,20 +972,23 @@ dummyrun a11y --browser chrome --sitemap https://example.com/sitemap.xml \
 
 - Protected previews. `--basic-auth-env USER_ENV:PASS_ENV` and `--header-env 'Name:ENV'` get the sweep past Basic auth or a bypass header, as [Protected previews](#protected-previews) describes.
 - Writes. The browser the sweep opens sends nothing but GET and HEAD, in its own tabs, in the tab Lighthouse
-  loads the page in and in any tab a page opens. A request a page's script sends with any other method, such as a
-  form or an API call made as the page loads or when a check presses a control, fails before it leaves the
-  browser. With `--respect-robots`, no tab loads a page that robots.txt disallows either. A page can't open a
-  window of its own: `window.open` does nothing and returns null, and a form, link or `<base>` that names a new window
-  is sent to the page's own tab, where the guard decides it. That holds when the page's own script sets the target
-  as the link is clicked or the form sent. A frame the target names is still used, one beside the
-  form's own frame included. A cross-origin frame's name can't be read, so a target that names one goes to the form's
-  own frame instead. Chrome never
-  reports the first request of a new tab to the guard, so without this a form sent to a new window would arrive. A
-  tab that opens all the same is closed at once, so it can't take focus from the page under test. GET and HEAD still
-  go through, so a site that changes data on a GET can still be changed. Each page's
-  `requests_stopped` counts what was stopped while the page was tested. The journeys' tab isn't counted. The failure
-  probe's `failure_probe.stopped` counts the requests it failed for their method. A page load that robots.txt refused
-  there isn't counted.
+  loads the page in and in any tab a page opens. A request a page's script sends with any other method, such as a form
+  or an API call made as the page loads or when a check presses a control, fails before it leaves the browser. With
+  `--respect-robots`, no tab loads a page that robots.txt disallows either. A page can't open a window of its own:
+  `window.open` does nothing and returns null, and a form, link or `<base>` that names a new window is sent to the
+  page's own tab, where the guard decides it. That holds when the page's own script sets the target as the link is
+  clicked or the form sent. A frame the target names is still used, one beside the form's own frame included. A
+  cross-origin frame's name can't be read, so a target that names one goes to the form's own frame instead. A shadow
+  root holds markup inside an element, apart from the rest of the page, and a closed one can't be reached by any other
+  script. Links and forms inside a closed shadow root are guarded too. The keyboard and mouse comparison guards them
+  after each load and again just before each click, Enter or Space, so a root the page builds later is covered as
+  well. The one gap left is a root the page builds in the instant between that last guard and the press. In Chrome, a
+  link or form inside it could still reach a new window. Chrome never reports the first request of a new tab to the
+  guard, so without this a form sent to a new window would arrive. A tab that opens all the same is closed at once, so
+  it can't take focus from the page under test. GET and HEAD still go through, so a site that changes data on a GET
+  can still be changed. Each page's `requests_stopped` counts what was stopped while the page was tested. The
+  journeys' tab isn't counted. The failure probe's `failure_probe.stopped` counts the requests it failed for their
+  method. A page load that robots.txt refused there isn't counted.
 - Pages. Give URLs, a sitemap or both. A sitemap index is followed one level down. `--rebase URL` moves every
   sitemap address onto another origin, so you can test a local copy of a site from its live sitemap.
 - Rules. The axe-core rules tagged WCAG 2.0, 2.1 and 2.2 at levels A and AA, plus axe's best-practice rules.
