@@ -262,7 +262,12 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 
 	finish, gaveUp, runErr := r.play(ctx)
 	var checks []record.SelfCheck
-	if cfg.SelfCheck && runErr == nil {
+	switch {
+	case !cfg.SelfCheck || runErr != nil:
+	case r.usage.InputTokens+r.usage.OutputTokens >= r.tokens:
+		// The budget is the user's cap on what a run spends, and the self-check is one more call.
+		fmt.Fprintln(r.log, "self-check: skipped, the token budget is spent")
+	default:
 		checks = r.selfCheck(ctx, finish)
 	}
 	rec := r.record(finish, runErr)
