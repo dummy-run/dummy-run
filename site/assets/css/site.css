@@ -356,11 +356,11 @@ h1, h2, h3, h4, .u-display, .u-display-sm, .u-title, .u-title-sm, .u-subtitle { 
 .answers { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem 2.5rem; margin: 0; }
 @media (min-width: 48em) { .answers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .answers > div { padding-top: 0.9rem; border-top: 2px solid var(--ink); }
-.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 2rem; margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8em), 1fr)); gap: 1.5rem 2rem; margin: 0; }
 @media (min-width: 48em) { .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .stats > div { display: flex; flex-direction: column-reverse; gap: 0.25rem; padding-top: 0.9rem; border-top: 2px solid var(--ink); }
 .stats dt { font-size: var(--type-small); color: var(--ink-muted); }
-.stats dd { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: var(--type-title); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stats dd { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: var(--type-title); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @media (min-width: 48em) { .stats dd { font-size: var(--type-display-sm); } }
 .answers dt { font-family: var(--font-heading); font-weight: 600; font-size: var(--type-lead); line-height: 1.3; }
 .answers dd { margin: 0.4rem 0 0; }
