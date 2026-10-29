@@ -654,10 +654,11 @@ func errSuffix(o page.Observation) string {
 }
 
 func shorten(s string, n int) string {
-	if len(s) <= n {
+	r := []rune(s)
+	if len(r) <= n {
 		return s
 	}
-	return s[:n-3] + "..."
+	return string(r[:n-3]) + "..."
 }
 
 // offOriginError is the refusal of an address outside the target's allow list.

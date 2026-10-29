@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/record"
@@ -135,6 +136,19 @@ func TestRecordFindingsCarriesTheEvidence(t *testing.T) {
 	if r.Route != "/blog/a-thing" || r.EvidenceStep != 2 || r.URL != "https://example.test/blog/a-thing/" || r.Body == "" || r.Fix == "" ||
 		r.Element != `text "really hard"` || r.Quote != "really hard" || len(r.WCAG) != 1 {
 		t.Errorf("%+v", r)
+	}
+}
+
+// TestElementTextKeepsWholeRunes checks a long control name in a three-byte script is cut between characters,
+// so the element never carries a broken tail such as \xe3 into the record and the report.
+func TestElementTextKeepsWholeRunes(t *testing.T) {
+	name := strings.Repeat("あいうえお", 20)
+	got := elementText("link", name)
+	if !utf8.ValidString(got) || !strings.HasSuffix(got, `..."`) || !strings.Contains(got, "あいうえお") {
+		t.Errorf("elementText cut inside a rune or lost the name: %s", got)
+	}
+	if got := elementText("link", "Read more"); got != `link "Read more"` {
+		t.Errorf("a short name is left as it is, got %s", got)
 	}
 }
 
