@@ -906,7 +906,8 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 		// the page has keeps its name, and markup with nothing to change is left as the page wrote it. An object
 		// whose toString changes between reads gets built from the markup the guard read. A shadow root's own
 		// setHTMLUnsafe and a root nested in another are covered, and so are area and input targets. A Trusted Types
-		// value goes through as the page wrote it, a gap ENGINE.md names. An SVG element named template doesn't stop
+		// value goes through as the page wrote it, a gap ENGINE.md names. A call with no markup throws as it would
+		// without the guard and leaves the element alone. An SVG element named template doesn't stop
 		// the guard reaching the root after it. A whole document keeps its doctype, language, title and body class.
 		// A page that replaces what the guard calls still has its new window put right.
 		t.Run(browser+"/markup", func(t *testing.T) {
@@ -955,6 +956,11 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 	} else {
 		out.push('_blank', '_blank');
 	}
+	const empty = document.createElement('div');
+	empty.textContent = 'kept';
+	let none = 'nothing';
+	try { empty.setHTMLUnsafe(); } catch (e) { none = e.name; }
+	out.push(none, empty.textContent);
 	const svg = document.createElement('div');
 	svg.setHTMLUnsafe('<svg><template></template></svg><shop-panel><template shadowrootmode="open"><a id="v" target="_blank" href="/v">V</a></template></shop-panel>');
 	out.push(svg.querySelector('shop-panel').shadowRoot.getElementById('v').target);
@@ -976,7 +982,7 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self", "_self", "_blank", "_blank",
-				"_self", "cy", "Siop", "b", "CSS1Compat", "_self", "_self"}
+				"TypeError", "kept", "_self", "cy", "Siop", "b", "CSS1Compat", "_self", "_self"}
 			if !slices.Equal(got, want) {
 				t.Errorf("the markup came out as %q, want %q", got, want)
 			}

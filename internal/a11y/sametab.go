@@ -151,10 +151,11 @@ const sameTab = `() => {
 		visit(inFragment, apply(content, t, []));
 		return changed ? apply(inner.get, t, []) : s;
 	};
-	// A Trusted Types value goes through as it is. Anything else is read once, and what the browser builds from is
-	// the string the guard looked at, so an object whose toString changes between reads can't slip a root past it.
+	// A call with no markup, or with a Trusted Types value, goes through as it is. Anything else is read once, and
+	// what the browser builds from is the string the guard looked at, so an object whose toString changes between
+	// reads can't slip a root past it.
 	const parses = (f, self) => function (html, ...rest) {
-		if (isHTML(html)) return apply(f, self || this, [html, ...rest]);
+		if (arguments.length === 0 || isHTML(html)) return apply(f, self || this, arguments);
 		const s = str(html), safe = declared(s, !!self);
 		return apply(f, self || this, [safe, ...rest]);
 	};
