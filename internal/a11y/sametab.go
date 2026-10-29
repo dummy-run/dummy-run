@@ -2,6 +2,7 @@ package a11y
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dummy-run/dummy-run/internal/bidi"
 )
@@ -38,6 +39,7 @@ const sameTab = `() => {
 		if (away(el.getAttribute && el.getAttribute("formtarget"))) el.setAttribute("formtarget", "_self");
 	};
 	const bases = () => document.querySelectorAll("base[target]").forEach(keep);
+	const listen = EventTarget.prototype.addEventListener, apply = Reflect.apply;
 	window.open = function () { return null; };
 	const targets = (name) => { const n = String(name).toLowerCase(); return n === "target" || n === "formtarget"; };
 	const same = (name, value) => {
@@ -79,12 +81,14 @@ const sameTab = `() => {
 	document.addEventListener("submit", submitted, true);
 	document.addEventListener("click", clicked, true);
 	const guarded = new WeakSet();
+	const has = WeakSet.prototype.has.bind(guarded), add = WeakSet.prototype.add.bind(guarded);
 	const guard = (root) => {
-		if (root && !guarded.has(root)) { guarded.add(root); root.addEventListener("submit", submitted, true); root.addEventListener("click", clicked, true); }
+		if (root && !has(root)) { add(root); apply(listen, root, ["submit", submitted, true]); apply(listen, root, ["click", clicked, true]); }
 		return root;
 	};
 	const attachShadow = Element.prototype.attachShadow;
 	if (attachShadow) Element.prototype.attachShadow = function () { return guard(attachShadow.apply(this, arguments)); };
+	Object.defineProperty(window, "` + guardRoot + `", { value: guard });
 	const internals = typeof ElementInternals !== "undefined" && Object.getOwnPropertyDescriptor(ElementInternals.prototype, "shadowRoot");
 	if (internals && internals.get) Object.defineProperty(ElementInternals.prototype, "shadowRoot", { configurable: true, enumerable: internals.enumerable, get: function () { return guard(internals.get.call(this)); } });
 	const submit = HTMLFormElement.prototype.submit;
@@ -94,6 +98,111 @@ const sameTab = `() => {
 	const click = HTMLElement.prototype.click;
 	HTMLElement.prototype.click = function () { if (this.matches && this.matches("a, area")) { keep(this); bases(); } return click.call(this); };
 }`
+
+// guardRoot is the name of the window property, hidden from enumeration, through which guardClosedRoots hands a
+// shadow root to sameTab's guard.
+const guardRoot = "__dummyrunGuardRoot"
+
+// guardRealm is the sandbox in which guardClosedRoots reads the page. The page's own script can't change what
+// document.documentElement returns there, so it can't hide its closed roots behind a decoy.
+const guardRealm = "dummyrun-guard"
+
+// domNode is the part of a WebDriver BiDi node remote value that guardClosedRoots walks.
+type domNode struct {
+	SharedID string `json:"sharedId"`
+	Value    struct {
+		Mode       string    `json:"mode"`
+		Children   []domNode `json:"children"`
+		ShadowRoot *domNode  `json:"shadowRoot"`
+	} `json:"value"`
+}
+
+// guardClosedRoots hands every closed shadow root in the tab and its frames to sameTab's guard. No script can reach
+// a closed root the markup declares unless its element's own code asks for it through ElementInternals, so the
+// guard may never see it. A click or key press from the keyboard and mouse comparison can still land on a link or
+// button inside one, and in Chrome the first request from the tab it opens gets past the request guards. WebDriver
+// BiDi can serialise a page with its closed roots, so each one is found and guarded in every browser. A root the
+// guard can't take is an error, so the comparison stops rather than press a control that could open a window.
+func guardClosedRoots(ctx context.Context, conn *bidi.Conn, cx string) error {
+	tree, err := conn.GetTree(ctx)
+	if err != nil {
+		return fmt.Errorf("closed roots: %w", err)
+	}
+	var contexts []string
+	var frames func(cs []bidi.ContextInfo, in bool)
+	frames = func(cs []bidi.ContextInfo, in bool) {
+		for _, c := range cs {
+			mine := in || c.Context == cx
+			if mine {
+				contexts = append(contexts, c.Context)
+			}
+			frames(c.Children, mine)
+		}
+	}
+	frames(tree, false)
+	for _, c := range contexts {
+		var res struct {
+			Type   string  `json:"type"`
+			Result domNode `json:"result"`
+		}
+		if err := conn.Call(ctx, "script.callFunction", map[string]any{
+			"functionDeclaration":  "() => document.documentElement",
+			"target":               map[string]any{"context": c, "sandbox": guardRealm},
+			"awaitPromise":         true,
+			"resultOwnership":      "none",
+			"serializationOptions": map[string]any{"maxDomDepth": nil, "includeShadowTree": "all"},
+		}, &res); err != nil {
+			return fmt.Errorf("closed roots: %w", err)
+		}
+		if res.Type != "success" {
+			return fmt.Errorf("closed roots: reading the page failed")
+		}
+		var closed []string
+		var walk func(n *domNode)
+		walk = func(n *domNode) {
+			if n == nil {
+				return
+			}
+			if r := n.Value.ShadowRoot; r != nil {
+				if r.Value.Mode == "closed" {
+					closed = append(closed, r.SharedID)
+				}
+				walk(r)
+			}
+			for i := range n.Value.Children {
+				walk(&n.Value.Children[i])
+			}
+		}
+		walk(&res.Result)
+		for _, id := range closed {
+			var call struct {
+				Type   string `json:"type"`
+				Result struct {
+					Value bool `json:"value"`
+				} `json:"result"`
+				ExceptionDetails struct {
+					Text string `json:"text"`
+				} `json:"exceptionDetails"`
+			}
+			if err := conn.Call(ctx, "script.callFunction", map[string]any{
+				"functionDeclaration": "function () { const guard = window." + guardRoot + "; if (!guard) return false; guard(this); return true; }",
+				"target":              map[string]any{"context": c},
+				"this":                map[string]any{"sharedId": id},
+				"awaitPromise":        true,
+				"resultOwnership":     "none",
+			}, &call); err != nil {
+				return fmt.Errorf("closed roots: %w", err)
+			}
+			switch {
+			case call.Type == "exception":
+				return fmt.Errorf("closed roots: the guard threw: %s", call.ExceptionDetails.Text)
+			case !call.Result.Value:
+				return fmt.Errorf("closed roots: the page has no one-tab guard")
+			}
+		}
+	}
+	return nil
+}
 
 // keepToOneTab installs sameTab in every page the browser loads from now on.
 func keepToOneTab(ctx context.Context, conn *bidi.Conn) error {

@@ -192,6 +192,19 @@ func TestTools(t *testing.T) {
 					t.Errorf("headings %v", o.Snapshot.Headings)
 				}
 			})
+			t.Run("press with a modifier", func(t *testing.T) {
+				if _, err := p.Browser().Conn.Evaluate(ctx, contextOf(t, p), "document.getElementById('go').focus()"); err != nil {
+					t.Fatal(err)
+				}
+				check(t, p.Press(ctx, "Shift+Tab"))
+				var id string
+				if err := p.Browser().Conn.EvaluateJSON(ctx, contextOf(t, p), "document.activeElement.id", &id); err != nil || id != "colour" {
+					t.Errorf("Shift+Tab from the button left focus on %q %v, want the select before it", id, err)
+				}
+				if o := p.Press(ctx, "Hyper+Tab"); o.Error == "" || !strings.Contains(o.Error, "Shift, Control, Alt, Meta") {
+					t.Errorf("an unknown modifier should name the ones that work: %q", o.Error)
+				}
+			})
 			t.Run("select", func(t *testing.T) {
 				check(t, p.Select(ctx, "Colour", "Green"))
 				var v string

@@ -238,6 +238,29 @@ func TestToolsCoverTheSchemaActions(t *testing.T) {
 	}
 }
 
+// TestPressToolNamesTheModifiers checks the press tool tells the model which modifiers it takes and how to join them.
+func TestPressToolNamesTheModifiers(t *testing.T) {
+	for _, tool := range Tools {
+		if tool.Name != "press" {
+			continue
+		}
+		params, err := json.Marshal(tool.Parameters)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{"Shift", "Control", "Alt", "Meta", "+", "Shift+Tab"} {
+			if !strings.Contains(tool.Description, want) {
+				t.Errorf("the press description doesn't mention %q: %s", want, tool.Description)
+			}
+		}
+		if !strings.Contains(string(params), "Shift+Tab") {
+			t.Errorf("the key parameter doesn't show a modifier: %s", params)
+		}
+		return
+	}
+	t.Fatal("no press tool")
+}
+
 func TestGoalMetFallsBackToTheVerdict(t *testing.T) {
 	for verdict, want := range map[string]string{"pass": "yes", "friction": "partly", "fail": "no", "blocked": "no"} {
 		f, err := ParseFinish(json.RawMessage(`{"verdict":"`+verdict+`","report":"r","findings":[]}`), 3)
