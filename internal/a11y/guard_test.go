@@ -908,7 +908,8 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 		// setHTMLUnsafe and a root nested in another are covered, and so are area and input targets. A Trusted Types
 		// value goes through as the page wrote it, a gap ENGINE.md names. A call with no markup throws as it would
 		// without the guard and leaves the element alone. An SVG element named template doesn't stop
-		// the guard reaching the root after it. A whole document keeps its doctype, language, title and body class.
+		// the guard reaching the root after it. A whole document keeps its doctype, public and system IDs included,
+		// its language, title and body class, and one with nothing to change keeps a frame's name.
 		// A page that replaces what the guard calls still has its new window put right.
 		t.Run(browser+"/markup", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
@@ -966,6 +967,10 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 	out.push(svg.querySelector('shop-panel').shadowRoot.getElementById('v').target);
 	const whole = Document.parseHTMLUnsafe('<!DOCTYPE html><html lang="cy"><head><title>Siop</title></head><body class="b"><shop-panel><template shadowrootmode="open"><a id="d" target="_blank" href="/d">D</a></template></shop-panel></body></html>');
 	out.push(whole.documentElement.lang, whole.title, whole.body.className, whole.compatMode, whole.querySelector('shop-panel').shadowRoot.getElementById('d').target);
+	const legacy = Document.parseHTMLUnsafe('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html><body><shop-panel><template shadowrootmode="open"><a id="l" target="_blank" href="/l">L</a></template></shop-panel></body></html>');
+	out.push(legacy.doctype.publicId, legacy.doctype.systemId, legacy.compatMode, legacy.querySelector('shop-panel').shadowRoot.getElementById('l').target);
+	const same = Document.parseHTMLUnsafe('<!DOCTYPE html><html lang="en"><body class="s"><shop-panel><template shadowrootmode="open"><a id="u" target="side" href="/u">U</a></template></shop-panel></body></html>');
+	out.push(same.documentElement.lang, same.body.className, same.querySelector('shop-panel').shadowRoot.getElementById('u').target);
 	RegExp.prototype.test = function () { return false; };
 	String.prototype.toLowerCase = function () { return '_self'; };
 	Element.prototype.getAttribute = function () { return null; };
@@ -982,13 +987,16 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self", "_self", "_blank", "_blank",
-				"TypeError", "kept", "_self", "cy", "Siop", "b", "CSS1Compat", "_self", "_self"}
+				"TypeError", "kept", "_self", "cy", "Siop", "b", "CSS1Compat", "_self",
+				"-//W3C//DTD XHTML 1.0 Transitional//EN", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", "CSS1Compat", "_self",
+				"en", "s", "side", "_self"}
 			if !slices.Equal(got, want) {
 				t.Errorf("the markup came out as %q, want %q", got, want)
 			}
 		})
-		// On a page that enforces Trusted Types, markup the guard can't read as a plain string fails, as it would
-		// without the guard, and builds no root.
+		// On a page that enforces Trusted Types, markup the guard can't read as a plain string fails in both
+		// wrappers, as it would without the guard, and builds no root. A Trusted Types value passed to a shadow
+		// root's own setHTMLUnsafe goes through as the page wrote it, the gap ENGINE.md names.
 		t.Run(browser+"/trusted-types", func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
@@ -1011,16 +1019,23 @@ func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
 			if err := b.Conn.EvaluateJSON(ctx, cx, `(() => {
 	if (!window.trustedTypes) return ['none'];
 	const spot = document.getElementById('spot');
-	let thrown = 'nothing';
-	try { spot.setHTMLUnsafe('<shop-panel><template shadowrootmode="closed"><a target="_blank" href="/x">X</a></template></shop-panel>'); } catch (e) { thrown = e.name; }
-	return [thrown, String(spot.childElementCount)];
+	const closed = '<shop-panel><template shadowrootmode="closed"><a target="_blank" href="/x">X</a></template></shop-panel>';
+	let thrown = 'nothing', parsed = 'nothing';
+	try { spot.setHTMLUnsafe(closed); } catch (e) { thrown = e.name; }
+	try { Document.parseHTMLUnsafe('<body>' + closed); } catch (e) { parsed = e.name; }
+	const policy = trustedTypes.createPolicy('shop-tt', { createHTML: (s) => s });
+	const host = document.createElement('div');
+	document.body.append(host);
+	const root = host.attachShadow({ mode: 'open' });
+	root.setHTMLUnsafe(policy.createHTML('<shop-panel><template shadowrootmode="open"><a id="r" target="_blank" href="/r">R</a></template></shop-panel>'));
+	return [thrown, parsed, String(spot.childElementCount), root.querySelector('shop-panel').shadowRoot.getElementById('r').target];
 })()`, &got); err != nil {
 				t.Fatal(err)
 			}
 			if slices.Equal(got, []string{"none"}) {
 				t.Skipf("%s doesn't support Trusted Types", browser)
 			}
-			if want := []string{"TypeError", "0"}; !slices.Equal(got, want) {
+			if want := []string{"TypeError", "TypeError", "0", "_blank"}; !slices.Equal(got, want) {
 				t.Errorf("got %q, want %q", got, want)
 			}
 		})
