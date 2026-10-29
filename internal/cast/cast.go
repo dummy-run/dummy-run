@@ -24,6 +24,9 @@
 // line may carry prose after the device name ("Device: desktop. Start at the
 // home page."); a Zoom or Text scale value has the line to itself. A value that is not valid
 // is an error, never ignored.
+//
+// A "Site: personal site - people who want to know who the author is" line says what kind of site this is and who it is
+// for. The engine gives it to the self-check, which judges each finding against it. The planner writes it.
 package cast
 
 import (
@@ -83,6 +86,8 @@ type Scenario struct {
 	TextScale int
 	// Signin is the role from a "Sign in as: ROLE" line, "none" for no sign-in, or "" to use the persona's.
 	Signin string
+	// Site says what kind of site this is and who it is for, from a "Site:" line, or "".
+	Site string
 	// Body is the whole Markdown file.
 	Body string
 }
@@ -182,7 +187,11 @@ var (
 	signinLine    = regexp.MustCompile(`(?mi)^Sign in(?: as)?:[ \t]*([^\s.]*)`)
 	zoomLine      = regexp.MustCompile(`(?mi)^Zoom:[ \t]*([^\n]*)$`)
 	textScaleLine = regexp.MustCompile(`(?mi)^Text[ _-]scale:[ \t]*([^\n]*)$`)
+	siteLine      = regexp.MustCompile(`(?mi)^Site:[ \t]*([^\n]*)$`)
 )
+
+// maxSiteRunes bounds the Site line, which goes into a model prompt.
+const maxSiteRunes = 300
 
 // Zoom limits in percent. Browsers offer 25 to 500; below 100 is not a
 // low-vision setting, so the engine starts at 100.
@@ -389,6 +398,13 @@ func LoadScenario(path string) (Scenario, error) {
 			return Scenario{}, fmt.Errorf("cast: %s zoom: %w", path, err)
 		}
 		s.Zoom = z
+	}
+	if m := siteLine.FindStringSubmatch(s.Body); m != nil {
+		site := []rune(strings.TrimSpace(m[1]))
+		if len(site) > maxSiteRunes {
+			site = site[:maxSiteRunes]
+		}
+		s.Site = string(site)
 	}
 	if m := textScaleLine.FindStringSubmatch(s.Body); m != nil {
 		t, err := ParseTextScale(m[1])

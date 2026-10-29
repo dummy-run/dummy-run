@@ -110,19 +110,27 @@ severity, then by how many runs found them.
 Each finding shows:
 
 - the title and kind, as the persona and the reviewer left them, and the severity the rule below gave it
+- who it affects and why, when the persona said
+- where it is: the element the engine found at the cited step and the page address, and the words on the page it quoted
 - the symptom, the route and the control or region, which together make the fingerprint
 - the review status, with the reviewer, date and reason when the record has them
 - how sure you can be of it: high, medium, low or not yet known, with one line saying what it rests on
-- the WCAG 2.2 success criterion, when it's known
+- the WCAG 2.2 success criterion with its name, when it's known
 - fix guidance, when there is some (for an axe rule, a link to the rule's help page)
+- how to fix it, in one sentence, when the persona said
 - how to fix it, when the rule is one of Dummy Run's own: the same summary, owner and steps, also in the JSON as `fix`
-- steps to reproduce, taken from the steps the finding cites
+- steps to reproduce, taken from the steps the finding cites, with each control named as a reader sees it
 - the run and persona that found it, with the role, device and browser
 - screenshots of the cited steps
 
-A persona finding only gets a WCAG criterion when its symptom names an axe rule that appears in a sweep you
-gave. Otherwise, the report says it isn't recorded. Screenshots are embedded when the files sit next to the
-record. If one is missing, the report names it and still builds.
+A persona finding gets a WCAG criterion from the axe rule its symptom names, when that rule is in a sweep you
+gave, or else from the criteria the persona named, keeping only ones that exist in WCAG 2.2. Otherwise the
+row is left out. In a record the engine writes now, a finding only reaches the report when the engine found
+its evidence at a cited step, so a claim with nothing to show stays in the run record as a note, and the report
+shows the element and the page it found. A record from before `evidence_step` existed has no such check behind
+its findings, and the report shows them as the persona reported them. The steps leave out sign-in for a
+signed-out visitor and the notes about requests the test itself blocked. Screenshots are embedded when the
+files sit next to the record. If one is missing, the report names it and still builds.
 
 A finding with a `pending` verdict hasn't been reviewed, so nobody has checked the model's claim against the
 evidence. The HTML marks it with a dashed badge and the words "Not reviewed". Read those findings as leads.

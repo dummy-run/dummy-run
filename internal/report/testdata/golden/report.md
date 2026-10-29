@@ -118,7 +118,7 @@ The Issues page, the Schedule form area (`/issues`)
 |---|---|
 | What went wrong | An automated accessibility check failed (color-contrast) |
 | Who hit it | Ada, an editor, in 1 of 4 runs |
-| WCAG 2.2 | 1.4.3 |
+| WCAG 2.2 | 1.4.3 Contrast (Minimum) |
 | EN 301 549 | 9.1.4.3 |
 | Review | Not reviewed. No person has checked this finding |
 | How sure | Low confidence. The persona's own report, with no check behind it. This check has too few checked findings of its own, so the band comes from all persona-only findings together (37 checked). |

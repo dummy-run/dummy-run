@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"github.com/dummy-run/dummy-run/internal/wcag"
 )
 
 // symptomWords says each symptom of the closed taxonomy in plain words, as a short sentence fragment.
@@ -123,12 +125,14 @@ func personaName(id string) string {
 // whoText names the personas who hit a finding and how often: "Lin, a contributor, in 1 of 4 runs".
 func whoText(rep *Report, f *Finding) string {
 	roles := map[string]string{}
+	names := map[string]string{}
 	for _, p := range rep.Scope.Personas {
 		roles[p.ID] = p.Role
+		names[p.ID] = p.Name
 	}
 	var who []string
 	for _, id := range f.Personas {
-		s := personaName(id)
+		s := orWord(names[id], personaName(id))
 		if r := roles[id]; r != "" {
 			s += ", " + withArticle(r) + ","
 		}
@@ -158,7 +162,7 @@ func deviceText(d string) string {
 func reproSteps(f *Finding) []string {
 	r := f.Reproduction
 	var out []string
-	if r.Role != "" {
+	if r.Role != "" && (r.SignedIn || !signedOutRole[strings.ToLower(r.Role)]) {
 		out = append(out, "Sign in as "+withArticle(r.Role)+".")
 	}
 	use := "Use " + deviceText(r.Device)
@@ -175,6 +179,12 @@ func reproSteps(f *Finding) []string {
 			page = pageName(st.Route)
 		}
 		target := st.Target
+		if st.Element != "" {
+			target = elementWords(st.Element)
+		} else if strings.HasPrefix(target, "@") {
+			// An @number means something only inside the run, so it is no use to a reader.
+			target = ""
+		}
 		var s string
 		switch st.Action {
 		case "visit":
@@ -201,12 +211,59 @@ func reproSteps(f *Finding) []string {
 			s = cap1(describeStepText(st))
 		}
 		s += "."
-		if st.Note != "" {
-			s += " The persona said: " + st.Note
-		}
 		out = append(out, s)
 	}
 	return out
+}
+
+// signedOutRole lists roles that mean nobody is signed in, so the steps do not tell the reader to sign in.
+var signedOutRole = map[string]bool{"visitor": true, "guest": true, "anonymous": true, "public": true, "signed-out": true}
+
+// elementWords turns an element as the engine names it, such as link "Read more", into words a reader follows:
+// the "Read more" link.
+func elementWords(el string) string {
+	role, name, ok := strings.Cut(el, " ")
+	if !ok {
+		return "the " + el
+	}
+	if name == "with no name" {
+		return withArticle(roleWord(role)) + " with no name"
+	}
+	if role == "text" {
+		return "the words " + name
+	}
+	return "the " + name + " " + roleWord(role)
+}
+
+func roleWord(role string) string {
+	if w := locusRoles[role]; w != "" {
+		return w
+	}
+	return role
+}
+
+// whereText says where the evidence is: the element and the page address.
+func whereText(f *Finding) string {
+	var parts []string
+	if f.Element != "" {
+		parts = append(parts, upperFirst(elementWords(f.Element)))
+	}
+	if f.URL != "" {
+		if len(parts) > 0 {
+			return parts[0] + " on " + f.URL
+		}
+		return f.URL
+	}
+	return strings.Join(parts, "")
+}
+
+// wcagText names each criterion: "2.4.4 Link Purpose (In Context)".
+func wcagText(nums []string) string {
+	out := make([]string, len(nums))
+	for i, n := range nums {
+		out[i] = wcag.Label(n)
+	}
+	return strings.Join(out, "; ")
 }
 
 func describeStepText(st StepRef) string {

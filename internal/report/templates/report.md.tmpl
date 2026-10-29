@@ -100,8 +100,16 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 {{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
 
+{{end}}{{if $f.Body}}{{para $f.Body}}
+
 {{end}}| | |
 |---|---|
+{{- with whereText $f}}
+| Where it is | {{cell .}} |
+{{- end}}
+{{- if $f.Quote}}
+| On the page | "{{cell $f.Quote}}" |
+{{- end}}
 {{- if $f.Symptom}}
 | What went wrong | {{cell (symptomText $f.Symptom)}} |
 {{- end}}
@@ -110,7 +118,10 @@ The findings are sorted by severity, then by the number of runs that found them.
 | When | {{cell $f.State}} |
 {{- end}}
 {{- if $f.WCAG}}
-| WCAG 2.2 | {{cell (join $f.WCAG)}} |
+| WCAG 2.2 | {{cell (wcagText $f.WCAG)}} |
+{{- end}}
+{{- if $f.FixText}}
+| How to fix it | {{cell $f.FixText}} |
 {{- end}}
 {{- if $f.EN301549}}
 | EN 301 549 | {{cell (join $f.EN301549)}} |

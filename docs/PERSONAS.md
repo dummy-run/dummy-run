@@ -69,6 +69,7 @@ scenario. [ENGINE.md](ENGINE.md) has the full rules.
 | `Text scale:` in a scenario | Replaces the persona's text size for that scenario. `Text scale: 100` sets it back to normal |
 | `Device:` in a scenario | Runs a persona on another device without a second copy of it |
 | `Sign in as:` in a scenario | Runs a persona as another role, or signed out with `Sign in as: none` |
+| `Site:` in a scenario | Says what kind of site this is and who it's for, such as `Site: personal site - people who want to know who the author is`. The self-check judges each finding against it. Up to 300 characters |
 
 ## Limits
 

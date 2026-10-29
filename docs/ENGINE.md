@@ -159,6 +159,40 @@ that report it, the check and whether it's on a journey. A finding that names an
 own `a11y` check reported rests on that engine result; any other finding is the persona's own report. A report
 turns those inputs into a confidence band. [REPORT.md](REPORT.md) explains both rules.
 
+### Evidence for every finding
+
+A finding has to show where it is. Besides its steps, it gives either the control as `@12` from one of those
+steps, or `quote`: words copied from the page that show the problem, up to about 15 words. The engine checks
+them against what the browser read at the cited steps. The quote can differ in case, spacing, curly quotes and
+dashes, and an ellipsis can join two parts. An axe finding is backed when the cited `a11y` step found that rule,
+and an error, dead link or slow page when the engine measured the status, console error, failed request or
+time at that step. A step where the browser couldn't read the page, such as a lost connection, is never
+evidence about the site.
+
+When a finding isn't backed, `finish` is sent back once with a note saying what's missing. If it's still not
+backed, the finding becomes an observation with `kind: unverified`. It stays in the run record and is never
+shown as a finding or as something that worked. A backed finding gets the `element` the engine found (for
+example `link "Read more"`), the page `url` and the `evidence_step`. Its route is that step's route.
+
+A finding also has a `body` (who it affects and why), a `fix` and, where one applies, `wcag` criteria such as
+`2.4.4`. The engine keeps only WCAG 2.2 numbers that exist. Each step records the `element` it used, so the
+report can say "Click the \"Read more\" link" instead of `@17`.
+
+### The self-check
+
+After the persona finishes, one more model call reads each finding next to its evidence: the page title,
+headings and text around the quote at the evidence step, and that step's screenshot (up to four). It also
+reads the scenario's `Site:` line and goal. For each finding it decides:
+
+- `keep`: relevant to this kind of site, shown by the evidence and specific
+- `rewrite`: relevant and shown, but vague, so it gets a new title that names the element and the page, a body and a fix
+- `observation`: true but not worth the owner's time for this site, such as asking for prices on a site that sells nothing. It becomes an observation with `kind: downgraded`
+- `drop`: the evidence doesn't show it, or it's about the test rather than the site
+
+The decisions go into the record's `self_check` list. If the call fails, every finding is kept as it was and
+marked `unchecked`. The call uses the run's model and counts towards its tokens and cost, and it doesn't run when
+the run has already spent its token budget. `--self-check=false` on `dummyrun run` or `dummyrun try` turns it off.
+
 ## Browser cleanup
 
 You shouldn't find browsers left running after a run. The engine starts the driver and the browser in their
@@ -638,7 +672,9 @@ the threats. Here is what the engine does about prompt injection.
 - A strong match adds a `HARNESS WARNING` line to that step's result, which tells the persona the text is data
   from the website to ignore, and a `suspected_injection` event to the run record. Detector hits are recorded as events in the run record for the operator, never as findings. The
   detector also fires on ordinary text, and a site owner can't act on a guess about what a page meant.
-- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event.
+- A finding that cites no step in the run is dropped and recorded as an `uncited_finding` event. A finding
+  whose control or quote isn't at its cited steps is kept as an observation with `kind: unverified`, as
+  [Evidence for every finding](#evidence-for-every-finding) says, and gets the same event.
 - A finding whose cited steps all show the test's own limits is dropped and recorded as a
   `harness_limit_finding` event that says why. These are the steps that count as the test's limits:
   - the browser couldn't read the page

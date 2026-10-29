@@ -24,7 +24,7 @@ import (
 )
 
 const tryUsage = `Usage:
-  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--steps N] [--provider PROVIDER --model MODEL ...]
+  dummyrun try URL [--browser chrome|firefox] [--out DIR] [--steps N] [--self-check=false] [--provider PROVIDER --model MODEL ...]
 
 First reads a few pages of the site over plain HTTP and asks the model what kind of site it is and what its
 visitors come to do (see "dummyrun plan"). Then it plays one persona from the library through those journeys
@@ -47,6 +47,8 @@ Flags:
                    send a request header whose value is in an environment variable, such as
                    x-vercel-protection-bypass. Repeat for more. Both go only to the site's own hosts
   --headful        show the browser window
+  --self-check=false
+                   skip the extra model call that checks each finding against its evidence once the visit ends
   The model flags are the same as for "dummyrun run".`
 
 // tryDefaultSteps keeps a first run short. A scenario cannot ask for fewer than the engine's default of 25, so the
@@ -91,6 +93,7 @@ func tryCmd(args []string) int {
 	out := fs.String("out", "", "directory for run records (default ~/.local/share/dummyrun/runs/try)")
 	steps := fs.Int("steps", tryDefaultSteps, "step budget (up to 40)")
 	headful := fs.Bool("headful", false, "show the browser window")
+	selfCheck := fs.Bool("self-check", true, "check each finding against its evidence with one more model call; --self-check=false turns it off")
 	pf := addProviderFlags(fs)
 	var preview authFlags
 	preview.register(fs)
@@ -148,7 +151,7 @@ func tryCmd(args []string) int {
 	fmt.Fprintf(os.Stderr, "Reading %s as %s, read-only: requests that could change data are blocked.\n", tgt.BaseURL, personaWords(persona))
 	res, err := runner.Run(ctx, runner.Config{
 		Persona: persona, Scenario: scenario, Target: tgt, Provider: p, Browser: *browser, Headless: !*headful,
-		OutDir: *out, StepBudget: *steps, Log: os.Stderr, HTTPClient: requestClient(false),
+		OutDir: *out, StepBudget: *steps, Log: os.Stderr, HTTPClient: requestClient(false), SelfCheck: *selfCheck,
 	})
 	if err != nil {
 		if res != nil {
