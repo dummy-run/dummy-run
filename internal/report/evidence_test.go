@@ -112,3 +112,42 @@ func TestEvidenceShownIsTheReproductions(t *testing.T) {
 		t.Errorf("the reproduction's evidence step is not marked: %+v", got.Reproduction.Steps)
 	}
 }
+
+// TestAPersonaNameComesFromALaterRecord checks that a record from before persona.name existed does not hide the
+// name a later record of the same persona gives.
+func TestAPersonaNameComesFromALaterRecord(t *testing.T) {
+	runs := loadFixture(t)
+	for _, r := range runs {
+		r.Rec.Persona.Name = ""
+	}
+	runs[len(runs)-1].Rec.Persona.Name = "Lin"
+	rep, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range rep.Scope.Personas {
+		if p.ID == runs[len(runs)-1].Rec.Persona.ID && p.Name != "Lin" {
+			t.Fatalf("persona %s has name %q, want Lin", p.ID, p.Name)
+		}
+	}
+}
+
+// TestAFindingBodyCannotChangeTheMarkdownStructure checks that a body line which looks like a heading, a quote or
+// a list stays text in the Markdown report, and that the body keeps its paragraphs.
+func TestAFindingBodyCannotChangeTheMarkdownStructure(t *testing.T) {
+	runs := loadFixture(t)
+	runs[0].Rec.Findings[0].Body = "First paragraph.\n\n## Injected\n> quoted\n- listed"
+	rep, err := Build(runs, fixtureOptions(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := render(t, rep, "md")
+	for _, want := range []string{"First paragraph.\n\n\\## Injected\n\\> quoted\n\\- listed"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the body is not escaped as %q", want)
+		}
+	}
+	if strings.Contains(out, "\n## Injected") {
+		t.Error("the body added a report heading")
+	}
+}

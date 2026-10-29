@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/page"
 	"github.com/dummy-run/dummy-run/internal/record"
 )
@@ -136,6 +137,14 @@ func TestRecordFindingsCarriesTheEvidence(t *testing.T) {
 	if r.Route != "/blog/a-thing" || r.EvidenceStep != 2 || r.URL != "https://example.test/blog/a-thing/" || r.Body == "" || r.Fix == "" ||
 		r.Element != `text "really hard"` || r.Quote != "really hard" || len(r.WCAG) != 1 {
 		t.Errorf("%+v", r)
+	}
+	// The quote is only on the post, so the locus is the post's heading, not the blog list's, and the
+	// fingerprint joins the post's route to it.
+	if want := identity.NormaliseLocus("", "", "Building a thing"); r.Locus != want {
+		t.Errorf("locus %q, want %q from the evidence step", r.Locus, want)
+	}
+	if fp, _ := identity.Fingerprint(r.Route, r.Locus, r.Symptom); r.Fingerprint != fp {
+		t.Errorf("fingerprint %s does not match route %s and locus %s", r.Fingerprint, r.Route, r.Locus)
 	}
 }
 

@@ -129,8 +129,8 @@ row is left out. In a record the engine writes now, a finding only reaches the r
 its evidence at a cited step, so a claim with nothing to show stays in the run record as a note, and the report
 shows the element and the page it found. A record from before `evidence_step` existed has no such check behind
 its findings, and the report shows them as the persona reported them. The steps leave out sign-in for a
-signed-out visitor, and they leave out requests the test itself blocked. Screenshots are embedded when the files sit next to the
-record. If one is missing, the report names it and still builds.
+signed-out visitor and the notes about requests the test itself blocked. Screenshots are embedded when the
+files sit next to the record. If one is missing, the report names it and still builds.
 
 A finding with a `pending` verdict hasn't been reviewed, so nobody has checked the model's claim against the
 evidence. The HTML marks it with a dashed badge and the words "Not reviewed". Read those findings as leads.

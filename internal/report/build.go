@@ -251,6 +251,10 @@ func buildScope(runs []*Run) Scope {
 			p = &pAgg{use: &PersonaUse{ID: r.Persona.ID, Name: r.Persona.Name, Role: r.Persona.Role}, devices: map[string]bool{}, dims: map[string]bool{}}
 			personas[r.Persona.ID] = p
 		}
+		// A record from before persona.name existed has none, so a later record can supply it.
+		if p.use.Name == "" {
+			p.use.Name = r.Persona.Name
+		}
 		p.use.Runs++
 		dev := r.Persona.Device
 		if r.Persona.Zoom > 0 && r.Persona.Zoom != 100 {

@@ -291,18 +291,16 @@ func RecordFindings(f Finish, loc *Locator) []record.Finding {
 		seen[id] = true
 		route := loc.Route(ff.Steps)
 		locus := loc.Locus(ff.Steps, ff.Control)
+		if ff.EvidenceStep > 0 {
+			// The page where the evidence is, not the first step the persona happened to cite. The route and the
+			// locus both come from it, so the fingerprint never joins one page's route to another page's heading.
+			if r := loc.StepRoute(ff.EvidenceStep); r != "" {
+				route, locus = r, loc.Locus([]int{ff.EvidenceStep}, ff.Control)
+			}
+		}
 		fp, err := identity.Fingerprint(route, locus, symptom)
 		if err != nil {
 			continue
-		}
-		if ff.EvidenceStep > 0 {
-			// The route of the page where the evidence is, not of the first step the persona happened to cite.
-			if r := loc.StepRoute(ff.EvidenceStep); r != "" {
-				route = r
-				if fp, err = identity.Fingerprint(route, locus, symptom); err != nil {
-					continue
-				}
-			}
 		}
 		inputs, impact := findingInputs(symptom, ff.Steps, locus, loc)
 		severity := confidence.Severity(confidence.SeverityInputs{Evidence: inputs.EvidenceKind, Impact: impact, OnJourney: inputs.OnJourney, Pages: 1})

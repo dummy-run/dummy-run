@@ -191,7 +191,7 @@ reads the scenario's `Site:` line and goal. For each finding it decides:
 
 The decisions go into the record's `self_check` list. If the call fails, every finding is kept as it was and
 marked `unchecked`. The call uses the run's model and counts towards its tokens and cost, and it doesn't run when
-the run has already spent its token budget. `dummyrun run --self-check=false` turns it off.
+the run has already spent its token budget. `--self-check=false` on `dummyrun run` or `dummyrun try` turns it off.
 
 ## Browser cleanup
 

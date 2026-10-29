@@ -100,7 +100,7 @@ The findings are sorted by severity, then by the number of runs that found them.
 
 {{$place := placeText $f.Route $f.Locus}}{{if $place}}{{upper $place}}{{if $f.Route}} (`{{$f.Route}}`){{end}}
 
-{{end}}{{if $f.Body}}{{$f.Body}}
+{{end}}{{if $f.Body}}{{para $f.Body}}
 
 {{end}}| | |
 |---|---|

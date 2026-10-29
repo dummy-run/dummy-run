@@ -138,6 +138,7 @@ func commonFuncs() map[string]any {
 		"upper":          upperFirst,
 		"cell":           mdCell,
 		"inline":         mdInline,
+		"para":           mdBlock,
 		"inc":            func(i int) int { return i + 1 },
 		"fixRules":       fixRules,
 		"colourRules":    colourRules,
@@ -223,6 +224,20 @@ func mdCell(v any) string {
 func mdInline(v any) string {
 	s := fmt.Sprint(v)
 	return strings.NewReplacer("`", "'", "\r\n", " ", "\n", " ", "\r", " ").Replace(s)
+}
+
+// mdBlock makes free text safe as Markdown paragraphs: it keeps the line breaks but escapes what would start a
+// heading, quote, list, table, fence, rule or HTML block, so model text cannot change the report's structure.
+func mdBlock(v any) string {
+	lines := strings.Split(strings.ReplaceAll(fmt.Sprint(v), "\r\n", "\n"), "\n")
+	for i, l := range lines {
+		l = strings.TrimLeft(l, " \t")
+		if l != "" && strings.ContainsRune("#>|-+*=`~<_", rune(l[0])) {
+			l = `\` + l
+		}
+		lines[i] = l
+	}
+	return strings.Join(lines, "\n")
 }
 
 // colourRules keeps the failed rules that have colour suggestions, in report order.
