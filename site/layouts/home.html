@@ -52,7 +52,7 @@
     <div><dt>Steps</dt><dd>{{ len $r.steps }}</dd></div>
     <div><dt>In the browser</dt><dd>{{ div $secs 60 }} min {{ mod $secs 60 }} s</dd></div>
     <div><dt>Things flagged</dt><dd>{{ len $r.findings }}</dd></div>
-    <div><dt>Model calls cost</dt><dd>{{ printf "$%.2f" $r.cost_usd }}</dd></div>
+    <div><dt>Estimated model cost</dt><dd>{{ printf "$%.2f" $r.cost_usd }}</dd></div>
   </dl>
   <p class="band-more">Each thing flagged points at its step, its screenshot and the persona&rsquo;s own words, and stays pending until a person confirms or rejects it. <a href="/watch-a-run/">Step through the run</a></p>
 </section>
@@ -95,7 +95,7 @@
   <h2 id="answers-heading" class="u-title-sm">Straight answers</h2>
   <dl class="answers">
     <div><dt>Does it replace our scripted tests?</dt><dd>No, keep them. A script checks the steps you wrote down. A persona wanders off and tries the things nobody thought to script. <a href="/for/qa-lead/">How they work together</a></dd></div>
-    <div><dt>What does it check?</dt><dd>Keyboard use, zoom and bigger text, contrast, plain English, forms, cookie banners and more, on every page it sweeps. Each problem comes with its evidence. <a href="/how-it-works/">Every check</a></dd></div>
+    <div><dt>What does it check?</dt><dd>Keyboard use, narrow screens and bigger text, contrast, plain English, forms, cookie banners and more. A sweep runs the axe-core rules on every page, and you turn the other checks on one at a time or all at once. Each problem comes with its evidence. <a href="/how-it-works/">Every check</a></dd></div>
     <div><dt>Can a persona replace testing with disabled people?</dt><dd>No. A persona simulates a barrier so you catch likely problems early and cheaply. It can&rsquo;t tell you how a disabled person would actually get on. Only testing with disabled people can. <a href="/docs/ethics/">Ethics and limits</a></dd></div>
     <div><dt>Do screenshots leave our network?</dt><dd>Screenshots go only to the model provider you pick, and the screen-reader persona never sends any. Runs stay in the folder or bucket where you keep them. <a href="/for/compliance-and-security/">What goes where</a></dd></div>
   </dl>

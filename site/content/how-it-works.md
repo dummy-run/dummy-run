@@ -26,7 +26,7 @@ flowchart LR
 
 ## What it checks
 
-Each of the first seven is a check you turn on, and `--all` runs them all in one sweep of your pages. The last comes from the screen-reader persona, which runs with the other personas. Each problem comes with its evidence, so you can see it for yourself.
+Apart from the last, these are checks on a sweep of your pages. Most are off until you turn them on with their own flag, and `--all` turns them all on, with a few more, in one sweep. The last comes from the screen-reader persona, which runs with the other personas. Each problem comes with its evidence, so you can see it for yourself.
 
 {{< checks >}}
 
