@@ -1,0 +1,19 @@
+{
+  "plan_version": 1,
+  "url": "https://inkwell.example/",
+  "site_type": "personal",
+  "audience": "people who want to know who Sam is and read her posts",
+  "summary": "Sam's personal site and blog.",
+  "sells": false,
+  "journeys": [
+    {"id": "who", "name": "Find out who Sam is", "why": "It is the first thing a new visitor asks."},
+    {"id": "read", "name": "Read a post", "why": "Most visitors come for the writing."},
+    {"id": "contact", "name": "Get in touch", "why": "The site invites messages."}
+  ],
+  "personas": [
+    {"id": "first-time-visitor", "name": "Alex", "label": "First-time visitor", "why": "A new reader shows whether the site makes sense at first sight.",
+     "journeys": ["who", "read", "contact"], "scenario": {"id": "who-is-sam"}}
+  ],
+  "source": "model",
+  "usage": {"model_calls": 1, "input_tokens": 3000, "output_tokens": 800, "cost_usd": 0.00585}
+}

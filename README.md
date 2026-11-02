@@ -96,7 +96,7 @@ With a binary, your first run takes three commands:
 ```sh
 dummyrun browsers install                # fetches Chrome for Testing and the matching chromedriver
 export ANTHROPIC_API_KEY=...             # or OPENAI_API_KEY, or run Ollama
-dummyrun try https://your-site           # a first-time visitor, read-only
+dummyrun try https://your-site           # works out what your site is for, then a visitor tries it, read-only
 ```
 
 Every release is signed with cosign and comes with SLSA build provenance. To check a download before you

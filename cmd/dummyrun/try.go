@@ -16,7 +16,9 @@ import (
 
 	"github.com/dummy-run/dummy-run/casts"
 	"github.com/dummy-run/dummy-run/internal/cast"
+	"github.com/dummy-run/dummy-run/internal/plan"
 	"github.com/dummy-run/dummy-run/internal/policy"
+	"github.com/dummy-run/dummy-run/internal/provider"
 	"github.com/dummy-run/dummy-run/internal/record"
 	"github.com/dummy-run/dummy-run/internal/runner"
 )
@@ -24,9 +26,11 @@ import (
 const tryUsage = `Usage:
   dummyrun try URL [--browser chrome|firefox] [--out DIR] [--steps N] [--provider PROVIDER --model MODEL ...]
 
-Plays the first-time visitor from the persona library against one page, for a few minutes, in read-only mode.
-The browser blocks every request that could change data and every request to another host. Then it
-prints what the visitor found and where the run is saved.
+First reads a few pages of the site over plain HTTP and asks the model what kind of site it is and what its
+visitors come to do (see "dummyrun plan"). Then it plays one persona from the library through those journeys
+for a few minutes, in read-only mode. If planning fails, the first-time visitor looks around instead. The
+browser blocks every request that could change data and every request to another host. Then it prints what
+the visitor found and where the run is saved.
 
 You need a browser (run "dummyrun browsers install" once) and a model. With no --provider, the model comes from
 your environment, in this order: DUMMYRUN_AZURE_ENDPOINT (then --model and --region are needed), OPENAI_API_KEY,
@@ -132,12 +136,16 @@ func tryCmd(args []string) int {
 	if err != nil {
 		return fail(err)
 	}
-	persona, scenario, cleanup, err := tryPersona()
+	persona, scenario, cleanup, err := tryPlanned(ctx, tgt, p, *steps)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not plan a visit for this site (%v), so the visitor looks around instead.\n", err)
+		persona, scenario, cleanup, err = tryPersona()
+	}
 	if err != nil {
 		return fail(err)
 	}
 	defer cleanup()
-	fmt.Fprintf(os.Stderr, "Reading %s as a first-time visitor, read-only: requests that could change data are blocked.\n", tgt.BaseURL)
+	fmt.Fprintf(os.Stderr, "Reading %s as %s, read-only: requests that could change data are blocked.\n", tgt.BaseURL, personaWords(persona))
 	res, err := runner.Run(ctx, runner.Config{
 		Persona: persona, Scenario: scenario, Target: tgt, Provider: p, Browser: *browser, Headless: !*headful,
 		OutDir: *out, StepBudget: *steps, Log: os.Stderr, HTTPClient: requestClient(false),
@@ -206,6 +214,43 @@ func defaultTryDir() string {
 		return filepath.Join("dummyrun-runs", "try")
 	}
 	return filepath.Join(home, ".local", "share", "dummyrun", "runs", "try")
+}
+
+// tryPlanned reads the site, plans one persona's visit and loads it from a temporary cast. cleanup removes the cast.
+func tryPlanned(ctx context.Context, tgt policy.Target, p provider.Provider, steps int) (*cast.Persona, cast.Scenario, func(), error) {
+	none := func() {}
+	dir, err := os.MkdirTemp("", "dummyrun-plan-")
+	if err != nil {
+		return nil, cast.Scenario{}, none, err
+	}
+	cleanup := func() { _ = os.RemoveAll(dir) } // a folder this command made itself
+	lib, err := libraryFS("")
+	if err == nil {
+		var pl *plan.Plan
+		pl, err = makePlan(ctx, planInput{Target: tgt, Library: lib, Provider: p, Personas: 1, Steps: steps, Out: dir})
+		if err == nil && len(pl.Personas) == 0 {
+			err = errors.New("the plan picked no persona")
+		}
+		if err == nil {
+			printPlan(os.Stderr, pl, dir)
+			var persona *cast.Persona
+			if persona, err = cast.Load(dir, pl.Personas[0].ID); err == nil {
+				var sc cast.Scenario
+				if sc, err = persona.Scenario(pl.Personas[0].Scenario.ID); err == nil {
+					return persona, sc, cleanup, nil
+				}
+			}
+		}
+	}
+	cleanup()
+	return nil, cast.Scenario{}, none, err
+}
+
+func personaWords(p *cast.Persona) string {
+	if p.Name != "" {
+		return p.Name + " (" + p.ID + ")"
+	}
+	return p.ID
 }
 
 // tryPersona loads the first-time visitor from the library inside the program and adds the built-in scenario.

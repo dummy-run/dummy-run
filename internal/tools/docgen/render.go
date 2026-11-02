@@ -139,6 +139,7 @@ func renderCLI(bins *repo.Binaries, root string) (string, error) {
 	exporter := filepath.Join(root, "integrations", "grafana", "exporter")
 	sections := []helpSection{
 		{"dummyrun", "The list of commands and the model providers.", bins.DummyRun, root, []string{"--help"}},
+		{"dummyrun plan", "Work out what a site is for and write a cast that fits it. See [ENGINE.md](ENGINE.md).", bins.DummyRun, root, []string{"plan", "-h"}},
 		{"dummyrun run", "Play one persona through one scenario and write a run record.", bins.DummyRun, root, []string{"run", "-h"}},
 		{"dummyrun coverage", "Count what a set of run records covers, with the limits of each number. See [COVERAGE.md](COVERAGE.md).", bins.DummyRun, root, []string{"coverage", "-h"}},
 		{"dummyrun report", "Turn run records and accessibility sweep results into an audit report. See [REPORT.md](REPORT.md) and [BADGES.md](BADGES.md).", bins.DummyRun, root, []string{"report", "-h"}},

@@ -77,11 +77,14 @@ lists the defaults and how to pick your own.
 dummyrun try https://your-site
 ```
 
-A first-time visitor called Alex lands on your page with no idea what it is. Alex works out what it is for,
-what it costs and how to start, for a few minutes and about 15 steps. The browser blocks every request that could
-change data and every request to another host.
+First Dummy Run reads a few of your pages and works out what kind of site it is and what your visitors come to
+do. A personal site usually gets "who is this, read a post, get in touch", and a shop "find a product, check
+delivery, reach the basket". A plan only asks about prices when you sell something. If planning fails, Alex's
+built-in look-around runs instead. That one checks for a price or a plain statement that there is none. Then the persona from the library that fits
+best, usually Alex, a first-time visitor, tries those things for a few minutes and about 15 steps. The browser blocks every
+request that could change data and every request to another host.
 
-When it's done you get the findings in your terminal, each with its step number. You also get Alex's own report in
+When it's done you get the findings in your terminal, each with its step number. You also get the visitor's own report in
 plain words, a screenshot of every step and the run record, with the path to each.
 
 Every finding starts as `pending`, because a model can be wrong. Look at each one next to its screenshots, then
