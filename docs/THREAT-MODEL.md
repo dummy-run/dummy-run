@@ -100,7 +100,7 @@ These gaps remain:
 
 - A GET to an allowed host can carry data in its query. If the page's own origin is the attacker, it gets that data.
 - A downgrade to plain `http` on an allowed host and default port is allowed.
-- Interception covers HTTP requests, including the WebSocket handshake, but not the messages on an open WebSocket. A target's `block.socket_events` drops named socket.io events inside the page, where the page itself could undo it (see [Block list](ENGINE.md#block-list)). Traffic that isn't an HTTP request, such as WebRTC, isn't covered.
+- Interception covers HTTP requests, including the WebSocket handshake, but not the messages on an open WebSocket. A target's `block.socket_events` drops named socket.io events inside the page, where the page itself could undo it (see Block list in the [engine guide](ENGINE.md)). Traffic that isn't an HTTP request, such as WebRTC, isn't covered.
 - An allowed host that serves user content, such as a shared storage domain, brings that content inside the boundary. List specific hosts.
 - No test covers traffic that isn't an HTTP request the browser's network events see, such as WebRTC.
 
