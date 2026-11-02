@@ -898,6 +898,40 @@ const resolveJS = `(target, kind) => {
   const inView = (el) => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; };
   const squash = (s) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
   const name = (el) => squash(el.getAttribute("aria-label") || el.labels?.[0]?.innerText || el.placeholder || el.innerText || el.value || el.title || "");
+  // What a person's pointer would hit at the element's centre: the element itself, something inside it, or a
+  // label for it all count as the element (#180). Anything else is on top of it.
+  const centre = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  const hits = (el) => {
+    const [x, y] = centre(el);
+    if (x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) return false;
+    let top = document.elementFromPoint(x, y);
+    while (top && top.shadowRoot && top !== el) { const inner = top.shadowRoot.elementFromPoint(x, y); if (!inner || inner === top) break; top = inner; }
+    if (!top) return true;
+    if (top === el || el.contains(top)) return true;
+    const label = top.closest("label");
+    if (label && (label.control === el || label.contains(el))) return true;
+    return false;
+  };
+  // A styled checkbox, radio, file, range or colour input, or a select, often hides the real control under a
+  // visible stand-in drawn in its own wrapper. What covers it counts as the control when it sits in that
+  // wrapper (up to two levels up, never a whole main, form or dialog); anything else on top, such as a fixed bar,
+  // still covers it.
+  const standIn = (el, top) => {
+    if (!top || !((el.tagName === "INPUT" && /^(checkbox|radio|file|range|color)$/i.test(el.type)) || el.tagName === "SELECT")) return false;
+    for (let a = el.parentElement, i = 0; a && i < 2 && !a.matches("body, html, main, form, dialog, [role=main], [role=dialog]"); a = a.parentElement, i++) {
+      if (a.contains(top)) return true;
+    }
+    return false;
+  };
+  const describe = (el) => {
+    for (let e = el; e && e !== document.body; e = e.parentElement) {
+      const t = squash(e.getAttribute("aria-label") || e.innerText || "");
+      if (t) return JSON.stringify(t.length > 80 ? t.slice(0, 77) + "..." : t);
+    }
+    return "an element with no text (" + el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + ")";
+  };
+  // An open modal dialog makes the rest of the page inert for a person, so its controls come first.
+  const modal = [...document.querySelectorAll('dialog[open], [aria-modal="true"]')].filter(visible).pop() || null;
   document.querySelectorAll("[data-dummyrun-target]").forEach((el) => el.removeAttribute("data-dummyrun-target"));
   let el = null;
   let m;
@@ -912,8 +946,11 @@ const resolveJS = `(target, kind) => {
     const sel = kind === "fillable"
       ? "input:not([type=hidden]), textarea, select, [contenteditable=true], [role=combobox], [role=textbox]"
       : "a[href], button, input[type=submit], input[type=button], [role=button], [role=link], [role=tab], [role=menuitem], [role=option], summary, label";
-    // Candidates already on screen come first, so a visible link beats one far down the page.
-    const all = [...document.querySelectorAll(sel)].filter(visible).sort((a, b) => Number(inView(b)) - Number(inView(a)));
+    // Candidates inside an open modal come first, then ones a pointer would hit, then ones on screen, so the
+    // dialog's Delete beats the list's Delete behind its overlay, and a visible link beats one far down the page.
+    const rank = (e) => (modal && modal.contains(e) ? 4 : 0) + (hits(e) ? 2 : 0) + (inView(e) ? 1 : 0);
+    const all = [...document.querySelectorAll(sel)].filter(visible).map((e) => [e, rank(e)])
+      .sort((a, b) => b[1] - a[1]).map((p) => p[0]);
     el = all.find((e) => name(e) === want) || all.find((e) => name(e).includes(want));
     if (!el && kind !== "fillable") {
       const texts = [...document.querySelectorAll("body *")].filter((e) => visible(e) && e.children.length === 0 && squash(e.innerText) === want);
@@ -929,6 +966,12 @@ const resolveJS = `(target, kind) => {
   const y = r.top + r.height / 2;
   if (x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) {
     return { error: "the control " + JSON.stringify(name(el) || target) + " is off screen, probably inside a closed menu or drawer; open that first" };
+  }
+  const top = document.elementFromPoint(x, y);
+  if (kind !== "fillable" && !hits(el) && !standIn(el, top)) {
+    el.removeAttribute("data-dummyrun-target");
+    return { error: "the control " + JSON.stringify(name(el) || target) + " is covered by " + describe(top) +
+      ", so a click would land on that instead; close or dismiss it first" };
   }
   return { x, y, tag: el.tagName.toLowerCase(), label: name(el) };
 }`

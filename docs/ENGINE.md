@@ -130,7 +130,7 @@ times and fails each time, it gives up and the run ends.
 |---|---|
 | `look`, `screenshot` | Read the page again: title, headings, focus, outline, numbered controls and text, with a screenshot |
 | `visit` | Go to an address on the target. An address on a host outside `allowed_hosts` is refused before the browser sees it |
-| `click` | Click `@12` from the last look, a control's text or `css:selector` |
+| `click` | Click `@12` from the last look, a control's text or `css:selector`. When several controls share the text, one inside an open modal dialog wins, then one a pointer would actually hit, then one on screen. A click is refused when something else covers the control's centre, such as a cookie bar or a dialog's overlay, and the error names what covers it so the persona can dismiss it. For checkboxes, radios, file, range and colour inputs and selects, which a styled control often hides under a visible stand-in, an element on top counts as the control when it sits in the control's own wrapper; a fixed bar or overlay still blocks the click |
 | `fill`, `type` | Put text into a field in one go, or key by key for fields that react as you type |
 | `select` | Choose an option in a select by its text |
 | `press` | Press a key such as Enter, Escape or ArrowDown. To hold a modifier, join it to the key with `+`, as in `Shift+Tab`. The modifiers are Shift, Control, Alt and Meta |
