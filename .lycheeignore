@@ -5,3 +5,6 @@
 # Vendor documentation that answers automated checks with 403 Forbidden, though it loads in a browser. Checked by
 # hand when the provider table changes.
 ^https://www\.scaleway\.com/en/docs/generative-apis/
+# The Information Commissioner's Office answers automated checks, a real browser's first load included, with a 403
+# challenge page. Checked by hand when the privacy page changes.
+^https://ico\.org\.uk/
