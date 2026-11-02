@@ -127,6 +127,9 @@ type Options struct {
 	// Basic auth challenges from them. Nil does neither.
 	Access *access.Resolved
 	Launch bidi.LaunchOptions
+	// BlockSocketEvents are socket.io event names, with "*" and "?" wildcards, that the page may not send. The
+	// engine drops them in the page, over a WebSocket or HTTP long-polling, and reports each as blocked.
+	BlockSocketEvents []string
 	// ScreenReader adds what guidepup's virtual screen reader says to each look, for a persona that works
 	// without seeing the screen.
 	ScreenReader bool
@@ -370,6 +373,11 @@ func (p *Page) setup(ctx context.Context, opts Options) error {
 		v, err := c.Evaluate(ctx, cx, "navigator.userAgent")
 		if err == nil {
 			p.browser.UserAgent, _ = v.String()
+		}
+	}
+	if len(opts.BlockSocketEvents) > 0 {
+		if err := p.blockSocketEvents(ctx, opts.BlockSocketEvents); err != nil {
+			return fmt.Errorf("install the socket.io block list: %w", err)
 		}
 	}
 	phases := []string{"beforeRequestSent"}

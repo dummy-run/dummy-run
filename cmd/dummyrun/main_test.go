@@ -195,6 +195,13 @@ func TestLoadTargetWithSignin(t *testing.T) {
 			t.Errorf("%s: %v %v", f, got.Signin, err)
 		}
 	}
+	bl, err := loadTarget("../../examples/targets/blocklist.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bl.Block == nil || len(bl.Block.Requests) != 4 || len(bl.Block.SocketEvents) != 2 || bl.ReadOnly {
+		t.Errorf("blocklist example: %+v", bl.Block)
+	}
 }
 
 func TestRequestClientUserAgent(t *testing.T) {

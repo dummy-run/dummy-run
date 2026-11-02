@@ -36,6 +36,8 @@ type Target struct {
 	Robots *robots.Rules `json:"-"`
 	// Signin declares how the engine signs in before the persona starts. Nil means no sign-in.
 	Signin *Signin `json:"signin,omitempty"`
+	// Block lists requests and socket.io events the run must never send, whatever read_only says. Nil means none.
+	Block *Block `json:"block,omitempty"`
 	// Auth gets the browser past Basic auth or header-based protection on a staging or preview site. Nil means none.
 	Auth *Auth `json:"auth,omitempty"`
 	// Lookup resolves host names for the subresource rule. Nil uses the system resolver with a short cache.
@@ -70,6 +72,9 @@ func (t Target) Validate() error {
 		if err := t.validateSignin(); err != nil {
 			return fmt.Errorf("policy: %w", err)
 		}
+	}
+	if err := t.Block.validate(); err != nil {
+		return fmt.Errorf("policy: %w", err)
 	}
 	if err := t.Auth.Validate(); err != nil {
 		return fmt.Errorf("policy: %w", err)
@@ -152,6 +157,8 @@ const (
 	BlockRobots
 	// BlockSignout fails a request to a path the target declares as a sign-out.
 	BlockSignout
+	// BlockRule fails a request that matches the target's block list.
+	BlockRule
 )
 
 func (v Verdict) String() string {
@@ -166,6 +173,8 @@ func (v Verdict) String() string {
 		return "robots.txt disallows DummyRun"
 	case BlockSignout:
 		return "sign-out is blocked"
+	case BlockRule:
+		return "the target's block list"
 	}
 	return "unknown"
 }
@@ -187,6 +196,9 @@ func (t Target) Decide(method, rawURL string) Verdict {
 	}
 	if t.Robots != nil && t.sameOrigin(u) && !t.Robots.Allowed(u.RequestURI()) {
 		return BlockRobots
+	}
+	if t.Block.RequestBlocked(method, u) {
+		return BlockRule
 	}
 	if t.signoutBlocked(u) {
 		return BlockSignout

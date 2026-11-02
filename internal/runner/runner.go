@@ -318,7 +318,7 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 	}
 	p, err := page.Open(ctx, page.Options{Browser: cfg.Browser, Headless: cfg.Headless, Width: disp.CSSWidth, Height: disp.CSSHeight,
 		Zoom: disp.Zoom, TextScale: disp.TextScale, RequestHook: hook, Access: r.access, Launch: cfg.Launch,
-		ScreenReader: readsAloud(cfg.Persona)})
+		ScreenReader: readsAloud(cfg.Persona), BlockSocketEvents: cfg.Target.Block.SocketEventList()})
 	if err != nil {
 		return nil, nil, fmt.Errorf("open browser: %w", err)
 	}

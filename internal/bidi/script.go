@@ -191,3 +191,38 @@ func (c *Conn) AddPreloadScript(ctx context.Context, declaration string) (string
 	err := c.Call(ctx, "script.addPreloadScript", map[string]any{"functionDeclaration": declaration}, &out)
 	return out.Script, err
 }
+
+// AddPreloadScriptWithChannel is AddPreloadScript for a function that takes one argument: a function that sends
+// its argument back to the engine as a script.message event on the named channel. The page cannot reach the
+// channel unless the function hands it out.
+func (c *Conn) AddPreloadScriptWithChannel(ctx context.Context, declaration, channel string) (string, error) {
+	var out struct {
+		Script string `json:"script"`
+	}
+	params := map[string]any{
+		"functionDeclaration": declaration,
+		"arguments":           []any{map[string]any{"type": "channel", "value": map[string]any{"channel": channel}}},
+	}
+	err := c.Call(ctx, "script.addPreloadScript", params, &out)
+	return out.Script, err
+}
+
+// ScriptMessage is a script.message event: a value a preload script sent on a channel.
+type ScriptMessage struct {
+	Channel string      `json:"channel"`
+	Data    RemoteValue `json:"data"`
+	Source  struct {
+		Context string `json:"context"`
+	} `json:"source"`
+}
+
+// OnScriptMessage calls f for every script.message event. Subscribe to "script.message" for them to arrive.
+func (c *Conn) OnScriptMessage(f func(ScriptMessage)) (remove func()) {
+	return c.OnEvent("script.message", func(_ string, params json.RawMessage) {
+		var m ScriptMessage
+		if err := json.Unmarshal(params, &m); err != nil {
+			return
+		}
+		f(m)
+	})
+}

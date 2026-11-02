@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coder/websocket"
+
 	"github.com/dummy-run/dummy-run/internal/cast"
 	"github.com/dummy-run/dummy-run/internal/identity"
 	"github.com/dummy-run/dummy-run/internal/policy"
@@ -593,5 +595,100 @@ func TestTechErrorDoesNotStopTheRun(t *testing.T) {
 	rec := res.Record
 	if !strings.Contains(rec.Target.TechError, "webappanalyzer") || rec.Outcome != record.OutcomeCompleted {
 		t.Errorf("tech error %q, outcome %s: want the error recorded and the run completed", rec.Target.TechError, rec.Outcome)
+	}
+}
+
+// TestBlockListInBrowser runs a scripted persona on a writable target with a block list. The support ticket the
+// persona's click would file and the feedback event its other click would emit never reach the site, the chat
+// message does, and each refusal is noted on its step.
+func TestBlockListInBrowser(t *testing.T) {
+	browsers := os.Getenv("DUMMYRUN_BROWSERS")
+	if browsers == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser test")
+	}
+	const home = `<!doctype html><html lang="en"><title>Chat</title><main><h1>Chat</h1>
+<button onclick="fetch('/api/support/tickets', {method: 'POST', body: '{}'})">Report this answer</button>
+<button onclick="ws.send('42[&quot;message:feedback&quot;,{&quot;up&quot;:false}]')">Thumbs down</button>
+<button onclick="ws.send('42[&quot;chat:message&quot;,&quot;hello&quot;]'); fetch('/api/chat', {method: 'POST', body: 'hi'})">Send</button>
+</main><script>const ws = new WebSocket(location.origin.replace('http', 'ws') + '/socket.io/?EIO=4&transport=websocket');</script></html>`
+	for _, browser := range strings.Split(browsers, ",") {
+		t.Run(browser, func(t *testing.T) {
+			var mu sync.Mutex
+			var posts, frames []string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("transport") == "websocket" {
+					c, err := websocket.Accept(w, r, nil)
+					if err != nil {
+						return
+					}
+					defer c.CloseNow()
+					for {
+						_, data, err := c.Read(r.Context())
+						if err != nil {
+							return
+						}
+						mu.Lock()
+						frames = append(frames, string(data))
+						mu.Unlock()
+					}
+				}
+				if r.Method == http.MethodPost {
+					mu.Lock()
+					posts = append(posts, r.URL.Path)
+					mu.Unlock()
+					return
+				}
+				w.Header().Set("Content-Type", "text/html")
+				_, _ = io.WriteString(w, home)
+			}))
+			t.Cleanup(srv.Close)
+			persona, err := cast.Load(writeCast(t), "reader")
+			if err != nil {
+				t.Fatal(err)
+			}
+			prov := &scripted{calls: []provider.ToolCall{
+				{Name: "click", Args: json.RawMessage(`{"target":"Report this answer"}`)},
+				{Name: "click", Args: json.RawMessage(`{"target":"Thumbs down"}`)},
+				{Name: "click", Args: json.RawMessage(`{"target":"Send"}`)},
+				{Name: "wait", Args: json.RawMessage(`{"seconds":1}`)},
+			}}
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			res, err := runner.Run(ctx, runner.Config{Persona: persona, Scenario: persona.Scenarios[0], Provider: prov, Browser: browser,
+				Headless: true, OutDir: t.TempDir(),
+				Target: policy.Target{Adapter: "url", Environment: "local", BaseURL: srv.URL + "/", AllowedHosts: []string{"127.0.0.1"},
+					Block: &policy.Block{
+						Requests:     []policy.RequestRule{{Method: "POST", Path: "/api/support/tickets"}},
+						SocketEvents: []string{"message:feedback"},
+					}}})
+			if err != nil {
+				t.Fatalf("run: %v", err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if slices.Contains(posts, "/api/support/tickets") {
+				t.Error("the site received the blocked support ticket")
+			}
+			if !slices.Contains(posts, "/api/chat") {
+				t.Errorf("the site did not receive the allowed chat POST: %v", posts)
+			}
+			if slices.ContainsFunc(frames, func(f string) bool { return strings.Contains(f, "message:feedback") }) {
+				t.Errorf("the site received the blocked feedback event: %q", frames)
+			}
+			if !slices.Contains(frames, `42["chat:message","hello"]`) {
+				t.Errorf("the site did not receive the chat message: %q", frames)
+			}
+			var notes []string
+			for _, st := range res.Record.Steps {
+				notes = append(notes, st.Note)
+			}
+			all := strings.Join(notes, "\n")
+			if !strings.Contains(all, "/api/support/tickets (the target's block list)") {
+				t.Errorf("no step noted the blocked ticket: %q", notes)
+			}
+			if !strings.Contains(all, `socket.io event "message:feedback" (the target's block list)`) {
+				t.Errorf("no step noted the blocked event: %q", notes)
+			}
+		})
 	}
 }

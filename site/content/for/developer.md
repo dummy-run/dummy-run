@@ -28,7 +28,7 @@ go install github.com/dummy-run/dummy-run/integrations/grafana/exporter/cmd/dumm
 
 {{< graphic name="headers" >}}
 
-A run drives a real Chrome or Firefox through WebDriver BiDi, so your app gets the same JavaScript, cookies and layout a customer's browser would. Set `"read_only": true` in the target and the browser blocks anything that could change data. Every request to your hosts carries `traceparent` and `baggage` headers, and the user agent ends with `DummyRun/<version>`. If your app is instrumented with OpenTelemetry, its spans join the persona's trace, so you can see which backend call sat behind the step where the persona got stuck.
+A run drives a real Chrome or Firefox through WebDriver BiDi, so your app gets the same JavaScript, cookies and layout a customer's browser would. Set `"read_only": true` in the target and the browser blocks anything that could change data. On a writable target, a `block` list fails the requests you name, by method and path pattern, and drops named socket.io events before the page sends them. Every request to your hosts carries `traceparent` and `baggage` headers, and the user agent ends with `DummyRun/<version>`. If your app is instrumented with OpenTelemetry, its spans join the persona's trace, so you can see which backend call sat behind the step where the persona got stuck.
 
 ## One JSON record per run
 

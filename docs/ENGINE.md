@@ -91,7 +91,7 @@ dummyrun run --cast casts/dummyrun-dev --persona tom-developer --scenario find-t
 | `--cast DIR` | The cast directory. A persona is `DIR/<id>/profile.md`, `prompt.md` and `scenarios/NN-<id>.md` |
 | `--persona ID`, `--scenario ID` | Which persona to run, and which of its scenarios |
 | `--scenario-file FILE` | Play a scenario file in place of `--scenario`. The file is named `NN-<id>.md` and is not looked up in the cast. Use it when a tool writes the scenario for one run, for example to list the pages to start from |
-| `--target CONFIG` | A JSON file with `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin` or `auth` block. It can also set `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy), [Sign in](#sign-in) and [Protected previews](#protected-previews) |
+| `--target CONFIG` | A JSON file with `base_url`, `allowed_hosts`, `read_only`, `environment` and an optional `signin`, `auth` or `block` block. It can also set `identify` and `respect_robots`. An `allowed_hosts` entry is a host name or `host:port`. See `examples/targets/`, [Read-only policy](#read-only-policy), [Block list](#block-list), [Sign in](#sign-in) and [Protected previews](#protected-previews) |
 | `--out DIR` | Where run records go. The record is `DIR/<run id>.json`. Screenshots and the persona's report go under `DIR/<run id>/` |
 | `--browser` | `chrome` or `firefox` |
 | `--provider`, `--model`, `--region` | The model provider, its deployment or model name, and the region to record. See [PROVIDERS.md](PROVIDERS.md) |
@@ -638,6 +638,71 @@ page on `127.0.0.1:8080` can't reach a service on `127.0.0.1:9000`. Matching is 
 its own entry. A page load or a `visit` to a host outside the list isn't followed, and nor is a write. The step
 gets a `blocked:` note and the record gets an `off_origin_blocked` event.
 
+## Block list
+
+Some tests need the persona to change things, such as registering, adding a record or sending a chat message. On
+such a target `read_only` is `false`. A few actions there can still reach a real person: feedback that someone
+reviews, a support ticket, a referral, or an email from a password reset. A `block` block in the target file
+stops them for the whole run, whatever `read_only` says.
+
+```json
+{
+  "adapter": "url",
+  "environment": "production",
+  "base_url": "https://app.example.test/",
+  "allowed_hosts": ["app.example.test"],
+  "read_only": false,
+  "block": {
+    "requests": [
+      { "method": "POST", "path": "/api/support/tickets" },
+      { "method": "POST", "path": "/api/support/tickets/*/messages" },
+      { "method": "POST", "path": "/api/auth/forgot-password" },
+      { "path": "/api/admin/**" }
+    ],
+    "socket_events": ["message:feedback", "feedback:*"]
+  }
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `requests` | Rules for HTTP requests to the allowed hosts. Each has a `path` and an optional `method`. With no `method`, the rule covers every method |
+| `socket_events` | socket.io event names the page may not send |
+
+A rule's `path` starts with `/`. A segment of `*` matches exactly one segment that isn't empty, and `**` as the
+last segment matches one or more. A segment can also use the other wildcards of Go's `path.Match`, such as `?`.
+The match ignores case, the query string, a trailing slash and doubled slashes. It reads a percent-encoded
+character as the character it stands for, so `/api/%74ickets` matches `/api/tickets`, as most servers would
+route it. A percent-encoded slash, `%2F`, stays inside its segment. A matching request fails before it leaves the browser, and its step gets a note such as
+`blocked: POST https://app.example.test/api/support/tickets (the target's block list)`.
+
+A WebSocket is one HTTP request that opens the connection, and then messages, which the browser's network
+interception doesn't see. So the engine filters socket.io events inside the page instead. A script it adds to
+every document before the page's own scripts drops an event whose name matches `socket_events`, and lets
+everything else through. In `socket_events`, `*` matches any run of characters except `/`, and `?` matches one
+character. Names are case-sensitive, as in socket.io. The filter reads the event forms socket.io sends: plain
+events, events in a namespace, events with an acknowledgement and binary events. It does this over a WebSocket,
+and over HTTP long-polling sent with `XMLHttpRequest` or `fetch` (Engine.IO 4, which socket.io 3 and later
+use). A long-polling body keeps its other packets. A body left with no packets is sent as an Engine.IO no-op
+packet (`6`). Each dropped event is noted on its step, such as
+`blocked: socket.io event "feedback:submit" (the target's block list)`. A dropped event counts as a blocked
+request when the engine decides whether a finding is about the test's limits (see
+[Untrusted page content](#untrusted-page-content)).
+
+The socket.io filter has limits:
+
+- It runs in the page, so a page that wanted to could get round it. It stops the persona's clicks sending
+  what you listed. It can't contain a hostile page. The HTTP rules work in the browser's network layer,
+  so the page can't get round them.
+- It doesn't cover sockets opened from a web worker or a service worker, raw WebSocket messages that aren't
+  socket.io, or long-polling under Engine.IO 3 (socket.io 2). A rule for a path still applies to those
+  requests.
+- It reads a long-polling body only when it's text, whether it's in `fetch`'s options, in a `Request` object or
+  sent with `XMLHttpRequest`. socket.io's own client sends text.
+
+Rules only add blocks. A rule never lets through a request that `read_only`, `allowed_hosts` or robots.txt
+refuses. `signin.block_paths` still covers sign-out links, and a `block` rule can cover them too.
+
 ## Untrusted page content
 
 The engine treats the page under test as input the model mustn't trust. [Threat model](THREAT-MODEL.md) lists
@@ -760,7 +825,7 @@ Add a `signin` block to the target file:
 | `username`, `password`, `submit` | How to find each control. Give either a CSS `selector` or the text of its `label` |
 | `allow_request` | The form's own request, by `method` (default POST) and `url`. The query is ignored. During sign-in, this is the one request the read-only policy lets through |
 | `success` | A `url_matches` regular expression, a `selector` or both. Make it specific to a signed-in page. Sign-in only counts when the request above was sent and this check passes |
-| `block_paths` | Paths that sign the user out, such as `/logout`. A request to one fails for the whole run, whatever its method |
+| `block_paths` | Paths that sign the user out, such as `/logout`. A request to one fails for the whole run, whatever its method. The match is exact. For patterns, or for anything other than signing out, use the [block list](#block-list) |
 | `credentials` | One entry per role. It names the environment variables that hold the user name and password, or a `session_file` |
 
 The file never holds a credential itself. A value that isn't a valid variable name is rejected. Every host named

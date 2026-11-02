@@ -100,7 +100,7 @@ func sessionSave(args []string) int {
 		return fail(err)
 	}
 	p, err := page.Open(ctx, page.Options{Browser: *browser, Headless: !*headful, Width: 1280, Height: 900,
-		RequestHook: signin.Hook(target, gate), Access: pa})
+		RequestHook: signin.Hook(target, gate), Access: pa, BlockSocketEvents: target.Block.SocketEventList()})
 	if err != nil {
 		return fail(fmt.Errorf("open browser: %w", err))
 	}

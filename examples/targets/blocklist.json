@@ -1,0 +1,16 @@
+{
+  "adapter": "url",
+  "environment": "staging",
+  "base_url": "https://staging.example.test/",
+  "allowed_hosts": ["staging.example.test"],
+  "read_only": false,
+  "block": {
+    "requests": [
+      { "method": "POST", "path": "/api/support/tickets" },
+      { "method": "POST", "path": "/api/support/tickets/*/messages" },
+      { "method": "POST", "path": "/api/auth/forgot-password" },
+      { "path": "/api/admin/**" }
+    ],
+    "socket_events": ["message:feedback", "feedback:*"]
+  }
+}
