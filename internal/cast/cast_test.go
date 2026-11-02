@@ -362,3 +362,25 @@ func TestLoadScenarioRejectsAMalformedMinSteps(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadScenarioReadsTheSiteLine(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "01-site.md")
+	body := "# Who is this\n\nSite:  personal site - people who want to know who the author is  \nDevice: desktop.\n"
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s, err := LoadScenario(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Site != "personal site - people who want to know who the author is" {
+		t.Errorf("Site = %q", s.Site)
+	}
+	long := "# Long\n\nSite: " + strings.Repeat("x", 400) + "\n"
+	if err := os.WriteFile(path, []byte(long), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if s, err = LoadScenario(path); err != nil || len([]rune(s.Site)) != maxSiteRunes {
+		t.Errorf("a long Site line should be cut to %d runes, got %d (%v)", maxSiteRunes, len([]rune(s.Site)), err)
+	}
+}

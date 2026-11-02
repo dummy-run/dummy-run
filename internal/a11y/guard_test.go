@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -776,5 +777,267 @@ menu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { fetch('
 				}
 			})
 		}
+	}
+}
+
+// TestRootBuiltAfterTheScanStaysInTab builds a closed shadow root in the instant between the guard's last scan and
+// the press, the gap the scan alone can't close. The page builds it with setHTMLUnsafe or with
+// Document.parseHTMLUnsafe, the two ways a script can declare a closed root once the page has loaded. Inside it is a
+// link to a disallowed address or a POST form's submit button, each aimed at a new window and filling the spot the
+// mouse then presses. The test drives the scan and the press itself, so the build lands in the gap every time. The
+// address must never be loaded, the form must never arrive and no tab may open, in Chrome as in Firefox.
+func TestRootBuiltAfterTheScanStaysInTab(t *testing.T) {
+	v := os.Getenv("DUMMYRUN_BROWSERS")
+	if v == "" {
+		t.Skip("set DUMMYRUN_BROWSERS=chrome,firefox to run the browser tests")
+	}
+	const fill = `style="display:block;position:absolute;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;opacity:0"`
+	inside := map[string]string{
+		"link": `<a href="/private/account" target="_blank" ` + fill + `>Account page</a>`,
+		"form": `<form method="post" action="/order" target="_blank"><input type="hidden" name="item" value="1"><button ` + fill + `>Buy</button></form>`,
+	}
+	build := map[string]string{
+		"setHTMLUnsafe":   `(html) => { document.getElementById('spot').setHTMLUnsafe(html); }`,
+		"parseHTMLUnsafe": `(html) => { const d = Document.parseHTMLUnsafe('<body>' + html); document.getElementById('spot').append(...d.body.childNodes); }`,
+	}
+	var mu sync.Mutex
+	seen := map[string]int{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.Method+" "+r.URL.Path]++
+		mu.Unlock()
+		switch r.URL.Path {
+		case "/robots.txt":
+			_, _ = fmt.Fprint(w, "User-agent: *\nDisallow: /private\n")
+		case "/", "/tt":
+			w.Header().Set("Content-Type", "text/html")
+			if r.URL.Path == "/tt" {
+				w.Header().Set("Content-Security-Policy", "require-trusted-types-for 'script'")
+			}
+			_, _ = fmt.Fprint(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shop</title></head><body style="margin:0"><main><h1>Shop</h1>
+<div id="spot" style="position:absolute;left:0;top:100px;width:200px;height:40px"></div>
+</main></body></html>`)
+		default:
+			w.WriteHeader(http.StatusNoContent)
+		}
+	}))
+	defer srv.Close()
+	allowed := func(raw string) (bool, string) { return !strings.Contains(raw, "/private"), "" }
+	for _, browser := range strings.Split(v, ",") {
+		for how, fn := range build {
+			for what, html := range inside {
+				t.Run(browser+"/"+how+"/"+what, func(t *testing.T) {
+					mu.Lock()
+					clear(seen)
+					mu.Unlock()
+					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+					defer cancel()
+					b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer b.Close()
+					if err := keepToOneTab(ctx, b.Conn); err != nil {
+						t.Fatal(err)
+					}
+					opened, err := guardOpenedTabs(ctx, b.Conn, Config{}, allowed)
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer opened.close()
+					cx, err := b.Conn.CreateContext(ctx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					d, stop, err := guardTab(ctx, b.Conn, cx, Config{}, allowed)
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer stop()
+					if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+						t.Fatal(err)
+					}
+					if err := b.Conn.MoveMouse(ctx, cx, 100, 120); err != nil {
+						t.Fatal(err)
+					}
+					if err := guardClosedRoots(ctx, b.Conn, cx); err != nil {
+						t.Fatal(err)
+					}
+					root := `<shop-panel style="display:block;position:absolute;inset:0"><template shadowrootmode="closed">` + html + `</template></shop-panel>`
+					if err := b.Conn.Call(ctx, "script.callFunction", map[string]any{
+						"functionDeclaration": fn,
+						"arguments":           []any{map[string]any{"type": "string", "value": root}},
+						"target":              map[string]any{"context": cx},
+						"awaitPromise":        true,
+					}, nil); err != nil {
+						t.Fatal(err)
+					}
+					var closed bool
+					if err := b.Conn.EvaluateJSON(ctx, cx, "document.querySelector('shop-panel').shadowRoot === null", &closed); err != nil {
+						t.Fatal(err)
+					}
+					if !closed {
+						t.Fatal("the root isn't closed any more")
+					}
+					if err := b.Conn.PressMouse(ctx, cx); err != nil {
+						t.Fatal(err)
+					}
+					// Give the press time to reach a new tab or the server, as it would before the next step.
+					time.Sleep(2 * time.Second)
+					opened.settle(10 * time.Second)
+					srv.CloseClientConnections()
+					mu.Lock()
+					defer mu.Unlock()
+					for k, n := range seen {
+						if strings.HasPrefix(k, "GET /private") || (!strings.HasPrefix(k, "GET ") && !strings.HasPrefix(k, "HEAD ")) {
+							t.Errorf("%s reached the server %d times: %v", k, n, seen)
+						}
+					}
+					if n := opened.Opened(); n != 0 {
+						t.Errorf("the press opened %d tabs, want none", n)
+					}
+					if n := d.Stopped() + opened.Stopped(); n < 1 {
+						t.Errorf("stopped %d requests, want the press: %v", n, seen)
+					}
+				})
+			}
+		}
+		// An open root shows what the guard did to the markup: a new window becomes the page's own tab, a frame
+		// the page has keeps its name, and markup with nothing to change is left as the page wrote it. An object
+		// whose toString changes between reads gets built from the markup the guard read. A shadow root's own
+		// setHTMLUnsafe and a root nested in another are covered, and so are area and input targets. A Trusted Types
+		// value goes through as the page wrote it, a gap ENGINE.md names. A call with no markup throws as it would
+		// without the guard and leaves the element alone. An SVG element named template doesn't stop
+		// the guard reaching the root after it. A whole document keeps its doctype, public and system IDs included,
+		// its language, title and body class, and one with nothing to change keeps a frame's name.
+		// A page that replaces what the guard calls still has its new window put right.
+		t.Run(browser+"/markup", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer b.Close()
+			if err := keepToOneTab(ctx, b.Conn); err != nil {
+				t.Fatal(err)
+			}
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/"); err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			if err := b.Conn.EvaluateJSON(ctx, cx, `(() => {
+	const spot = document.getElementById('spot');
+	spot.insertAdjacentHTML('beforeend', '<iframe name="side"></iframe>');
+	const host = document.createElement('div');
+	spot.append(host);
+	host.setHTMLUnsafe('<shop-panel><template shadowrootmode="open"><a id="a" target="_blank" href="/a">A</a><a id="b" target="side" href="/b">B</a><form id="f" target="_blank"><button id="s" formtarget="_blank">Go</button></form></template></shop-panel>');
+	const r = host.firstElementChild.shadowRoot;
+	const plain = document.createElement('div');
+	plain.setHTMLUnsafe('<p class="x">Hello</p>');
+	let reads = 0;
+	const turncoat = { toString() { return reads++ ? '<shop-panel><template shadowrootmode="open"><a target="_blank" href="/c">C</a></template></shop-panel>' : '<p>Plain</p>'; } };
+	const changing = document.createElement('div');
+	changing.setHTMLUnsafe(turncoat);
+	const out = [String(!!r), r.getElementById('a').target, r.getElementById('b').target, r.getElementById('f').target, r.getElementById('s').formTarget, plain.innerHTML, changing.innerHTML];
+	r.setHTMLUnsafe('<shop-outer><template shadowrootmode="open"><shop-inner><template shadowrootmode="open"><map name="m"><area id="ar" target="_blank" href="/ar"></map><form><input id="in" type="submit" formtarget="_blank"></form></template></shop-inner></template></shop-outer>');
+	const deep = r.querySelector('shop-outer').shadowRoot.querySelector('shop-inner').shadowRoot;
+	out.push(deep.getElementById('ar').target, deep.getElementById('in').formTarget);
+	if (window.trustedTypes) {
+		const policy = trustedTypes.createPolicy('shop-test', { createHTML: (s) => s });
+		const kept = '<shop-panel><template shadowrootmode="open"><a id="k" target="_blank" href="/k">K</a></template></shop-panel>';
+		const viaSet = document.createElement('div');
+		viaSet.setHTMLUnsafe(policy.createHTML(kept));
+		const viaParse = Document.parseHTMLUnsafe(policy.createHTML('<body>' + kept));
+		out.push(viaSet.firstElementChild.shadowRoot.getElementById('k').target, viaParse.querySelector('shop-panel').shadowRoot.getElementById('k').target);
+	} else {
+		out.push('_blank', '_blank');
+	}
+	const empty = document.createElement('div');
+	empty.textContent = 'kept';
+	let none = 'nothing';
+	try { empty.setHTMLUnsafe(); } catch (e) { none = e.name; }
+	out.push(none, empty.textContent);
+	const svg = document.createElement('div');
+	svg.setHTMLUnsafe('<svg><template></template></svg><shop-panel><template shadowrootmode="open"><a id="v" target="_blank" href="/v">V</a></template></shop-panel>');
+	out.push(svg.querySelector('shop-panel').shadowRoot.getElementById('v').target);
+	const whole = Document.parseHTMLUnsafe('<!DOCTYPE html><html lang="cy"><head><title>Siop</title></head><body class="b"><shop-panel><template shadowrootmode="open"><a id="d" target="_blank" href="/d">D</a></template></shop-panel></body></html>');
+	out.push(whole.documentElement.lang, whole.title, whole.body.className, whole.compatMode, whole.querySelector('shop-panel').shadowRoot.getElementById('d').target);
+	const legacy = Document.parseHTMLUnsafe('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html><body><shop-panel><template shadowrootmode="open"><a id="l" target="_blank" href="/l">L</a></template></shop-panel></body></html>');
+	out.push(legacy.doctype.publicId, legacy.doctype.systemId, legacy.compatMode, legacy.querySelector('shop-panel').shadowRoot.getElementById('l').target);
+	const same = Document.parseHTMLUnsafe('<!DOCTYPE html><html lang="en"><body class="s"><shop-panel><template shadowrootmode="open"><a id="u" target="side" href="/u">U</a></template></shop-panel></body></html>');
+	out.push(same.documentElement.lang, same.body.className, same.querySelector('shop-panel').shadowRoot.getElementById('u').target);
+	RegExp.prototype.test = function () { return false; };
+	String.prototype.toLowerCase = function () { return '_self'; };
+	Element.prototype.getAttribute = function () { return null; };
+	Object.defineProperty(NodeList.prototype, 'length', { get() { return 0; } });
+	RegExp.prototype.exec = function () { return null; };
+	Array.prototype.forEach = function () {};
+	Array.prototype[Symbol.iterator] = function* () {};
+	const tampered = document.createElement('div');
+	spot.append(tampered);
+	tampered.setHTMLUnsafe('<shop-panel><template shadowrootmode="open"><a id="t" target="_blank" href="/t">T</a></template></shop-panel>');
+	out.push(tampered.firstElementChild.shadowRoot.getElementById('t').target);
+	return out;
+})()`, &got); err != nil {
+				t.Fatal(err)
+			}
+			want := []string{"true", "_self", "side", "_self", "_self", `<p class="x">Hello</p>`, "<p>Plain</p>", "_self", "_self", "_blank", "_blank",
+				"TypeError", "kept", "_self", "cy", "Siop", "b", "CSS1Compat", "_self",
+				"-//W3C//DTD XHTML 1.0 Transitional//EN", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", "CSS1Compat", "_self",
+				"en", "s", "side", "_self"}
+			if !slices.Equal(got, want) {
+				t.Errorf("the markup came out as %q, want %q", got, want)
+			}
+		})
+		// On a page that enforces Trusted Types, markup the guard can't read as a plain string fails in both
+		// wrappers, as it would without the guard, and builds no root. A Trusted Types value passed to a shadow
+		// root's own setHTMLUnsafe goes through as the page wrote it, the gap ENGINE.md names.
+		t.Run(browser+"/trusted-types", func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			b, err := bidi.Launch(ctx, bidi.LaunchOptions{Browser: browser, Headless: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer b.Close()
+			if err := keepToOneTab(ctx, b.Conn); err != nil {
+				t.Fatal(err)
+			}
+			cx, err := b.Conn.CreateContext(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := b.Conn.Navigate(ctx, cx, srv.URL+"/tt"); err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			if err := b.Conn.EvaluateJSON(ctx, cx, `(() => {
+	if (!window.trustedTypes) return ['none'];
+	const spot = document.getElementById('spot');
+	const closed = '<shop-panel><template shadowrootmode="closed"><a target="_blank" href="/x">X</a></template></shop-panel>';
+	let thrown = 'nothing', parsed = 'nothing';
+	try { spot.setHTMLUnsafe(closed); } catch (e) { thrown = e.name; }
+	try { Document.parseHTMLUnsafe('<body>' + closed); } catch (e) { parsed = e.name; }
+	const policy = trustedTypes.createPolicy('shop-tt', { createHTML: (s) => s });
+	const host = document.createElement('div');
+	document.body.append(host);
+	const root = host.attachShadow({ mode: 'open' });
+	root.setHTMLUnsafe(policy.createHTML('<shop-panel><template shadowrootmode="open"><a id="r" target="_blank" href="/r">R</a></template></shop-panel>'));
+	return [thrown, parsed, String(spot.childElementCount), root.querySelector('shop-panel').shadowRoot.getElementById('r').target];
+})()`, &got); err != nil {
+				t.Fatal(err)
+			}
+			if slices.Equal(got, []string{"none"}) {
+				t.Skipf("%s doesn't support Trusted Types", browser)
+			}
+			if want := []string{"TypeError", "TypeError", "0", "_blank"}; !slices.Equal(got, want) {
+				t.Errorf("got %q, want %q", got, want)
+			}
+		})
 	}
 }

@@ -147,7 +147,8 @@ func buildWorked(runs []*Run) []WorkedNote {
 	for _, run := range runs {
 		for _, o := range run.Rec.Observations {
 			text := strings.TrimSpace(o.Text)
-			if text == "" {
+			// A problem claim that did not become a finding is not something that worked, and has no evidence to show.
+			if text == "" || o.Kind != "" {
 				continue
 			}
 			a := byText[text]
@@ -247,8 +248,12 @@ func buildScope(runs []*Run) Scope {
 		}
 		p := personas[r.Persona.ID]
 		if p == nil {
-			p = &pAgg{use: &PersonaUse{ID: r.Persona.ID, Role: r.Persona.Role}, devices: map[string]bool{}, dims: map[string]bool{}}
+			p = &pAgg{use: &PersonaUse{ID: r.Persona.ID, Name: r.Persona.Name, Role: r.Persona.Role}, devices: map[string]bool{}, dims: map[string]bool{}}
 			personas[r.Persona.ID] = p
+		}
+		// A record from before persona.name existed has none, so a later record can supply it.
+		if p.use.Name == "" {
+			p.use.Name = r.Persona.Name
 		}
 		p.use.Runs++
 		dev := r.Persona.Device
@@ -538,8 +543,11 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 			rep = h
 		}
 	}
+	// The evidence shown is the reproduction's, so the element, the quoted words and the page address describe the
+	// same page state as the steps and the screenshots beside them. Another sighting's words would not.
+	f.Body, f.FixText, f.Element, f.Quote, f.URL, f.WCAG = rep.f.Body, rep.f.Fix, rep.f.Element, rep.f.Quote, rep.f.URL, rep.f.WCAG
 	r := rep.run.Rec
-	f.Reproduction = Reproduction{Run: r.ID, Persona: r.Persona.ID, Role: r.Persona.Role, Device: r.Persona.Device,
+	f.Reproduction = Reproduction{Run: r.ID, Persona: r.Persona.ID, Role: r.Persona.Role, SignedIn: r.Signin != nil && r.Signin.OK, Device: r.Persona.Device,
 		Zoom: orHundred(r.Persona.Zoom), Browser: strings.TrimSpace(r.Browser.Name + " " + r.Browser.Version), Steps: []StepRef{}}
 	cited := map[int]bool{}
 	for _, n := range rep.f.Steps {
@@ -548,13 +556,17 @@ func makeFinding(key string, hits []hit, status string, total int, axe map[strin
 	for _, st := range r.Steps {
 		if cited[st.N] {
 			f.Reproduction.Steps = append(f.Reproduction.Steps, StepRef{N: st.N, Action: st.Action, Target: st.Target,
-				Route: st.Route, URL: st.URL, Note: st.Note})
+				Element: st.Element, Route: st.Route, URL: st.URL, Note: st.Note, Evidence: st.N == rep.f.EvidenceStep})
 		}
 	}
 	f.Screenshots = screenshotsFor(rep)
+	// The screenshot of the step where the engine found the evidence comes first.
+	sort.SliceStable(f.Screenshots, func(i, j int) bool {
+		return f.Screenshots[i].Step == rep.f.EvidenceStep && f.Screenshots[j].Step != rep.f.EvidenceStep
+	})
 
 	if rule, ok := strings.CutPrefix(f.Symptom, "a11y:"); ok {
-		if ax, ok := axe[rule]; ok {
+		if ax, ok := axe[rule]; ok && len(ax.WCAG) > 0 {
 			f.WCAG = ax.WCAG
 			f.HelpURL = ax.HelpURL
 		}

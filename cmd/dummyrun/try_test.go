@@ -177,3 +177,15 @@ func TestBrowsersListWorksOnAnEmptyCache(t *testing.T) {
 		t.Errorf("exit %d, want 0", code)
 	}
 }
+
+func TestTryAcceptsSelfCheckFlag(t *testing.T) {
+	// A bad address fails after the flags parse, so the error names the address, not the flag.
+	var stderr strings.Builder
+	code := captureStderr(t, &stderr, func() int { return run([]string{"try", "ftp://example.com", "--self-check=false"}) })
+	if code != 2 {
+		t.Fatalf("exit %d, want 2", code)
+	}
+	if strings.Contains(stderr.String(), "flag provided but not defined") {
+		t.Fatalf("--self-check is not a try flag: %s", stderr.String())
+	}
+}
