@@ -912,8 +912,17 @@ const resolveJS = `(target, kind) => {
     if (label && (label.control === el || label.contains(el))) return true;
     return false;
   };
-  // Styled checkboxes and radios hide the real input under a visible stand-in, so they are never "covered".
-  const coverable = (el) => !(el.tagName === "INPUT" && /^(checkbox|radio|file|range|color)$/i.test(el.type)) && el.tagName !== "SELECT";
+  // A styled checkbox, radio, file, range or colour input, or a select, often hides the real control under a
+  // visible stand-in drawn in its own wrapper. What covers it counts as the control when it sits in that
+  // wrapper (up to two levels up, never a whole main, form or dialog); anything else on top, such as a fixed bar,
+  // still covers it.
+  const standIn = (el, top) => {
+    if (!top || !((el.tagName === "INPUT" && /^(checkbox|radio|file|range|color)$/i.test(el.type)) || el.tagName === "SELECT")) return false;
+    for (let a = el.parentElement, i = 0; a && i < 2 && !a.matches("body, html, main, form, dialog, [role=main], [role=dialog]"); a = a.parentElement, i++) {
+      if (a.contains(top)) return true;
+    }
+    return false;
+  };
   const describe = (el) => {
     for (let e = el; e && e !== document.body; e = e.parentElement) {
       const t = squash(e.getAttribute("aria-label") || e.innerText || "");
@@ -958,8 +967,8 @@ const resolveJS = `(target, kind) => {
   if (x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) {
     return { error: "the control " + JSON.stringify(name(el) || target) + " is off screen, probably inside a closed menu or drawer; open that first" };
   }
-  if (kind !== "fillable" && coverable(el) && !hits(el)) {
-    const top = document.elementFromPoint(x, y);
+  const top = document.elementFromPoint(x, y);
+  if (kind !== "fillable" && !hits(el) && !standIn(el, top)) {
     el.removeAttribute("data-dummyrun-target");
     return { error: "the control " + JSON.stringify(name(el) || target) + " is covered by " + describe(top) +
       ", so a click would land on that instead; close or dismiss it first" };

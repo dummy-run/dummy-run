@@ -28,6 +28,11 @@ const hitTestPage = `<!doctype html><html lang="en"><title>Hit test</title>
   <h1>Children</h1>
   <ul><li>Mia <button style="position:absolute;top:320px;left:120px" onclick="location.hash='list-delete'">Delete</button></li></ul>
   <button class="send" onclick="location.hash='sent'">Send message</button>
+  <select class="covered" style="position:absolute;top:740px;left:300px" onchange="location.hash='picked'"><option>One</option><option>Two</option></select>
+  <div style="position:absolute;top:620px;left:20px;width:24px;height:24px">
+    <input id="styled" type="checkbox" style="position:absolute;inset:0;margin:0;opacity:0" onchange="location.hash='ticked'">
+    <span style="position:absolute;inset:0;border:2px solid #333" onclick="document.getElementById('styled').click()"></span>
+  </div>
 </main>
 <div class="bar">See our privacy policy. <button onclick="this.parentNode.remove()">Accept</button></div>
 <div class="overlay"></div>
@@ -82,6 +87,27 @@ func TestClickHitsWhatIsOnTop(t *testing.T) {
 			}
 			if strings.HasSuffix(o.URL, "#sent") {
 				t.Errorf("the covered Send button was pressed: %q", o.URL)
+			}
+
+			// The same refusal when the target is named directly rather than by its text.
+			o = p.Click(ctx, "css:button.send")
+			if o.Error == "" || !strings.Contains(o.Error, "covered") || strings.HasSuffix(o.URL, "#sent") {
+				t.Errorf("click on a covered Send by selector: error %q at %q, want a refusal", o.Error, o.URL)
+			}
+
+			// A select is exempt only when what covers it belongs to it. The privacy bar doesn't.
+			o = p.Click(ctx, "css:select.covered")
+			if o.Error == "" || !strings.Contains(o.Error, "covered") {
+				t.Errorf("click on a select under the bar: error %q, want a refusal", o.Error)
+			}
+
+			// A styled checkbox whose real input sits under its own stand-in is still clicked.
+			o = p.Click(ctx, "css:#styled")
+			if o.Error != "" {
+				t.Errorf("click on a styled checkbox: %s", o.Error)
+			}
+			if !strings.HasSuffix(o.URL, "#ticked") {
+				t.Errorf("the styled checkbox was not ticked: %q", o.URL)
 			}
 		})
 	}
