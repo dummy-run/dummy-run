@@ -26,7 +26,8 @@ type RequestRule struct {
 	// Method is an HTTP method, matched case-insensitively. Empty matches every method.
 	Method string `json:"method,omitempty"`
 	// Path starts with "/". A segment may hold path.Match wildcards, so "*" is exactly one non-empty segment. A
-	// last segment of "**" matches one or more segments. The match ignores case, the query and a trailing slash.
+	// last segment of "**" matches one or more segments. The match ignores case, the query, a trailing slash and
+	// doubled slashes, and reads percent-encoded characters as the characters they stand for, apart from "/".
 	Path string `json:"path"`
 }
 
@@ -76,7 +77,7 @@ func (b *Block) RequestBlocked(method string, u *url.URL) bool {
 	if b == nil {
 		return false
 	}
-	segs := splitPath(strings.ToLower(u.EscapedPath()))
+	segs := requestSegments(u)
 	for _, r := range b.Requests {
 		if r.Method != "" && !strings.EqualFold(r.Method, method) {
 			continue
@@ -108,6 +109,24 @@ func (b *Block) SocketEventList() []string {
 		return nil
 	}
 	return b.SocketEvents
+}
+
+// requestSegments is the request's path as lower-case segments, each percent-decoded as a server would read it,
+// so "/api/%74ickets" is "api", "tickets". An encoded slash stays inside its segment. Empty segments are dropped,
+// because many servers treat "//" as "/", and a rule should not fail open on a doubled slash.
+func requestSegments(u *url.URL) []string {
+	var out []string
+	for _, s := range splitPath(u.EscapedPath()) {
+		s = strings.NewReplacer("%2f", "\x00", "%2F", "\x00").Replace(s)
+		if d, err := url.PathUnescape(s); err == nil {
+			s = d
+		}
+		s = strings.ReplaceAll(s, "\x00", "%2f")
+		if s != "" {
+			out = append(out, strings.ToLower(s))
+		}
+	}
+	return out
 }
 
 // splitPath splits a path into its segments, without the leading slash or a trailing one. Empty segments

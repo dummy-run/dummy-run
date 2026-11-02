@@ -42,6 +42,10 @@ func TestDecideBlockRules(t *testing.T) {
 		{"other path passes", "POST", "https://example.test/api/chat", Allow},
 		{"prefix is not a match", "POST", "https://example.test/api/support/ticketsx", Allow},
 		{"encoded slash does not split a segment", "POST", "https://example.test/api/support/tickets/a%2Fb/messages", BlockRule},
+		{"percent-encoded letter still matches", "POST", "https://example.test/api/support/%74ickets", BlockRule},
+		{"percent-encoded upper case still matches", "POST", "https://example.test/api/%53upport/tickets", BlockRule},
+		{"doubled leading slash still matches", "POST", "https://example.test//api/support/tickets", BlockRule},
+		{"doubled inner slash still matches", "POST", "https://example.test/api//support/tickets", BlockRule},
 	}
 	for _, c := range cases {
 		if got := bt.Decide(c.method, c.url); got != c.want {

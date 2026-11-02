@@ -8,8 +8,27 @@
 // item is the event name. Over a WebSocket each frame is one packet. Over HTTP long-polling (Engine.IO 4) a
 // POST body holds packets separated by the record separator \x1e.
 (report) => {
-  const patterns = __DR_SOCKET_PATTERNS__.map((p) => new RegExp('^' + p.replace(/[.+^${}()|\\/]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]') + '$'));
-  const blocked = (name) => patterns.some((re) => re.test(name));
+  const patterns = __DR_SOCKET_PATTERNS__;
+  // segmentMatch matches one segment, with no "/" in it, against a pattern of "*" and "?" wildcards. It keeps only
+  // the last star to fall back to, so it never backtracks further than one pass per star.
+  const segmentMatch = (p, s) => {
+    let pi = 0, si = 0, star = -1, mark = 0;
+    while (si < s.length) {
+      if (pi < p.length && (p[pi] === '?' || (p[pi] !== '*' && p[pi] === s[si]))) { pi++; si++; }
+      else if (pi < p.length && p[pi] === '*') { star = pi++; mark = si; }
+      else if (star >= 0) { pi = star + 1; si = ++mark; }
+      else return false;
+    }
+    while (pi < p.length && p[pi] === '*') pi++;
+    return pi === p.length;
+  };
+  // globMatch is Go's path.Match for "*" and "?": neither matches "/", so the name and the pattern must have the
+  // same "/"-separated segments.
+  const globMatch = (pattern, name) => {
+    const ps = pattern.split('/'), ns = name.split('/');
+    return ps.length === ns.length && ps.every((p, i) => segmentMatch(p, ns[i]));
+  };
+  const blocked = (name) => patterns.some((p) => globMatch(p, name));
 
   const eventName = (packet) => {
     if (typeof packet !== 'string' || packet[0] !== '4' || (packet[1] !== '2' && packet[1] !== '5')) return null;
@@ -82,11 +101,21 @@
 
   const pageFetch = window.fetch;
   window.fetch = function (input, init) {
-    const url = input instanceof Request ? input.url : String(input);
-    const method = String((init && init.method) || (input instanceof Request ? input.method : 'GET')).toUpperCase();
-    if (method === 'POST' && init && isPolling(url)) {
-      const kept = filterPolling(init.body);
-      if (kept !== null) return pageFetch.call(this, input, { ...init, body: kept });
+    const isRequest = input instanceof Request;
+    const url = isRequest ? input.url : String(input);
+    const method = String((init && init.method) || (isRequest ? input.method : 'GET')).toUpperCase();
+    if (method === 'POST' && isPolling(url)) {
+      if (init && init.body !== undefined && init.body !== null) {
+        const kept = filterPolling(init.body);
+        if (kept !== null) return pageFetch.call(this, input, { ...init, body: kept });
+      } else if (isRequest) {
+        // The body is inside the Request. Read a copy, and send a new Request if anything was dropped.
+        return input.clone().text().then((text) => {
+          const kept = filterPolling(text);
+          if (kept === null) return pageFetch.call(this, input, init);
+          return pageFetch.call(this, new Request(input, { ...(init || {}), body: kept }));
+        });
+      }
     }
     return pageFetch.call(this, input, init);
   };

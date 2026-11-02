@@ -33,6 +33,7 @@ async function go() {
     '4217["feedback:pilot","text"]',
     '451-["feedback:survey",{"_placeholder":true,"num":0}]',
     '42["feedbackx"]',
+    '42["feedback:a/b"]',
     '2',
     'not socket.io',
   ]) ws.send(f);
@@ -43,6 +44,8 @@ async function go() {
   await new Promise(r => x.onloadend = r);
   await fetch('/socket.io/?EIO=4&transport=polling&sid=2', {method: 'POST', body: '42["message:feedback",1]'});
   await fetch('/socket.io/?EIO=4&transport=polling&sid=3', {method: 'POST', body: '42["chat:message","b"]'});
+  await fetch(new Request('/socket.io/?EIO=4&transport=polling&sid=4', {method: 'POST', body: '42["feedback:submit",2]\x1e42["chat:message","c"]'}));
+  await fetch(new Request('/socket.io/?EIO=4&transport=polling&sid=5', {method: 'POST', body: '42["feedback:pilot",3]'}), {headers: {'X-Test': '1'}});
   document.getElementById('state').textContent = 'sent';
 }
 </script></html>`
@@ -119,7 +122,7 @@ func TestSocketEventsAreDropped(t *testing.T) {
 			deadline := time.Now().Add(10 * time.Second)
 			for {
 				frames, polls := rec.snapshot()
-				if (slices.Contains(frames, `42["done"]`) && len(polls) == 3) || time.Now().After(deadline) {
+				if (slices.Contains(frames, `42["done"]`) && len(polls) == 5) || time.Now().After(deadline) {
 					break
 				}
 				time.Sleep(100 * time.Millisecond)
@@ -127,7 +130,7 @@ func TestSocketEventsAreDropped(t *testing.T) {
 			blocked := slices.Concat(o.Blocked, p.Look(ctx).Blocked)
 
 			frames, polls := rec.snapshot()
-			want := []string{`42["chat:message","hello"]`, `42["feedbackx"]`, `2`, `not socket.io`, `42["done"]`}
+			want := []string{`42["chat:message","hello"]`, `42["feedbackx"]`, `42["feedback:a/b"]`, `2`, `not socket.io`, `42["done"]`}
 			if !slices.Equal(frames, want) {
 				t.Errorf("the server got these frames:\n%q\nwant\n%q", frames, want)
 			}
@@ -139,6 +142,12 @@ func TestSocketEventsAreDropped(t *testing.T) {
 			}
 			if got := polls["3"]; got != `42["chat:message","b"]` {
 				t.Errorf("fetch polling body with no blocked event: %q", got)
+			}
+			if got := polls["4"]; got != `42["chat:message","c"]` {
+				t.Errorf("fetch of a Request with a blocked event: %q", got)
+			}
+			if got, ok := polls["5"]; !ok || strings.Contains(got, "feedback") {
+				t.Errorf("fetch of a Request with options but no body: %q (sent %v)", got, ok)
 			}
 			all := strings.Join(blocked, "\n")
 			for _, name := range []string{"feedback:submit", "message:feedback", "feedback:pilot", "feedback:survey"} {

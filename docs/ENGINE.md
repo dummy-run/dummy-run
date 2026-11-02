@@ -637,8 +637,9 @@ stops them for the whole run, whatever `read_only` says.
 
 A rule's `path` starts with `/`. A segment of `*` matches exactly one segment that isn't empty, and `**` as the
 last segment matches one or more. A segment can also use the other wildcards of Go's `path.Match`, such as `?`.
-The match ignores case, the query string and a trailing slash. A percent-encoded slash, such as `%2F`, stays
-inside its segment. A matching request fails before it leaves the browser, and its step gets a note such as
+The match ignores case, the query string, a trailing slash and doubled slashes. It reads a percent-encoded
+character as the character it stands for, so `/api/%74ickets` matches `/api/tickets`, as most servers would
+route it. A percent-encoded slash, `%2F`, stays inside its segment. A matching request fails before it leaves the browser, and its step gets a note such as
 `blocked: POST https://app.example.test/api/support/tickets (the target's block list)`.
 
 A WebSocket is one HTTP request that opens the connection, and then messages, which the browser's network
@@ -662,8 +663,8 @@ The socket.io filter has limits:
 - It doesn't cover sockets opened from a web worker or a service worker, raw WebSocket messages that aren't
   socket.io, or long-polling under Engine.IO 3 (socket.io 2). A rule for a path still applies to those
   requests.
-- A `fetch` that passes a `Request` object with the body inside, rather than a body in its options, isn't
-  read. socket.io's own client passes the body in the options.
+- It reads a long-polling body only when it's text, whether it's in `fetch`'s options, in a `Request` object or
+  sent with `XMLHttpRequest`. socket.io's own client sends text.
 
 Rules only add blocks. A rule never lets through a request that `read_only`, `allowed_hosts` or robots.txt
 refuses. `signin.block_paths` still covers sign-out links, and a `block` rule can cover them too.
