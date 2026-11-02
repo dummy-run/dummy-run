@@ -77,6 +77,9 @@ type Config struct {
 	Access *access.Resolved
 	Log    io.Writer
 	Launch bidi.LaunchOptions
+	// SelfCheck makes one more call to the run's model after the persona finishes. It compares each finding with
+	// its evidence and the scenario's Site line, and keeps, rewrites, downgrades or drops it.
+	SelfCheck bool
 }
 
 // Result is what a run produced.
@@ -124,6 +127,8 @@ type run struct {
 	finishRetries int
 	// offSiteNoted is true once an observation has said that the test stops requests to other sites.
 	offSiteNoted bool
+	// evidenceRetries counts how often finish was sent back for findings the steps do not show.
+	evidenceRetries int
 	// minSteps is how many steps the persona must take before finish is accepted. earlyFinishes counts
 	// the finish calls sent back for coming sooner.
 	minSteps      int
@@ -173,6 +178,17 @@ func stepSuffix(n int) string {
 
 // maxFinishRetries is how many times the model is asked to fix a symptom before the finding is dropped.
 const maxFinishRetries = 2
+
+// maxEvidenceRetries is how many times the model is asked to back a finding with evidence before the finding
+// becomes an unverified note. Each retry is one more model call, so it is kept to one.
+const maxEvidenceRetries = 1
+
+// evidenceRetry says whether finish goes back to the model for findings the steps do not show. It does not once
+// the engine has forced the finish, nor when the finish itself crossed the token budget: forced says so by then,
+// and another call would spend what the budget said the run could not.
+func evidenceRetry(retries int, forced string) bool {
+	return retries < maxEvidenceRetries && forced == ""
+}
 
 // Run plays the scenario and writes the run record. The record is written
 // even when the run errors, with outcome errored.
@@ -245,7 +261,17 @@ func Run(ctx context.Context, cfg Config) (*Result, error) {
 		cfg.Browser, budget, cfg.Provider.Kind(), cfg.Provider.Model(), cfg.Provider.Region())
 
 	finish, gaveUp, runErr := r.play(ctx)
+	var checks []record.SelfCheck
+	switch {
+	case !cfg.SelfCheck || runErr != nil:
+	case r.usage.InputTokens+r.usage.OutputTokens >= r.tokens:
+		// The budget is the user's cap on what a run spends, and the self-check is one more call.
+		fmt.Fprintln(r.log, "self-check: skipped, the token budget is spent")
+	default:
+		checks = r.selfCheck(ctx, finish)
+	}
 	rec := r.record(finish, runErr)
+	rec.SelfCheck = checks
 	path, err := record.Write(cfg.OutDir, rec)
 	if err != nil {
 		return nil, fmt.Errorf("write run record: %w", err)
@@ -411,6 +437,21 @@ func (r *run) play(ctx context.Context) (finish *Finish, gaveUp *GaveUp, err err
 					fmt.Fprintf(r.log, "finish: %d finding(s) dropped, their symptom was not in the closed list\n", f.DropInvalid())
 				}
 				r.dropHarnessOnly(&f)
+				if probs := VerifyEvidence(&f, r.steps); len(probs) > 0 {
+					if evidenceRetry(r.evidenceRetries, r.forced) {
+						r.evidenceRetries++
+						r.entries = append(r.entries, entry{role: provider.RoleTool, callID: call.ID,
+							text: "finish was not accepted: " + strings.Join(probs, "; ") + ". Call finish again with the same report, fixing these findings and keeping the others as they are."})
+						continue
+					}
+					for _, ff := range f.Findings {
+						if ff.EvidenceStep == 0 {
+							r.addEvent("unverified:"+ff.Title, record.Event{Kind: record.EventUncitedFinding, Step: len(r.steps),
+								Detail: "finding kept as a note because nothing at its cited steps shows it: " + ff.Title})
+						}
+					}
+					fmt.Fprintf(r.log, "finish: %d finding(s) kept as notes, nothing at their cited steps shows them\n", DemoteUnverified(&f))
+				}
 				r.finishStep(ctx, f)
 				return &f, r.patience.GaveUp(), nil
 			}
@@ -509,7 +550,8 @@ func (r *run) execute(ctx context.Context, call provider.ToolCall) *Step {
 // for the next step and saves the observation.
 func (r *run) finishExecute(obs page.Observation, controlsBefore []page.Control, startedAt time.Time, refusal string) *Step {
 	sig := Signature(obs)
-	step := &Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: sig != r.lastSig, Refusal: refusal}
+	step := &Step{N: len(r.steps) + 1, At: startedAt, Obs: obs, PageChanged: sig != r.lastSig, Refusal: refusal,
+		Element: ElementFor(obs.Target, controlsBefore, obs.Snapshot)}
 	r.lastSig = sig
 	step.Hits = r.inspect(step)
 	if n := offSite(obs.Blocked); n > 0 && !r.offSiteNoted {
@@ -617,10 +659,11 @@ func errSuffix(o page.Observation) string {
 }
 
 func shorten(s string, n int) string {
-	if len(s) <= n {
+	r := []rune(s)
+	if len(r) <= n {
 		return s
 	}
-	return s[:n-3] + "..."
+	return string(r[:n-3]) + "..."
 }
 
 // offOriginError is the refusal of an address outside the target's allow list.
@@ -805,9 +848,10 @@ func (r *run) systemPrompt() string {
 	}
 	fmt.Fprintf(&b, "- Patience: you have %d actions. After three failed tries at the same thing, give up and report where you got stuck, as a real user would.\n", r.budget)
 	b.WriteString("- Look, then act. Use the numbered controls (@12) from the latest result. Type an address only when the scenario says to.\n")
-	b.WriteString("- Evidence or it did not happen: every finding names the step numbers that show it.\n")
+	b.WriteString("- Evidence or it did not happen: every finding names the step numbers that show it and either the control (@12 from that step) or words copied exactly from the page in quote. The engine checks both, and a finding it cannot find on the page becomes a note that is not reported.\n")
 	b.WriteString("- A control shown as \"(no name)\" is only a candidate. Before you report a missing name, run the accessibility check on that page, and report it only when the check confirms it with a rule such as link-name, button-name, label, select-name, image-alt or input-image-alt. A control marked \"(hidden)\" is hidden from screen readers on purpose and is not a finding. Controls inside a closed menu or a collapsed section are not listed at all until you open it.\n")
 	b.WriteString("- The test's own limits are not the site's faults: requests the test blocks (other sites, anything that would send or change data), read-only refusals, failed or timed-out tools, a page the browser could not read, and files that are not web pages, such as feeds and PDFs. Never report them as findings. Say in your report if one stopped you.\n")
+	b.WriteString("- Be specific: a title names the element and the page (\"The three 'Read more' links on /blog have the same name\"), the body says who it affects and why, and fix says what to change. Report only what matters to the people this site is for; do not report something as missing when this kind of site would not have it.\n")
 	b.WriteString("- Likely, not certain: write \"possible bug\" and \"I think\". A reviewer and a person decide.\n")
 	b.WriteString("- Never copy a person's name, email address or other personal data from the site into your report. Describe what you saw.\n")
 	b.WriteString("- Stop on harm: anything that could reach a real person (email, payment, someone else's account) ends the run with verdict blocked.\n")
@@ -825,7 +869,7 @@ func (r *run) systemPrompt() string {
 		"\"Actions left\" is your budget. If the page did not change after an action, the result says so: do not repeat it, try something else or give up. " +
 		"Step numbers in your report are the harness's own (\"step N\" in each result). When you are done, or have given up, call finish with your verdict, " +
 		"your report, your findings and your observations. Findings are problems only: something wrong, missing or confusing. Each one has its kind, symptom (chosen from the list in the tool), title, the steps that show it, " +
-		"whether you measured it or inferred it and, when it is about one control, that control's @number. Observations are things that worked and neutral notes, each with the steps that show it. " +
+		"whether you measured it or inferred it, the control's @number or the exact words from the page, who it affects and how to fix it. Observations are things that worked and neutral notes, each with the steps that show it. " +
 		"A finding: \"The search box has no label, so a screen reader user cannot tell what it is for.\" An observation: \"The home page accessibility check found no violations.\" " +
 		"Never report something that worked as a finding. Say in goal_met whether you did what you came to do.\n")
 	return b.String()
@@ -836,7 +880,7 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 	rec := &record.Record{
 		SchemaVersion: record.SchemaVersion, ID: r.id, Batch: cfg.Batch, StartedAt: r.started, EndedAt: time.Now().UTC(),
 		RepeatIndex: r.repeatIndex(), Seed: r.seedSent,
-		Persona:  record.Persona{ID: cfg.Persona.ID, Role: cfg.Persona.Role, Device: r.display.Device, Dimensions: r.dimensions()},
+		Persona:  record.Persona{ID: cfg.Persona.ID, Name: cfg.Persona.Name, Role: cfg.Persona.Role, Device: r.display.Device, Dimensions: r.dimensions()},
 		Scenario: record.Scenario{ID: cfg.Scenario.ID, Title: cfg.Scenario.Title, GoalMet: "no"},
 		Target:   r.target(),
 		Provider: record.Provider{Kind: cfg.Provider.Kind(), Model: cfg.Provider.Model(), Region: cfg.Provider.Region()},
@@ -858,7 +902,7 @@ func (r *run) record(finish *Finish, runErr error) *record.Record {
 	}
 	loc := NewLocator(r.steps)
 	for _, s := range r.steps {
-		st := record.Step{N: s.N, At: s.At, Action: s.Obs.Action, Target: s.Obs.Target, URL: s.Obs.URL, Route: loc.StepRoute(s.N),
+		st := record.Step{N: s.N, At: s.At, Action: s.Obs.Action, Target: s.Obs.Target, Element: s.Element, URL: s.Obs.URL, Route: loc.StepRoute(s.N),
 			DurationMs: int(s.Obs.Duration.Milliseconds()), ConsoleErrors: record.Int(len(s.Obs.ConsoleErrors))}
 		if len(s.Obs.Screenshot) > 0 {
 			st.Screenshot = fmt.Sprintf("%s/screens/%03d.png", r.id, s.N)

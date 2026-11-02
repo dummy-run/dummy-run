@@ -64,6 +64,9 @@ type Run struct {
 	// Events are accepted so a record that has them loads. The exporter does not send them,
 	// because an event's detail is page text.
 	Events []json.RawMessage `json:"events,omitempty"`
+	// SelfCheck is the self-check's decision on each finding. It is accepted so the record loads and never sent:
+	// its reasons and rewrites are model text about page text.
+	SelfCheck []json.RawMessage `json:"self_check,omitempty"`
 }
 
 // PreviewAccess holds names only: the methods and the header names, never a value.
@@ -72,15 +75,19 @@ type PreviewAccess struct {
 	HeaderNames []string `json:"header_names,omitempty"`
 }
 
-// Observation is a note that something worked. It is not a finding and the exporter ignores it.
+// Observation is a note that something worked, or, with a Kind of unverified or downgraded, a problem the
+// persona claimed that did not become a finding. It is not a finding and the exporter ignores it.
 type Observation struct {
 	Text  string `json:"text"`
 	Steps []int  `json:"steps"`
+	Kind  string `json:"kind,omitempty"`
 }
 
 // Persona is the fictional user who ran the scenario.
 type Persona struct {
-	ID     string `json:"id"`
+	ID string `json:"id"`
+	// Name is the persona's first name from its profile. The exporter does not send it.
+	Name   string `json:"name,omitempty"`
 	Role   string `json:"role"`
 	Device string `json:"device"`
 	// Zoom is the page zoom in percent, or 0 when the record has none (100).
@@ -165,18 +172,20 @@ type Browser struct {
 
 // Step is one action the persona took.
 type Step struct {
-	N              int       `json:"n"`
-	At             time.Time `json:"at"`
-	Action         string    `json:"action"`
-	Target         *string   `json:"target,omitempty"`
-	URL            *string   `json:"url,omitempty"`
-	Route          *string   `json:"route,omitempty"`
-	Status         *int      `json:"status,omitempty"`
-	DurationMS     int64     `json:"duration_ms"`
-	Screenshot     *string   `json:"screenshot,omitempty"`
-	ConsoleErrors  *int      `json:"console_errors,omitempty"`
-	A11yViolations *int      `json:"a11y_violations,omitempty"`
-	Note           *string   `json:"note,omitempty"`
+	N      int       `json:"n"`
+	At     time.Time `json:"at"`
+	Action string    `json:"action"`
+	Target *string   `json:"target,omitempty"`
+	// Element is the control the action used, as role and name. It is page text, so the exporter does not send it.
+	Element        *string `json:"element,omitempty"`
+	URL            *string `json:"url,omitempty"`
+	Route          *string `json:"route,omitempty"`
+	Status         *int    `json:"status,omitempty"`
+	DurationMS     int64   `json:"duration_ms"`
+	Screenshot     *string `json:"screenshot,omitempty"`
+	ConsoleErrors  *int    `json:"console_errors,omitempty"`
+	A11yViolations *int    `json:"a11y_violations,omitempty"`
+	Note           *string `json:"note,omitempty"`
 }
 
 // Finding is one problem the persona reported and the reviewer judged.
@@ -206,6 +215,16 @@ type Finding struct {
 	// Inputs are the facts the engine recorded about the finding, from which its severity and confidence come.
 	// The exporter accepts them and sends nothing for them yet.
 	Inputs *FindingInputs `json:"inputs,omitempty"`
+	// Body, Fix, WCAG, Element, Quote, URL and EvidenceStep are the finding's words and the evidence the engine
+	// found for it. They are accepted so the record loads; the exporter sends nothing for them, since the words
+	// come from the model and the page.
+	Body         string   `json:"body,omitempty"`
+	Fix          string   `json:"fix,omitempty"`
+	WCAG         []string `json:"wcag,omitempty"`
+	Element      string   `json:"element,omitempty"`
+	Quote        string   `json:"quote,omitempty"`
+	URL          string   `json:"url,omitempty"`
+	EvidenceStep int      `json:"evidence_step,omitempty"`
 }
 
 // FindingInputs are the observable inputs of a finding: the kind of evidence, the engines that agree, the check,

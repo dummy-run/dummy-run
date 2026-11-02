@@ -115,6 +115,7 @@ type ModelUse struct {
 // PersonaUse describes one persona across its runs.
 type PersonaUse struct {
 	ID         string   `json:"id"`
+	Name       string   `json:"name,omitempty"`
 	Role       string   `json:"role"`
 	Devices    []string `json:"devices"`
 	Dimensions []string `json:"dimensions"`
@@ -192,8 +193,17 @@ type Finding struct {
 	Reviewers  []string `json:"reviewers,omitempty"`
 	ReviewedAt string   `json:"reviewed_at,omitempty"`
 	Reason     string   `json:"reason,omitempty"`
-	// WCAG lists success criteria where known. Persona findings often have none.
+	// WCAG lists success criteria where known: from the axe rule, or the ones the persona named that exist.
 	WCAG []string `json:"wcag,omitempty"`
+	// Body says who the problem affects and why. FixText says what to change in one sentence. Both are the
+	// persona's words, or the self-check's when it rewrote them. Fix, below, is the fix library's advice.
+	Body    string `json:"body,omitempty"`
+	FixText string `json:"fix_text,omitempty"`
+	// Element is what the evidence shows, as the engine found it at the cited step: a control as role and name,
+	// quoted text, or an axe rule. Quote is the words from the page, and URL the page's address.
+	Element string `json:"element,omitempty"`
+	Quote   string `json:"quote,omitempty"`
+	URL     string `json:"url,omitempty"`
 	// EN301549 lists the clauses of EN 301 549 V3.2.1 that match the WCAG criteria. A criterion WCAG 2.2 added has
 	// none.
 	EN301549 []string `json:"en_301_549,omitempty"`
@@ -220,13 +230,15 @@ type Finding struct {
 
 // Reproduction is the context and cited steps of one run that found the problem.
 type Reproduction struct {
-	Run     string    `json:"run"`
-	Persona string    `json:"persona"`
-	Role    string    `json:"role"`
-	Device  string    `json:"device"`
-	Zoom    int       `json:"zoom_percent"`
-	Browser string    `json:"browser"`
-	Steps   []StepRef `json:"steps"`
+	Run     string `json:"run"`
+	Persona string `json:"persona"`
+	Role    string `json:"role"`
+	// SignedIn is true when the engine signed the persona in before the run.
+	SignedIn bool      `json:"signed_in,omitempty"`
+	Device   string    `json:"device"`
+	Zoom     int       `json:"zoom_percent"`
+	Browser  string    `json:"browser"`
+	Steps    []StepRef `json:"steps"`
 }
 
 // StepRef is a cited step.
@@ -234,9 +246,13 @@ type StepRef struct {
 	N      int    `json:"n"`
 	Action string `json:"action"`
 	Target string `json:"target,omitempty"`
-	Route  string `json:"route,omitempty"`
-	URL    string `json:"url,omitempty"`
-	Note   string `json:"note,omitempty"`
+	// Element is the control the action used, as role and name.
+	Element string `json:"element,omitempty"`
+	Route   string `json:"route,omitempty"`
+	URL     string `json:"url,omitempty"`
+	Note    string `json:"note,omitempty"`
+	// Evidence marks the step where the engine found what the finding claims.
+	Evidence bool `json:"evidence,omitempty"`
 }
 
 // Screenshot refers to a screenshot of a cited step. File is where it was found, and is empty when

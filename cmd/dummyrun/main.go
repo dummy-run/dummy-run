@@ -107,7 +107,7 @@ func usage() {
   dummyrun run --cast DIR --persona ID --scenario ID|--scenario-file FILE --target CONFIG --out DIR \
       --browser chrome|firefox [--provider PROVIDER --model MODEL] [--region REGION] [--endpoint URL] \
       [--api-key-env NAME] [--project ID] [--reasoning-effort LEVEL] [--openai-api chat|responses] \
-      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] \
+      [--batch ID] [--seed N] [--repeat-index N] [--universe sitemap|URL] [--session FILE] [--identify] [--respect-robots] [--self-check=false] \
       [--basic-auth-env USER_ENV:PASS_ENV] [--header-env 'Name:ENV']...
   dummyrun coverage --runs DIR [--build SHA] [--strata device|persona] [--confirmed-only=false] [--threshold NAME=VALUE]... \
       [--clusters FILE]... [--format json|markdown] [--out FILE] [--fail-unless-stopped]
@@ -163,6 +163,7 @@ func runCmd(args []string) int {
 	sessionFile := fs.String("session", "", "sign in from this saved session file (see \"dummyrun session save\") instead of the login form")
 	universe := fs.String("universe", "", "where the routes that exist come from, for route coverage: \"sitemap\" (base_url/sitemap.xml) or a sitemap URL")
 	headful := fs.Bool("headful", false, "show the browser window")
+	selfCheck := fs.Bool("self-check", true, "after the persona finishes, one more call to the run's model checks each finding against its evidence and the scenario's Site line, and keeps, rewrites, downgrades or drops it; --self-check=false turns it off")
 	identify := fs.Bool("identify", false, "add \"DummyRun/<version> (+"+telemetry.ScannerURL+")\" to the browser's user agent (also set by \"identify\": true in the target file)")
 	respect := fs.Bool("respect-robots", false, "fetch robots.txt from the target origin and block what it disallows for DummyRun or * (also set by \"respect_robots\": true in the target file); a site-wide disallow stops the run before the browser starts")
 	var preview authFlags
@@ -232,7 +233,7 @@ func runCmd(args []string) int {
 	cfg := runner.Config{
 		Persona: persona, Scenario: scenario, Target: target, Provider: p, Browser: *browser, Headless: !*headful,
 		OutDir: *out, SessionFile: *sessionFile, StepBudget: *steps, TokenBudget: *tokens, Batch: *batch, Log: os.Stderr,
-		HTTPClient: access.WrapClient(requestClient(target.Identify), pa), Access: pa,
+		HTTPClient: access.WrapClient(requestClient(target.Identify), pa), Access: pa, SelfCheck: *selfCheck,
 	}
 	if *seed >= 0 {
 		cfg.Seed = seed
