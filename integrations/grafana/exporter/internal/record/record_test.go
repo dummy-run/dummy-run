@@ -334,3 +334,46 @@ func TestRecordsWithEventsLoad(t *testing.T) {
 		t.Errorf("%d events kept, want 1", len(run.Events))
 	}
 }
+
+// TestRecordsWithEvidenceAndSelfCheckLoad checks the strict decoder accepts a record from an engine that writes
+// each finding's evidence, the persona's name, each step's element and the self-check's decisions.
+func TestRecordsWithEvidenceAndSelfCheckLoad(t *testing.T) {
+	v, err := NewValidator()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(repoRoot, "examples", "runs", "2026-10-16-ada-editor-003.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		t.Fatal(err)
+	}
+	m["persona"].(map[string]any)["name"] = "Ada"
+	steps := m["steps"].([]any)
+	steps[0].(map[string]any)["element"] = `link "Read more"`
+	findings := m["findings"].([]any)
+	f := findings[0].(map[string]any)
+	f["body"] = "Screen reader users hear three links with the same name."
+	f["fix"] = "Add the post title to each link."
+	f["wcag"] = []any{"2.4.4"}
+	f["element"] = `link "Read more"`
+	f["quote"] = "Read more"
+	f["url"] = "https://example.test/blog/"
+	f["evidence_step"] = 1
+	m["observations"] = []any{map[string]any{"text": "No pricing page.", "steps": []any{1}, "kind": "unverified"}}
+	m["self_check"] = []any{map[string]any{"finding": f["title"], "decision": "keep", "reason": "shown by the evidence"}}
+	withEvidence, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := v.Parse(withEvidence)
+	if err != nil {
+		t.Fatalf("a record with evidence and a self-check must load: %v", err)
+	}
+	if run.Persona.Name != "Ada" || run.Findings[0].EvidenceStep != 1 || run.Findings[0].Element == "" ||
+		len(run.SelfCheck) != 1 || run.Observations[0].Kind != "unverified" || run.Steps[0].Element == nil {
+		t.Errorf("the new fields were not read: %+v", run.Findings[0])
+	}
+}

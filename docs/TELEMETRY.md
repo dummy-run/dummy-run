@@ -135,8 +135,15 @@ are only right for runs you exported after review.
 
 A record can also hold a `preview_access` block, which names the Basic auth or header protection the run got past. The exporter accepts it and sends nothing for it, and it never holds a secret.
 
-A record can also hold an `observations` list of things that worked. The exporter sends nothing for it,
-and the findings metric doesn't count it.
+A record can also hold an `observations` list. An observation with no `kind` is something that worked or a
+neutral note. One with `kind: unverified` or `kind: downgraded` is a problem the persona claimed that didn't
+become a finding: its evidence wasn't at the cited steps, or the self-check judged it not worth one. The
+exporter sends nothing for any of them, the findings metric doesn't count them, and the `self_check` list is
+ignored the same way.
+
+Findings can carry `body`, `fix` and `wcag`. They can also carry `element`, `quote`, `url` and `evidence_step`. Steps can carry
+`element`, and the persona can carry `name`. These are all optional, and the exporter doesn't send them. A
+reader built from an earlier copy of the schema rejects a record that has them.
 
 ## Metrics
 

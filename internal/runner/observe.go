@@ -25,6 +25,8 @@ type Step struct {
 	// OffSiteNote says once per run that the test stopped page loads on other sites, with how many. Empty on
 	// every other step.
 	OffSiteNote string
+	// Element is the control the action used, as role and name, when the target was an @ref.
+	Element string
 }
 
 // Render writes the observation the way the persona reads it, with no fence around the page's text.
