@@ -6,7 +6,7 @@
 # The browser versions match .github/workflows/engine.yml. The release-check workflow fails when they differ.
 
 # debian:trixie-slim, pinned by digest. Dependabot keeps it current.
-FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS browsers
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS browsers
 
 ARG TARGETARCH
 ARG CHROME_FOR_TESTING=155.0.8059.12
@@ -76,7 +76,7 @@ RUN apt-get update \
  && printf '#!/bin/sh\nexec /opt/vnu/jre/bin/java -Xss1m -jar /opt/vnu/vnu.jar "$@"\n' > /opt/vnu/bin/vnu \
  && chmod 0755 /opt/vnu/bin/vnu
 
-FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
 # Libraries that Chrome for Testing and Firefox load, fonts for screenshots, and tini as the init process.
 RUN apt-get update \
